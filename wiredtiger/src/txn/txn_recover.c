@@ -452,6 +452,9 @@ __recovery_file_scan(WT_RECOVERY *r)
  * __wt_txn_recover --
  *	Run recovery.
  */
+/*redo log恢复
+red log将所有对页面的修改操作写入一个专门的文件，并在数据库启动时从此文件进行恢复操作，这个文件就是redo log file
+*/
 int
 __wt_txn_recover(WT_SESSION_IMPL *session)
 {
@@ -470,12 +473,14 @@ __wt_txn_recover(WT_SESSION_IMPL *session)
 	was_backup = F_ISSET(conn, WT_CONN_WAS_BACKUP);
 
 	/* We need a real session for recovery. */
+	/*创建一个recover session*/
 	WT_RET(__wt_open_internal_session(conn, "txn-recover",
 	    false, WT_SESSION_NO_LOGGING, &session));
 	r.session = session;
 	WT_MAX_LSN(&r.max_lsn);
 
 	F_SET(conn, WT_CONN_RECOVERING);
+	/*确定meta log file的cursor*/
 	WT_ERR(__wt_metadata_search(session, WT_METAFILE_URI, &config));
 	WT_ERR(__recovery_setup_file(&r, WT_METAFILE_URI, config));
 	WT_ERR(__wt_metadata_cursor_open(session, NULL, &metac));
@@ -575,6 +580,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session)
 	__wt_verbose(session, WT_VERB_RECOVERY | WT_VERB_RECOVERY_PROGRESS,
 	    "Main recovery loop: starting at %" PRIu32 "/%" PRIu32,
 	    r.ckpt_lsn.l.file, r.ckpt_lsn.l.offset);
+	/*检查redo log恢复标示*/
 	WT_ERR(__wt_log_needs_recovery(session, &r.ckpt_lsn, &needs_rec));
 	/*
 	 * Check if the database was shut down cleanly.  If not
@@ -627,6 +633,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session)
 	 * open is fast and keep the metadata up to date with the checkpoint
 	 * LSN and archiving.
 	 */
+	 /* 恢复完成，建立一个checkpoint*/
 ckpt:	WT_ERR(session->iface.checkpoint(&session->iface, "force=1"));
 done:	FLD_SET(conn->log_flags, WT_CONN_LOG_RECOVER_DONE);
 err:	WT_TRET(__recovery_free(&r));

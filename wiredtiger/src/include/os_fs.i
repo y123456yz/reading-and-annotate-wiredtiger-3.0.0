@@ -9,7 +9,7 @@
 /*
  * __wt_fs_directory_list --
  *	Return a list of files from a directory.
- */
+ */ /*目录文件扫描,匹配prefix的文件或目录,并存入dirlist中*/
 static inline int
 __wt_fs_directory_list(WT_SESSION_IMPL *session,
     const char *dir, const char *prefix, char ***dirlistp, u_int *countp)

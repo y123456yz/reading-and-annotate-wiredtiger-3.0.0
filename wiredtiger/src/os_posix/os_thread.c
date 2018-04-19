@@ -12,6 +12,7 @@
  * __wt_thread_create --
  *	Create a new thread of control.
  */
+//__thread_group_resize中创建的线程，这里创建的线程需要通过__wt_thread_group_start_one来激活
 int
 __wt_thread_create(WT_SESSION_IMPL *session,
     wt_thread_t *tidret, WT_THREAD_CALLBACK(*func)(void *), void *arg)

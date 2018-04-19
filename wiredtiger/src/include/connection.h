@@ -159,7 +159,7 @@ struct __wt_named_extractor {
  * WT_CONNECTION_IMPL --
  *	Implementation of WT_CONNECTION
  */
-//S2C完成session到connection转换
+//S2C完成session(WT_SESSION_IMPL)到connection(__wt_connection_impl)转换
 struct __wt_connection_impl { 
 	WT_CONNECTION iface; //赋值参考 wiredtiger_open
 
@@ -311,8 +311,11 @@ struct __wt_connection_impl {
 
 	bool		 evict_server_running;/* Eviction server operating */
 
-	WT_THREAD_GROUP  evict_threads;
+    //__wt_evict_create中赋值
+	WT_THREAD_GROUP  evict_threads; 
+	//线程组中总的线程数
 	uint32_t	 evict_threads_max;/* Max eviction threads */
+	//线程组中活跃线程数
 	uint32_t	 evict_threads_min;/* Min eviction threads */
 
     //赋值见__statlog_config

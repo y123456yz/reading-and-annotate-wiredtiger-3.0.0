@@ -12,6 +12,7 @@
  * __logmgr_sync_cfg --
  *	Interpret the transaction_sync config.
  */
+/*从配置字符串中解析transaction_sync对应的配置项目*/
 static int
 __logmgr_sync_cfg(WT_SESSION_IMPL *session, const char **cfg)
 {
@@ -308,6 +309,7 @@ __wt_logmgr_reconfig(WT_SESSION_IMPL *session, const char **cfg)
  *	Perform one iteration of log archiving.  Must be called with the
  *	log archive lock held.
  */
+/*进行一次日志归档操作,相当于删除多余的日志文件*/
 static int
 __log_archive_once(WT_SESSION_IMPL *session, uint32_t backup_file)
 {
@@ -330,7 +332,7 @@ __log_archive_once(WT_SESSION_IMPL *session, uint32_t backup_file)
 	 * the last full log file copied in backup or the checkpoint LSN.
 	 * Otherwise we want the minimum of the last log file written to
 	 * disk and the checkpoint LSN.
-	 */
+	 */ /*一定是从小于checkpoint处进行归档的，如果从大于checkpoint处去归档，那么很有可能会丢失数据*/
 	if (backup_file != 0)
 		min_lognum = WT_MIN(log->ckpt_lsn.l.file, backup_file);
 	else
@@ -342,7 +344,7 @@ __log_archive_once(WT_SESSION_IMPL *session, uint32_t backup_file)
 	/*
 	 * Main archive code.  Get the list of all log files and
 	 * remove any earlier than the minimum log number.
-	 */
+	 */ /*获得log目录下的日志文件名列表*/
 	WT_ERR(__wt_fs_directory_list(
 	    session, conn->log_path, WT_LOG_FILENAME, &logfiles, &logcount));
 
@@ -357,10 +359,13 @@ __log_archive_once(WT_SESSION_IMPL *session, uint32_t backup_file)
 			WT_ERR(__wt_log_extract_lognum(
 			    session, logfiles[i], &lognum));
 			if (lognum < min_lognum)
+			/*删除要归档的日志文件,这个地方直接删除，会不会不妥，innobase里面是将文件
+			 *备份到一个目录，定时拷贝走*/
 				WT_ERR(__wt_log_remove(
 				    session, WT_LOG_FILENAME, lognum));
 		}
 	}
+	/*正常结束，进行资源释放*/
 	__wt_readunlock(session, &conn->hot_backup_lock);
 	locked = false;
 
@@ -382,6 +387,7 @@ err:		__wt_err(session, ret, "log archive server error");
  * __log_prealloc_once --
  *	Perform one iteration of log pre-allocation.
  */
+/*进行一次日志文件预分配*/
 static int
 __log_prealloc_once(WT_SESSION_IMPL *session)
 {
@@ -400,13 +406,15 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
 	 * Allocate up to the maximum number, accounting for any existing
 	 * files that may not have been used yet.
 	 */
+	/*计算已经在log目录下存在的预分配文件数量*/
 	WT_ERR(__wt_fs_directory_list(
 	    session, conn->log_path, WT_LOG_PREPNAME, &recfiles, &reccount));
 
 	/*
 	 * Adjust the number of files to pre-allocate if we find that
 	 * the critical path had to allocate them since we last ran.
-	 */
+	 */ 
+	/*假如以前有预分配文件重复利用了已经存在的预分配文件，那么将重复利用的次数 和预分配的文件数相加，作为本次预分配的文件数*/
 	if (log->prep_missed > 0) {
 		conn->log_prealloc += log->prep_missed;
 		__wt_verbose(session, WT_VERB_LOG,
@@ -417,6 +425,7 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
 	/*
 	 * Allocate up to the maximum number that we just computed and detected.
 	 */
+	/*建立预分配日志文件*/
 	for (i = reccount; i < (u_int)conn->log_prealloc; i++) {
 		WT_ERR(__wt_log_allocfile(
 		    session, ++log->prep_fileid, WT_LOG_PREPNAME));
@@ -459,6 +468,7 @@ __wt_log_truncate_files(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool force)
 
 	log = conn->log;
 
+    /*确定归档的最大日志文件序号*/
 	backup_file = 0;
 	if (cursor != NULL) {
 		WT_ASSERT(session, force == false);
@@ -467,7 +477,7 @@ __wt_log_truncate_files(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool force)
 	WT_ASSERT(session, backup_file <= log->alloc_lsn.l.file);
 	__wt_verbose(session, WT_VERB_LOG,
 	    "log_truncate_files: Archive once up to %" PRIu32, backup_file);
-
+    /*进行日志归档,这里用的是一个读写锁？？*/
 	__wt_writelock(session, &log->log_archive_lock);
 	ret = __log_archive_once(session, backup_file);
 	__wt_writeunlock(session, &log->log_archive_lock);
@@ -479,6 +489,7 @@ __wt_log_truncate_files(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool force)
  *	The log file server thread.  This worker thread manages
  *	log file operations such as closing and syncing.
  */
+/*对close_fh对应的文件进行fsync和关闭操作,一般只有等到log_close_cond信号触发才会进行一次close操作检查,是一个线程体函数*/
 static WT_THREAD_RET
 __log_file_server(void *arg)
 {
@@ -502,6 +513,8 @@ __log_file_server(void *arg)
 		 * If there is a log file to close, make sure any outstanding
 		 * write operations have completed, then fsync and close it.
 		 */
+		/*close fh中有文件等待close操作，并且文件末尾对应的LSN
+位置已经小于正在写日志的文件LSN,表明这个文件不可能再支持写，可以关闭*/
 		if ((close_fh = log->log_close_fh) != NULL) {
 			WT_ERR(__wt_log_extract_lognum(session, close_fh->name,
 			    &filenum));
@@ -533,7 +546,7 @@ __log_file_server(void *arg)
 				 * calls are still in progress and the next one
 				 * to move the sync_lsn into the next file for
 				 * later syncs.
-				 */
+				 */ /*进行fsync操作*/
 				WT_ERR(__wt_fsync(session, close_fh, true));
 
 				/*
@@ -561,10 +574,12 @@ __log_file_server(void *arg)
 				    close_end_lsn.l.file + 1, 0);
 				__wt_spin_lock(session, &log->log_sync_lock);
 				locked = true;
+				/*关闭文件*/
 				WT_ERR(__wt_close(session, &close_fh));
 				WT_ASSERT(session, __wt_log_cmp(
 				    &close_end_lsn, &log->sync_lsn) >= 0);
 				log->sync_lsn = close_end_lsn;
+				/*触发一个log_sync_cond表示sync_lsn重新设置了新的值*/
 				__wt_cond_signal(session, log->log_sync_cond);
 				locked = false;
 				__wt_spin_unlock(session, &log->log_sync_lock);
@@ -633,6 +648,7 @@ __log_file_server(void *arg)
 		}
 
 		/* Wait until the next event. */
+		/*等待下一次文件的close cond*/
 		__wt_cond_wait(session, conn->log_file_cond, 100000, NULL);
 	}
 
@@ -668,6 +684,7 @@ typedef struct {
  *	are contiguous.  The purpose of this function is to advance the
  *	write_lsn in LSN order after the buffer is written to the log file.
  */
+/*只是处理SLOT_BUFFERED且不主动的fsync的模式*/
 void
 __wt_log_wrlsn(WT_SESSION_IMPL *session, int *yield)
 {
@@ -692,9 +709,11 @@ restart:
 	 * Walk the array once saving any slots that are in the
 	 * WT_LOG_SLOT_WRITTEN state.
 	 */
+	/*这里不需要对slot pool进行多线程保护，因为slot pool是个静态的数组*/
 	while (i < WT_SLOT_POOL) {
 		save_i = i;
 		slot = &log->slot_pool[i++];
+		 /*过滤掉非WRITTEN状态*/
 		if (slot->slot_state != WT_LOG_SLOT_WRITTEN)
 			continue;
 		written[written_i].slot_index = save_i;
@@ -707,6 +726,9 @@ restart:
 	if (written_i > 0) {
 		if (yield != NULL)
 			*yield = 0;
+			/*触发一次，表示后续可能很多这样的操作，所以讲yield进行操作*/
+
+	    /*按LSN由小到大排序,因为要按slot进行数据刷盘*/
 		WT_INSERTION_SORT(written, written_i,
 		    WT_LOG_WRLSN_ENTRY, WT_WRLSN_ENTRY_CMP_LT);
 		/*
@@ -792,7 +814,7 @@ restart:
 				__wt_cond_signal(session, log->log_write_cond);
 				WT_STAT_CONN_INCR(session, log_write_lsn);
 				/*
-				 * Signal the close thread if needed.
+				 * Signal the close thread if needed. 尝试把file page cache的数据sync到磁盘上
 				 */
 				if (F_ISSET(slot, WT_SLOT_CLOSEFH))
 					__wt_cond_signal(
@@ -865,7 +887,7 @@ err:		WT_PANIC_MSG(session, ret, "log wrlsn server error");
 /*
  * __log_server --
  *	The log server thread.
- */
+ */ /*一个专门删除已经建立checkpoint的日志文件，一般1000触发一次*/
 static WT_THREAD_RET
 __log_server(void *arg)
 {
@@ -928,7 +950,7 @@ __log_server(void *arg)
 				 * the database directory.
 				 */
 				__wt_readlock(session, &conn->hot_backup_lock);
-				if (!conn->hot_backup)
+				if (!conn->hot_backup) /*进行预分配日志文件*/
 					ret = __log_prealloc_once(session);
 				__wt_readunlock(
 				    session, &conn->hot_backup_lock);
@@ -939,6 +961,7 @@ __log_server(void *arg)
 			 * Perform the archive.
 			 */
 			if (FLD_ISSET(conn->log_flags, WT_CONN_LOG_ARCHIVE)) {
+			    /*删除已经checkpoint的日志文件,注意：其实WT整个引擎很少发生对log_archive_lock竞争，所以即使使用spin lock也消耗不大*/
 				if (__wt_try_writelock(
 				    session, &log->log_archive_lock) == 0) {
 					ret = __log_archive_once(session, 0);
@@ -955,7 +978,7 @@ __log_server(void *arg)
 		/* Wait until the next event. */
 		__wt_epoch(session, &start);
 		__wt_cond_auto_wait_signal(
-		    session, conn->log_cond, did_work, NULL, &signalled);
+		    session, conn->log_cond, did_work, NULL, &signalled); /*1000秒*/
 		__wt_epoch(session, &now);
 		timediff = WT_TIMEDIFF_MS(now, start);
 	}
@@ -1022,6 +1045,7 @@ __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
 	log->fileid = 0;
 	WT_RET(__logmgr_version(session, false));
 
+    //条件变量初始化
 	WT_RET(__wt_cond_alloc(session, "log sync", &log->log_sync_cond));
 	WT_RET(__wt_cond_alloc(session, "log write", &log->log_write_cond));
 	WT_RET(__wt_log_open(session));
@@ -1034,6 +1058,7 @@ __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
  * __wt_logmgr_open --
  *	Start the log service threads.
  */
+/*启动wiredtiger日志系统*/
 int
 __wt_logmgr_open(WT_SESSION_IMPL *session)
 {
@@ -1053,6 +1078,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
 	 * If logging is enabled, this thread runs.
 	 */
 	session_flags = WT_SESSION_NO_DATA_HANDLES;
+	/*为日志系统分配一个log close session,启动一个log close session线程*/
 	WT_RET(__wt_open_internal_session(conn,
 	    "log-close-server", false, session_flags, &conn->log_file_session));
 	WT_RET(__wt_cond_alloc(
@@ -1068,7 +1094,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
 	/*
 	 * Start the log write LSN thread.  It is not configurable.
 	 * If logging is enabled, this thread runs.
-	 */
+	 */ /*创建一个wrlsn的session,并启动一个wrlsn thread*/
 	WT_RET(__wt_open_internal_session(conn, "log-wrlsn-server",
 	    false, session_flags, &conn->log_wrlsn_session));
 	WT_RET(__wt_cond_auto_alloc(conn->log_wrlsn_session,
@@ -1083,6 +1109,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
 	 * user wants archiving and/or allocation and we need to start up
 	 * the thread.
 	 */
+	/*如果已经建立log_session,触发一个log_cond信号，让log_server执行一次*/
 	if (conn->log_session != NULL) {
 		WT_ASSERT(session, conn->log_cond != NULL);
 		WT_ASSERT(session, conn->log_tid_set == true);
@@ -1108,7 +1135,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
 /*
  * __wt_logmgr_destroy --
  *	Destroy the log archiving server thread and logging subsystem.
- */
+ */ /*关闭日志系统，并进行其进行内存释放*/
 int
 __wt_logmgr_destroy(WT_SESSION_IMPL *session)
 {
@@ -1119,7 +1146,7 @@ __wt_logmgr_destroy(WT_SESSION_IMPL *session)
 	conn = S2C(session);
 
 	F_CLR(conn, WT_CONN_SERVER_LOG);
-
+    /*日志模块没启动*/
 	if (!FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED)) {
 		/*
 		 * We always set up the log_path so printlog can work without
@@ -1129,6 +1156,7 @@ __wt_logmgr_destroy(WT_SESSION_IMPL *session)
 		__wt_free(session, conn->log_path);
 		return (0);
 	}
+	/*等待log_server线程的退出*/
 	if (conn->log_tid_set) {
 		__wt_cond_signal(session, conn->log_cond);
 		WT_TRET(__wt_thread_join(session, conn->log_tid));
@@ -1165,6 +1193,7 @@ __wt_logmgr_destroy(WT_SESSION_IMPL *session)
 		conn->log_session = NULL;
 	}
 
+    /*释放log对象*/
 	/* Destroy the condition variables now that all threads are stopped */
 	__wt_cond_destroy(session, &conn->log_cond);
 	__wt_cond_destroy(session, &conn->log_file_cond);

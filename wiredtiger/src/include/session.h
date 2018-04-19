@@ -43,7 +43,8 @@ struct __wt_hazard {
  *	Implementation of WT_SESSION.
  */ 
  //创建空间和赋值见__wt_open_internal_session      
- //__wt_connection_impl.sessions数组位该类型
+ //__wt_connection_impl.sessions数组位该类型  
+ //S2C完成session(WT_SESSION_IMPL)到connection(__wt_connection_impl)转换
 struct __wt_session_impl {
 	WT_SESSION iface; //__open_session中赋值
 

@@ -1510,7 +1510,7 @@ err:	__wt_scr_free(session, &path);
   为session打开一个日志文件， 目的是找出已经存在日志文件的最大LSN,
  *并将其作为新日志文件的文件名，如果不存在旧日志文件，
  * 用__wt_log_newfile为其创建一个新的日志
-*/
+*/ //例如现在有/WiredTigerLog.0000000000 WiredTigerLog.0000000001，则以WiredTigerLog.0000000001作为新的日志文件，往这里面追加
 int
 __wt_log_open(WT_SESSION_IMPL *session)
 {
