@@ -151,6 +151,7 @@ __logmgr_version(WT_SESSION_IMPL *session, bool reconfig)
  * __logmgr_config --
  *	Parse and setup the logging server options.
  */
+/*解析并设置log相关的日志配置选项值*/
 static int
 __logmgr_config(
     WT_SESSION_IMPL *session, const char **cfg, bool *runp, bool reconfig)
@@ -180,6 +181,7 @@ __logmgr_config(
 
 	conn = S2C(session);
 
+    /*日志开启开关，默认是关闭的*/
 	WT_RET(__wt_config_gets(session, cfg, "log.enabled", &cval));
 	enabled = cval.val != 0;
 
@@ -217,13 +219,14 @@ __logmgr_config(
 	 *
 	 * See above: should never happen.
 	 */
-	if (!reconfig) {
+	if (!reconfig) {  /*读取日志是否进行压缩项目*/
 		conn->log_compressor = NULL;
 		WT_RET(__wt_config_gets_none(
 		    session, cfg, "log.compressor", &cval));
 		WT_RET(__wt_compressor_config(
 		    session, &cval, &conn->log_compressor));
 
+        /*读取日志文件存放的路径*/
 		WT_RET(__wt_config_gets(session, cfg, "log.path", &cval));
 		WT_RET(__wt_strndup(
 		    session, cval.str, cval.len, &conn->log_path));
@@ -244,7 +247,7 @@ __logmgr_config(
 	 *
 	 * See above: should never happen.
 	 */
-	if (!reconfig) {
+	if (!reconfig) {/*获得日志文件最大空间大小*/
 		WT_RET(__wt_config_gets(session, cfg, "log.file_max", &cval));
 		conn->log_file_max = (wt_off_t)cval.val;
 		WT_STAT_CONN_SET(session, log_max_filesize, conn->log_file_max);
@@ -254,6 +257,7 @@ __logmgr_config(
 	 * If pre-allocation is configured, set the initial number to a few.
 	 * We'll adapt as load dictates.
 	 */
+	/*获得日志的预分配配置项*/
 	WT_RET(__wt_config_gets(session, cfg, "log.prealloc", &cval));
 	if (cval.val != 0)
 		conn->log_prealloc = 1;
@@ -264,7 +268,7 @@ __logmgr_config(
 	 *
 	 * See above: should never happen.
 	 */
-	if (!reconfig) {
+	if (!reconfig) {/*读取日志推演的选项*/
 		WT_RET(__wt_config_gets_def(
 		    session, cfg, "log.recover", 0, &cval));
 		if (WT_STRING_MATCH("error", cval.str, cval.len))
@@ -966,6 +970,8 @@ err:		WT_PANIC_MSG(session, ret, "log server error");
  * __wt_logmgr_create --
  *	Initialize the log subsystem (before running recovery).
  */
+
+/*初始化wiredtiger的日志系统*/
 int
 __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -979,7 +985,7 @@ __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
 	WT_RET(__logmgr_config(session, cfg, &run, false));
 
 	/* If logging is not configured, we're done. */
-	if (!run)
+	if (!run) //没有启用日志功能，直接返回
 		return (0);
 
 	FLD_SET(conn->log_flags, WT_CONN_LOG_ENABLED);
@@ -988,6 +994,7 @@ __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
 	 */
 	WT_RET(__wt_calloc_one(session, &conn->log));
 	log = conn->log;
+	/*初始化各个日志spin lock*/
 	WT_RET(__wt_spin_init(session, &log->log_lock, "log"));
 	WT_RET(__wt_spin_init(session, &log->log_fs_lock, "log files"));
 	WT_RET(__wt_spin_init(session, &log->log_slot_lock, "log slot"));
@@ -995,7 +1002,7 @@ __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
 	WT_RET(__wt_spin_init(session, &log->log_writelsn_lock,
 	    "log write LSN"));
 	WT_RET(__wt_rwlock_init(session, &log->log_archive_lock));
-	if (FLD_ISSET(conn->direct_io, WT_DIRECT_IO_LOG))
+	if (FLD_ISSET(conn->direct_io, WT_DIRECT_IO_LOG)) /*设置日志记录数据的对齐长度*/
 		log->allocsize = (uint32_t)
 		    WT_MAX(conn->buffer_alignment, WT_LOG_ALIGN);
 	else
