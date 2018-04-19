@@ -1815,7 +1815,11 @@ typedef struct {
  */
 int
 __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[])
-{
+{//"api=true,block=true,checkpoint=true,checkpoint_progress=true,compact=true,evict=true,evict_stuck=true,evictserver=true,"
+//"fileops=true,handleops=true,log=true,lookaside=true,lookaside_activity=true,lsm=true,lsm_manager=true,metadata=true,"
+//"mutex=true,overflow=true,read=true,rebalance=true,reconcile=true,reconcile=true,recovery=true,recovery_progress=true,"
+//"salvage=true,shared_cache=true,split=true,thread_group=true,split=true,thread_group=true,timestamp=true,transaction=true,"
+//"verify=true,version=true,write=true
 	static const WT_NAME_FLAG verbtypes[] = {
 		{ "api",		WT_VERB_API },
 		{ "block",		WT_VERB_BLOCK },

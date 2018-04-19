@@ -81,6 +81,8 @@ __wt_handle_is_open(WT_SESSION_IMPL *session, const char *name)
  * __handle_search --
  *	Search for a matching handle.
  */
+
+/*查找fhhash表中是否有该name文件，如果找到直接fhp返回，如果没找到并且newfh不为NULL，则把这个新的fh添加到WT_CONNECTION_IMPL.fhhash表中*/
 static bool
 __handle_search(
     WT_SESSION_IMPL *session, const char *name, WT_FH *newfh, WT_FH **fhp)
@@ -114,8 +116,8 @@ __handle_search(
 
 	/* If we don't find a match, optionally add a new entry. */
 	if (!found && newfh != NULL) {
-		newfh->name_hash = hash;
-		WT_FILE_HANDLE_INSERT(conn, newfh, bucket);
+		newfh->name_hash = hash; //该fh处于WT_CONNECTION_IMPL.fhhash的那个hash槽位
+		WT_FILE_HANDLE_INSERT(conn, newfh, bucket); //插入hash桶
 		(void)__wt_atomic_add32(&conn->open_file_count, 1);
 
 		++newfh->ref;
@@ -206,7 +208,7 @@ err:	__wt_scr_free(session, &tmp);
  * __wt_open --
  *	Open a file handle.
  */
-//open打开文件
+//open打开文件，并获取对应的文件操作接口handler
 int
 __wt_open(WT_SESSION_IMPL *session,
     const char *name, WT_FS_OPEN_FILE_TYPE file_type, u_int flags, WT_FH **fhp)
@@ -229,12 +231,14 @@ __wt_open(WT_SESSION_IMPL *session,
 	WT_RET(__open_verbose(session, name, file_type, flags));
 
 	/* Check if the handle is already open. */
+	/*查找文件是否已经处于打开状态*/
 	if (__handle_search(session, name, NULL, &fh)) {
 		*fhp = fh;
 		return (0);
 	}
 
 	/* Allocate and initialize the handle. */
+	//获取一个新的fh
 	WT_ERR(__wt_calloc_one(session, &fh));
 	WT_ERR(__wt_strdup(session, name, &fh->name));
 
@@ -244,7 +248,6 @@ __wt_open(WT_SESSION_IMPL *session,
 	 *
 	 * The only file created in read-only mode is the lock file.
 	 */
-	/*查找文件是否已经处于打开状态*/
 	if (F_ISSET(conn, WT_CONN_READONLY)) {
 		lock_file = strcmp(name, WT_SINGLETHREAD) == 0;
 		if (!lock_file)
@@ -253,11 +256,11 @@ __wt_open(WT_SESSION_IMPL *session,
 	}
 
 	/* Create the path to the file. */
-	/*确定打开的文件名，并打开对应目录索引文件*/
-	if (!LF_ISSET(WT_FS_OPEN_FIXED))
+	if (!LF_ISSET(WT_FS_OPEN_FIXED)) //获取S2C(session)->home下的name绝对路径
 		WT_ERR(__wt_filename(session, name, &path));
 
 	/* Call the underlying open function. */
+	//打开文件，并设置该fd对应的读写等函数handler接口
 	WT_ERR(file_system->fs_open_file(file_system, &session->iface,
 	    path == NULL ? name : path, file_type, flags, &fh->handle));
 	open_called = true;
@@ -269,6 +272,7 @@ __wt_open(WT_SESSION_IMPL *session,
 	 * Repeat the check for a match: if there's no match, link our newly
 	 * created handle onto the database's list of files.
 	 */
+	//如果fhhash表中没有该name文件，则把前面新创建的文件fh添加到fhhash表中
 	if (__handle_search(session, name, fh, fhp)) {
 err:		if (open_called)
 			WT_TRET(fh->handle->close(

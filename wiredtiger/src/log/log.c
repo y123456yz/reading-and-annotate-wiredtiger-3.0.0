@@ -61,6 +61,7 @@ __log_checksum_match(WT_SESSION_IMPL *session, WT_ITEM *buf, uint32_t reclen)
  * __log_get_files --
  *	Retrieve the list of all log-related files of the given prefix type.
  */
+/*通过一个前缀匹配符，找出所有相关的日志文件名*/
 static int
 __log_get_files(WT_SESSION_IMPL *session,
     const char *file_prefix, char ***filesp, u_int *countp)
@@ -83,6 +84,7 @@ __log_get_files(WT_SESSION_IMPL *session,
  * __log_prealloc_remove --
  *	Remove all previously created pre-allocated files.
  */
+
 static int
 __log_prealloc_remove(WT_SESSION_IMPL *session)
 {
@@ -419,6 +421,7 @@ __wt_log_written_reset(WT_SESSION_IMPL *session)
  *	ones (those that are not candidates for archiving).  The caller is
  *	responsible for freeing the directory list returned.
  */
+/*获得所有的日志文件名或者查找仅仅active的日志文件名(大于check lsn的日志文件)*/
 int
 __wt_log_get_all_files(WT_SESSION_IMPL *session,
     char ***filesp, u_int *countp, uint32_t *maxid, bool active_only)
@@ -1503,6 +1506,11 @@ err:	__wt_scr_free(session, &path);
  *	LSNs to the end of that file.  If none exist, call __log_newfile
  *	to create it.
  */
+/*
+  为session打开一个日志文件， 目的是找出已经存在日志文件的最大LSN,
+ *并将其作为新日志文件的文件名，如果不存在旧日志文件，
+ * 用__wt_log_newfile为其创建一个新的日志
+*/
 int
 __wt_log_open(WT_SESSION_IMPL *session)
 {
@@ -1524,12 +1532,14 @@ __wt_log_open(WT_SESSION_IMPL *session)
 	/*
 	 * Open up a file handle to the log directory if we haven't.
 	 */
+	/*打开session connection对应的日志文件目录索引文件*/
 	if (log->log_dir_fh == NULL) {
 		__wt_verbose(session, WT_VERB_LOG,
 		    "log_open: open fh to directory %s", conn->log_path);
 		WT_RET(__wt_open(session, conn->log_path,
 		    WT_FS_OPEN_FILE_TYPE_DIRECTORY, 0, &log->log_dir_fh));
 	}
+	//printf("yang test ... log path:%s, name:%s\r\n", conn->log_path, &log->log_dir_fh->name);
 
 	if (!F_ISSET(conn, WT_CONN_READONLY))
 		WT_ERR(__log_prealloc_remove(session));
@@ -1537,11 +1547,13 @@ __wt_log_open(WT_SESSION_IMPL *session)
 	/*
 	 * Now look at the log files and set our LSNs.
 	 */
+	/*通过一个WiredTigerLog前缀匹配符，找出所有相关的日志文件名*/
 	WT_ERR(__log_get_files(session, WT_LOG_FILENAME, &logfiles, &logcount));
 	for (i = 0; i < logcount; i++) {
 		WT_ERR(__wt_log_extract_lognum(session, logfiles[i], &lognum));
 		lastlog = WT_MAX(lastlog, lognum);
 		firstlog = WT_MIN(firstlog, lognum);
+		//printf("yang test ............. logfile:%s\r\n", logfiles[i]);
 	}
 	log->fileid = lastlog;
 	__wt_verbose(session, WT_VERB_LOG,

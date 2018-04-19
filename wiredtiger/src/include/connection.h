@@ -221,6 +221,7 @@ struct __wt_connection_impl {
 					/* Locked: LSM handle list. */
 	TAILQ_HEAD(__wt_lsm_qh, __wt_lsm_tree) lsmqh;
 					/* Locked: file list */
+	//存放file handle的hash表，见__handle_search
 	TAILQ_HEAD(__wt_fhhash, __wt_fh) fhhash[WT_HASH_ARRAY_SIZE];
 	TAILQ_HEAD(__wt_fh_qh, __wt_fh) fhqh;
 					/* Locked: library list */
@@ -233,6 +234,7 @@ struct __wt_connection_impl {
 	u_int dhandle_count;		/* Locked: handles in the queue */
 	u_int open_btree_count;		/* Locked: open writable btree count */
 	uint32_t next_file_id;		/* Locked: file ID counter */
+	//__handle_search中自增
 	uint32_t open_file_count;	/* Atomic: open file handle count */
 	uint32_t open_cursor_count;	/* Atomic: open cursor handle count */
 
@@ -313,6 +315,7 @@ struct __wt_connection_impl {
 	uint32_t	 evict_threads_max;/* Max eviction threads */
 	uint32_t	 evict_threads_min;/* Min eviction threads */
 
+    //赋值见__statlog_config
 #define	WT_STATLOG_FILENAME	"WiredTigerStat.%d.%H"
 	WT_SESSION_IMPL *stat_session;	/* Statistics log session */
 	wt_thread_t	 stat_tid;	/* Statistics log thread */
@@ -329,7 +332,7 @@ struct __wt_connection_impl {
 
 #define	WT_CONN_LOG_ARCHIVE		0x001	/* Archive is enabled */
 #define	WT_CONN_LOG_DOWNGRADED		0x002	/* Running older version */
-#define	WT_CONN_LOG_ENABLED		0x004	/* Logging is enabled */
+#define	WT_CONN_LOG_ENABLED		0x004	/* Logging is enabled */  //启用日志功能，赋值见__wt_logmgr_create
 #define	WT_CONN_LOG_EXISTED		0x008	/* Log files found */
 #define	WT_CONN_LOG_FORCE_DOWNGRADE	0x010	/* Force downgrade */
 #define	WT_CONN_LOG_RECOVER_DIRTY	0x020	/* Recovering unclean */
@@ -350,9 +353,12 @@ struct __wt_connection_impl {
 	wt_thread_t	 log_wrlsn_tid;	/* Log write lsn thread */
 	bool		 log_wrlsn_tid_set;/* Log write lsn thread set */
 	WT_LOG		*log;		/* Logging structure */
+	/*读取日志是否进行压缩项目*/
 	WT_COMPRESSOR	*log_compressor;/* Logging compressor */
 	uint32_t	 log_cursors;	/* Log cursor count */
+	/*获得日志文件最大空间大小*/
 	wt_off_t	 log_file_max;	/* Log file max size */
+	/* 日志文件存放的路径，__wt_log_open中打开 */
 	const char	*log_path;	/* Logging path format */
 	uint32_t	 log_prealloc;	/* Log file pre-allocation */
 	uint32_t	 txn_logsync;	/* Log sync configuration */

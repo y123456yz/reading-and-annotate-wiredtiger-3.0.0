@@ -275,7 +275,7 @@ __wt_memdup(WT_SESSION_IMPL *session, const void *str, size_t len, void *retp)
 /*
  * __wt_strndup --
  *	ANSI strndup function.
- */
+ */ /*分配一个字符串空间，并且将str复制给新的空间*/
 int
 __wt_strndup(WT_SESSION_IMPL *session, const void *str, size_t len, void *retp)
 {
@@ -287,6 +287,7 @@ __wt_strndup(WT_SESSION_IMPL *session, const void *str, size_t len, void *retp)
 	}
 
 	/* Copy and nul-terminate. */
+	/*分配一个字符串空间，并且将str复制给新的空间*/
 	WT_RET(__wt_malloc(session, len + 1, &p));
 
 	WT_ASSERT(session, p != NULL);		/* quiet clang scan-build */

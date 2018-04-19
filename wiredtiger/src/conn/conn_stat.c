@@ -92,6 +92,13 @@ __wt_conn_stat_init(WT_SESSION_IMPL *session)
  * __statlog_config --
  *	Parse and setup the statistics server options.
  */
+ /*    例如wiredtiger_open_all配置如下:
+       "statistics_log=(json=false"
+       ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
+       ",wait=0)
+
+ */
+/*读取stat log的配置项，runp取值来自statistics_log.wait*/
 static int
 __statlog_config(WT_SESSION_IMPL *session, const char **cfg, bool *runp)
 {
@@ -163,7 +170,9 @@ __statlog_config(WT_SESSION_IMPL *session, const char **cfg, bool *runp)
 	for (cnt = 0; (ret = __wt_config_next(&objectconf, &k, &v)) == 0; ++cnt)
 		;
 	WT_ERR_NOTFOUND_OK(ret);
+	/*对sources的配置读取,并对配置项做检验，statistics_log sources的统计源只能是lsm tree或者btree*/
 	if (cnt != 0) {
+	    /*分配一个sources字符串数组*/
 		WT_ERR(__wt_calloc_def(session, cnt + 1, &sources));
 		__wt_config_subinit(session, &objectconf, &cval);
 		for (cnt = 0;
@@ -656,6 +665,7 @@ __statlog_start(WT_CONNECTION_IMPL *conn)
 {
 	WT_SESSION_IMPL *session;
 
+    printf("yang test ....................__statlog_start\r\n");
 	/* Nothing to do if the server is already running. */
 	if (conn->stat_session != NULL)
 		return (0);
@@ -717,6 +727,7 @@ __wt_statlog_create(WT_SESSION_IMPL *session, const char *cfg[])
 	else
 		WT_RET(__wt_statlog_destroy(session, false));
 
+    ///* 解析stat log的配置项 */
 	WT_RET(__statlog_config(session, cfg, &start));
 	if (start)
 		WT_RET(__statlog_start(conn));

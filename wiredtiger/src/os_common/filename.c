@@ -25,6 +25,7 @@ __wt_filename(WT_SESSION_IMPL *session, const char *name, char **path)
  *	absolute path duplicate it, otherwise generate a path relative to the
  *	connection home directory.
  */
+//获取name绝对路径
 int
 __wt_nfilename(
     WT_SESSION_IMPL *session, const char *name, size_t namelen, char **path)
@@ -42,6 +43,7 @@ __wt_nfilename(
 	if (session == NULL || __wt_absolute_path(name))
 		return (__wt_strndup(session, name, namelen, path));
 
+    // home目录下的name文件，例如/home/name，然后返回
 	len = strlen(S2C(session)->home) + 1 + namelen + 1;
 	WT_RET(__wt_calloc(session, 1, len, &buf));
 	WT_ERR(__wt_snprintf(buf, len, "%s%s%.*s",
@@ -57,6 +59,8 @@ err:	__wt_free(session, buf);
  * __wt_remove_if_exists --
  *	Remove a file if it exists.
  */
+
+/*删除一个存在的文件*/
 int
 __wt_remove_if_exists(WT_SESSION_IMPL *session, const char *name, bool durable)
 {

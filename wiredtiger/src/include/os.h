@@ -85,6 +85,7 @@
 	TAILQ_REMOVE(&(h)->fhhash[bucket], fh, hashq);			\
 } while (0)
 
+//创建空间和赋值见__wt_open，该结构item最终是存入到WT_CONNECTION_IMPL.fhhash hash表中的
 struct __wt_fh {
 	/*
 	 * There is a file name field in both the WT_FH and WT_FILE_HANDLE
@@ -96,13 +97,13 @@ struct __wt_fh {
 	 * file name). Keeping two copies seems most reasonable.
 	 */
 	const char *name;			/* File name */
-
+    //该fh处于WT_CONNECTION_IMPL的那个hash槽位，见__handle_search
 	uint64_t name_hash;			/* hash of name */
 	TAILQ_ENTRY(__wt_fh) q;			/* internal queue */
 	TAILQ_ENTRY(__wt_fh) hashq;		/* internal hash queue */
 	u_int ref;				/* reference count */
 
-	WT_FILE_HANDLE *handle;
+	WT_FILE_HANDLE *handle; //文件读写关闭等接口
 };
 
 #ifdef _WIN32
@@ -120,6 +121,7 @@ struct __wt_file_handle_win {
 
 #else
 
+//见__posix_open_file
 struct __wt_file_handle_posix {
 	WT_FILE_HANDLE iface;
 

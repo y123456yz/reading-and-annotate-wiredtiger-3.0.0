@@ -1414,7 +1414,7 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  ",exclusive=false,extensions=,file_extend=,"
 	  "file_manager=(close_handle_minimum=250,close_idle_time=30,"
 	  "close_scan_interval=10),hazard_max=1000,in_memory=false,"
-	  "log=(archive=true,compressor=,enabled=false,file_max=100MB,"
+	  "log=(archive=true,compressor=,enabled=true,file_max=100MB,"
 	  "path=\".\",prealloc=true,recover=on,zero_fill=false),"
 	  "lsm_manager=(merge=true,worker_thread_max=4),lsm_merge=true,"
 	  "mmap=true,multiprocess=false,readonly=false,session_max=100,"
@@ -1423,7 +1423,7 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
 	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
 	  ",method=fsync),use_environment=true,use_environment_priv=false,"
-	  "verbose=,write_through=",
+	  "verbose=(fileops=true),write_through=",
 	  confchk_wiredtiger_open, 42
 	},
 	{ "wiredtiger_open_all",
@@ -1438,7 +1438,7 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  ",exclusive=false,extensions=,file_extend=,"
 	  "file_manager=(close_handle_minimum=250,close_idle_time=30,"
 	  "close_scan_interval=10),hazard_max=1000,in_memory=false,"
-	  "log=(archive=true,compressor=,enabled=false,file_max=100MB,"
+	  "log=(archive=true,compressor=,enabled=true,file_max=100MB,"
 	  "path=\".\",prealloc=true,recover=on,zero_fill=false),"
 	  "lsm_manager=(merge=true,worker_thread_max=4),lsm_merge=true,"
 	  "mmap=true,multiprocess=false,readonly=false,session_max=100,"
@@ -1447,7 +1447,11 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
 	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
 	  ",method=fsync),use_environment=true,use_environment_priv=false,"
-	  "verbose=,version=(major=0,minor=0),write_through=",
+	  "verbose=(api=true,block=true,checkpoint=true,checkpoint_progress=true,compact=true,evict=true,evict_stuck=true,evictserver=true,"
+        "fileops=true,handleops=true,log=true,lookaside=true,lookaside_activity=true,lsm=true,lsm_manager=true,metadata=true,"
+        "mutex=true,overflow=true,read=true,rebalance=true,reconcile=true,reconcile=true,recovery=true,recovery_progress=true,"
+        "salvage=true,shared_cache=true,split=true,thread_group=true,split=true,thread_group=true,timestamp=true,transaction=true,"
+        "verify=true,version=true,write=true),version=(major=0,minor=0),write_through=",
 	  confchk_wiredtiger_open_all, 43
 	},
 	{ "wiredtiger_open_basecfg",
