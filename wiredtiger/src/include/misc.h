@@ -157,6 +157,7 @@
  * The "compare_lt" argument is a function or macro that returns true when
  * its first argument is less than its second argument.
  */
+//按照compare_lt算法进行排序，参考__wt_log_wrlsn
 #define	WT_INSERTION_SORT(arrayp, n, value_type, compare_lt) do {	\
 	value_type __v;							\
 	int __i, __j, __n = (int)(n);					\

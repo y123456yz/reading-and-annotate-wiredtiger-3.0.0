@@ -22,13 +22,17 @@ __thread_run(void *arg)
 	thread = (WT_THREAD*)arg;
 	session = thread->session;
 
+    //
 	for (;;) {
 		if (!F_ISSET(thread, WT_THREAD_RUN))
 			break;
+
+		//创建的线程，通过__wt_thread_group_start_one来激活
 		if (!F_ISSET(thread, WT_THREAD_ACTIVE))
 			__wt_cond_wait(session, thread->pause_cond,
 			    WT_THREAD_PAUSE * WT_MILLION, thread->chk_func);
-		WT_ERR(thread->run_func(session, thread));
+			    
+		WT_ERR(thread->run_func(session, thread)); //运行线程func函数
 	}
 
 	/*
@@ -58,6 +62,7 @@ err:	if (thread->stop_func != NULL)
  *	Decrease the number of threads in the group and free memory
  *	associated with slots larger than the new count.
  */
+//线程组缩减，销毁多余的current_slot - new_count个线程，只保留new_count个线程
 static int
 __thread_group_shrink(
     WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, uint32_t new_count)
@@ -97,12 +102,14 @@ __thread_group_shrink(
 	 * We have to perform the join without holding the lock because
 	 * the threads themselves may be waiting on the lock.
 	 */
+	//销毁多余的current_slot - new_count个线程
 	__wt_writeunlock(session, &group->lock);
 	for (current_slot = group->alloc; current_slot > new_count; ) {
 		thread = group->threads[--current_slot];
 
 		if (thread == NULL)
 			continue;
+		
 		WT_TRET(__wt_thread_join(session, thread->tid));
 		__wt_cond_destroy(session, &thread->pause_cond);
 	}
@@ -127,6 +134,7 @@ __thread_group_shrink(
  * __thread_group_resize --
  *	Resize an array of utility threads already holding the lock.
  */
+//为group创建new_max个线程，其中running线程数为new_min个，虽然创建了max个线程，但是其中有max-min个在等条件变量来触发运行
 static int
 __thread_group_resize(
     WT_SESSION_IMPL *session, WT_THREAD_GROUP *group,
@@ -167,6 +175,7 @@ __thread_group_resize(
 	 * Only reallocate the thread array if it is the largest ever, since
 	 * our realloc doesn't support shrinking the allocated size.
 	 */
+	//线程组中需要把WT_THREAD结构增加到new_max
 	if (group->alloc < new_max) {
 		alloc = group->alloc * sizeof(*group->threads);
 		WT_RET(__wt_realloc(session, &alloc,
@@ -178,7 +187,7 @@ __thread_group_resize(
 	 * Initialize the structures based on the previous group size, not
 	 * the previous allocated size.
 	 */
-	for (i = group->max; i < new_max; i++) {
+	for (i = group->max; i < new_max; i++) { //创建new_max-group->max个线程
 		WT_ERR(__wt_calloc_one(session, &thread));
 		/*
 		 * Threads get their own session and lookaside table cursor
@@ -186,6 +195,7 @@ __thread_group_resize(
 		 */
 		session_flags =
 		    LF_ISSET(WT_THREAD_CAN_WAIT) ? WT_SESSION_CAN_WAIT : 0;
+		/*创建一个用于读写操作的session对象*/
 		WT_ERR(__wt_open_internal_session(conn, group->name,
 		    false, session_flags, &thread->session));
 		if (LF_ISSET(WT_THREAD_LOOKASIDE) &&
@@ -208,16 +218,18 @@ __thread_group_resize(
 		    "Starting utility thread: %p:%" PRIu32,
 		    (void *)group, thread->id);
 		F_SET(thread, WT_THREAD_RUN);
+		//创建线程，这里创建的线程需要通过__wt_thread_group_start_one来激活
 		WT_ERR(__wt_thread_create(thread->session,
-		    &thread->tid, __thread_run, thread));
+		    &thread->tid, __thread_run, thread)); 
 
 		WT_ASSERT(session, group->threads[i] == NULL);
-		group->threads[i] = thread;
+		group->threads[i] = thread; //在WT_THREAD_GROUP->threads[]中的位置
 		thread = NULL;
 	}
 
 	group->max = new_max;
 	group->min = new_min;
+	//至少激活new_min个线程
 	while (group->current_threads < new_min)
 		__wt_thread_group_start_one(session, group, true);
 	return (0);
@@ -269,6 +281,7 @@ __wt_thread_group_resize(
  *	Create a new thread group, assumes incoming group structure is
  *	zero initialized.
  */
+//创建线程组
 int
 __wt_thread_group_create(
     WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, const char *name,
@@ -299,6 +312,7 @@ __wt_thread_group_create(
 	group->stop_func = stop_func;
 	group->name = name;
 
+    //创建线程组中的线程
 	WT_TRET(__thread_group_resize(session, group, min, max, flags));
 	__wt_writeunlock(session, &group->lock);
 

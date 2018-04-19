@@ -10,6 +10,9 @@
  * WT_LSN --
  *	A log sequence number, representing a position in the transaction log.
  */
+ /*************************************************
+ 日志序号结构定义
+ *************************************************/
 union __wt_lsn {
 	struct {
 #ifdef	WORDS_BIGENDIAN

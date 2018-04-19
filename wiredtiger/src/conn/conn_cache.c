@@ -172,6 +172,7 @@ __wt_cache_create(WT_SESSION_IMPL *session, const char *cfg[])
 	cache = conn->cache;
 
 	/* Use a common routine for run-time configuration options. */
+	/*对cache进行配置*/
 	WT_RET(__wt_cache_config(session, false, cfg));
 
 	/*
@@ -221,7 +222,7 @@ __wt_cache_create(WT_SESSION_IMPL *session, const char *cfg[])
 	/*
 	 * We get/set some values in the cache statistics (rather than have
 	 * two copies), configure them.
-	 */
+	 */ /*初始化cache stat统计模块*/
 	__wt_cache_stats_update(session);
 	return (0);
 }

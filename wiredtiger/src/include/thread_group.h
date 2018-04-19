@@ -12,9 +12,10 @@
  * WT_THREAD --
  *	Encapsulation of a thread that belongs to a thread group.
  */
+//线程相关，参考__thread_group_resize
 struct __wt_thread {
 	WT_SESSION_IMPL *session;
-	u_int id;
+	u_int id; //在WT_THREAD_GROUP->threads[]中的位置
 	wt_thread_t tid;
 
 	/*
@@ -37,6 +38,7 @@ struct __wt_thread {
 	/* The check function used by all threads. */
 	bool (*chk_func)(WT_SESSION_IMPL *session);
 	/* The runner function used by all threads. */
+	//__thread_run中运行
 	int (*run_func)(WT_SESSION_IMPL *session, WT_THREAD *context);
 	/* The stop function used by all threads. */
 	int (*stop_func)(WT_SESSION_IMPL *session, WT_THREAD *context);
@@ -46,10 +48,14 @@ struct __wt_thread {
  * WT_THREAD_GROUP --
  *	Encapsulation of a group of utility threads.
  */
+//__wt_connection_impl.evict_threads为该类型，初始化见__wt_thread_group_create
 struct __wt_thread_group {
 	uint32_t	 alloc;		/* Size of allocated group */
+	//创建的可用线程数
 	uint32_t	 max;		/* Max threads in group */
+	//激活的线程数，也就是处于running运行状态的线程数，参考__thread_group_resize
 	uint32_t	 min;		/* Min threads in group */
+	//向前线程数
 	uint32_t	 current_threads;/* Number of active threads */
 
 	const char	*name;		/* Name */
@@ -69,6 +75,7 @@ struct __wt_thread_group {
 	 * causes threads to loose track of their context is realloc moves the
 	 * memory.
 	 */
+	//该线程组对应的线程详细信息都在该数组里面
 	WT_THREAD **threads;
 
 	/* The check function used by all threads. */
