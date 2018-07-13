@@ -98,6 +98,7 @@ config_check(WT_SESSION_IMPL *session,
 	else
 		__wt_config_initn(session, &parser, config, config_len);
 	while ((ret = __wt_config_next(&parser, &k, &v)) == 0) {
+
 		if (k.type != WT_CONFIG_ITEM_STRING &&
 		    k.type != WT_CONFIG_ITEM_ID)
 			WT_RET_MSG(session, EINVAL,

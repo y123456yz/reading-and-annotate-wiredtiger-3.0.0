@@ -139,11 +139,11 @@
  */
 
 //#define HAVE_VERBOSE 1
-
+//´òÓ¡Êä³ö
 #ifdef HAVE_VERBOSE
 #define	__wt_verbose(session, flag, fmt, ...) do {			\
 	if (WT_VERBOSE_ISSET(session, flag))				\
-		__wt_verbose_worker(session, fmt, __VA_ARGS__);		\
+		__wt_verbose_worker(session, __FUNCTION__, __LINE__, fmt, __VA_ARGS__);		\
 } while (0)
 #else
 #define	__wt_verbose(session, flag, fmt, ...) do {			\

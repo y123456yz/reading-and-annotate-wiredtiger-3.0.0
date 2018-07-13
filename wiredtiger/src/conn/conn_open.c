@@ -24,7 +24,7 @@ __wt_connection_open(WT_CONNECTION_IMPL *conn, const char *cfg[])
 	WT_ASSERT(session, session->iface.connection == &conn->iface);
 
 	/* WT_SESSION_IMPL array. */ 
-	//这里分配conn->session_size个WT_SESSION_IMPL
+	//这里分配conn->session_size个WT_SESSION_IMPL,赋值给conn->sessions
 	WT_RET(__wt_calloc(session,
 	    conn->session_size, sizeof(WT_SESSION_IMPL), &conn->sessions));
 
@@ -33,6 +33,7 @@ __wt_connection_open(WT_CONNECTION_IMPL *conn, const char *cfg[])
 	 * threads because those may allocate and use session resources that
 	 * need to get cleaned up on close.
 	 */
+	//创建一个session对象
 	WT_RET(__wt_open_internal_session(
 	    conn, "connection", false, 0, &session));
 
@@ -45,7 +46,7 @@ __wt_connection_open(WT_CONNECTION_IMPL *conn, const char *cfg[])
 	 * handling can be corrupted.  So, we allocate into a stack variable
 	 * and then assign it on success.
 	 */
-	conn->default_session = session;
+	conn->default_session = session; //default_session指向新分配的session
 
 	/*
 	 * Publish: there must be a barrier to ensure the connection structure

@@ -168,6 +168,133 @@ __wt_event_handler_set(WT_SESSION_IMPL *session, WT_EVENT_HANDLER *handler)
 	remain -= __len;						\
 } while (0)
 
+int
+__wt_eventv2(WT_SESSION_IMPL *session, char* func, int line, bool msg_event, int error,
+    const char *file_name, int line_number, const char *fmt, va_list ap)
+    WT_GCC_FUNC_ATTRIBUTE((cold))
+{
+    struct timespec ts;
+    WT_DECL_RET;
+    WT_EVENT_HANDLER *handler;
+    WT_SESSION *wt_session;
+    size_t len, remain;
+    const char *err, *prefix;
+    char *p, tid[128];
+
+    /*
+     * We're using a stack buffer because we want error messages no matter
+     * what, and allocating a WT_ITEM, or the memory it needs, might fail.
+     *
+     * !!!
+     * SECURITY:
+     * Buffer placed at the end of the stack in case snprintf overflows.
+     */
+    char s[2048];
+    p = s;
+    remain = sizeof(s);
+
+    /*
+     * !!!
+     * This function MUST handle a NULL WT_SESSION_IMPL handle.
+     *
+     * Without a session, we don't have event handlers or prefixes for the
+     * error message.  Write the error to stderr and call it a day.  (It's
+     * almost impossible for that to happen given how early we allocate the
+     * first session, but if the allocation of the first session fails, for
+     * example, we can end up here without a session.)
+     */
+    if (session == NULL)
+        goto err;
+
+    /*
+     * We have several prefixes for the error message: a timestamp and the
+     * process and thread ids, the database error prefix, the data-source's
+     * name, and the session's name.  Write them as a comma-separate list,
+     * followed by a colon.
+     */
+    __wt_epoch(session, &ts);
+    WT_ERR(__wt_thread_str(tid, sizeof(tid)));
+    WT_ERROR_APPEND(p, remain,
+        "[%" PRIuMAX ":%" PRIuMAX "][%s][%s, %d]",
+        (uintmax_t)ts.tv_sec, (uintmax_t)ts.tv_nsec / WT_THOUSAND, tid, func, line);
+
+    if ((prefix = S2C(session)->error_prefix) != NULL)
+        WT_ERROR_APPEND(p, remain, ", %s", prefix);
+    prefix = session->dhandle == NULL ? NULL : session->dhandle->name;
+    if (prefix != NULL)
+        WT_ERROR_APPEND(p, remain, ", %s", prefix);
+    if ((prefix = session->name) != NULL)
+        WT_ERROR_APPEND(p, remain, ", %s", prefix); //session->name也会打印出来
+    WT_ERROR_APPEND(p, remain, ": ");
+
+    if (file_name != NULL)
+        WT_ERROR_APPEND(p, remain, "%s, %d: ", file_name, line_number);
+
+    WT_ERROR_APPEND_AP(p, remain, fmt, ap);
+
+    if (error != 0) {
+        /*
+         * When the engine calls __wt_err on error, it often outputs an
+         * error message including the string associated with the error
+         * it's returning.  We could change the calls to call __wt_errx,
+         * but it's simpler to not append an error string if all we are
+         * doing is duplicating an existing error string.
+         *
+         * Use strcmp to compare: both strings are nul-terminated, and
+         * we don't want to run past the end of the buffer.
+         */
+        err = __wt_strerror(session, error, NULL, 0);
+        len = strlen(err);
+        if (WT_PTRDIFF(p, s) < len || strcmp(p - len, err) != 0)
+            WT_ERROR_APPEND(p, remain, ": %s", err);
+    }
+
+    /*
+     * If a handler fails, return the error status: if we're in the process
+     * of handling an error, any return value we provide will be ignored by
+     * our caller, our caller presumably already has an error value it will
+     * be returning.
+     *
+     * If an application-specified or default informational message handler
+     * fails, complain using the application-specified or default error
+     * handler.
+     *
+     * If an application-specified error message handler fails, complain
+     * using the default error handler.  If the default error handler fails,
+     * fallback to stderr.
+     */
+    wt_session = (WT_SESSION *)session;
+    handler = session->event_handler;
+    if (msg_event) {
+        ret = handler->handle_message(handler, wt_session, s);
+        if (ret != 0)
+            __handler_failure(session, ret, "message", false);
+    } else {
+        ret = handler->handle_error(handler, wt_session, error, s);
+        if (ret != 0 && handler->handle_error != __handle_error_default)
+            __handler_failure(session, ret, "error", true);
+    }
+
+    if (ret != 0) {
+err:        if (fprintf(stderr,
+            "WiredTiger Error%s%s: ",
+            error == 0 ? "" : ": ",
+            error == 0 ? "" :
+            __wt_strerror(session, error, NULL, 0)) < 0)
+            WT_TRET(EIO);
+        if (vfprintf(stderr, fmt, ap) < 0)
+            WT_TRET(EIO);
+        if (fprintf(stderr, "\n") < 0)
+            WT_TRET(EIO);
+        if (fflush(stderr) != 0)
+            WT_TRET(EIO);
+    }
+
+    return (ret);
+}
+
+
+
 /*
  * __wt_eventv --
  * 	Report a message to an event handler.
@@ -228,7 +355,7 @@ __wt_eventv(WT_SESSION_IMPL *session, bool msg_event, int error,
 	if (prefix != NULL)
 		WT_ERROR_APPEND(p, remain, ", %s", prefix);
 	if ((prefix = session->name) != NULL)
-		WT_ERROR_APPEND(p, remain, ", %s", prefix);
+		WT_ERROR_APPEND(p, remain, ", %s", prefix); //session->name也会打印出来
 	WT_ERROR_APPEND(p, remain, ": ");
 
 	if (file_name != NULL)
@@ -365,14 +492,14 @@ __wt_ext_err_printf(
  * 	Verbose message.
  */
 void
-__wt_verbose_worker(WT_SESSION_IMPL *session, const char *fmt, ...)
+__wt_verbose_worker(WT_SESSION_IMPL *session, const char* func, int line, const char *fmt, ...)
     WT_GCC_FUNC_ATTRIBUTE((format (printf, 2, 3)))
     WT_GCC_FUNC_ATTRIBUTE((cold))
 {
 	va_list ap;
 
 	va_start(ap, fmt);
-	WT_IGNORE_RET(__wt_eventv(session, true, 0, NULL, 0, fmt, ap));
+	WT_IGNORE_RET(__wt_eventv2(session, func, line, true, 0, NULL, 0, fmt, ap));
 	va_end(ap);
 }
 
