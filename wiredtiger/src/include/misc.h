@@ -79,10 +79,11 @@
  * __wt_calloc_def, __wt_calloc_one --
  *	Most calloc calls don't need separate count or sizeof arguments.
  */
-//分配number个长度为size的连续空间，然后通过retp返回空间地址, 定义在Os_alloc.c
+//分配number个长度为size的连续空间，然后通过retp返回空间地址, 定义在Os_alloc.c,分配的空间首地址为addr
 #define	__wt_calloc_def(session, number, addr)				\
 	__wt_calloc(session, (size_t)(number), sizeof(**(addr)), addr)
-//分配1个长度为size的连续空间，然后通过retp返回空间地址, 定义在Os_alloc.c
+	
+//分配1个长度为size的连续空间，然后通过retp返回空间地址, 定义在Os_alloc.c,分配的空间首地址为addr
 #define	__wt_calloc_one(session, addr)					\
 	__wt_calloc(session, (size_t)1, sizeof(**(addr)), addr)
 
@@ -199,7 +200,8 @@
 
 /* Verbose messages. */
 #ifdef HAVE_VERBOSE
-#define	WT_VERBOSE_ISSET(session, f)					\
+//判断WT_CONNECTION_IMPL.verbose成员相应位是否置1
+#define	WT_VERBOSE_ISSET(session, f)					\  
 	(FLD_ISSET(S2C(session)->verbose, f))
 #else
 #define	WT_VERBOSE_ISSET(session, f)	0
@@ -218,6 +220,7 @@
 	(WT_PREFIX_MATCH(str, pfx) ? ((str) += strlen(pfx), 1) : 0)
 
 /* Assert that a string matches a prefix, and move past it. */
+//去除str中的pfx前缀
 #define	WT_PREFIX_SKIP_REQUIRED(session, str, pfx) do {			\
 	WT_ASSERT(session, WT_PREFIX_MATCH(str, pfx));			\
 	(str) += strlen(pfx);						\

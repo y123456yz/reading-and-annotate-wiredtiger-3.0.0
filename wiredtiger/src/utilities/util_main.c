@@ -68,7 +68,9 @@ main(int argc, char *argv[])
 	size_t len;
 	int (*cfunc)(WT_SESSION *, WT_CONNECTION *, int, char *[]);
 	int ch, major_v, minor_v, tret, (*func)(WT_SESSION *, int, char *[]);
-	const char *cmd_config, *config, *p1, *p2, *p3, *rec_config;
+	const char *cmd_config, 
+	*config, //如果为wt create，则config为create字符串
+	*p1, *p2, *p3, *rec_config;
 	char *p, *secretkey;
 	bool logoff, needconn, recover;
 
@@ -265,6 +267,8 @@ main(int argc, char *argv[])
 		(void)util_err(NULL, errno, NULL);
 		goto err;
 	}
+	printf("yang test ..... config:%s, cmd_config:%s, rec_config:%s, p1:%s, p2:%s, p3:%s\r\n", 
+	    config, cmd_config, rec_config, p1, p2, p3);
 	if ((ret = __wt_snprintf(p, len, "%s,%s,%s%s%s%s",
 	    config == NULL ? "" : config,
 	    cmd_config == NULL ? "" : cmd_config,

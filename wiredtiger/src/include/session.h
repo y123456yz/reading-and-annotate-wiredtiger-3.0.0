@@ -31,7 +31,8 @@ struct __wt_hazard {
 };
 
 /* Get the connection implementation for a session */
-//返回WT_CONNECTION_IMPL结构     session类型为WT_SESSION_IMPL
+//返回WT_CONNECTION_IMPL结构     session类型为WT_SESSION_IMPL, iface为WT_SESSION iface类型，connection为WT_CONNECTION *connection;
+//WT_CONNECTION_IMPL的第一个成员iface为WT_CONNECTION结构，所以可以将(session)->iface.connection直接转换为WT_CONNECTION_IMPL
 #define	S2C(session)	  ((WT_CONNECTION_IMPL *)(session)->iface.connection)
 
 /* Get the btree for a session */
@@ -53,7 +54,8 @@ struct __wt_session_impl {
     //是否已经已使用
 	u_int active;			/* Non-zero if the session is in-use */
 
-	const char *name;		/* Name */
+    //session->name会打印出来，见__wt_verbose
+	const char *name;		/* Name */ //可以参考__wt_open_internal_session
 	const char *lastop;		/* Last operation */
 	//在__wt_connection_impl.sessions数组中的游标 
 	uint32_t id;			/* UID, offset in session array */

@@ -69,6 +69,7 @@ __create_file(WT_SESSION_IMPL *session,
 	is_metadata = strcmp(uri, WT_METAFILE_URI) == 0;
 
 	filename = uri;
+	//去掉filename中的前缀file:字符串
 	WT_PREFIX_SKIP_REQUIRED(session, filename, "file:");
 
 	/* Check if the file already exists. */

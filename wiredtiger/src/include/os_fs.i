@@ -63,6 +63,7 @@ __wt_fs_directory_list_free(
 /*
  * __wt_fs_exist --
  *	Return if the file exists.
+ 判断文件filename是否存在
  */
 static inline int
 __wt_fs_exist(WT_SESSION_IMPL *session, const char *name, bool *existp)

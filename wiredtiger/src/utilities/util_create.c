@@ -10,6 +10,7 @@
 
 static int usage(void);
 
+//wt create
 int
 util_create(WT_SESSION *session, int argc, char *argv[])
 {
@@ -22,6 +23,7 @@ util_create(WT_SESSION *session, int argc, char *argv[])
 		switch (ch) {
 		case 'c':			/* command-line configuration */
 			config = __wt_optarg;
+			printf("yang test .............. create config:%s\r\n", config);
 			break;
 		case '?':
 		default:

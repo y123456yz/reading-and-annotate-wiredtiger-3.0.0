@@ -20,11 +20,12 @@
  *	Per-process information for the library.
  */
 //__wt_process全局变量为该类型
+//成员在__wt_global_once中赋值
 struct __wt_process {
 	WT_SPINLOCK spinlock;		/* Per-process spinlock */
 
 					/* Locked: connection queue */
-    //__wt_global_once中赋值
+    //__wt_global_once中初始化赋值，wiredtiger_open添加新的conn到该队列
 	TAILQ_HEAD(__wt_connection_impl_qh, __wt_connection_impl) connqh;
 	WT_CACHE_POOL *cache_pool;
 
@@ -160,11 +161,13 @@ struct __wt_named_extractor {
  *	Implementation of WT_CONNECTION
  */
 //S2C完成session(WT_SESSION_IMPL)到connection(__wt_connection_impl)转换
+//成员初始化见__wt_connection_init, 一些成员通过解析wiredtiger_open配置项赋值
 struct __wt_connection_impl { 
 	WT_CONNECTION iface; //赋值参考 wiredtiger_open
 
 	/* For operations without an application-supplied session */
-	//__wt_connection_init中初始化
+	//__wt_connection_init中初始化，default_session最开始指向dummy_session，并通过__wt_connection_init初始化，
+	//配置解析完毕后，在__wt_connection_open中重新赋值
 	WT_SESSION_IMPL *default_session;
 	//wiredtiger_dummy_session_init中初始化
 	WT_SESSION_IMPL  dummy_session;
@@ -198,7 +201,7 @@ struct __wt_connection_impl {
 
 	WT_EXTENSION_API extension_api;	/* Extension API */
 
-					/* Configuration */
+					/* Configuration */ //初始化赋值见__wt_conn_config_init
 	const WT_CONFIG_ENTRY **config_entries;
 
 	void  **foc;			/* Free-on-close array */
@@ -249,7 +252,7 @@ struct __wt_connection_impl {
 	 * the server thread code to avoid walking the entire array when only a
 	 * few threads are running.
 	 */
-	//__wt_connection_open中赋值，这是个session数组
+	//__wt_connection_open中分配空间，这是个session数组
 	WT_SESSION_IMPL	*sessions;	/* Session reference */
 	//wiredtiger_open中赋值
 	uint32_t	 session_size;	/* Session array size */
@@ -259,6 +262,7 @@ struct __wt_connection_impl {
     //赋值见wiredtiger_open
 	size_t     session_scratch_max;	/* Max scratch memory per session */
 
+    //__wt_cache_create中分配空间
 	WT_CACHE  *cache;		/* Page cache */
 	volatile uint64_t cache_size;	/* Cache size (either statically
 					   configured or the current size
@@ -313,9 +317,9 @@ struct __wt_connection_impl {
 
     //__wt_evict_create中赋值
 	WT_THREAD_GROUP  evict_threads; 
-	//线程组中总的线程数
+	//线程组中总的线程数  __cache_config_local
 	uint32_t	 evict_threads_max;/* Max eviction threads */
-	//线程组中活跃线程数
+	//线程组中活跃线程数 __cache_config_local
 	uint32_t	 evict_threads_min;/* Min eviction threads */
 
     //赋值见__statlog_config
@@ -431,6 +435,8 @@ struct __wt_connection_impl {
 	bool	 mmap;			/* mmap configuration */
 	//赋值为__wt_get_vm_pagesize
 	int page_size;			/* OS page size for mmap alignment */
+	//__wt_verbose是否打印输出，就是根据这个判断
+	//根据配置赋值见__wt_verbose_config
 	uint32_t verbose;
 
 	/*
@@ -450,6 +456,6 @@ struct __wt_connection_impl {
 	//__wt_os_posix  __wt_os_inmemory中对file_system赋值
 	WT_FILE_SYSTEM *file_system;
 
-    //例如F_SET(conn, WT_CONN_IN_MEMORY);设置
+    //例如F_SET(conn, WT_CONN_IN_MEMORY);设置，都是根据配置来设置的
 	uint32_t flags;
 };

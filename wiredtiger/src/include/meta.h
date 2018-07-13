@@ -6,6 +6,14 @@
  * See the file LICENSE for redistribution information.
  */
 
+/*
+WiredTiger.basecfg存储基本配置信息
+WiredTiger.lock用于防止多个进程连接同一个Wiredtiger数据库
+table*.wt存储各个tale（数据库中的表）的数据
+WiredTiger.wt是特殊的table，用于存储所有其他table的元数据信息
+WiredTiger.turtle存储WiredTiger.wt的元数据信息
+journal存储Write ahead log
+*/
 #define	WT_WIREDTIGER		"WiredTiger"		/* Version file */
 #define	WT_SINGLETHREAD		"WiredTiger.lock"	/* Locking file */
 

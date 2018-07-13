@@ -257,6 +257,7 @@ struct __wt_cache {
  * WT_CACHE_POOL --
  *	A structure that represents a shared cache.
  */
+//__wt_cache_pool_config÷–∑÷≈‰ø’º‰
 struct __wt_cache_pool {
 	WT_SPINLOCK cache_pool_lock;
 	WT_CONDVAR *cache_pool_cond;

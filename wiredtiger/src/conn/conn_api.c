@@ -2043,7 +2043,7 @@ __wt_timing_stress_config(WT_SESSION_IMPL *session, const char *cfg[])
  * __conn_write_base_config --
  *	Save the base configuration used to create a database.
  */
-/* 将基础的配置信息写入到WiredTiger.basecfg中 */
+/* 将基础的配置信息写入到WiredTiger.basecfg中,实际上是先写入WiredTiger.basecfg.set，然后rename为WiredTiger.basecfg */
 static int
 __conn_write_base_config(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -2119,6 +2119,7 @@ __conn_write_base_config(WT_SESSION_IMPL *session, const char *cfg[])
 	 * to be stripped out from the base configuration file; do that now, and
 	 * merge the rest to be written.
 	 */
+
 	WT_ERR(__wt_config_merge(session, cfg + 1,
 	    "compatibility=(release=),"
 	    "config_base=,"
@@ -2130,7 +2131,9 @@ __conn_write_base_config(WT_SESSION_IMPL *session, const char *cfg[])
 	    "readonly=,"
 	    "use_environment_priv=,"
 	    "verbose=,", &base_config));
+
 	__wt_config_init(session, &parser, base_config);
+	
 	while ((ret = __wt_config_next(&parser, &k, &v)) == 0) {
 		/* Fix quoting for non-trivial settings. */
 		if (v.type == WT_CONFIG_ITEM_STRING) {
@@ -2224,6 +2227,7 @@ __conn_chk_file_system(WT_SESSION_IMPL *session, bool readonly)
  * wiredtiger_dummy_session_init --
  *	Initialize the connection's dummy session.
  */
+//初始化conn->dummy_session;
 static void
 wiredtiger_dummy_session_init(
     WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler)
@@ -2256,10 +2260,109 @@ wiredtiger_dummy_session_init(
 	session->iface.strerror = __wt_session_strerror;
 }
 
+
+/*
+Parameters
+home	The path to the database home directory. See Database Home Directory for more information.
+errhandler	An error handler. If NULL, a builtin error handler is installed that writes error messages to stderr. See Error handling using the WT_EVENT_HANDLER for more information.
+config	Configuration string, see Configuration Strings. Permitted values:
+Name	Effect	Values
+async = (	asynchronous operations configuration options.	a set of related configuration options defined below.
+    enabled	enable asynchronous operation.	a boolean flag; default false.
+    ops_max	maximum number of expected simultaneous asynchronous operations.	an integer between 1 and 4096; default 1024.
+    threads	the number of worker threads to service asynchronous requests. Each worker thread uses a session from the configured session_max.	an integer between 1 and 20; default 2.
+)		
+buffer_alignment	in-memory alignment (in bytes) for buffers used for I/O. The default value of -1 indicates a platform-specific alignment value should be used (4KB on Linux systems when direct I/O is configured, zero elsewhere).	an integer between -1 and 1MB; default -1.
+builtin_extension_config	A structure where the keys are the names of builtin extensions and the values are passed to WT_CONNECTION::load_extension as the config parameter (for example, builtin_extension_config={zlib={compression_level=3}}).	a string; default empty.
+cache_overhead	assume the heap allocator overhead is the specified percentage, and adjust the cache usage by that amount (for example, if there is 10GB of data in cache, a percentage of 10 means WiredTiger treats this as 11GB). This value is configurable because different heap allocators have different overhead and different workloads will have different heap allocation sizes and patterns, therefore applications may need to adjust this value based on allocator choice and behavior in measured workloads.	an integer between 0 and 30; default 8.
+cache_size	maximum heap memory to allocate for the cache. A database should configure either cache_size or shared_cache but not both.	an integer between 1MB and 10TB; default 100MB.
+checkpoint = (	periodically checkpoint the database. Enabling the checkpoint server uses a session from the configured session_max.	a set of related configuration options defined below.
+    log_size	wait for this amount of log record bytes to be written to the log between each checkpoint. If non-zero, this value will use a minimum of the log file size. A database can configure both log_size and wait to set an upper bound for checkpoints; setting this value above 0 configures periodic checkpoints.	an integer between 0 and 2GB; default 0.
+    wait	seconds to wait between each checkpoint; setting this value above 0 configures periodic checkpoints.	an integer between 0 and 100000; default 0.
+)		
+checkpoint_sync	flush files to stable storage when closing or writing checkpoints.	a boolean flag; default true.
+compatibility = (	set compatibility version of database. Changing the compatibility version requires that there are no active operations for the duration of the call.	a set of related configuration options defined below.
+    release	compatibility release version string.	a string; default empty.
+)		
+config_base	write the base configuration file if creating the database. If false in the config passed directly to wiredtiger_open, will ignore any existing base configuration file in addition to not creating one. See WiredTiger.basecfg file for more information.	a boolean flag; default true.
+create	create the database if it does not exist.	a boolean flag; default false.
+direct_io	Use O_DIRECT on POSIX systems, and FILE_FLAG_NO_BUFFERING on Windows to access files. Options are given as a list, such as "direct_io=[data]". Configuring direct_io requires care, see Direct I/O for important warnings. Including "data" will cause WiredTiger data files to use direct I/O, including "log" will cause WiredTiger log files to use direct I/O, and including "checkpoint" will cause WiredTiger data files opened at a checkpoint (i.e: read only) to use direct I/O. direct_io should be combined with write_through to get the equivalent of O_DIRECT on Windows.	a list, with values chosen from the following options: "checkpoint", "data", "log"; default empty.
+encryption = (	configure an encryptor for system wide metadata and logs. If a system wide encryptor is set, it is also used for encrypting data files and tables, unless encryption configuration is explicitly set for them when they are created with WT_SESSION::create.	a set of related configuration options defined below.
+    keyid	An identifier that identifies a unique instance of the encryptor. It is stored in clear text, and thus is available when the wiredtiger database is reopened. On the first use of a (name, keyid) combination, the WT_ENCRYPTOR::customize function is called with the keyid as an argument.	a string; default empty.
+    name	Permitted values are "none" or custom encryption engine name created with WT_CONNECTION::add_encryptor. See Encryptors for more information.	a string; default none.
+    secretkey	A string that is passed to the WT_ENCRYPTOR::customize function. It is never stored in clear text, so must be given to any subsequent wiredtiger_open calls to reopen the database. It must also be provided to any "wt" commands used with this database.	a string; default empty.
+)		
+error_prefix	prefix string for error messages.	a string; default empty.
+eviction = (	eviction configuration options.	a set of related configuration options defined below.
+    threads_max	maximum number of threads WiredTiger will start to help evict pages from cache. The number of threads started will vary depending on the current eviction load. Each eviction worker thread uses a session from the configured session_max.	an integer between 1 and 20; default 8.
+    threads_min	minimum number of threads WiredTiger will start to help evict pages from cache. The number of threads currently running will vary depending on the current eviction load.	an integer between 1 and 20; default 1.
+)		
+eviction_checkpoint_target	perform eviction at the beginning of checkpoints to bring the dirty content in cache to this level, expressed as a percentage of the total cache size. Ignored if set to zero or in_memory is true.	an integer between 0 and 99; default 5.
+eviction_dirty_target	perform eviction in worker threads when the cache contains at least this much dirty content, expressed as a percentage of the total cache size.	an integer between 1 and 99; default 5.
+eviction_dirty_trigger	trigger application threads to perform eviction when the cache contains at least this much dirty content, expressed as a percentage of the total cache size. This setting only alters behavior if it is lower than eviction_trigger.	an integer between 1 and 99; default 20.
+eviction_target	perform eviction in worker threads when the cache contains at least this much content, expressed as a percentage of the total cache size. Must be less than eviction_trigger.	an integer between 10 and 99; default 80.
+eviction_trigger	trigger application threads to perform eviction when the cache contains at least this much content, expressed as a percentage of the total cache size.	an integer between 10 and 99; default 95.
+exclusive	fail if the database already exists, generally used with the create option.	a boolean flag; default false.
+extensions	list of shared library extensions to load (using dlopen). Any values specified to a library extension are passed to WT_CONNECTION::load_extension as the config parameter (for example, extensions=(/path/ext.so={entry=my_entry})).	a list of strings; default empty.
+file_extend	file extension configuration. If set, extend files of the set type in allocations of the set size, instead of a block at a time as each new block is written. For example, file_extend=(data=16MB).	a list, with values chosen from the following options: "data", "log"; default empty.
+file_manager = (	control how file handles are managed.	a set of related configuration options defined below.
+    close_handle_minimum	number of handles open before the file manager will look for handles to close.	an integer greater than or equal to 0; default 250.
+    close_idle_time	amount of time in seconds a file handle needs to be idle before attempting to close it. A setting of 0 means that idle handles are not closed.	an integer between 0 and 100000; default 30.
+    close_scan_interval	interval in seconds at which to check for files that are inactive and close them.	an integer between 1 and 100000; default 10.
+)		
+in_memory	keep data in-memory only. See In-memory databases for more information.	a boolean flag; default false.
+log = (	enable logging. Enabling logging uses three sessions from the configured session_max.	a set of related configuration options defined below.
+    archive	automatically archive unneeded log files.	a boolean flag; default true.
+    compressor	configure a compressor for log records. Permitted values are "none" or custom compression engine name created with WT_CONNECTION::add_compressor. If WiredTiger has builtin support for "lz4", "snappy", "zlib" or "zstd" compression, these names are also available. See Compressors for more information.	a string; default none.
+    enabled	enable logging subsystem.	a boolean flag; default false.
+    file_max	the maximum size of log files.	an integer between 100KB and 2GB; default 100MB.
+    path	the name of a directory into which log files are written. The directory must already exist. If the value is not an absolute path, the path is relative to the database home (see Absolute paths for more information).	a string; default ".".
+    prealloc	pre-allocate log files.	a boolean flag; default true.
+    recover	run recovery or error if recovery needs to run after an unclean shutdown.	a string, chosen from the following options: "error", "on"; default on.
+    zero_fill	manually write zeroes into log files.	a boolean flag; default false.
+)		
+lsm_manager = (	configure database wide options for LSM tree management. The LSM manager is started automatically the first time an LSM tree is opened. The LSM manager uses a session from the configured session_max.	a set of related configuration options defined below.
+    merge	merge LSM chunks where possible.	a boolean flag; default true.
+    worker_thread_max	Configure a set of threads to manage merging LSM trees in the database. Each worker thread uses a session handle from the configured session_max.	an integer between 3 and 20; default 4.
+)		
+mmap	Use memory mapping to access files when possible.	a boolean flag; default true.
+multiprocess	permit sharing between processes (will automatically start an RPC server for primary processes and use RPC for secondary processes). Not yet supported in WiredTiger.	a boolean flag; default false.
+readonly	open connection in read-only mode. The database must exist. All methods that may modify a database are disabled. See Database read-only mode for more information.	a boolean flag; default false.
+session_max	maximum expected number of sessions (including server threads).	an integer greater than or equal to 1; default 100.
+shared_cache = (	shared cache configuration options. A database should configure either a cache_size or a shared_cache not both. Enabling a shared cache uses a session from the configured session_max.	a set of related configuration options defined below.
+    chunk	the granularity that a shared cache is redistributed.	an integer between 1MB and 10TB; default 10MB.
+    name	the name of a cache that is shared between databases or "none" when no shared cache is configured.	a string; default none.
+    quota	maximum size of cache this database can be allocated from the shared cache. Defaults to the entire shared cache size.	an integer; default 0.
+    reserve	amount of cache this database is guaranteed to have available from the shared cache. This setting is per database. Defaults to the chunk size.	an integer; default 0.
+    size	maximum memory to allocate for the shared cache. Setting this will update the value if one is already set.	an integer between 1MB and 10TB; default 500MB.
+)		
+statistics	Maintain database statistics, which may impact performance. Choosing "all" maintains all statistics regardless of cost, "fast" maintains a subset of statistics that are relatively inexpensive, "none" turns off all statistics. The "clear" configuration resets statistics after they are gathered, where appropriate (for example, a cache size statistic is not cleared, while the count of cursor insert operations will be cleared). When "clear" is configured for the database, gathered statistics are reset each time a statistics cursor is used to gather statistics, as well as each time statistics are logged using the statistics_log configuration. See Statistics for more information.	a list, with values chosen from the following options: "all", "cache_walk", "fast", "none", "clear", "tree_walk"; default none.
+statistics_log = (	log any statistics the database is configured to maintain, to a file. See Statistics for more information. Enabling the statistics log server uses a session from the configured session_max.	a set of related configuration options defined below.
+    json	encode statistics in JSON format.	a boolean flag; default false.
+    on_close	log statistics on database close.	a boolean flag; default false.
+    path	the name of a directory into which statistics files are written. The directory must already exist. If the value is not an absolute path, the path is relative to the database home (see Absolute paths for more information).	a string; default ".".
+    sources	if non-empty, include statistics for the list of data source URIs, if they are open at the time of the statistics logging. The list may include URIs matching a single data source ("table:mytable"), or a URI matching all data sources of a particular type ("table:").	a list of strings; default empty.
+    timestamp	a timestamp prepended to each log record, may contain strftime conversion specifications, when json is configured, defaults to "%FT%Y.000Z".	a string; default "%b %d %H:%M:%S".
+    wait	seconds to wait between each write of the log records; setting this value above 0 configures statistics logging.	an integer between 0 and 100000; default 0.
+)		
+transaction_sync = (	how to sync log records when the transaction commits.	a set of related configuration options defined below.
+    enabled	whether to sync the log on every commit by default, can be overridden by the sync setting to WT_SESSION::commit_transaction.	a boolean flag; default false.
+    method	the method used to ensure log records are stable on disk, see Commit-level durability for more information.	a string, chosen from the following options: "dsync", "fsync", "none"; default fsync.
+)		
+use_environment	use the WIREDTIGER_CONFIG and WIREDTIGER_HOME environment variables if the process is not running with special privileges. See Database Home Directory for more information.	a boolean flag; default true.
+use_environment_priv	use the WIREDTIGER_CONFIG and WIREDTIGER_HOME environment variables even if the process is running with special privileges. See Database Home Directory for more information.	a boolean flag; default false.
+verbose	enable messages for various events. Only available if WiredTiger is configured with –enable-verbose. Options are given as a list, such as "verbose=[evictserver,read]".	a list, with values chosen from the following options: "api", "block", "checkpoint", "checkpoint_progress", "compact", "evict", "evict_stuck", "evictserver", "fileops", "handleops", "log", "lookaside", "lookaside_activity", "lsm", "lsm_manager", "metadata", "mutex", "overflow", "read", "rebalance", "reconcile", "recovery", "recovery_progress", "salvage", "shared_cache", "split", "thread_group", "timestamp", "transaction", "verify", "version", "write"; default empty.
+write_through	Use FILE_FLAG_WRITE_THROUGH on Windows to write to files. Ignored on non-Windows systems. Options are given as a list, such as "write_through=[data]". Configuring write_through requires care, see Direct I/O for important warnings. Including "data" will cause WiredTiger data files to write through cache, including "log" will cause WiredTiger log files to write through cache. write_through should be combined with direct_io to get the equivalent of POSIX O_DIRECT on Windows.	a list, with values chosen from the following options: "data", "log"; default empty.
+Additionally, if files named WiredTiger.config or WiredTiger.basecfg appear in the WiredTiger home directory, they are read for configuration values (see WiredTiger.config file and WiredTiger.basecfg file for details). See Configuration ordering for ordering of the configuration mechanisms.
+[out]	connectionp	A pointer to the newly opened connection handle
+*/
 /*
  * wiredtiger_open --
  *	Main library entry point: open a new connection to a WiredTiger
  *	database.
+ Open a connection to a database.
+
+        ret = wiredtiger_open(home, NULL, "create,cache_size=500M", &conn);
  */
  
 /* 外部打开wiredtiger数据库connection，创建一个到wiredtiger数据库的链接 */
@@ -2267,6 +2370,7 @@ int
 wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
     const char *config, WT_CONNECTION **wt_connp)
 {
+    printf("yang test ........... home:%s, config:%s\r\n", home, config);
 	static const WT_CONNECTION stdc = {
 		__conn_async_flush,
 		__conn_async_new_op,
@@ -2332,25 +2436,28 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	 * and a NULL value is fine.
 	 */
 	__wt_spin_lock(NULL, &__wt_process.spinlock);
-	//conn添加到队列
+	//conn添加到队列 添加新的conn到该队列
 	TAILQ_INSERT_TAIL(&__wt_process.connqh, conn, q);
 	__wt_spin_unlock(NULL, &__wt_process.spinlock);
 
 	/*
 	 * Initialize the fake session used until we can create real sessions.
-	 */
+	 */  //初始化conn->dummy_session;
 	wiredtiger_dummy_session_init(conn, event_handler);
 	session = conn->default_session = &conn->dummy_session;
 
 	/* Basic initialization of the connection structure. */
-	WT_ERR(__wt_connection_init(conn));
+	WT_ERR(__wt_connection_init(conn)); //conn结构成员初始化
 
     //配置检查
 	/* Check the application-specified configuration string. */
 	//检查WT_CONFIG_ENTRY_wiredtiger_open对应的配置项是否正确
+	WT_CONFIG_ENTRY *test = WT_CONFIG_REF(session, wiredtiger_open);
+	printf("yang test ..........%s....%s\r\n", test->method, test->base);
+
+    //wiredtiger_open对应的check函数为confchk_wiredtiger_open
 	WT_ERR(__wt_config_check(session,
 	    WT_CONFIG_REF(session, wiredtiger_open), config, 0));
-
 	/*
 	 * Build the temporary, initial configuration stack, in the following
 	 * order (where later entries override earlier entries):
@@ -2551,6 +2658,7 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 		 * Other settings that conflict with and are an error with
 		 * read-only are tested in their individual locations later.
 		 */
+		//如果配置为只读，则重写一些配置
 		__conn_config_readonly(cfg);
 		WT_ERR(__wt_config_merge(session, cfg, NULL, &conn->cfg));
 	} else {
@@ -2652,21 +2760,24 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	conn->page_size = __wt_get_vm_pagesize();
 
 	/* Now that we know if verbose is configured, output the version. */
+	printf("yang test 11111111111111111\r\n");
 	__wt_verbose(session, WT_VERB_VERSION, "%s", WIREDTIGER_VERSION_STRING);
+    printf("yang test 2222222222222222222222\r\n");
 
 	/*
 	 * Open the connection, then reset the local session as the real one
 	 * was allocated in __wt_connection_open.
 	 */
+	//创建conn->default_session ，cache创建
 	WT_ERR(__wt_connection_open(conn, cfg));
-	session = conn->default_session;
+	session = conn->default_session;//session这时候为新的session了
 
 	/*
 	 * Load the extensions after initialization completes; extensions expect
 	 * everything else to be in place, and the extensions call back into the
 	 * library.
 	 */
-	WT_ERR(__conn_builtin_extensions(conn, cfg)); //初始化元数据文件
+	WT_ERR(__conn_builtin_extensions(conn, cfg));  
 	WT_ERR(__conn_load_extensions(session, cfg, false)); /*加载扩展模块*/
 
 	/*
@@ -2697,8 +2808,9 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	/*
 	 * Configuration completed; optionally write a base configuration file.
 	 */ /*配置完成，将基础的配置信息写入到WiredTiger.basecfg中*/
+	printf("yang test 1111111111111111111111\r\n");
 	WT_ERR(__conn_write_base_config(session, cfg));
-
+    
 	/*
 	 * Check on the turtle and metadata files, creating them if necessary
 	 * (which avoids application threads racing to create the metadata file
@@ -2708,8 +2820,10 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	 * THE TURTLE FILE MUST BE THE LAST FILE CREATED WHEN INITIALIZING THE
 	 * DATABASE HOME, IT'S WHAT WE USE TO DECIDE IF WE'RE CREATING OR NOT.
 	 */
-	WT_ERR(__wt_turtle_init(session));
+        printf("yang test 22222222222222\r\n");
 
+	WT_ERR(__wt_turtle_init(session));
+    printf("yang test 33333333333333333\r\n");
 	WT_ERR(__wt_metadata_cursor(session, NULL));
 
 	/* Start the worker threads and run recovery. */
@@ -2747,3 +2861,4 @@ err:	/* Discard the scratch buffers. */
 
 	return (ret);
 }
+

@@ -178,6 +178,7 @@ __wt_turtle_init(WT_SESSION_IMPL *session)
 	WT_RET(__wt_fs_exist(session, WT_INCREMENTAL_SRC, &exist_isrc));
 	WT_RET(__wt_fs_exist(session, WT_METADATA_BACKUP, &exist_backup));
 	WT_RET(__wt_fs_exist(session, WT_METADATA_TURTLE, &exist_turtle));
+	
 	if (exist_turtle) {
 		/*
 		 * We need to detect the difference between a source database
@@ -208,13 +209,14 @@ __wt_turtle_init(WT_SESSION_IMPL *session)
 	if (load) {
 		if (exist_incr)
 			F_SET(S2C(session), WT_CONN_WAS_BACKUP);
-
+        printf("yang test ....1`111.......... exits turtle:%d\r\n", exist_turtle);
 		/* Create the metadata file. */
 		WT_RET(__metadata_init(session));
+        printf("yang test .....dd......... exits turtle:%d\r\n", exist_turtle);
 
 		/* Load any hot-backup information. */
 		WT_RET(__metadata_load_hot_backup(session));
-
+        printf("yang test ......cc........ exits turtle:%d\r\n", exist_turtle);
 		/* Create any bulk-loaded file stubs. */
 		WT_RET(__metadata_load_bulk(session));
 
