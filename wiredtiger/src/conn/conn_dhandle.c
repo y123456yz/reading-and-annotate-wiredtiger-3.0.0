@@ -12,6 +12,7 @@
  * __conn_dhandle_config_clear --
  *	Clear the underlying object's configuration information.
  */
+//清空handle cfg配置
 static void
 __conn_dhandle_config_clear(WT_SESSION_IMPL *session)
 {
@@ -30,7 +31,7 @@ __conn_dhandle_config_clear(WT_SESSION_IMPL *session)
 /*
  * __conn_dhandle_config_set --
  *	Set up a btree handle's configuration information.
- */
+ */ //设置handle配置信息
 static int
 __conn_dhandle_config_set(WT_SESSION_IMPL *session)
 {
@@ -45,9 +46,11 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
 	 * don't find one.
 	 */
 	if ((ret =
+	    //查找name对应的配置
 	    __wt_metadata_search(session, dhandle->name, &metaconf)) != 0) {
 		if (ret == WT_NOTFOUND)
 			ret = ENOENT;
+			
 		WT_RET(ret);
 	}
 
@@ -65,9 +68,11 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
 	 * reference to it into the object's configuration array, we must free
 	 * it, after the copy, we don't want to free it.
 	 */
+	//如果前面没找到，则默认产生配置
 	WT_ERR(__wt_calloc_def(session, 3, &dhandle->cfg));
 	switch (dhandle->type) {
 	case WT_DHANDLE_TYPE_BTREE:
+	    //WT_CONFIG_ENTRY_file_meta  对应"file.meta"配置
 		WT_ERR(__wt_strdup(session,
 		    WT_CONFIG_BASE(session, file_meta), &dhandle->cfg[0]));
 		break;
@@ -131,6 +136,7 @@ __wt_conn_dhandle_alloc(
 	 * Ensure no one beat us to creating the handle now that we hold the
 	 * write lock.
 	 */
+	//找到直接返回
 	if ((ret =
 	     __wt_conn_dhandle_find(session, uri, checkpoint)) != WT_NOTFOUND)
 		return (ret);
@@ -180,6 +186,7 @@ __wt_conn_dhandle_alloc(
 	bucket = dhandle->name_hash % WT_HASH_ARRAY_SIZE;
 	WT_CONN_DHANDLE_INSERT(S2C(session), dhandle, bucket);
 
+    //新创建的dhandle赋值
 	session->dhandle = dhandle;
 	return (0);
 
@@ -190,6 +197,8 @@ err:	WT_TRET(__conn_dhandle_destroy(session, dhandle));
 /*
  * __wt_conn_dhandle_find --
  *	Find a previously opened data handle.
+ * 根据uri和checkpoint查找对应的dhandle是否存在
+ * 注意__session_find_dhandle和__wt_conn_dhandle_find的区别
  */
 int
 __wt_conn_dhandle_find(
@@ -433,6 +442,7 @@ __wt_conn_dhandle_open(
 		WT_ERR(__wt_conn_dhandle_close(session, false, false));
 
 	/* Discard any previous configuration, set up the new configuration. */
+	//设置handle配置
 	__conn_dhandle_config_clear(session);
 	WT_ERR(__conn_dhandle_config_set(session));
 
@@ -504,7 +514,7 @@ __conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
 
 	/* Always apply the name function, if supplied. */
 	skip = false;
-	if (name_func != NULL)
+	if (name_func != NULL) //执行name_func
 		WT_RET(name_func(session, dhandle->name, &skip));
 
 	/* If there is no file function, don't bother locking the handle */
@@ -520,6 +530,7 @@ __conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
 	    dhandle->name, dhandle->checkpoint, NULL, 0)) != 0)
 		return (ret == EBUSY ? 0 : ret);
 
+    //执行对file_func
 	WT_SAVE_DHANDLE(session, ret = file_func(session, cfg));
 	WT_TRET(__wt_session_release_dhandle(session));
 	return (ret);
@@ -545,7 +556,8 @@ __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
 	/*
 	 * If we're given a URI, then we walk only the hash list for that
 	 * name.  If we don't have a URI we walk the entire dhandle list.
-	 */
+	 */ 
+	 //如果uri不为空，则只在对应的桶中查找，否则全桶查找
 	if (uri != NULL) {
 		bucket =
 		    __wt_hash_city64(uri, strlen(uri)) % WT_HASH_ARRAY_SIZE;
@@ -560,12 +572,13 @@ __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
 			if (!F_ISSET(dhandle, WT_DHANDLE_OPEN) ||
 			    F_ISSET(dhandle, WT_DHANDLE_DEAD) ||
 			    dhandle->checkpoint != NULL ||
-			    strcmp(uri, dhandle->name) != 0)
+			    strcmp(uri, dhandle->name) != 0) //找到对应的dhandle
 				continue;
+				
 			WT_ERR(__conn_btree_apply_internal(session,
 			    dhandle, file_func, name_func, cfg));
 		}
-	} else {
+	} else { 
 		for (dhandle = NULL;;) {
 			WT_WITH_HANDLE_LIST_READ_LOCK(session,
 			    WT_DHANDLE_NEXT(session, dhandle, &conn->dhqh, q));

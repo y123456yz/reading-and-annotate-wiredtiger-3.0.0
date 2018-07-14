@@ -62,6 +62,7 @@ struct __wt_session_impl {
     //赋值见__wt_event_handler_set
 	WT_EVENT_HANDLER *event_handler;/* Application's event handlers */
 
+    //__session_get_dhandle  __wt_conn_dhandle_alloc中赋值
 	WT_DATA_HANDLE *dhandle;	/* Current data handle */
 
 	/*
@@ -71,8 +72,10 @@ struct __wt_session_impl {
 	 * URI.  The hash table list is kept in allocated memory that lives
 	 * across session close - so it is declared further down.
 	 */
-					/* Session handle reference list */
+					/* Session handle reference list */		
+    //dhandles和下面的dhhash配合，删除dhandle在__session_discard_dhandle中删除，添加在__session_add_dhandle
 	TAILQ_HEAD(__dhandles, __wt_data_handle_cache) dhandles;
+	//生效见__session_dhandle_sweep
 	time_t last_sweep;		/* Last sweep for dead handles */
 	struct timespec last_epoch;	/* Last epoch time returned */
 
@@ -178,6 +181,7 @@ struct __wt_session_impl {
 	WT_RAND_STATE rnd;		/* Random number generation state */
 
 					/* Hashed handle reference list array */
+	//dhandles和上面的dhhash配合，删除dhandle在__session_discard_dhandle中删除，添加在__session_add_dhandle
 	TAILQ_HEAD(__dhandles_hash, __wt_data_handle_cache) *dhhash;
 
 					/* Generations manager */

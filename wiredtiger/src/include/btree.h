@@ -66,6 +66,7 @@
 /*
  * WT_BTREE --
  *	A btree handle.
+ __wt_conn_dhandle_alloc÷–∑÷≈‰ø’º‰
  */
 struct __wt_btree {
 	WT_DATA_HANDLE *dhandle;

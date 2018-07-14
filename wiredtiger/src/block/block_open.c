@@ -24,6 +24,8 @@ __wt_block_manager_drop(
 /*
  * __wt_block_manager_create --
  *	Create a file.
+ * 为block manager创建一个文件，并写入基本的元数据信息
+  构造WT_BLOCK_DESC结构，并写入到磁盘,一次写入allocsize字节到文件，其中前面的内容为WT_BLOCK_DESC结构内容，后面的默认全部为0
  */
 int
 __wt_block_manager_create(
@@ -43,6 +45,7 @@ __wt_block_manager_create(
 	 * create. Further, there's nothing to prevent users from creating files
 	 * in our space. Move any existing files out of the way and complain.
 	 */
+	//创建文件，如果文件存在，则备份之前的文件为filename.1，如果filename.1也存在，则备份为filename.2
 	for (;;) {
 		if ((ret = __wt_open(session, filename,
 		    WT_FS_OPEN_FILE_TYPE_DATA, WT_FS_OPEN_CREATE |
@@ -67,9 +70,10 @@ __wt_block_manager_create(
 		}
 	}
 
+    /*写入block file需要的元数据信息，并将写入的数据落盘*/
 	/* Write out the file's meta-data. */
 	ret = __wt_desc_write(session, fh, allocsize);
-
+    
 	/*
 	 * Ensure the truncated file has made it to disk, then the upper-level
 	 * is never surprised.
@@ -272,6 +276,7 @@ __wt_block_close(WT_SESSION_IMPL *session, WT_BLOCK *block)
 /*
  * __wt_desc_write --
  *	Write a file's initial descriptor structure.
+ 构造WT_BLOCK_DESC结构，并写入到磁盘,一次写入allocsize字节到文件，其中前面的内容为WT_BLOCK_DESC结构内容，后面的默认全部为0
  */
 int
 __wt_desc_write(WT_SESSION_IMPL *session, WT_FH *fh, uint32_t allocsize)
@@ -285,6 +290,7 @@ __wt_desc_write(WT_SESSION_IMPL *session, WT_FH *fh, uint32_t allocsize)
 		return (0);
 
 	/* Use a scratch buffer to get correct alignment for direct I/O. */
+	/*进行buf大小对齐，为了完整写入磁盘*/
 	WT_RET(__wt_scr_alloc(session, allocsize, &buf));
 	memset(buf->mem, 0, allocsize);
 

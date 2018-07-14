@@ -56,6 +56,7 @@ __btree_clear(WT_SESSION_IMPL *session)
  * __wt_btree_open --
  *	Open a Btree.
  */
+/*创建或者打开一个btree*/
 int
 __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 {

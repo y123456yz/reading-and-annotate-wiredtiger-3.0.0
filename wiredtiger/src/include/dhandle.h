@@ -59,6 +59,7 @@
  * WT_DATA_HANDLE --
  *	A handle for a generic named data source.
  */
+//__wt_conn_dhandle_alloc中创建改结构
 struct __wt_data_handle {
 	WT_RWLOCK rwlock;		/* Lock for shared/exclusive ops */
 	TAILQ_ENTRY(__wt_data_handle) q;
@@ -67,6 +68,8 @@ struct __wt_data_handle {
 	const char *name;		/* Object name as a URI */
 	uint64_t name_hash;		/* Hash of name */
 	const char *checkpoint;		/* Checkpoint name (or NULL) */
+	//__conn_dhandle_config_clear  __conn_dhandle_config_set 分别清除配置和添加配置
+	//__conn_dhandle_config_set
 	const char **cfg;		/* Configuration information */
 
 	/*
@@ -99,7 +102,8 @@ struct __wt_data_handle {
 	WT_SPINLOCK	close_lock;	/* Lock to close the handle */
 
 					/* Data-source statistics */
-	WT_DSRC_STATS *stats[WT_COUNTER_SLOTS];
+	WT_DSRC_STATS *stats[WT_COUNTER_SLOTS]; //见__wt_stat_dsrc_init初始化
+	//见__wt_stat_dsrc_init初始化
 	WT_DSRC_STATS *stat_array;
 
 	/* Flags values over 0xff are reserved for WT_BTREE_* */
@@ -107,6 +111,7 @@ struct __wt_data_handle {
 #define	WT_DHANDLE_DISCARD	        0x02	/* Close on release */
 #define	WT_DHANDLE_DISCARD_KILL		0x04	/* Mark dead on release */
 #define	WT_DHANDLE_EXCLUSIVE	        0x08	/* Exclusive access */
+//WT_METAFILE_URI文件
 #define	WT_DHANDLE_IS_METADATA		0x10	/* Metadata handle */
 #define	WT_DHANDLE_LOCK_ONLY	        0x20	/* Handle only used as a lock */
 #define	WT_DHANDLE_OPEN		        0x40	/* Handle is open */

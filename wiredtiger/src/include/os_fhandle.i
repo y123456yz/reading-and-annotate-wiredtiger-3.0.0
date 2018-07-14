@@ -150,8 +150,9 @@ __wt_ftruncate(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset)
 
 /*
  * __wt_write --
- *	POSIX pwrite.
+ *	POSIX pwrite.  
  */
+ 
 static inline int
 __wt_write(WT_SESSION_IMPL *session,
     WT_FH *fh, wt_off_t offset, size_t len, const void *buf)

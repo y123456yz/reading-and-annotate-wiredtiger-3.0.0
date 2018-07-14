@@ -217,10 +217,12 @@ struct __wt_connection_impl {
 	 * URI.
 	 */
 					/* Locked: data handle hash array */
-	//__wt_connection_init  __open_session中初始化赋值
+	//__wt_connection_init  __open_session中初始化赋值，
+	//添加在WT_CONN_DHANDLE_INSERT，删除在WT_CONN_DHANDLE_REMOVE，查找__wt_conn_dhandle_find
 	TAILQ_HEAD(__wt_dhhash, __wt_data_handle) dhhash[WT_HASH_ARRAY_SIZE];
 					/* Locked: data handle list */
-	TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh;
+	TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh; //dhqh和dhhash一起配合
+	
 					/* Locked: LSM handle list. */
 	TAILQ_HEAD(__wt_lsm_qh, __wt_lsm_tree) lsmqh;
 					/* Locked: file list */
@@ -385,6 +387,7 @@ struct __wt_connection_impl {
 
 	//一下三个配置项赋值见__wt_sweep_config
 	uint64_t         sweep_idle_time;  /* Handle sweep idle time */
+	//生效见__session_dhandle_sweep
 	uint64_t         sweep_interval;   /* Handle sweep interval */
 	uint64_t         sweep_handles_min;/* Handle sweep minimum open */
 
