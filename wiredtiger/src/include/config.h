@@ -107,6 +107,7 @@ struct __wt_config_parser_impl {
 #define	WT_CONFIG_ENTRY_WT_SESSION_verify		41
 #define	WT_CONFIG_ENTRY_colgroup_meta			42
 #define	WT_CONFIG_ENTRY_file_config			43
+//∂‘”¶"file.meta"≈‰÷√
 #define	WT_CONFIG_ENTRY_file_meta			44
 #define	WT_CONFIG_ENTRY_index_meta			45
 #define	WT_CONFIG_ENTRY_lsm_meta			46

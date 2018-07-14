@@ -410,6 +410,7 @@ struct __wt_connection_stats {
 	int64_t dh_sweep_tod;
 	int64_t dh_sweeps;
 	int64_t dh_session_handles;
+	//清理dhandle的次数
 	int64_t dh_session_sweeps;
 	int64_t lock_checkpoint_count;
 	int64_t lock_checkpoint_wait_application;

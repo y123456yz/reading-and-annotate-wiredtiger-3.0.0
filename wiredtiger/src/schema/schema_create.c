@@ -82,9 +82,11 @@ __create_file(WT_SESSION_IMPL *session,
 
 	/* Sanity check the allocation size. */
 	WT_ERR(__wt_direct_io_size_check(
-	    session, filecfg, "allocation_size", &allocsize));
+	    session, filecfg, "allocation_size", &allocsize)); //从file_meta中获取的allocation_size值
 
 	/* Create the file. */
+	// 构造WT_BLOCK_DESC结构，并写入到磁盘,一次写入allocsize字节到文件，其中前面的内容为WT_BLOCK_DESC结构内容，
+	//后面的默认全部为0，内容写入filename文件(filename前缀file:字符串已经被去除)
 	WT_ERR(__wt_block_manager_create(session, filename, allocsize));
 	if (WT_META_TRACKING(session))
 		WT_ERR(__wt_meta_track_fileop(session, NULL, uri));
@@ -94,7 +96,7 @@ __create_file(WT_SESSION_IMPL *session,
 	 * numbers to the passed-in configuration and insert the resulting
 	 * configuration into the metadata.
 	 */
-	if (!is_metadata) {
+	if (!is_metadata) { //如果不是metadata
 		WT_ERR(__wt_scr_alloc(session, 0, &val));
 		WT_ERR(__wt_buf_fmt(session, val,
 		    "id=%" PRIu32 ",version=(major=%d,minor=%d)",
@@ -116,6 +118,7 @@ __create_file(WT_SESSION_IMPL *session,
 	 * Keep the handle exclusive until it is released at the end of the
 	 * call, otherwise we could race with a drop.
 	 */
+	//根据uri和checkpoint获取对应的dhandle，没有则创建
 	WT_ERR(__wt_session_get_dhandle(
 	    session, uri, NULL, NULL, WT_DHANDLE_EXCLUSIVE));
 	if (WT_META_TRACKING(session))
@@ -684,12 +687,13 @@ __wt_schema_create(
 	    __wt_config_getones(session, config, "exclusive", &cval) == 0 &&
 	    cval.val != 0;
 
+   
 	/*
 	 * We track create operations: if we fail in the middle of creating a
 	 * complex object, we want to back it all out.
 	 */
 	WT_RET(__wt_meta_track_on(session));
-
+     printf("yang test ..111.... uri:%s\r\n", uri);
 	if (WT_PREFIX_MATCH(uri, "colgroup:"))
 		ret = __create_colgroup(session, uri, exclusive, config);
 	else if (WT_PREFIX_MATCH(uri, "file:"))

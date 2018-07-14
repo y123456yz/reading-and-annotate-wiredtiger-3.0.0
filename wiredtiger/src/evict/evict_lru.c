@@ -795,6 +795,7 @@ __evict_pass(WT_SESSION_IMPL *session)
  * __evict_clear_walk --
  *	Clear a single walk point.
  */
+/*清除当前session对应btree的evict point,让evict thread停止evict工作*/
 static int
 __evict_clear_walk(WT_SESSION_IMPL *session)
 {
@@ -853,6 +854,8 @@ __evict_clear_all_walks(WT_SESSION_IMPL *session)
  *	Get exclusive eviction access to a file and discard any of the file's
  *	blocks queued for eviction.
  */
+
+/*清除session对应btree上的evict ref的page,并将btree在evict lru list中的entry删除,整个过程是独占式操作的*/
 int
 __wt_evict_file_exclusive_on(WT_SESSION_IMPL *session)
 {
@@ -877,6 +880,7 @@ __wt_evict_file_exclusive_on(WT_SESSION_IMPL *session)
 	 * this point, then clear any existing LRU eviction walk for the file.
 	 */
 	(void)__wt_atomic_addv32(&cache->pass_intr, 1);
+	/*清除当前session对应btree的evict point,让evict thread停止evict工作*/
 	WT_WITH_PASS_LOCK(session, ret = __evict_clear_walk(session));
 	(void)__wt_atomic_subv32(&cache->pass_intr, 1);
 	WT_ERR(ret);
@@ -887,6 +891,7 @@ __wt_evict_file_exclusive_on(WT_SESSION_IMPL *session)
 	 */
 	__wt_spin_lock(session, &cache->evict_queue_lock);
 
+    /*将btree上所有在evict lru list中的evict entry清除*/
 	for (q = 0; q < WT_EVICT_QUEUE_MAX; q++) {
 		__wt_spin_lock(session, &cache->evict_queues[q].evict_lock);
 		elem = cache->evict_queues[q].evict_max;
@@ -901,7 +906,8 @@ __wt_evict_file_exclusive_on(WT_SESSION_IMPL *session)
 
 	/*
 	 * We have disabled further eviction: wait for concurrent LRU eviction
-	 * activity to drain.
+	 * activity to drain. 
+	 * 等待其他线程完成evict操作？？ spin_wait
 	 */
 	while (btree->evict_busy > 0)
 		__wt_yield();

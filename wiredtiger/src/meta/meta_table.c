@@ -17,7 +17,7 @@ __metadata_turtle(const char *key)
 {
 	switch (key[0]) {
 	case 'f':
-		if (strcmp(key, WT_METAFILE_URI) == 0)
+		if (strcmp(key, WT_METAFILE_URI) == 0) //"file:WiredTiger.wt"
 			return (true);
 		break;
 	case 'W':
@@ -279,7 +279,8 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 		 * Coverity is convinced otherwise. The code path is used enough
 		 * that Coverity complains a lot, add an error check to get some
 		 * peace and quiet.
-		 */
+		 */ 
+		 /*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回， 返回内容填充到valuep中*/
 		WT_WITH_TURTLE_LOCK(session,
 		    ret = __wt_turtle_read(session, key, valuep));
 		if (ret != 0)

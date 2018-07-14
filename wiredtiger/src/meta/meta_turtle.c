@@ -12,6 +12,7 @@
  * __metadata_config --
  *	Return the default configuration information for the metadata file.
  */
+/*构建一个meta file的默认配置, 通过metaconfp返回 */
 static int
 __metadata_config(WT_SESSION_IMPL *session, char **metaconfp)
 {
@@ -237,7 +238,8 @@ err:	__wt_free(session, metaconf);
 /*
  * __wt_turtle_read --
  *	Read the turtle file.
- */
+ */ 
+/*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回， 返回内容填充到valuep中*/
 int
 __wt_turtle_read(WT_SESSION_IMPL *session, const char *key, char **valuep)
 {
@@ -258,14 +260,15 @@ __wt_turtle_read(WT_SESSION_IMPL *session, const char *key, char **valuep)
 	 * string for the metadata file.
 	 */
 	WT_RET(__wt_fs_exist(session, WT_METADATA_TURTLE, &exist));
-	if (!exist)
+	if (!exist) /*不存在该文件，构建一个meta file的默认配置*/
 		return (strcmp(key, WT_METAFILE_URI) == 0 ?
 		    __metadata_config(session, valuep) : WT_NOTFOUND);
+		    
 	WT_RET(__wt_fopen(session, WT_METADATA_TURTLE, 0, WT_STREAM_READ, &fs));
 
 	WT_ERR(__wt_scr_alloc(session, 512, &buf));
 
-	/* Search for the key. */
+	/* Search for the key. */  //查找key，获取对应内容
 	do {
 		WT_ERR(__wt_getline(session, fs, buf));
 		if (buf->size == 0)
