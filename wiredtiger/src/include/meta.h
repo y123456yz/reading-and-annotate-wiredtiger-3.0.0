@@ -27,6 +27,7 @@ journal存储Write ahead log
 //如果目录下有该文件，则会读取改文件内容作为配置文件 见__conn_config_file
 #define	WT_USERCONFIG		"WiredTiger.config"	/* User configuration */
 
+//创建和赋值见__backup_start  backup相关
 #define	WT_BACKUP_TMP		"WiredTiger.backup.tmp"	/* Backup tmp file */
 #define	WT_METADATA_BACKUP	"WiredTiger.backup"	/* Hot backup file */
 #define	WT_INCREMENTAL_BACKUP	"WiredTiger.ibackup"	/* Incremental backup */

@@ -50,7 +50,8 @@ __wt_direct_io_size_check(WT_SESSION_IMPL *session,
 
 /*
  * __create_file --
- *	Create a new 'file:' object.   WT_METAFILE就是在该函数创建
+ *	Create a new 'file:' object.   WT_METAFILE "WiredTiger.wt"就是在该函数创建 
+ * __create_file创建   __wt_open打开
  */
 static int
 __create_file(WT_SESSION_IMPL *session,
@@ -118,7 +119,7 @@ __create_file(WT_SESSION_IMPL *session,
 	 * Keep the handle exclusive until it is released at the end of the
 	 * call, otherwise we could race with a drop.
 	 */
-	//根据uri和checkpoint获取对应的dhandle，没有则创建
+	//根据uri和checkpoint获取对应的dhandle，没有则创建，同时创建对应的btree
 	WT_ERR(__wt_session_get_dhandle(
 	    session, uri, NULL, NULL, WT_DHANDLE_EXCLUSIVE));
 	if (WT_META_TRACKING(session))

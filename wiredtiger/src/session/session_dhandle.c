@@ -321,6 +321,7 @@ __wt_session_release_dhandle(WT_SESSION_IMPL *session)
  *	Check the configuration strings for a checkpoint name, get a btree
  * handle for the given name, set session->dhandle.
  */
+/*获得cfg配置中file的最后一个checkpoint对应的btree对象,并打开它*/
 int
 __wt_session_get_btree_ckpt(WT_SESSION_IMPL *session,
     const char *uri, const char *cfg[], uint32_t flags)
@@ -346,6 +347,7 @@ __wt_session_get_btree_ckpt(WT_SESSION_IMPL *session,
 		 */
 		if (WT_STRING_MATCH(WT_CHECKPOINT, cval.str, cval.len)) {
 			last_ckpt = true;
+			    /* 获取文件最后一个未命名的的checkpoint信息 */
 retry:			WT_RET(__wt_meta_checkpoint_last_name(
 			    session, uri, &checkpoint));
 		} else
@@ -506,6 +508,7 @@ __session_get_dhandle(
 /*
  * __wt_session_get_dhandle --
  *	Get a data handle for the given name, set session->dhandle.
+ 创建对应的btree
  */
 
 int
@@ -531,7 +534,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 		/* If the handle is open in the mode we want, we're done. */
 		if (LF_ISSET(WT_DHANDLE_LOCK_ONLY) ||
 		    (F_ISSET(dhandle, WT_DHANDLE_OPEN) &&
-		    !LF_ISSET(WT_BTREE_SPECIAL_FLAGS)))
+		    !LF_ISSET(WT_BTREE_SPECIAL_FLAGS))) //已经打开了该dhandle
 			break;
 
 		WT_ASSERT(session, F_ISSET(dhandle, WT_DHANDLE_EXCLUSIVE));
@@ -554,12 +557,12 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 
 			WT_WITH_SCHEMA_LOCK(session,
 			    ret = __wt_session_get_dhandle(
-				session, uri, checkpoint, cfg, flags));
+				session, uri, checkpoint, cfg, flags)); //递归调用
 
 			return (ret);
 		}
 
-		/* Open the handle. */
+		/* Open the handle. 创建对应的btree*/
 		if ((ret = __wt_conn_dhandle_open(session, cfg, flags)) == 0 &&
 		    LF_ISSET(WT_DHANDLE_EXCLUSIVE))
 			break;

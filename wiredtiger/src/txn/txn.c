@@ -515,7 +515,7 @@ __wt_txn_config(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_txn_reconfigure --
  *	WT_SESSION::reconfigure for transactions.
- */
+ */ //"isolation" 
 int
 __wt_txn_reconfigure(WT_SESSION_IMPL *session, const char *config)
 {
@@ -524,7 +524,7 @@ __wt_txn_reconfigure(WT_SESSION_IMPL *session, const char *config)
 	WT_TXN *txn;
 
 	txn = &session->txn;
-
+    /*确定事务隔离级别*/
 	ret = __wt_config_getones(session, config, "isolation", &cval);
 	if (ret == 0 && cval.len != 0) {
 		session->isolation = txn->isolation =

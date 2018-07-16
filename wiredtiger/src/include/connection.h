@@ -234,6 +234,7 @@ struct __wt_connection_impl {
 	TAILQ_HEAD(__wt_dlh_qh, __wt_dlh) dlhqh;
 
 	WT_SPINLOCK block_lock;		/* Locked: block manager list */
+	//插入WT_CONN_BLOCK_INSERT  删除WT_CONN_BLOCK_REMOVE
 	TAILQ_HEAD(__wt_blockhash, __wt_block) blockhash[WT_HASH_ARRAY_SIZE];
 	TAILQ_HEAD(__wt_block_qh, __wt_block) blockqh;
 
@@ -255,7 +256,7 @@ struct __wt_connection_impl {
 	 * the server thread code to avoid walking the entire array when only a
 	 * few threads are running.
 	 */
-	//__wt_connection_open中分配空间，这是个session数组
+	//__wt_connection_open中分配空间，这是个session数组，赋值__open_session 
 	WT_SESSION_IMPL	*sessions;	/* Session reference */
 	//wiredtiger_open中赋值
 	uint32_t	 session_size;	/* Session array size */
@@ -423,7 +424,7 @@ struct __wt_connection_impl {
 	//__wt_gen_init中赋值初始化
 	volatile uint64_t generations[WT_GENERATIONS];
 
-    //赋值见wiredtiger_open  file_extend配置
+    //赋值见wiredtiger_open  file_extend配置，
 	wt_off_t data_extend_len;	/* file_extend data length */
 	wt_off_t log_extend_len;	/* file_extend log length */
 

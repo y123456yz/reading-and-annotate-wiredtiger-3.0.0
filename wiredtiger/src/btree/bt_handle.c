@@ -57,7 +57,7 @@ __btree_clear(WT_SESSION_IMPL *session)
  * __wt_btree_open --
  *	Open a Btree.
  */
-/*创建或者打开一个btree*/
+/*创建或者打开一个btree及其对应的文件*/
 int
 __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 {
@@ -117,6 +117,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 	}
 
 	/* Initialize and configure the WT_BTREE structure. */
+	//根据ckpt，给session对应的btree赋值
 	WT_ERR(__btree_conf(session, &ckpt));
 
 	/* Connect to the underlying block manager. */
@@ -124,6 +125,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 	if (!WT_PREFIX_SKIP(filename, "file:"))
 		WT_ERR_MSG(session, EINVAL, "expected a 'file:' URI");
 
+    //
 	WT_ERR(__wt_block_manager_open(session, filename, dhandle->cfg,
 	    forced_salvage, readonly, btree->allocsize, &btree->bm));
 	bm = btree->bm;

@@ -63,7 +63,7 @@ err:	__wt_free(session, config);
 /*
  * __wt_meta_checkpoint_last_name --
  *	Return the last unnamed checkpoint's name.
- */
+ */ /*返回文件最后一个未命名的的checkpoint信息*/
 int
 __wt_meta_checkpoint_last_name(
     WT_SESSION_IMPL *session, const char *fname, const char **namep)

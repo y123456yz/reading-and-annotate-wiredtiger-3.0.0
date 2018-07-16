@@ -154,6 +154,7 @@ struct __wt_block_ckpt {
  * WT_BM --
  *	Block manager handle, references a single checkpoint in a file.
  */
+//赋值见__bm_method_set
 struct __wt_bm {
 						/* Methods */
 	int (*addr_invalid)
@@ -214,6 +215,7 @@ struct __wt_bm {
  * WT_BLOCK --
  *	Block manager handle, references a single file.
  */
+//block创建见__wt_block_open
 struct __wt_block {
 	const char *name;		/* Name */
 	uint64_t name_hash;		/* Hash of name */

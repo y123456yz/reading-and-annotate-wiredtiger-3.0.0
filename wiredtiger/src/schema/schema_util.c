@@ -66,6 +66,7 @@ __wt_schema_get_source(WT_SESSION_IMPL *session, const char *name)
  * __wt_str_name_check --
  *	Disallow any use of the WiredTiger name space.
  */
+/*检查str中是否有和"WiredTiger"一样的命名，如果有，抛出一个错误信息*/
 int
 __wt_str_name_check(WT_SESSION_IMPL *session, const char *str)
 {
@@ -93,6 +94,7 @@ __wt_str_name_check(WT_SESSION_IMPL *session, const char *str)
 	 * Disallow JSON quoting characters -- the config string parsing code
 	 * supports quoted strings, but there's no good reason to use them in
 	 * names and we're not going to do the testing.
+	 * 也不允许json格式化的命名
 	 */
 	if (strpbrk(name, "{},:[]\\\"'") != NULL)
 		WT_RET_MSG(session, EINVAL,
