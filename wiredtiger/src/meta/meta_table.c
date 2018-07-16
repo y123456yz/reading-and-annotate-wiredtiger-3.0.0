@@ -152,6 +152,8 @@ __wt_metadata_cursor_release(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
  * __wt_metadata_insert --
  *	Insert a row into the metadata.
  */
+
+/*插入一个meta key/value对到meta中*/
 int
 __wt_metadata_insert(
     WT_SESSION_IMPL *session, const char *key, const char *value)
@@ -280,7 +282,9 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 		 * that Coverity complains a lot, add an error check to get some
 		 * peace and quiet.
 		 */ 
-		 /*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回， 返回内容填充到valuep中*/
+		 /*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回， 返回内容填充到valuep中
+           WiredTiger.turtle存储WiredTiger.wt的元数据信息，也就是查找是否有WiredTiger.wt配置信息
+		 */
 		WT_WITH_TURTLE_LOCK(session,
 		    ret = __wt_turtle_read(session, key, valuep));
 		if (ret != 0)

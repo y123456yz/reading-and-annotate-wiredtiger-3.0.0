@@ -208,6 +208,7 @@ struct __wt_connection_impl {
 	size_t  foc_cnt;		/* Array entries */
 	size_t  foc_size;		/* Array size */
 
+    //对应WiredTiger.lock文件锁，赋值见__conn_single
 	WT_FH *lock_fh;			/* Lock file handle */
 
 	/*

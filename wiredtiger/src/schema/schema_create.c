@@ -50,7 +50,7 @@ __wt_direct_io_size_check(WT_SESSION_IMPL *session,
 
 /*
  * __create_file --
- *	Create a new 'file:' object.
+ *	Create a new 'file:' object.   WT_METAFILE就是在该函数创建
  */
 static int
 __create_file(WT_SESSION_IMPL *session,

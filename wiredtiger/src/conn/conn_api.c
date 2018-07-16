@@ -1371,7 +1371,7 @@ __conn_config_file(WT_SESSION_IMPL *session,
 	fh = NULL;
 
 	/* Configuration files are always optional. */
-	//文件是否存在
+	//文件是否存在，不存在直接返回
 	WT_RET(__wt_fs_exist(session, filename, &exist));
 	if (!exist)
 		return (0);
@@ -1409,6 +1409,7 @@ __conn_config_file(WT_SESSION_IMPL *session,
 	((uint8_t *)cbuf->mem)[0] = '\n';
 	cbuf->size = len + 1;
 
+    
 	/*
 	 * Collapse the file's lines into a single string: newline characters
 	 * are replaced with commas unless the newline is quoted or backslash
@@ -1596,7 +1597,7 @@ copy:	return (__wt_strdup(session, home, &S2C(session)->home));
  * __conn_single --
  *	Confirm that no other thread of control is using this database.
  */
-//检查是否有其他线程在使用该数据库
+//检查是否有其他线程在使用该数据库，如果没有则创建相应的锁文件
 static int
 __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -1639,7 +1640,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
 			match = true;
 			break;
 		}
-	if (match)
+	if (match) //说明有其他线程在使用
 		WT_ERR_MSG(session, EBUSY,
 		    "WiredTiger database is already being managed by another "
 		    "thread in this process");
@@ -1676,7 +1677,9 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
 	 */
 	exist = false;
 	if (!is_create)
-		WT_ERR(__wt_fs_exist(session, WT_WIREDTIGER, &exist));
+		WT_ERR(__wt_fs_exist(session, WT_WIREDTIGER, &exist)); 
+		
+    //创建锁文件
 	ret = __wt_open(session, WT_SINGLETHREAD, WT_FS_OPEN_FILE_TYPE_REGULAR,
 	    is_create || exist ? WT_FS_OPEN_CREATE : 0, &conn->lock_fh);
 
@@ -1719,6 +1722,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
 		 * The test against the expected length is sheer paranoia (the
 		 * length should be 0 or correct), but it shouldn't hurt.
 		 */
+		//锁文件内容这里写入
 #define	WT_SINGLETHREAD_STRING	"WiredTiger lock file\n"
 		WT_ERR(__wt_filesize(session, conn->lock_fh, &size));
 		if ((size_t)size != strlen(WT_SINGLETHREAD_STRING))
@@ -1728,6 +1732,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
 
 	}
 
+    //创建wiredtiger文件
 	/* We own the lock file, optionally create the WiredTiger file. */
 	ret = __wt_open(session, WT_WIREDTIGER,
 	    WT_FS_OPEN_FILE_TYPE_REGULAR, is_create ? WT_FS_OPEN_CREATE : 0,
@@ -1773,6 +1778,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
 			WT_ERR_MSG(session, EINVAL,
 			    "Creating a new database is incompatible with "
 			    "read-only configuration");
+	    //这里写入WT_WIREDTIGER		"WiredTiger"文件内容
 		WT_ERR(__wt_snprintf_len_set(buf, sizeof(buf), &len,
 		    "%s\n%s\n", WT_WIREDTIGER, WIREDTIGER_VERSION_STRING));
 		WT_ERR(__wt_write(session, fh, (wt_off_t)0, len, buf));
@@ -2453,7 +2459,6 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	/* Check the application-specified configuration string. */
 	//检查WT_CONFIG_ENTRY_wiredtiger_open对应的配置项是否正确
 	WT_CONFIG_ENTRY *test = WT_CONFIG_REF(session, wiredtiger_open);
-	printf("yang test ..........%s....%s\r\n", test->method, test->base);
 
     //wiredtiger_open对应的check函数为confchk_wiredtiger_open
 	WT_ERR(__wt_config_check(session,
@@ -2468,31 +2473,6 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	 *
 	 * In other words, a configuration stack based on the application's
 	 * passed-in information and nothing else.
-
-     { "wiredtiger_open",
-	  "async=(enabled=false,ops_max=1024,threads=2),buffer_alignment=-1"
-	  ",builtin_extension_config=,cache_overhead=8,cache_size=100MB,"
-	  "checkpoint=(log_size=0,wait=0),checkpoint_sync=true,"
-	  "compatibility=(release=),config_base=true,create=false,"
-	  "direct_io=,encryption=(keyid=,name=,secretkey=),error_prefix=,"
-	  "eviction=(threads_max=8,threads_min=1),"
-	  "eviction_checkpoint_target=5,eviction_dirty_target=5,"
-	  "eviction_dirty_trigger=20,eviction_target=80,eviction_trigger=95"
-	  ",exclusive=false,extensions=,file_extend=,"
-	  "file_manager=(close_handle_minimum=250,close_idle_time=30,"
-	  "close_scan_interval=10),hazard_max=1000,in_memory=false,"
-	  "log=(archive=true,compressor=,enabled=false,file_max=100MB,"
-	  "path=\".\",prealloc=true,recover=on,zero_fill=false),"
-	  "lsm_manager=(merge=true,worker_thread_max=4),lsm_merge=true,"
-	  "mmap=true,multiprocess=false,readonly=false,session_max=100,"
-	  "session_scratch_max=2MB,shared_cache=(chunk=10MB,name=,quota=0,"
-	  "reserve=0,size=500MB),statistics=none,statistics_log=(json=false"
-	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
-	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
-	  ",method=fsync),use_environment=true,use_environment_priv=false,"
-	  "verbose=,write_through=",
-	  confchk_wiredtiger_open, 42
-	},
 	 
 	 */ //config_entries中的对应WT_CONFIG_ENTRY_wiredtiger_open配置信息
 	cfg[0] = WT_CONFIG_BASE(session, wiredtiger_open);
@@ -2582,31 +2562,6 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	 * 6. environment variable settings (optional)
 	 * 7. overrides for a read-only connection
 	 *
-
-     { "wiredtiger_open_all",
-	  "async=(enabled=false,ops_max=1024,threads=2),buffer_alignment=-1"
-	  ",builtin_extension_config=,cache_overhead=8,cache_size=100MB,"
-	  "checkpoint=(log_size=0,wait=0),checkpoint_sync=true,"
-	  "compatibility=(release=),config_base=true,create=false,"
-	  "direct_io=,encryption=(keyid=,name=,secretkey=),error_prefix=,"
-	  "eviction=(threads_max=8,threads_min=1),"
-	  "eviction_checkpoint_target=5,eviction_dirty_target=5,"
-	  "eviction_dirty_trigger=20,eviction_target=80,eviction_trigger=95"
-	  ",exclusive=false,extensions=,file_extend=,"
-	  "file_manager=(close_handle_minimum=250,close_idle_time=30,"
-	  "close_scan_interval=10),hazard_max=1000,in_memory=false,"
-	  "log=(archive=true,compressor=,enabled=false,file_max=100MB,"
-	  "path=\".\",prealloc=true,recover=on,zero_fill=false),"
-	  "lsm_manager=(merge=true,worker_thread_max=4),lsm_merge=true,"
-	  "mmap=true,multiprocess=false,readonly=false,session_max=100,"
-	  "session_scratch_max=2MB,shared_cache=(chunk=10MB,name=,quota=0,"
-	  "reserve=0,size=500MB),statistics=none,statistics_log=(json=false"
-	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
-	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
-	  ",method=fsync),use_environment=true,use_environment_priv=false,"
-	  "verbose=,version=(major=0,minor=0),write_through=",
-	  confchk_wiredtiger_open_all, 43
-	},
 	 
 	 * Clear the entries we added to the stack, we're going to build it in
 	 * order.
@@ -2621,9 +2576,10 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	__conn_config_append(cfg, version);
 
 	/* Ignore the base_config file if config_base_set is false. */
-	if (config_base_set)
+	if (config_base_set) //如果配置了config_base，则读取WiredTiger.basecfg配置信息追加到cfg配置里面
 		WT_ERR(
 		    __conn_config_file(session, WT_BASECONFIG, false, cfg, i1));
+    //config为命令行携带的配置信息，cfg为WT_CONFIG_BASE(session, wiredtiger_open_all)和WiredTiger.basecfg对应的配置信息
 	__conn_config_append(cfg, config);
 	WT_ERR(__conn_config_file(session, WT_USERCONFIG, true, cfg, i2));
 	WT_ERR(__conn_config_env(session, cfg, i3));

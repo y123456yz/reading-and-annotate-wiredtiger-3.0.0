@@ -5,7 +5,7 @@
  *
  * See the file LICENSE for redistribution information.
  */
-
+//³õÊ¼»¯¼û__wt_config_initn
 struct __wt_config {
 	WT_SESSION_IMPL *session;
 	const char *orig;

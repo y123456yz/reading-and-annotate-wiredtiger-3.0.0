@@ -14,12 +14,17 @@ WiredTiger.wt是特殊的table，用于存储所有其他table的元数据信息
 WiredTiger.turtle存储WiredTiger.wt的元数据信息
 journal存储Write ahead log
 */
+
+//记录版本信息，内容见__conn_single
 #define	WT_WIREDTIGER		"WiredTiger"		/* Version file */
+//文件锁，初始赋值见__conn_single
 #define	WT_SINGLETHREAD		"WiredTiger.lock"	/* Locking file */
 
+//写入内容在__conn_write_base_config，如果config_base使能，则会读取配置文件使用见__conn_config_file
 #define	WT_BASECONFIG		"WiredTiger.basecfg"	/* Base configuration */
 #define	WT_BASECONFIG_SET	"WiredTiger.basecfg.set"/* Base config temp */
 
+//如果目录下有该文件，则会读取改文件内容作为配置文件 见__conn_config_file
 #define	WT_USERCONFIG		"WiredTiger.config"	/* User configuration */
 
 #define	WT_BACKUP_TMP		"WiredTiger.backup.tmp"	/* Backup tmp file */
@@ -27,10 +32,13 @@ journal存储Write ahead log
 #define	WT_INCREMENTAL_BACKUP	"WiredTiger.ibackup"	/* Incremental backup */
 #define	WT_INCREMENTAL_SRC	"WiredTiger.isrc"	/* Incremental source */
 
+//内容默认在__wt_turtle_read中构造，创建文件和写入内容在__wt_turtle_update
 #define	WT_METADATA_TURTLE	"WiredTiger.turtle"	/* Metadata metadata */
+//turtle更新的时候临时文件，见__wt_turtle_update
 #define	WT_METADATA_TURTLE_SET	"WiredTiger.turtle.set"	/* Turtle temp file */
 
 #define	WT_METADATA_URI		"metadata:"		/* Metadata alias */
+//该文件在__create_file中创建
 #define	WT_METAFILE		"WiredTiger.wt"		/* Metadata table */
 #define	WT_METAFILE_URI		"file:WiredTiger.wt"	/* Metadata table URI */
 
@@ -65,6 +73,7 @@ journal存储Write ahead log
 #define	WT_CKPT_FOREACH(ckptbase, ckpt)					\
 	for ((ckpt) = (ckptbase); (ckpt)->name != NULL; ++(ckpt))
 
+/*checkpoint信息结构指针, __ckpt_load中获取配置的checkPoint信息填充该结构 */
 struct __wt_ckpt {
 	char	*name;				/* Name or NULL */
 
