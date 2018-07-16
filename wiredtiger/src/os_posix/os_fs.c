@@ -564,7 +564,7 @@ __posix_open_file_cloexec(WT_SESSION_IMPL *session, int fd, const char *name)
  * __posix_open_file --
  *	Open a file handle.
  */
-//打开文件，并设置该fd对应的读写等函数handler接口
+//打开文件,不存在则创建，并设置该fd对应的读写等函数handler接口
 static int
 __posix_open_file(WT_FILE_SYSTEM *file_system, WT_SESSION *wt_session,
     const char *name, WT_FS_OPEN_FILE_TYPE file_type, uint32_t flags,

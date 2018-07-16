@@ -67,7 +67,8 @@
  * WT_BTREE --
  *	A btree handle.
  __wt_conn_dhandle_alloc中分配空间
- btree结构  S2BT(session)完成session到btree的转换 
+ btree结构  S2BT(session)完成session到btree的转换   成员赋值__btree_conf
+ btree对应的文件见__wt_block_open
  */
 struct __wt_btree {
     //赋值见__wt_btree_open

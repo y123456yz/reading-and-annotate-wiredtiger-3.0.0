@@ -199,7 +199,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
 
 /*
  * __wt_connection_workers --
- *	Start the worker threads.
+ *	Start the worker threads.  启用相关线程
  */
 
 /*启动conecton和对应的service thread*/

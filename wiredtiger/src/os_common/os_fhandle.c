@@ -206,7 +206,7 @@ err:	__wt_scr_free(session, &tmp);
 
 /*
  * __wt_open --
- *	Open a file handle.
+ *	Open a file handle.  __create_file创建   __wt_open打开，不存在可能会创建
  */
 //open打开文件，并获取对应的文件操作接口handler
 int

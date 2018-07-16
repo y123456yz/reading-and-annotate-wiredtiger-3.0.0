@@ -608,7 +608,7 @@ __bm_method_set(WT_BM *bm, bool readonly)
 
 /*
  * __wt_block_manager_open --
- *	Open a file.
+ *	Open a file. 创建一个btree文件
  */
 int
 __wt_block_manager_open(WT_SESSION_IMPL *session,
@@ -623,6 +623,7 @@ __wt_block_manager_open(WT_SESSION_IMPL *session,
 	WT_RET(__wt_calloc_one(session, &bm));
 	__bm_method_set(bm, false);
 
+     /*为session创建并打开一个block manager对象,相当于打开一个btree文件*/
 	WT_ERR(__wt_block_open(session, filename, cfg,
 	    forced_salvage, readonly, allocsize, &bm->block));
 

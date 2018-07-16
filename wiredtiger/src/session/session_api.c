@@ -233,8 +233,6 @@ err:	API_END_RET_NOTFOUND_MAP(session, ret);
  * __session_reconfigure --
  *	WT_SESSION->reconfigure method.
  */
-
-/*重新对session进行配置隔离级别*/
 static int
 __session_reconfigure(WT_SESSION *wt_session, const char *config)
 {
@@ -257,6 +255,7 @@ __session_reconfigure(WT_SESSION *wt_session, const char *config)
 
 	WT_ERR(__wt_session_reset_cursors(session, false));
 
+    /*确定事务隔离级别*/
 	WT_ERR(__wt_txn_reconfigure(session, config));
 
 	ret = __wt_config_getones(session, config, "ignore_cache_size", &cval);
@@ -274,7 +273,7 @@ err:	API_END_RET_NOTFOUND_MAP(session, ret);
 /*
  * __session_open_cursor_int --
  *	Internal version of WT_SESSION::open_cursor, with second cursor arg.
- */
+ */ // 根据uri打开一个对应的cursor对象
 static int
 __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
     WT_CURSOR *owner, WT_CURSOR *other, const char *cfg[], WT_CURSOR **cursorp)
@@ -387,6 +386,7 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
 /*
  * __wt_open_cursor --
  *	Internal version of WT_SESSION::open_cursor.
+ 根据uri打开一个对应的cursor对象
  */
 int
 __wt_open_cursor(WT_SESSION_IMPL *session,
@@ -540,7 +540,8 @@ __wt_session_create(
 /*
  * __session_create --
  *	WT_SESSION->create method.
- */
+ */ 
+/*根据uri和config信息创建一个对应的schema对象*/
 static int
 __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -569,7 +570,7 @@ __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 		 * innocently include it, for example, a dump/load pair.  If the
 		 * underlying type is "file", it's OK ("file" is the underlying
 		 * type for every type); if the URI type prefix and the type are
-		 * the same, let it go.
+		 * the same, let it go. 
 		 */
 		if ((ret =
 		    __wt_config_getones(session, config, "type", &cval)) == 0 &&
@@ -1848,10 +1849,10 @@ __open_session(WT_CONNECTION_IMPL *conn,
 	//从sessions数组中找出一个可用的session
 	for (session_ret = conn->sessions,
 	    i = 0; i < conn->session_size; ++session_ret, ++i)
-		if (!session_ret->active) 
+		if (!session_ret->active)  //找到可用的一个session
 			break;
 			
-	if (i == conn->session_size) //没有可用session
+	if (i == conn->session_size)  /*超出connection的sessions slot范围,提示错误*/
 		WT_ERR_MSG(session, WT_ERROR,
 		    "out of sessions, only configured to support %" PRIu32
 		    " sessions (including %d additional internal sessions)",
@@ -1952,6 +1953,7 @@ __wt_open_session(WT_CONNECTION_IMPL *conn,
 	*sessionp = NULL;
 
 	/* Acquire a session. */
+	//根据conn config 填充session内容,并通过session返回
 	WT_RET(__open_session(conn, event_handler, config, &session));
 
 	/*

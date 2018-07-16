@@ -1204,7 +1204,9 @@ err:	API_END_RET(session, ret);
 /*
  * __conn_open_session --
  *	WT_CONNECTION->open_session method.
- */
+ */ 
+/*打开一个外部session， 通过wt_sessionp 返回*/
+//util_main.c中的main就会调用该函数
 static int
 __conn_open_session(WT_CONNECTION *wt_conn,
     WT_EVENT_HANDLER *event_handler, const char *config,
@@ -1222,6 +1224,8 @@ __conn_open_session(WT_CONNECTION *wt_conn,
 	WT_UNUSED(cfg);
 
 	session_ret = NULL;
+
+	//获取一个session, 通过session_ret返回
 	WT_ERR(__wt_open_session(
 	    conn, event_handler, config, true, &session_ret));
 	*wt_sessionp = &session_ret->iface;
@@ -2370,14 +2374,13 @@ Additionally, if files named WiredTiger.config or WiredTiger.basecfg appear in t
 
         ret = wiredtiger_open(home, NULL, "create,cache_size=500M", &conn);
  */
- 
+ //util_main.c中有wc工具的main
 /* 外部打开wiredtiger数据库connection，创建一个到wiredtiger数据库的链接 */
 int
 wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
     const char *config, WT_CONNECTION **wt_connp)
 {
-    printf("yang test ........... home:%s, config:%s\r\n", home, config);
-	static const WT_CONNECTION stdc = {
+	static const WT_CONNECTION stdc = { //赋值给conn->iface
 		__conn_async_flush,
 		__conn_async_new_op,
 		__conn_close,
@@ -2716,9 +2719,7 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	conn->page_size = __wt_get_vm_pagesize();
 
 	/* Now that we know if verbose is configured, output the version. */
-	printf("yang test 11111111111111111\r\n");
 	__wt_verbose(session, WT_VERB_VERSION, "%s", WIREDTIGER_VERSION_STRING);
-    printf("yang test 2222222222222222222222\r\n");
 
 	/*
 	 * Open the connection, then reset the local session as the real one
@@ -2764,7 +2765,6 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	/*
 	 * Configuration completed; optionally write a base configuration file.
 	 */ /*配置完成，将基础的配置信息写入到WiredTiger.basecfg中*/
-	printf("yang test 1111111111111111111111\r\n");
 	WT_ERR(__conn_write_base_config(session, cfg));
     
 	/*
@@ -2776,14 +2776,12 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler,
 	 * THE TURTLE FILE MUST BE THE LAST FILE CREATED WHEN INITIALIZING THE
 	 * DATABASE HOME, IT'S WHAT WE USE TO DECIDE IF WE'RE CREATING OR NOT.
 	 */
-        printf("yang test 22222222222222\r\n");
-
+	//创建对应的WiredTiger.wt  "WiredTiger.turtle"文件 
 	WT_ERR(__wt_turtle_init(session));
-    printf("yang test 33333333333333333\r\n");
 	WT_ERR(__wt_metadata_cursor(session, NULL));
 
 	/* Start the worker threads and run recovery. */
-	/*启动conecton和对应的service thread*/
+	/*启动conecton和对应的service thread等*/
 	WT_ERR(__wt_connection_workers(session, cfg));
 
 	WT_STATIC_ASSERT(offsetof(WT_CONNECTION_IMPL, iface) == 0);

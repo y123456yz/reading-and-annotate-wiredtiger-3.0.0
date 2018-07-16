@@ -284,6 +284,8 @@ main(int argc, char *argv[])
 		(void)util_err(NULL, ret, NULL);
 		goto err;
 	}
+
+	//__conn_open_session
 	if ((ret = conn->open_session(conn, NULL, NULL, &session)) != 0) {
 		(void)util_err(NULL, ret, NULL);
 		goto err;

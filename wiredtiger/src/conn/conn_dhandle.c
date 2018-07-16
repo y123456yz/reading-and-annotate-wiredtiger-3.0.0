@@ -403,6 +403,7 @@ err:	__wt_spin_unlock(session, &dhandle->close_lock);
 /*
  * __wt_conn_dhandle_open --
  *	Open the current data handle.
+ * 主要函数为__wt_btree_open，创建对应的btree
  */
 int
 __wt_conn_dhandle_open(
@@ -463,6 +464,7 @@ __wt_conn_dhandle_open(
 		if (dhandle->stat_array == NULL)
 			WT_ERR(__wt_stat_dsrc_init(session, dhandle));
 
+        /*创建或者打开一个btree及其对应的文件*/
 		WT_ERR(__wt_btree_open(session, cfg));
 		break;
 	case WT_DHANDLE_TYPE_TABLE:

@@ -142,6 +142,7 @@ __wt_block_configure_first_fit(WT_BLOCK *block, bool on)
  * __wt_block_open --
  *	Open a block handle.
  */
+ /*为session创建并打开一个block manager对象,相当于打开一个btree文件*/
 int
 __wt_block_open(WT_SESSION_IMPL *session,
     const char *filename, const char *cfg[],
@@ -162,6 +163,9 @@ __wt_block_open(WT_SESSION_IMPL *session,
 	hash = __wt_hash_city64(filename, strlen(filename));
 	bucket = hash % WT_HASH_ARRAY_SIZE;
 	__wt_spin_lock(session, &conn->block_lock);
+
+	/*判断filename文件的block是否已经在conn->queue中,如果在，不需要创建，直接返回存在的block即可
+	 *block_lock是为了保护conn管理的block所用的*/
 	TAILQ_FOREACH(block, &conn->blockhash[bucket], hashq) {
 		if (strcmp(filename, block->name) == 0) {
 			++block->ref;
@@ -186,14 +190,17 @@ __wt_block_open(WT_SESSION_IMPL *session,
 
 	WT_ERR(__wt_strdup(session, filename, &block->name));
 
+    /*读取配置，并根据block_allocation来确定allocfirst的初始值*/
 	WT_ERR(__wt_config_gets(session, cfg, "block_allocation", &cval));
 	block->allocfirst = WT_STRING_MATCH("first", cval.str, cval.len);
 
 	/* Configuration: optional OS buffer cache maximum size. */
+	
 	WT_ERR(__wt_config_gets(session, cfg, "os_cache_max", &cval));
 	block->os_cache_max = (size_t)cval.val;
 
 	/* Configuration: optional immediate write scheduling flag. */
+	/*读取配置中的最大脏数据长度*/
 	WT_ERR(__wt_config_gets(session, cfg, "os_cache_dirty_max", &cval));
 	block->os_cache_dirty_max = (size_t)cval.val;
 
@@ -216,9 +223,12 @@ __wt_block_open(WT_SESSION_IMPL *session,
 		LF_SET(WT_FS_OPEN_DIRECTIO);
 	if (!readonly && FLD_ISSET(conn->direct_io, WT_DIRECT_IO_DATA))
 		LF_SET(WT_FS_OPEN_DIRECTIO);
+
+	/*打开filename文件*/
 	WT_ERR(__wt_open(
 	    session, filename, WT_FS_OPEN_FILE_TYPE_DATA, flags, &block->fh));
 
+    
 	/* Set the file's size. */
 	WT_ERR(__wt_filesize(session, block->fh, &block->size));
 
@@ -231,6 +241,7 @@ __wt_block_open(WT_SESSION_IMPL *session,
 	 * Salvage is a special case: if we're forcing the salvage, we don't
 	 * look at anything, including the description information.
 	 */
+	/*除Salvage操作外，都需要读取文件开始的描述信息到block中,并校验文件描述信息*/
 	if (!forced_salvage)
 		WT_ERR(__desc_read(session, block));
 
@@ -318,7 +329,7 @@ __wt_desc_write(WT_SESSION_IMPL *session, WT_FH *fh, uint32_t allocsize)
 /*
  * __desc_read --
  *	Read and verify the file's metadata.
- */
+ */ /*从block对应的文件中读取block的header信息 并校验文件描述信息*/
 static int
 __desc_read(WT_SESSION_IMPL *session, WT_BLOCK *block)
 {
@@ -335,6 +346,7 @@ __desc_read(WT_SESSION_IMPL *session, WT_BLOCK *block)
 	WT_RET(__wt_scr_alloc(session, block->allocsize, &buf));
 
 	/* Read the first allocation-sized block and verify the file format. */
+	/*从文件开始处读取一个对齐大小的内容*/
 	WT_ERR(__wt_read(session,
 	    block->fh, (wt_off_t)0, (size_t)block->allocsize, buf->mem));
 
@@ -360,12 +372,13 @@ __desc_read(WT_SESSION_IMPL *session, WT_BLOCK *block)
 	 * without some reason to believe they are WiredTiger files.  The user
 	 * may have entered the wrong file name, and is now frantically pounding
 	 * their interrupt key.
-	 */
+	 */ /*校验魔法字和checksum*/
 	if (desc->magic != WT_BLOCK_MAGIC ||
 	    desc->checksum != checksum_calculate)
 		WT_ERR_MSG(session, WT_ERROR,
 		    "%s does not appear to be a WiredTiger file", block->name);
 
+    /*校验block版本信息,低版本wiredtiger引擎不能处理高版本磁盘上的block*/
 	if (desc->majorv > WT_BLOCK_MAJOR_VERSION ||
 	    (desc->majorv == WT_BLOCK_MAJOR_VERSION &&
 	    desc->minorv > WT_BLOCK_MINOR_VERSION))

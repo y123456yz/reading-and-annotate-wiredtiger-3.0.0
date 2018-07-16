@@ -23,7 +23,6 @@ util_create(WT_SESSION *session, int argc, char *argv[])
 		switch (ch) {
 		case 'c':			/* command-line configuration */
 			config = __wt_optarg;
-			printf("yang test .............. create config:%s\r\n", config);
 			break;
 		case '?':
 		default:
@@ -36,10 +35,13 @@ util_create(WT_SESSION *session, int argc, char *argv[])
 	/* The remaining argument is the uri. */
 	if (argc != 1)
 		return (usage());
-
+    //./wt -v -h yyz-test create  ./yyz-test 
+    //yang test ........... uri:table:./yyz-test, config:null
+    //table:uri
 	if ((uri = util_uri(session, *argv, "table")) == NULL)
 		return (1);
 
+    //__session_create
 	if ((ret = session->create(session, uri, config)) != 0)
 		(void)util_err(session, ret, "session.create: %s", uri);
 

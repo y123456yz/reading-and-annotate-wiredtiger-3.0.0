@@ -56,7 +56,7 @@ err:	__wt_scr_free(session, &buf);
 
 /*
  * __metadata_init --
- *	Create the metadata file.
+ *	Create the metadata file. 创建	WT_METAFILE_URI		"file:WiredTiger.wt"
  */
 static int
 __metadata_init(WT_SESSION_IMPL *session)
@@ -88,8 +88,9 @@ __metadata_load_hot_backup(WT_SESSION_IMPL *session)
 
 	/* Look for a hot backup file: if we find it, load it. */
 	WT_RET(__wt_fs_exist(session, WT_METADATA_BACKUP, &exist));
-	if (!exist)
+	if (!exist) //不存在直接返回
 		return (0);
+		
 	WT_RET(__wt_fopen(session,
 	    WT_METADATA_BACKUP, 0, WT_STREAM_READ, &fs));
 
@@ -163,6 +164,7 @@ err:	WT_TRET(__wt_metadata_cursor_release(session, &cursor));
 /*
  * __wt_turtle_init --
  *	Check the turtle file and create if necessary.
+ * 创建对应的WiredTiger.wt  "WiredTiger.turtle"文件
  */
 int
 __wt_turtle_init(WT_SESSION_IMPL *session)
@@ -229,7 +231,9 @@ __wt_turtle_init(WT_SESSION_IMPL *session)
 	if (load) {
 		if (exist_incr)
 			F_SET(S2C(session), WT_CONN_WAS_BACKUP);
-		/* Create the metadata file. */
+		/* Create the metadata file. 
+        创建	WT_METAFILE_URI		"file:WiredTiger.wt"
+		*/
 		WT_RET(__metadata_init(session));
 
 		/* Load any hot-backup information. */
@@ -238,7 +242,7 @@ __wt_turtle_init(WT_SESSION_IMPL *session)
 		WT_RET(__metadata_load_bulk(session));
 
 		/* Create the turtle file. */
-		//构造turtle配置
+		//构造turtle "WiredTiger.turtle"配置 
 		WT_RET(__metadata_config(session, &metaconf));
 		//创建	WT_METADATA_TURTLE	"WiredTiger.turtle"文件，并写入内容
 		WT_WITH_TURTLE_LOCK(session, ret =
@@ -317,6 +321,7 @@ err:	WT_TRET(__wt_fclose(session, &fs));
 /*
  * __wt_turtle_update --
  *	Update the turtle file.
+ * 写WT_METADATA_TURTLE	"WiredTiger.turtle"文件
  */
 int
 __wt_turtle_update(WT_SESSION_IMPL *session, const char *key, const char *value)
