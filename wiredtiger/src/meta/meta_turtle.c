@@ -18,6 +18,25 @@ __metadata_config(WT_SESSION_IMPL *session, char **metaconfp)
 {
 	WT_DECL_ITEM(buf);
 	WT_DECL_RET;
+
+	/*	{ "file.meta",
+	  "access_pattern_hint=none,allocation_size=4KB,app_metadata=,"
+	  "assert=(commit_timestamp=none,read_timestamp=none),"
+	  "block_allocation=best,block_compressor=,cache_resident=false,"
+	  "checkpoint=,checkpoint_lsn=,checksum=uncompressed,collator=,"
+	  "columns=,dictionary=0,encryption=(keyid=,name=),format=btree,"
+	  "huffman_key=,huffman_value=,id=,"
+	  "ignore_in_memory_cache_size=false,internal_item_max=0,"
+	  "internal_key_max=0,internal_key_truncate=true,"
+	  "internal_page_max=4KB,key_format=u,key_gap=10,leaf_item_max=0,"
+	  "leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,"
+	  "log=(enabled=true),memory_page_max=5MB,os_cache_dirty_max=0,"
+	  "os_cache_max=0,prefix_compression=false,prefix_compression_min=4"
+	  ",split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,"
+	  "value_format=u,version=(major=0,minor=0)",
+	  confchk_file_meta, 40
+	},*/
+	//获取默认的file.meta配置
 	const char *cfg[] = { WT_CONFIG_BASE(session, file_meta), NULL, NULL };
 
 	*metaconfp = NULL;
@@ -210,19 +229,18 @@ __wt_turtle_init(WT_SESSION_IMPL *session)
 	if (load) {
 		if (exist_incr)
 			F_SET(S2C(session), WT_CONN_WAS_BACKUP);
-        printf("yang test ....1`111.......... exits turtle:%d\r\n", exist_turtle);
 		/* Create the metadata file. */
 		WT_RET(__metadata_init(session));
-        printf("yang test .....dd......... exits turtle:%d\r\n", exist_turtle);
 
 		/* Load any hot-backup information. */
 		WT_RET(__metadata_load_hot_backup(session));
-        printf("yang test ......cc........ exits turtle:%d\r\n", exist_turtle);
 		/* Create any bulk-loaded file stubs. */
 		WT_RET(__metadata_load_bulk(session));
 
 		/* Create the turtle file. */
+		//构造turtle配置
 		WT_RET(__metadata_config(session, &metaconf));
+		//创建	WT_METADATA_TURTLE	"WiredTiger.turtle"文件，并写入内容
 		WT_WITH_TURTLE_LOCK(session, ret =
 		    __wt_turtle_update(session, WT_METAFILE_URI, metaconf));
 		WT_ERR(ret);
@@ -239,7 +257,7 @@ err:	__wt_free(session, metaconf);
  * __wt_turtle_read --
  *	Read the turtle file.
  */ 
-/*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回， 返回内容填充到valuep中*/
+/*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回，不存在该文件则构造该文件内容返回 返回内容填充到valuep中*/
 int
 __wt_turtle_read(WT_SESSION_IMPL *session, const char *key, char **valuep)
 {
@@ -321,6 +339,7 @@ __wt_turtle_update(WT_SESSION_IMPL *session, const char *key, const char *value)
 	    WT_FS_OPEN_CREATE | WT_FS_OPEN_EXCLUSIVE, WT_STREAM_WRITE, &fs));
 
 	version = wiredtiger_version(&vmajor, &vminor, &vpatch);
+	//组turtle文件内容
 	WT_ERR(__wt_fprintf(session, fs,
 	    "%s\n%s\n%s\n" "major=%d,minor=%d,patch=%d\n%s\n%s\n",
 	    WT_METADATA_VERSION_STR, version,

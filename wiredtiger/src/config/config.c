@@ -26,6 +26,7 @@ __config_err(WT_CONFIG *conf, const char *msg, int err)
  *	Initialize a config handle, used to iterate through a config string of
  *	specified length.
  */
+/*初始化一个wt config对象，并将str设置为它的*/
 void
 __wt_config_initn(
     WT_SESSION_IMPL *session, WT_CONFIG *conf, const char *str, size_t len)
@@ -59,6 +60,8 @@ __wt_config_init(WT_SESSION_IMPL *session, WT_CONFIG *conf, const char *str)
  *	extracted from another config string (used for parsing nested
  *	structures).
  */
+ 
+/*初始化一个wt config对象，并将str设置为它的*/
 void
 __wt_config_subinit(
     WT_SESSION_IMPL *session, WT_CONFIG *conf, WT_CONFIG_ITEM *item)

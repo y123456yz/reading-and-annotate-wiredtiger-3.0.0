@@ -20,6 +20,7 @@ static int  __ckpt_version_chk(WT_SESSION_IMPL *, const char *, const char *);
 /*
  * __wt_meta_checkpoint --
  *	Return a file's checkpoint information.
+ *  获得fname对应文件的checkpoint信息
  */
 int
 __wt_meta_checkpoint(WT_SESSION_IMPL *session,
@@ -29,13 +30,15 @@ __wt_meta_checkpoint(WT_SESSION_IMPL *session,
 	char *config;
 
 	config = NULL;
-
+    
 	/* Retrieve the metadata entry for the file. */
+	//获取fname的元数据信息
 	WT_ERR(__wt_metadata_search(session, fname, &config));
 
 	/* Check the major/minor version numbers. */
+	/*检查btree的版本是否匹配*/
 	WT_ERR(__ckpt_version_chk(session, fname, config));
-
+    
 	/*
 	 * Retrieve the named checkpoint or the last checkpoint.
 	 *
@@ -43,13 +46,14 @@ __wt_meta_checkpoint(WT_SESSION_IMPL *session,
 	 * If we don't find a default checkpoint, it's creation, return "no
 	 * data" and let our caller handle it.
 	 */
-	if (checkpoint == NULL) {
+	if (checkpoint == NULL) { /*没有指定checkpoint，直接取最后一个checkpoint*/
 		if ((ret = __ckpt_last(session, config, ckpt)) == WT_NOTFOUND) {
 			ret = 0;
 			ckpt->addr.data = ckpt->raw.data = NULL;
 			ckpt->addr.size = ckpt->raw.size = 0;
 		}
 	} else
+	    //从config中获取checkpoint对应的配置信息，然后解析赋值给ckpt
 		WT_ERR(__ckpt_named(session, checkpoint, config, ckpt));
 
 err:	__wt_free(session, config);
@@ -130,7 +134,9 @@ err:	__wt_free(session, config);
 /*
  * __ckpt_named --
  *	Return the information associated with a file's named checkpoint.
- */
+ */ 
+/*返回config配置对应文件被命名的checkpoint信息*/
+//从config中获取checkpoint对应的配置信息，然后解析赋值给ckpt
 static int
 __ckpt_named(WT_SESSION_IMPL *session,
     const char *checkpoint, const char *config, WT_CKPT *ckpt)
@@ -155,7 +161,8 @@ __ckpt_named(WT_SESSION_IMPL *session,
 /*
  * __ckpt_last --
  *	Return the information associated with the file's last checkpoint.
- */
+ */ 
+/*返回config对应文件的最后一个checkpoint信息*/
 static int
 __ckpt_last(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt)
 {
@@ -166,7 +173,7 @@ __ckpt_last(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt)
 	WT_RET(__wt_config_getones(session, config, "checkpoint", &v));
 	__wt_config_subinit(session, &ckptconf, &v);
 	for (found = 0; __wt_config_next(&ckptconf, &k, &v) == 0;) {
-		/* Ignore checkpoints before the ones we've already seen. */
+		/* Ignore checkpoints before the ones we've already seen. 其实就是读取最大order的checkpoint*/
 		WT_RET(__wt_config_subgets(session, &v, "order", &a));
 		if (found) {
 			if (a.val < found)
@@ -309,6 +316,7 @@ err:		__wt_meta_ckptlist_free(session, &ckptbase);
  * __ckpt_load --
  *	Load a single checkpoint's information into a WT_CKPT structure.
  */
+/*根据配置的的kv信息读入一个WT_CKPT的checkpoint信息*/
 static int
 __ckpt_load(WT_SESSION_IMPL *session,
     WT_CONFIG_ITEM *k, WT_CONFIG_ITEM *v, WT_CKPT *ckpt)
@@ -497,6 +505,7 @@ __wt_meta_checkpoint_free(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
  * __ckpt_version_chk --
  *	Check the version major/minor numbers.
  */
+/*检查btree的版本是否匹配*/
 static int
 __ckpt_version_chk(
     WT_SESSION_IMPL *session, const char *fname, const char *config)

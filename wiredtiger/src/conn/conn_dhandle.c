@@ -446,6 +446,7 @@ __wt_conn_dhandle_open(
 	__conn_dhandle_config_clear(session);
 	WT_ERR(__conn_dhandle_config_set(session));
 
+
 	switch (dhandle->type) {
 	case WT_DHANDLE_TYPE_BTREE:
 		/* Set any special flags on the btree handle. */

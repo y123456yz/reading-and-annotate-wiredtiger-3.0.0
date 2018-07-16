@@ -18,6 +18,7 @@ static int __btree_tree_open_empty(WT_SESSION_IMPL *, bool);
  * __btree_clear --
  *	Clear a Btree, either on handle discard or re-open.
  */
+//清除session对应的btree
 static int
 __btree_clear(WT_SESSION_IMPL *session)
 {
@@ -80,6 +81,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 	 * Clear all flags other than the operation flags (which are set by the
 	 * connection handle software that called us).
 	 */
+	//清楚session对应的btree
 	WT_RET(__btree_clear(session));
 	memset(btree, 0, WT_BTREE_CLEAR_SIZE);
 	F_CLR(btree, ~WT_BTREE_SPECIAL_FLAGS);
@@ -88,11 +90,13 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 	btree->dhandle = dhandle;
 
 	/* Checkpoint files are readonly. */
+	/*判断是否是只读属性，如果SESSION已经建立了CHECKPOINT，那么不能对这个BTREE文件进行修改*/
 	readonly = dhandle->checkpoint != NULL ||
 	    F_ISSET(S2C(session), WT_CONN_READONLY);
 
 	/* Get the checkpoint information for this name/checkpoint pair. */
 	WT_CLEAR(ckpt);
+	/*获得checkpoint信息*/
 	WT_RET(__wt_meta_checkpoint(
 	    session, dhandle->name, dhandle->checkpoint, &ckpt));
 
@@ -281,6 +285,7 @@ __wt_btree_discard(WT_SESSION_IMPL *session)
  * __btree_conf --
  *	Configure a WT_BTREE structure.
  */
+/*根据ckpt信息构建btree对应的结构对象并初始化*/
 static int
 __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 {
@@ -301,6 +306,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	conn = S2C(session);
 
 	/* Dump out format information. */
+	/*读取cfg配置信息中的版本信息*/
 	if (WT_VERBOSE_ISSET(session, WT_VERB_VERSION)) {
 		WT_RET(__wt_config_gets(session, cfg, "version.major", &cval));
 		maj_version = cval.val;
@@ -310,11 +316,13 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 		    "%" PRId64 ".%" PRId64, maj_version, min_version);
 	}
 
+    /*获得文件ID*/
 	/* Get the file ID. */
 	WT_RET(__wt_config_gets(session, cfg, "id", &cval));
 	btree->id = (uint32_t)cval.val;
 
 	/* Validate file types and check the data format plan. */
+	/*读取cfg中的key format格式*/
 	WT_RET(__wt_config_gets(session, cfg, "key_format", &cval));
 	WT_RET(__wt_struct_confchk(session, &cval));
 	if (WT_STRING_MATCH("r", cval.str, cval.len))
@@ -328,7 +336,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	WT_RET(__wt_strndup(session, cval.str, cval.len, &btree->value_format));
 
 	/* Row-store key comparison and key gap for prefix compression. */
-	if (btree->type == BTREE_ROW) {
+	if (btree->type == BTREE_ROW) { /*构建btree的校对器collator*/
 		WT_RET(__wt_config_gets_none(session, cfg, "collator", &cval));
 		if (cval.len != 0) {
 			WT_RET(__wt_config_gets(
@@ -343,6 +351,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	}
 
 	/* Column-store: check for fixed-size data. */
+	/*列式存储需要检查fixed-size data并指定btree-type = FIX*/
 	if (btree->type == BTREE_COL_VAR) {
 		WT_RET(__wt_struct_check(
 		    session, cval.str, cval.len, &fixed, &bitcnt));
@@ -380,7 +389,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	 * The metadata isn't blocked by in-memory cache limits because metadata
 	 * "unroll" is performed by updates that are potentially blocked by the
 	 * cache-full checks.
-	 */
+	 */ /*设置page驱逐选项信息，metadata是不会被驱逐的*/
 	if (WT_IS_METADATA(btree->dhandle))
 		F_SET(btree, WT_BTREE_IGNORE_CACHE);
 
@@ -390,7 +399,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	else
 		F_SET(btree, WT_BTREE_NO_LOGGING);
 
-	/* Checksums */
+	/* Checksums */ /*checksums校验信息设置*/
 	WT_RET(__wt_config_gets(session, cfg, "checksum", &cval));
 	if (WT_STRING_MATCH("on", cval.str, cval.len))
 		btree->checksum = CKSUM_ON;
@@ -422,7 +431,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 		FLD_CLR(btree->assert_flags,
 		    WT_ASSERT_READ_TS_ALWAYS | WT_ASSERT_READ_TS_NEVER);
 
-	/* Huffman encoding */
+	/* Huffman encoding */  /*打开huffman编码对象*/
 	WT_RET(__wt_btree_huffman_open(session));
 
 	/*
@@ -436,7 +445,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	switch (btree->type) {
 	case BTREE_COL_FIX:
 		break;
-	case BTREE_ROW:
+	case BTREE_ROW:  /*行存储时指定数据压缩的方式*/
 		WT_RET(__wt_config_gets(
 		    session, cfg, "internal_key_truncate", &cval));
 		btree->internal_key_truncate = cval.val != 0;
@@ -454,6 +463,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 		break;
 	}
 
+    /*创建并初始化压缩对象*/
 	WT_RET(__wt_config_gets_none(session, cfg, "block_compressor", &cval));
 	WT_RET(__wt_compressor_config(session, &cval, &btree->compressor));
 
