@@ -32,7 +32,8 @@ __wt_schema_colgroup_name(WT_SESSION_IMPL *session,
 /*
  * __wt_schema_open_colgroups --
  *	Open the column groups for a table.
- */
+ */ 
+/*打开一个表所有的column group对象*/
 int
 __wt_schema_open_colgroups(WT_SESSION_IMPL *session, WT_TABLE *table)
 {
@@ -67,11 +68,13 @@ __wt_schema_open_colgroups(WT_SESSION_IMPL *session, WT_TABLE *table)
 		 * Always open from scratch: we may have failed part of the way
 		 * through opening a table, or column groups may have changed.
 		 */
+		//清除，后面从新赋值
 		__wt_schema_destroy_colgroup(session, &table->cgroups[i]);
-
+    
 		WT_ERR(__wt_buf_init(session, buf, 0));
 		WT_ERR(__wt_schema_colgroup_name(session, table,
 		    ckey.str, ckey.len, buf));
+		/*找到column group的meta元信息*/
 		if ((ret = __wt_metadata_search(
 		    session, buf->data, &cgconfig)) != 0) {
 			/* It is okay if the table is incomplete. */
@@ -472,6 +475,7 @@ __schema_open_table(WT_SESSION_IMPL *session, const char *cfg[])
 		    "%s requires a table with named columns", tablename);
 
 	WT_RET(__wt_calloc_def(session, WT_COLGROUPS(table), &table->cgroups));
+	/*打开一个表所有的column group对象*/
 	WT_RET(__wt_schema_open_colgroups(session, table));
 
 	return (0);

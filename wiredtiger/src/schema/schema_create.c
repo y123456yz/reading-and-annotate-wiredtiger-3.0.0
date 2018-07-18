@@ -566,7 +566,7 @@ err:	__wt_free(session, idxconf);
 
 /*
  * __create_table --
- *	Create a table.
+ *	Create a table. 创建表对象
  */
 static int
 __create_table(WT_SESSION_IMPL *session,
@@ -576,7 +576,15 @@ __create_table(WT_SESSION_IMPL *session,
 	WT_CONFIG_ITEM cgkey, cgval, cval;
 	WT_DECL_RET;
 	WT_TABLE *table;
-	const char *cfg[4] =
+	
+	/*
+	{ "table.meta",
+	  "app_metadata=,colgroups=,collator=,columns=,key_format=u,"
+	  "value_format=u",
+	  confchk_table_meta, 6
+	},
+	*/
+	const char *cfg[4] = //table_meta对应的默认配置
 	    { WT_CONFIG_BASE(session, table_meta), config, NULL, NULL };
 	const char *tablename;
 	char *tableconf, *cgname;
@@ -590,8 +598,10 @@ __create_table(WT_SESSION_IMPL *session,
 	WT_ASSERT(session, F_ISSET(session, WT_SESSION_LOCKED_TABLE_WRITE));
 
 	tablename = uri;
-	WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:");
+	WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:"); //剔除前面的table:字符串
 
+    //test .......... uri:table:./yyz-test, tablename:./yyz-test
+    //printf("test .......... uri:%s, tablename:%s\r\n", uri, tablename);
 	/* Check if the table already exists. */
 	if ((ret = __wt_metadata_search(
 	    session, uri, &tableconf)) != WT_NOTFOUND) {
@@ -600,8 +610,10 @@ __create_table(WT_SESSION_IMPL *session,
 		goto err;
 	}
 
+    printf("yang test .............. uri:%s, tableconf:%s", uri, tableconf);
 	WT_ERR(__wt_config_gets(session, cfg, "colgroups", &cval));
-	__wt_config_subinit(session, &conf, &cval);
+	__wt_config_subinit(session, &conf, &cval);//根据cval来构建WT_CONFIG对象
+	
 	for (ncolgroups = 0;
 	    (ret = __wt_config_next(&conf, &cgkey, &cgval)) == 0;
 	    ncolgroups++)
@@ -622,6 +634,7 @@ __create_table(WT_SESSION_IMPL *session,
 	 * Open the table to check that it was setup correctly.  Keep the
 	 * handle exclusive until it is released at the end of the call.
 	 */
+	/*尝试性的打开刚刚创建的table对象*/
 	WT_ERR(__wt_schema_get_table_uri(
 	    session, uri, true, WT_DHANDLE_EXCLUSIVE, &table));
 	if (WT_META_TRACKING(session)) {
@@ -697,14 +710,14 @@ __wt_schema_create(
      printf("yang test ..111.... uri:%s\r\n", uri);
 	if (WT_PREFIX_MATCH(uri, "colgroup:"))
 		ret = __create_colgroup(session, uri, exclusive, config);
-	else if (WT_PREFIX_MATCH(uri, "file:"))
+	else if (WT_PREFIX_MATCH(uri, "file:")) //对应btree
 		ret = __create_file(session, uri, exclusive, config);
-	else if (WT_PREFIX_MATCH(uri, "lsm:"))
+	else if (WT_PREFIX_MATCH(uri, "lsm:")) //对应lsmtree
 		ret = __wt_lsm_tree_create(session, uri, exclusive, config);
 	else if (WT_PREFIX_MATCH(uri, "index:"))
 		ret = __create_index(session, uri, exclusive, config);
-	else if (WT_PREFIX_MATCH(uri, "table:"))
-		ret = __create_table(session, uri, exclusive, config);
+	else if (WT_PREFIX_MATCH(uri, "table:")) //wt create
+		ret = __create_table(session, uri, exclusive, config); //创建表
 	else if ((dsrc = __wt_schema_get_source(session, uri)) != NULL)
 		ret = dsrc->create == NULL ?
 		    __wt_object_unsupported(session, uri) :

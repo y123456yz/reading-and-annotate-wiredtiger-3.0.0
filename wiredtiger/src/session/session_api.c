@@ -297,7 +297,7 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
 	 * Common cursor types.
 	 */
 	case 't':
-		if (WT_PREFIX_MATCH(uri, "table:"))
+		if (WT_PREFIX_MATCH(uri, "table:"))//wt create
 			WT_RET(__wt_curtable_open(
 			    session, uri, owner, cfg, cursorp));
 		break;
@@ -541,7 +541,9 @@ __wt_session_create(
  * __session_create --
  *	WT_SESSION->create method.
  */ 
-/*根据uri和config信息创建一个对应的schema对象*/
+/*根据uri和config信息创建一个对应的schema对象
+util_create会调用该函数
+*/
 static int
 __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -564,7 +566,7 @@ __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 	 */
 	if (!WT_PREFIX_MATCH(uri, "colgroup:") &&
 	    !WT_PREFIX_MATCH(uri, "index:") &&
-	    !WT_PREFIX_MATCH(uri, "table:")) {
+	    !WT_PREFIX_MATCH(uri, "table:")) { //wt create对应table
 		/*
 		 * We can't disallow type entirely, a configuration string might
 		 * innocently include it, for example, a dump/load pair.  If the

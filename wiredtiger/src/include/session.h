@@ -46,7 +46,7 @@ struct __wt_hazard {
  //创建空间和赋值见__wt_open_internal_session      
  //__wt_connection_impl.sessions数组位该类型  
  //S2C完成session(WT_SESSION_IMPL)到connection(__wt_connection_impl)转换
- //赋值见__open_session
+ //赋值见__open_session  
 struct __wt_session_impl {
 	WT_SESSION iface; //__open_session中赋值
 
@@ -91,6 +91,7 @@ struct __wt_session_impl {
 
 	WT_CURSOR	*las_cursor;	/* Lookaside table cursor */
 
+    //赋值见__wt_metadata_cursor
 	WT_CURSOR *meta_cursor;		/* Metadata file */
 	void	  *meta_track;		/* Metadata operation tracking */
 	void	  *meta_track_next;	/* Current position */

@@ -43,6 +43,7 @@ __wt_block_ckpt_init(
  * __wt_block_checkpoint_load --
  *	Load a checkpoint.
  */
+/*从block对应的文件中载入一个checkpoint信息,并读取avail list中的ext对象位置信息*/
 int
 __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
     const uint8_t *addr, size_t addr_size,
@@ -58,6 +59,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * or the checkpoint was empty).  In that case we return an empty root
 	 * address, set that up now.
 	 */
+	/*有时候不能找到root页，这种情况下需要返回一个空地址回去，也就是root_addr_size = 0*/
 	*root_addr_sizep = 0;
 
 	ci = NULL;
@@ -81,6 +83,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 */
 	if (checkpoint) {
 		ci = &_ci;
+		/*进行checkpoint初始化*/
 		WT_ERR(__wt_block_ckpt_init(session, ci, "checkpoint"));
 	} else {
 		/*
@@ -106,6 +109,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 		ci->file_size = block->allocsize;
 	else {
 		/* Crack the checkpoint cookie. */
+		/*从addr中读取各个checkpoint信息(root_addr, alloc_addr, avail_addr, discard_addr)*/
 		WT_ERR(__wt_block_buffer_to_ckpt(session, block, addr, ci));
 
 		/* Verify sets up next. */
@@ -113,6 +117,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 			WT_ERR(__wt_verify_ckpt_load(session, block, ci));
 
 		/* Read any root page. */
+		/* 将root的位置信息写入到root addr缓冲区中*/
 		if (ci->root_offset != WT_BLOCK_INVALID_OFFSET) {
 			endp = root_addr;
 			WT_ERR(__wt_block_addr_to_buffer(block, &endp,
@@ -124,6 +129,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 		 * Rolling a checkpoint forward requires the avail list, the
 		 * blocks from which we can allocate.
 		 */
+		/*从block 对应的文件中读取avail skip list信息,根据ci->avail.off/size进行读取,live模式*/
 		if (!checkpoint)
 			WT_ERR(__wt_block_extlist_read_avail(
 			    session, block, &ci->avail, ci->file_size));

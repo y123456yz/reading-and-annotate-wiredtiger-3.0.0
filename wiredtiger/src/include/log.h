@@ -26,9 +26,12 @@ union __wt_lsn {
 	uint64_t file_offset;
 };
 
+//赋值见__log_openfile
 #define	WT_LOG_FILENAME	"WiredTigerLog"		/* Log file name */
-#define	WT_LOG_PREPNAME	"WiredTigerPreplog"	/* Log pre-allocated name */
 #define	WT_LOG_TMPNAME	"WiredTigerTmplog"	/* Log temporary name */
+
+//赋值见__log_alloc_prealloc
+#define	WT_LOG_PREPNAME	"WiredTigerPreplog"	/* Log pre-allocated name */
 
 /* Logging subsystem declarations. */
 #define	WT_LOG_ALIGN			128
@@ -221,6 +224,7 @@ struct __wt_log {
 	/*
 	 * Log file information
 	 */
+	//赋值见__wt_log_open，对应最大的WiredTigerLog.xx中的xx
 	uint32_t	 fileid;	/* Current log file number */
 	uint32_t	 prep_fileid;	/* Pre-allocated file number */
 	uint32_t	 tmp_fileid;	/* Temporary file number */
@@ -238,6 +242,7 @@ struct __wt_log {
 	WT_LSN		alloc_lsn;	/* Next LSN for allocation */
 	WT_LSN		bg_sync_lsn;	/* Latest background sync LSN */
 	WT_LSN		ckpt_lsn;	/* Last checkpoint LSN */
+	//赋值见__wt_log_open，对应最小的WiredTigerLog.xx中的xx
 	WT_LSN		first_lsn;	/* First LSN */
 	WT_LSN		sync_dir_lsn;	/* LSN of the last directory sync */
 	WT_LSN		sync_lsn;	/* LSN of the last sync */

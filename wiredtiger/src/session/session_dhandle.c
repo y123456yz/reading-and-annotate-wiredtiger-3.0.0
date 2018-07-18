@@ -469,6 +469,7 @@ __session_find_shared_dhandle(
  */
 //根据uri和checkpoint查找对应的handle，找到直接返回，如果sessin中没找到，
 //则通过__session_find_shared_dhandle新建一个handle, 最后通过__session_add_dhandle添加
+//table也是根据该函数获取，见__wt_schema_get_table_uri
 static int
 __session_get_dhandle(
     WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
@@ -508,9 +509,9 @@ __session_get_dhandle(
 /*
  * __wt_session_get_dhandle --
  *	Get a data handle for the given name, set session->dhandle.
- 创建对应的btree
+ * 创建对应的btree也是在这里面
+ * table也是根据该函数获取，见__wt_schema_get_table_uri
  */
-
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session,
     const char *uri, const char *checkpoint, const char *cfg[], uint32_t flags)
@@ -522,7 +523,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 	WT_ASSERT(session, !F_ISSET(session, WT_SESSION_NO_DATA_HANDLES));
 
 	for (;;) {
-	    //根据uri和checkpoint获取对应的dhandle，没有则创建
+	    //根据uri和checkpoint获取对应的dhandle放入session->dhandle，没有则创建
 		WT_RET(__session_get_dhandle(session, uri, checkpoint));
 		dhandle = session->dhandle;
 
@@ -562,7 +563,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 			return (ret);
 		}
 
-		/* Open the handle. 创建对应的btree*/
+		/* Open the handle. 创建对应的btree或者table*/
 		if ((ret = __wt_conn_dhandle_open(session, cfg, flags)) == 0 &&
 		    LF_ISSET(WT_DHANDLE_EXCLUSIVE))
 			break;

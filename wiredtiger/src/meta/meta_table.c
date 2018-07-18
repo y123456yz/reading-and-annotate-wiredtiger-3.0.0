@@ -40,7 +40,17 @@ __wt_metadata_cursor_open(
 {
 	WT_BTREE *btree;
 	WT_DECL_RET;
-	const char *open_cursor_cfg[] = {
+
+	/*
+   	{ "WT_SESSION.open_cursor",
+	  "append=false,bulk=false,checkpoint=,checkpoint_wait=true,dump=,"
+	  "next_random=false,next_random_sample_size=0,overwrite=true,"
+	  "raw=false,readonly=false,skip_sort_check=false,statistics=,"
+	  "target=",
+	  confchk_WT_SESSION_open_cursor, 13
+	},
+	*/
+	const char *open_cursor_cfg[] = { //WT_CONFIG_ENTRY_WT_SESSION_open_cursor配置
 	    WT_CONFIG_BASE(session, WT_SESSION_open_cursor), config, NULL };
 
 	WT_WITHOUT_DHANDLE(session, ret = __wt_open_cursor(
@@ -89,6 +99,7 @@ __wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
 	 * we'll need to open a new one.
 	 */
 	cursor = NULL;
+	//没有meta_cursor或者在使用中，则重写打开一个新的meta_cursor
 	if (session->meta_cursor == NULL ||
 	    F_ISSET(session->meta_cursor, WT_CURSTD_META_INUSE)) {
 		WT_RET(__wt_metadata_cursor_open(session, NULL, &cursor));
@@ -261,6 +272,7 @@ err:	WT_TRET(__wt_metadata_cursor_release(session, &cursor));
  *	Return a copied row from the metadata.
  *	The caller is responsible for freeing the allocated memory.
  */
+/*在meta中查找key对应的value值，并拷贝对应的value进行返回*/
 int
 __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 {
@@ -315,3 +327,4 @@ err:	WT_TRET(__wt_metadata_cursor_release(session, &cursor));
 		__wt_free(session, *valuep);
 	return (ret);
 }
+

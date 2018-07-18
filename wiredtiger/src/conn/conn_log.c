@@ -1058,7 +1058,7 @@ __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
  * __wt_logmgr_open --
  *	Start the log service threads.
  */
-/*启动wiredtiger日志系统*/
+/*启动wiredtiger日志系统  WiredTigerLog相关 */
 int
 __wt_logmgr_open(WT_SESSION_IMPL *session)
 {

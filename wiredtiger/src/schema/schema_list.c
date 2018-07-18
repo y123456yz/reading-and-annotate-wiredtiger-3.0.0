@@ -12,6 +12,7 @@
  * __wt_schema_get_table_uri --
  *	Get the table handle for the named table.
  */
+//获取uri对应的table handle
 int
 __wt_schema_get_table_uri(WT_SESSION_IMPL *session,
     const char *uri, bool ok_incomplete, uint32_t flags,
@@ -21,12 +22,13 @@ __wt_schema_get_table_uri(WT_SESSION_IMPL *session,
 	WT_DECL_RET;
 	WT_TABLE *table;
 
+    //临时保存原来的
 	saved_dhandle = session->dhandle;
 
 	*tablep = NULL;
 
 	WT_ERR(__wt_session_get_dhandle(session, uri, NULL, NULL, flags));
-	table = (WT_TABLE *)session->dhandle;
+	table = (WT_TABLE *)session->dhandle; //配合__session_get_dhandle阅读
 	if (!ok_incomplete && !table->cg_complete) {
 		ret = EINVAL;
 		WT_TRET(__wt_session_release_dhandle(session));
@@ -36,6 +38,7 @@ __wt_schema_get_table_uri(WT_SESSION_IMPL *session,
 	}
 	*tablep = table;
 
+    //恢复
 err:	session->dhandle = saved_dhandle;
 	return (ret);
 }
@@ -43,7 +46,8 @@ err:	session->dhandle = saved_dhandle;
 /*
  * __wt_schema_get_table --
  *	Get the table handle for the named table.
- */
+ */ 
+//获取name对应的table handle
 int
 __wt_schema_get_table(WT_SESSION_IMPL *session,
     const char *name, size_t namelen, bool ok_incomplete, uint32_t flags,

@@ -864,7 +864,8 @@ __curtable_complete(WT_SESSION_IMPL *session, WT_TABLE *table)
 /*
  * __curtable_open_colgroups --
  *	Open cursors on column groups for a table cursor.
- */
+ */ 
+/*打开table所有关联的colgroup cursor*/
 static int
 __curtable_open_colgroups(WT_CURSOR_TABLE *ctable, const char *cfg_arg[])
 {
@@ -935,7 +936,8 @@ __curtable_open_indices(WT_CURSOR_TABLE *ctable)
 /*
  * __wt_curtable_open --
  *	WT_SESSION->open_cursor method for table cursors.
- */
+ */ 
+/*创建并打开table cursor*/
 int
 __wt_curtable_open(WT_SESSION_IMPL *session,
     const char *uri, WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp)
@@ -977,10 +979,12 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 	WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:");
 	columns = strchr(tablename, '(');
 	if (columns == NULL)
+	    //获取uri对应的table
 		WT_RET(__wt_schema_get_table_uri(
 		    session, uri, false, 0, &table));
 	else {
 		size = WT_PTRDIFF(columns, tablename);
+		//获取name对应的table handle
 		WT_RET(__wt_schema_get_table(
 		    session, tablename, size, false, 0, &table));
 	}
@@ -1040,6 +1044,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 		cursor->reset = __curtable_reset;
 	}
 
+    /*对cursor进行初始化*/
 	WT_ERR(__wt_cursor_init(
 	    cursor, cursor->internal_uri, owner, cfg, cursorp));
 
@@ -1055,6 +1060,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 	 * session cursors or we can't work out where to put the colgroup
 	 * cursor(s).
 	 */
+	/*打开table所有关联的colgroup cursor*/
 	WT_ERR(__curtable_open_colgroups(ctable, cfg));
 
 	/*

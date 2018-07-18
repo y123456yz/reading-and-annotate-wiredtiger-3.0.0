@@ -1334,6 +1334,7 @@ err:	__wt_scr_free(session, &tmp);
  * __wt_block_extlist_truncate --
  *	Truncate the file based on the last available extent in the list.
  */
+/*将block对应的文件缩小，缩小的大小为el中最后一个ext的大小，相当于将最后一个ext指向的数据被移除*/
 int
 __wt_block_extlist_truncate(
     WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el)

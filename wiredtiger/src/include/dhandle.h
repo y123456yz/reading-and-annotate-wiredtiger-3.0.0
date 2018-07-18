@@ -59,7 +59,7 @@
  * WT_DATA_HANDLE --
  *	A handle for a generic named data source.
  */
-//__wt_conn_dhandle_alloc中创建改结构
+//__wt_conn_dhandle_alloc中创建改结构   __wt_table.iface为该结构
 struct __wt_data_handle {
 	WT_RWLOCK rwlock;		/* Lock for shared/exclusive ops */
 	TAILQ_ENTRY(__wt_data_handle) q;
@@ -87,8 +87,8 @@ struct __wt_data_handle {
 	void *handle;			/* Generic handle */
 
 	enum {
-		WT_DHANDLE_TYPE_BTREE,
-		WT_DHANDLE_TYPE_TABLE
+		WT_DHANDLE_TYPE_BTREE, //table   tw create
+		WT_DHANDLE_TYPE_TABLE  //file
 	} type;
 
 	bool compact_skip;		/* If the handle failed to compact */
