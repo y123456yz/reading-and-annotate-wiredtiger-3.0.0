@@ -115,13 +115,13 @@ __handle_search(
 		}
 
 	/* If we don't find a match, optionally add a new entry. */
-	if (!found && newfh != NULL) {
+	if (!found && newfh != NULL) { //该name文件还没有处于打开状态，则创建一个新的fh来记录
 		newfh->name_hash = hash; //该fh处于WT_CONNECTION_IMPL.fhhash的那个hash槽位
 		WT_FILE_HANDLE_INSERT(conn, newfh, bucket); //插入hash桶
 		(void)__wt_atomic_add32(&conn->open_file_count, 1);
 
 		++newfh->ref;
-		*fhp = newfh;
+		*fhp = newfh; //赋值在该函数外面
 	}
 
 	__wt_spin_unlock(session, &conn->fh_lock);
@@ -160,7 +160,7 @@ __open_verbose(
 	case WT_FS_OPEN_FILE_TYPE_DIRECTORY:
 		file_type_tag = "directory";
 		break;
-	case WT_FS_OPEN_FILE_TYPE_LOG:
+	case WT_FS_OPEN_FILE_TYPE_LOG: //WiredTigerLog 相关
 		file_type_tag = "log";
 		break;
 	case WT_FS_OPEN_FILE_TYPE_REGULAR:
@@ -233,7 +233,7 @@ __wt_open(WT_SESSION_IMPL *session,
 	/* Check if the handle is already open. */
 	/*查找文件是否已经处于打开状态*/
 	if (__handle_search(session, name, NULL, &fh)) {
-		*fhp = fh;
+		*fhp = fh; //找到直接返回
 		return (0);
 	}
 

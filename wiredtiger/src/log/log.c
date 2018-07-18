@@ -1553,7 +1553,7 @@ __wt_log_open(WT_SESSION_IMPL *session)
 		WT_ERR(__wt_log_extract_lognum(session, logfiles[i], &lognum));
 		lastlog = WT_MAX(lastlog, lognum);
 		firstlog = WT_MIN(firstlog, lognum);
-		//printf("yang test ............. logfile:%s\r\n", logfiles[i]);
+		printf("yang test ............. logfile:%s\r\n", logfiles[i]);
 	}
 	log->fileid = lastlog;
 	__wt_verbose(session, WT_VERB_LOG,

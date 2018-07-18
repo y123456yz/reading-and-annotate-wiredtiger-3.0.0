@@ -144,7 +144,7 @@ __wt_conn_dhandle_alloc(
 	if (WT_PREFIX_MATCH(uri, "file:")) {
 		WT_RET(__wt_calloc_one(session, &dhandle));
 		dhandle->type = WT_DHANDLE_TYPE_BTREE;
-	} else if (WT_PREFIX_MATCH(uri, "table:")) {
+	} else if (WT_PREFIX_MATCH(uri, "table:")) { //如果是表，则这里创建的是table，table的第一个成员就是dhandle
 		WT_RET(__wt_calloc_one(session, &table));
 		dhandle = &table->iface;
 		dhandle->type = WT_DHANDLE_TYPE_TABLE;
@@ -403,7 +403,7 @@ err:	__wt_spin_unlock(session, &dhandle->close_lock);
 /*
  * __wt_conn_dhandle_open --
  *	Open the current data handle.
- * 主要函数为__wt_btree_open，创建对应的btree
+ * 主要函数为__wt_btree_open，创建对应的btree或者table
  */
 int
 __wt_conn_dhandle_open(
@@ -467,7 +467,7 @@ __wt_conn_dhandle_open(
         /*创建或者打开一个btree及其对应的文件*/
 		WT_ERR(__wt_btree_open(session, cfg));
 		break;
-	case WT_DHANDLE_TYPE_TABLE:
+	case WT_DHANDLE_TYPE_TABLE: //创建对应的table
 		WT_ERR(__wt_schema_open_table(session, cfg));
 		break;
 	}

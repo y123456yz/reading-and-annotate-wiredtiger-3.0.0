@@ -43,6 +43,7 @@ journal¥Ê¥¢Write ahead log
 #define	WT_METAFILE		"WiredTiger.wt"		/* Metadata table */
 #define	WT_METAFILE_URI		"file:WiredTiger.wt"	/* Metadata table URI */
 
+//__wt_las_create÷–¥¥Ω®
 #define	WT_LAS_URI		"file:WiredTigerLAS.wt"	/* Lookaside table URI*/
 
 /*

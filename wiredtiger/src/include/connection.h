@@ -227,7 +227,7 @@ struct __wt_connection_impl {
 					/* Locked: LSM handle list. */
 	TAILQ_HEAD(__wt_lsm_qh, __wt_lsm_tree) lsmqh;
 					/* Locked: file list */
-	//存放file handle的hash表，见__handle_search
+	//存放file handle的hash表，见__handle_search，用于存储各种打开的文件，见__handle_search
 	TAILQ_HEAD(__wt_fhhash, __wt_fh) fhhash[WT_HASH_ARRAY_SIZE];
 	TAILQ_HEAD(__wt_fh_qh, __wt_fh) fhqh;
 					/* Locked: library list */

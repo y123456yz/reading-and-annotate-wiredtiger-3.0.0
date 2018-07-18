@@ -86,6 +86,8 @@ main(int argc, char *argv[])
 	if (!testutil_is_flag_set("TESTUTIL_ENABLE_LONG_TESTS"))
 		return (EXIT_SUCCESS);
 
+    printf("yang test .............. twperf\r\n");
+    while(1);
 	opts = &_opts;
 	sharedopts = &_sharedopts;
 	memset(opts, 0, sizeof(*opts));

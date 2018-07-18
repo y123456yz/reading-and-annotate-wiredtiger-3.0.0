@@ -61,7 +61,7 @@ __wt_config_init(WT_SESSION_IMPL *session, WT_CONFIG *conf, const char *str)
  *	structures).
  */
  
-/*初始化一个wt config对象，并将str设置为它的*/
+/*初始化一个WT_CONFIG对象，并将str设置为它的*/
 void
 __wt_config_subinit(
     WT_SESSION_IMPL *session, WT_CONFIG *conf, WT_CONFIG_ITEM *item)
@@ -498,6 +498,7 @@ __config_next(WT_CONFIG *conf, WT_CONFIG_ITEM *key, WT_CONFIG_ITEM *value)
  * __config_process_value --
  *	Deal with special config values like true / false.
  */
+/*进行指定配置项值的处理，按照数据类型来进行转换(一般是bool或者整型数)*/
 static void
 __config_process_value(WT_CONFIG_ITEM *value)
 {
@@ -571,7 +572,8 @@ nonum:		/*
 /*
  * __wt_config_next --
  *	Get the next config item in the string and process the value.
- */
+ */ 
+/*读取下一个配置项的值*/
 int
 __wt_config_next(WT_CONFIG *conf, WT_CONFIG_ITEM *key, WT_CONFIG_ITEM *value)
 {

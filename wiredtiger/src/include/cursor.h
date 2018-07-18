@@ -9,6 +9,7 @@
 /*
  * Initialize a static WT_CURSOR structure.
  */
+//参考__session_open_cursor_int  __wt_curtable_open  __wt_curindex_open 等
 #define	WT_CURSOR_STATIC_INIT(n,					\
 	get_key,							\
 	get_value,							\
@@ -480,6 +481,7 @@ struct __wt_cursor_stat {
 #define	WT_CURSOR_STATS(cursor)						\
 	(((WT_CURSOR_STAT *)(cursor))->stats)
 
+//赋值见__wt_curtable_open
 struct __wt_cursor_table {
 	WT_CURSOR iface;
 

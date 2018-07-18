@@ -665,7 +665,6 @@ __statlog_start(WT_CONNECTION_IMPL *conn)
 {
 	WT_SESSION_IMPL *session;
 
-    printf("yang test ....................__statlog_start\r\n");
 	/* Nothing to do if the server is already running. */
 	if (conn->stat_session != NULL)
 		return (0);

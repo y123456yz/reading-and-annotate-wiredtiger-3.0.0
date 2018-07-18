@@ -729,6 +729,7 @@ __wt_cursor_dup_position(WT_CURSOR *to_dup, WT_CURSOR *cursor)
  * __wt_cursor_init --
  *	Default cursor initialization.
  */
+/*对cursor进行初始化*/
 int
 __wt_cursor_init(WT_CURSOR *cursor,
     const char *uri, WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp)
@@ -747,7 +748,7 @@ __wt_cursor_init(WT_CURSOR *cursor,
 	 * append
 	 * The append flag is only relevant to column stores.
 	 */
-	if (WT_CURSOR_RECNO(cursor)) {
+	if (WT_CURSOR_RECNO(cursor)) {/*对append配置项的读取*/
 		WT_RET(__wt_config_gets_def(session, cfg, "append", 0, &cval));
 		if (cval.val != 0)
 			F_SET(cursor, WT_CURSTD_APPEND);
@@ -759,7 +760,7 @@ __wt_cursor_init(WT_CURSOR *cursor,
 	 * of two configuration string checks.
 	 */
 	readonly = F_ISSET(S2C(session), WT_CONN_READONLY);
-	if (!readonly) {
+	if (!readonly) {/*读取checkpoint项，如果配置了checkpoint，表示数据是永久不变的，不能做增删改*/
 		WT_RET(
 		    __wt_config_gets_def(session, cfg, "checkpoint", 0, &cval));
 		readonly = cval.len != 0;
@@ -769,7 +770,7 @@ __wt_cursor_init(WT_CURSOR *cursor,
 		    __wt_config_gets_def(session, cfg, "readonly", 0, &cval));
 		readonly = cval.val != 0;
 	}
-	if (readonly) {
+	if (readonly) { 
 		cursor->insert = __wt_cursor_notsup;
 		cursor->modify = __wt_cursor_modify_notsup;
 		cursor->remove = __wt_cursor_notsup;

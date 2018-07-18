@@ -2406,6 +2406,7 @@ main(int argc, char *argv[])
 	const char *append_comma, *config_opts;
 	char *cc_buf, *path, *sess_cfg, *tc_buf, *user_cconfig, *user_tconfig;
 
+    printf("yang test ...................wtperf\r\n");
 	/* The first WTPERF structure (from which all others are derived). */
 	wtperf = &_wtperf;
 	memset(wtperf, 0, sizeof(*wtperf));
