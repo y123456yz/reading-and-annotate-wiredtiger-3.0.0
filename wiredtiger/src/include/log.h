@@ -290,6 +290,7 @@ struct __wt_log {
 	uint32_t	flags;
 };
 
+//赋值见__log_file_header
 struct __wt_log_record {
 	uint32_t	len;		/* 00-03: Record length including hdr */
 	uint32_t	checksum;	/* 04-07: Checksum of the record */
@@ -299,6 +300,7 @@ struct __wt_log_record {
 	uint16_t	flags;		/* 08-09: Flags */
 	uint8_t		unused[2];	/* 10-11: Padding */
 	uint32_t	mem_len;	/* 12-15: Uncompressed len if needed */
+	//对应WT_LOG_DESC
 	uint8_t		record[0];	/* Beginning of actual data */
 };
 
