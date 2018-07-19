@@ -54,7 +54,7 @@ __log_slot_dump(WT_SESSION_IMPL *session)
 /*
  * __wt_log_slot_activate --
  *	Initialize a slot to become active.
- */
+ */  
 void
 __wt_log_slot_activate(WT_SESSION_IMPL *session, WT_LOGSLOT *slot)
 {

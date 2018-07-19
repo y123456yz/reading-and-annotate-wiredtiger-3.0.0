@@ -634,7 +634,8 @@ err:	__wt_scr_free(session, &zerobuf);
 /*
  * __log_prealloc --
  *	Pre-allocate a log file.
- */
+ */ 
+/*对fh对应的log文件进行空间设定（size = log_file_max），一般是新建log文件时做的*/
 static int
 __log_prealloc(WT_SESSION_IMPL *session, WT_FH *fh)
 {
@@ -746,6 +747,8 @@ __log_decrypt(WT_SESSION_IMPL *session, WT_ITEM *in, WT_ITEM *out)
  * __wt_log_fill --
  *	Copy a thread's log records into the assigned slot.
  */
+//拷贝recored中的mem内容到myslot中
+/*logrec数据写入，有direct标识确定写入到slot buffer也有可能直接写入file page cache中*/
 int
 __wt_log_fill(WT_SESSION_IMPL *session,
     WT_MYSLOT *myslot, bool force, WT_ITEM *record, WT_LSN *lsnp)
@@ -758,10 +761,10 @@ __wt_log_fill(WT_SESSION_IMPL *session,
 	 * is where we would multiply by WT_LOG_ALIGN to get the real file byte
 	 * offset for write().
 	 */
-	if (!force && !F_ISSET(myslot, WT_MYSLOT_UNBUFFERED))
+	if (!force && !F_ISSET(myslot, WT_MYSLOT_UNBUFFERED)) /*写到slot缓冲区中,效率更好，并发更好*/
 		memcpy((char *)myslot->slot->slot_buf.mem + myslot->offset,
 		    record->mem, record->size);
-	else
+	else /*对日志落直接落盘操作，需要等待IO完成*/
 		/*
 		 * If this is a force or unbuffered write, write it now.
 		 */
@@ -785,7 +788,8 @@ err:
  *	Create and write a log file header into a file handle.  If writing
  *	into the main log, it will be called locked.  If writing into a
  *	pre-allocated log, it will be called unlocked.
- */
+ */ 
+/*构造日志头（log header）并写入日志文件(WT_FH) WT_LOG_TMPNAME文件中*/
 static int
 __log_file_header(
     WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool prealloc)
@@ -806,12 +810,16 @@ __log_file_header(
 	 * Set up the log descriptor record.  Use a scratch buffer to
 	 * get correct alignment for direct I/O.
 	 */
+	/*分配一个buf，这个BUF用于构造logrec*/
 	WT_ASSERT(session, sizeof(WT_LOG_DESC) < log->allocsize);
 	WT_RET(__wt_scr_alloc(session, log->allocsize, &buf));
 	memset(buf->mem, 0, log->allocsize);
 	buf->size = log->allocsize;
 
+    /*设置头信息，主要是魔法校验字、WT版本信息和log->size,*/
 	logrec = (WT_LOG_RECORD *)buf->mem;
+
+	//填充logrec->record，也就是填充buf->mem
 	desc = (WT_LOG_DESC *)logrec->record;
 	desc->log_magic = WT_LOG_MAGIC;
 	desc->version = log->log_version;
@@ -825,6 +833,7 @@ __log_file_header(
 	 * in little-endian format. The checksum is (potentially) returned in a
 	 * big-endian format, swap it into place in a separate step.
 	 */
+	/*计算logrec的checksum*/
 	logrec->len = log->allocsize;
 	logrec->checksum = 0;
 	__wt_log_record_byteswap(logrec);
@@ -842,14 +851,16 @@ __log_file_header(
 	 * the log descriptor record.  Call __wt_log_fill to write it, but we
 	 * do not need to call __wt_log_release because we're not waiting for
 	 * any earlier operations to complete.
-	 */
+	 */ /*slot的fh已经做了空间扩充*/
 	if (prealloc) {
 		WT_ASSERT(session, fh != NULL);
 		tmp.slot_fh = fh;
-	} else {
+	} else {/*如果不是realloc过程的，那么就使用log当前对应的slot*/
 		WT_ASSERT(session, fh == NULL);
 		WT_ERR(__wt_log_acquire(session, log->allocsize, &tmp));
 	}
+
+	//把WT_LOG_RECORD结构填充好后写入WT_LOG_TMPNAME文件中
 	WT_ERR(__wt_log_fill(session, &myslot, true, buf, NULL));
 	/*
 	 * Make sure the header gets to disk.
@@ -865,7 +876,7 @@ err:	__wt_scr_free(session, &buf);
 /*
  * __log_openfile --
  *	Open a log file with the given log file number and return the WT_FH.
- */
+ */ //WT_LOG_FILENAME等日志文件相关
 static int
 __log_openfile(
     WT_SESSION_IMPL *session, uint32_t id, uint32_t flags, WT_FH **fhp)
@@ -935,6 +946,7 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp,
 	/*
 	 * Read in the log file header and verify it.
 	 */
+	//读取fh日志文件中的WT_LOG_RECORD header,然后校验
 	WT_ERR(__wt_read(session, fh, 0, allocsize, buf->mem));
 	logrec = (WT_LOG_RECORD *)buf->mem;
 	__wt_log_record_byteswap(logrec);
@@ -986,9 +998,11 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp,
 	if (!__log_checksum_match(session, buf, allocsize))
 		WT_ERR_MSG(session, WT_ERROR,
 		    "%s: System log record checksum mismatch", fh->name);
+    
 	__wt_log_record_byteswap(logrec);
 	p = WT_LOG_SKIP_HEADER(buf->data);
 	end = (const uint8_t *)buf->data + allocsize;
+	//解析出头部中的rectype
 	WT_ERR(__wt_logrec_read(session, &p, end, &rectype));
 	if (rectype != WT_LOGREC_SYSTEM)
 		WT_ERR_MSG(session, WT_ERROR, "System log record missing");
@@ -1139,7 +1153,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 	/*
 	 * If we need to create the log file, do so now.
 	 */
-	if (create_log) {
+	if (create_log) {  //WT_LOG_FILENAME等日志文件相关创建
 		log->prep_missed++;
 		WT_RET(__wt_log_allocfile(
 		    session, log->fileid, WT_LOG_FILENAME));
@@ -1272,7 +1286,8 @@ err:
  * __wt_log_acquire --
  *	Called serially when switching slots.  Can be called recursively
  *	from __log_newfile when we change log files.
- */
+ */ 
+/*判断写入recsize的日志长度时，是否需要分配新的日志文件和建立新的checkpoint,并修改对应的slot状态*/
 int
 __wt_log_acquire(WT_SESSION_IMPL *session, uint64_t recsize, WT_LOGSLOT *slot)
 {
@@ -1300,6 +1315,9 @@ __wt_log_acquire(WT_SESSION_IMPL *session, uint64_t recsize, WT_LOGSLOT *slot)
 	 * that exceed the maximum file size.  We want to minimize the risk
 	 * of an error due to no space.
 	 */
+	/*如果当前alloc_lsn对应的文件剩余空间无法存下recsize大小的数据，将slot设置为slot closeFH状态，提示close fh线程进行文件刷盘并关闭
+	 *需要新建一个新的log file来保存，这有可能会涉及到递归调用
+	 *__wt_log_newfile->__wt_log_allocfile->__log_file_header->__log_acquire*/
 	if (F_ISSET(log, WT_LOG_FORCE_NEWFILE) ||
 	    !__log_size_fit(session, &log->alloc_lsn, recsize)) {
 		WT_RET(__log_newfile(session, false, &created_log));
@@ -1312,6 +1330,7 @@ __wt_log_acquire(WT_SESSION_IMPL *session, uint64_t recsize, WT_LOGSLOT *slot)
 	 * Pre-allocate on the first real write into the log file, if it
 	 * was just created (i.e. not pre-allocated).
 	 */
+	/*如果alloc_lsn对应的是LOG的第一条记录，并且创建了新的文件,表示当前alloc_lsn无法存下recsize的数据，需要进行文件空间扩充*/
 	if (log->alloc_lsn.l.offset == log->first_record && created_log)
 		WT_RET(__log_prealloc(session, log->log_fh));
 	/*
@@ -1426,7 +1445,7 @@ err:	WT_TRET(__wt_close(session, &log_fh));
  * __wt_log_allocfile --
  *	Given a log number, create a new log file by writing the header,
  *	pre-allocating the file and moving it to the destination name.
- */
+ */ //WT_LOG_FILENAME等日志文件相关
 int
 __wt_log_allocfile(
     WT_SESSION_IMPL *session, uint32_t lognum, const char *dest)
@@ -1461,7 +1480,9 @@ __wt_log_allocfile(
 	 */
 	WT_ERR(__log_openfile(session, tmp_id, WT_LOG_OPEN_CREATE_OK, &log_fh));
 	WT_ERR(__log_file_header(session, log_fh, NULL, true));
+	/*对fh对应的log文件进行空间设定（size = log_file_max），一般是新建log文件时做的*/
 	WT_ERR(__log_prealloc(session, log_fh));
+	//__posix_file_sync
 	WT_ERR(__wt_fsync(session, log_fh, true));
 	WT_ERR(__wt_close(session, &log_fh));
 	__wt_verbose(session, WT_VERB_LOG,
