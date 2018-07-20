@@ -688,6 +688,7 @@ __create_data_source(WT_SESSION_IMPL *session,
  * __wt_schema_create --
  *	Process a WT_SESSION::create operation for all supported types.
  */
+//根据uri创建对应的colgroup  file  lsm index table等
 int
 __wt_schema_create(
     WT_SESSION_IMPL *session, const char *uri, const char *config)
@@ -708,13 +709,13 @@ __wt_schema_create(
 	 */
 	WT_RET(__wt_meta_track_on(session));
      printf("yang test ..111.... uri:%s\r\n", uri);
-	if (WT_PREFIX_MATCH(uri, "colgroup:"))
+	if (WT_PREFIX_MATCH(uri, "colgroup:")) //
 		ret = __create_colgroup(session, uri, exclusive, config);
 	else if (WT_PREFIX_MATCH(uri, "file:")) //对应btree
 		ret = __create_file(session, uri, exclusive, config);
 	else if (WT_PREFIX_MATCH(uri, "lsm:")) //对应lsmtree
 		ret = __wt_lsm_tree_create(session, uri, exclusive, config);
-	else if (WT_PREFIX_MATCH(uri, "index:"))
+	else if (WT_PREFIX_MATCH(uri, "index:"))//索引index
 		ret = __create_index(session, uri, exclusive, config);
 	else if (WT_PREFIX_MATCH(uri, "table:")) //wt create
 		ret = __create_table(session, uri, exclusive, config); //创建表

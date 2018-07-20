@@ -116,11 +116,15 @@ struct __wtperf {			/* Per-database structure */
 	char *monitor_dir;		/* Monitor output dir */
 	char *partial_config;		/* Config string for partial logging */
 	char *reopen_config;		/* Config string for conn reopen */
+	//table:+table_name+_log_table //赋值见create_uris
 	char *log_table_uri;            /* URI for log table */
+	//赋值见create_uris  //table:table_name%d
 	char **uris;			/* URIs */
 
+    //wiredtiger_open中获取的conn
 	WT_CONNECTION *conn;		/* Database connection */
 
+    //赋值见setup_log_file
 	FILE *logf;			/* Logging handle */
 
 	char	*async_config;		/* Config string for async */
@@ -130,6 +134,7 @@ struct __wtperf {			/* Per-database structure */
 	const char *compress_table;	/* Compression arg to table create */
 
 	WTPERF_THREAD *ckptthreads;	/* Checkpoint threads */
+	//populate_thread或者populate_async
 	WTPERF_THREAD *popthreads;	/* Populate threads */
 
 #define	WORKLOAD_MAX	50
@@ -198,6 +203,7 @@ struct __wtperf {			/* Per-database structure */
 #define	sec_to_us(v)	((v) * MILLION)
 #define	sec_to_ms(v)	((v) * THOUSAND)
 
+//赋值见start_threads
 typedef struct {
 	/*
 	 * Threads maintain the total thread operation and total latency they've
@@ -226,6 +232,7 @@ typedef struct {
 	uint32_t sec[100];		/* < 1s 2s ... 100s */
 } TRACK;
 
+//赋值见start_threads
 struct __wtperf_thread {		/* Per-thread structure */
 	WTPERF *wtperf;			/* Enclosing configuration */
 	WT_CURSOR *rand_cursor;		/* Random key cursor */
@@ -234,6 +241,7 @@ struct __wtperf_thread {		/* Per-thread structure */
 
 	wt_thread_t handle;		/* Handle */
 
+    //创建空间赋值见start_threads,真正数据填充可以参考populate_thread
 	char *key_buf, *value_buf;	/* Key/value memory */
 
 	WORKLOAD *workload;		/* Workload */

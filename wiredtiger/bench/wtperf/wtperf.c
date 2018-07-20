@@ -1055,6 +1055,7 @@ populate_thread(void *arg)
 	    (opts->populate_threads == 1 && !opts->index) ? "bulk" : NULL;
 	/* Create the cursors. */
 	cursors = dcalloc(opts->table_count, sizeof(WT_CURSOR *));
+	//获取每个//table:table_name%d的curosr
 	for (i = 0; i < opts->table_count; i++) {
 		if ((ret = session->open_cursor(
 		    session, wtperf->uris[i], NULL,
@@ -1067,9 +1068,10 @@ populate_thread(void *arg)
 	}
 
 	/* Populate the databases. */
+	//表中填充KV数据
 	for (intxn = 0, opcount = 0;;) {
 		op = get_next_incr(wtperf);
-		if (op > opts->icount)
+		if (op > opts->icount) //最多填充这么多数据
 			break;
 
 		if (opts->populate_ops_per_txn != 0 && !intxn) {
@@ -1084,8 +1086,11 @@ populate_thread(void *arg)
 		/*
 		 * Figure out which table this op belongs to.
 		 */
+		//根据op来映射到对应的表中
 		cursor = cursors[map_key_to_table(wtperf->opts, op)];
+		//op转换为字符串填充到key_buf
 		generate_key(opts, key_buf, op);
+		
 		measure_latency =
 		    opts->sample_interval != 0 &&
 		    trk->ops != 0 && (trk->ops % opts->sample_rate == 0);
@@ -1225,6 +1230,7 @@ populate_async(void *arg)
 			goto err;
 
 		asyncop->app_private = thread;
+		//把op转换为字符串填充到key_buf
 		generate_key(opts, key_buf, op);
 		asyncop->set_key(asyncop, key_buf);
 		if (opts->random_value)
@@ -1516,6 +1522,7 @@ execute_populate(WTPERF *wtperf)
 	    opts->populate_threads, opts->icount);
 
 	/* Start cycling idle tables if configured. */
+	//计算建表 获取cursor  销毁表整个过程消耗的时间
 	start_idle_table_cycle(wtperf, &idle_table_cycle_thread);
 
 	wtperf->insert_key = 0;
@@ -1528,6 +1535,7 @@ execute_populate(WTPERF *wtperf)
 		pfunc = populate_async;
 	} else
 		pfunc = populate_thread;
+		
 	start_threads(wtperf, NULL,
 	    wtperf->popthreads, opts->populate_threads, pfunc);
 
@@ -1912,6 +1920,7 @@ out:	return (ret);
 /*
  * Populate the uri array.
  */
+//table:table_name%d  获取uri名和log uri table名填充到相应wtperf成员中
 static void
 create_uris(WTPERF *wtperf)
 {
@@ -1923,7 +1932,7 @@ create_uris(WTPERF *wtperf)
 
 	wtperf->uris = dcalloc(opts->table_count, sizeof(char *));
 	len = strlen("table:") + strlen(opts->table_name) + 20;
-	for (i = 0; i < opts->table_count; i++) {
+	for (i = 0; i < opts->table_count; i++) { //table:table_name%d
 		/* If there is only one table, just use the base name. */
 		wtperf->uris[i] = dmalloc(len);
 		if (opts->table_count == 1)
@@ -1953,6 +1962,7 @@ create_tables(WTPERF *wtperf)
 
 	opts = wtperf->opts;
 
+    //__open_session
 	if ((ret = wtperf->conn->open_session(
 	    wtperf->conn, NULL, opts->sess_config, &session)) != 0) {
 		lprintf(wtperf, ret, 0,
@@ -1960,9 +1970,20 @@ create_tables(WTPERF *wtperf)
 		return (ret);
 	}
 
+    //创建idle表
 	for (i = 0; i < opts->table_count_idle; i++) {
 		testutil_check(__wt_snprintf(
 		    buf, 512, "%s_idle%05d", wtperf->uris[0], (int)i));
+		//__session_create 
+		//根据uri创建对应的colgroup  file  lsm index table等
+		/*
+        table_config默认配置:
+        DEF_OPT_AS_CONFIG_STRING(table_config,
+        "key_format=S,value_format=S,type=lsm,exclusive=true,"
+        "allocation_size=4kb,internal_page_max=64kb,leaf_page_max=4kb,"
+        "split_pct=100",
+        "table configuration string")
+		*/
 		if ((ret = session->create(
 		    session, buf, opts->table_config)) != 0) {
 			lprintf(wtperf, ret, 0,
@@ -1970,12 +1991,15 @@ create_tables(WTPERF *wtperf)
 			return (ret);
 		}
 	}
+
+	//创建log table表
 	if (opts->log_like_table && (ret = session->create(session,
 	    wtperf->log_table_uri, "key_format=Q,value_format=S")) != 0) {
 		lprintf(wtperf, ret, 0, "Error creating log table %s", buf);
 		return (ret);
 	}
 
+    //创建table表及其对应的索引表
 	for (i = 0; i < opts->table_count; i++) {
 		if (opts->log_partial && i > 0) {
 			if (((ret = session->create(session,
@@ -2239,15 +2263,18 @@ start_run(WTPERF *wtperf)
 	if ((ret = setup_log_file(wtperf)) != 0)
 		goto err;
 
+    printf("yang test .............. %s\r\n", opts->conn_config);
 	if ((ret = wiredtiger_open(	/* Open the real connection. */
 	    wtperf->home, NULL, opts->conn_config, &wtperf->conn)) != 0) {
 		lprintf(wtperf, ret, 0, "Error connecting to %s", wtperf->home);
 		goto err;
 	}
 
+    //table:table_name%d  获取uri名和log uri table名填充到相应wtperf成员中
 	create_uris(wtperf);
 
 	/* If creating, create the tables. */
+	//默认为1
 	if (opts->create != 0 && (ret = create_tables(wtperf)) != 0)
 		goto err;
 

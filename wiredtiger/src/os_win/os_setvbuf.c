@@ -34,5 +34,6 @@ __wt_stream_set_line_buffer(FILE *fp)
 void
 __wt_stream_set_no_buffer(FILE *fp)
 {
+    //_IONBF	无缓冲：不使用缓冲。每个 I/O 操作都被即时写入。buffer 和 size 参数被忽略。
 	(void)setvbuf(fp, NULL, _IONBF, 0);
 }

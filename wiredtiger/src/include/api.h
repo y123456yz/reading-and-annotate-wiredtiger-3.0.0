@@ -34,6 +34,7 @@
 #define	WT_SINGLE_THREAD_CHECK_STOP(s)
 #endif
 
+//暂存s的dhandle和name，在API_END中还原
 /* Standard entry points to the API: declares/initializes local variables. */
 #define	API_SESSION_INIT(s, h, n, dh)					\
 	WT_DATA_HANDLE *__olddh = (s)->dhandle;				\
@@ -47,6 +48,7 @@
 #define	API_CALL_NOCONF(s, h, n, dh) do {				\
 	API_SESSION_INIT(s, h, n, dh)
 
+//对s进行config检查，同时重新赋值dhandle和name
 #define	API_CALL(s, h, n, dh, config, cfg) do {				\
 	const char *(cfg)[] =						\
 	    { WT_CONFIG_BASE(s, h##_##n), config, NULL };		\
@@ -55,6 +57,7 @@
 		WT_ERR(__wt_config_check((s),				\
 		    WT_CONFIG_REF(session, h##_##n), (config), 0))
 
+//配合API_CALL中的API_SESSION_INIT
 #define	API_END(s, ret)							\
 	if ((s) != NULL) {						\
 		WT_SINGLE_THREAD_CHECK_STOP(s);			\
