@@ -51,7 +51,8 @@ struct __wt_index {
  *	key; and zero or more indices, each of which holds some set of columns
  *	in an index key that can be used to reconstruct the primary key.
  */
-//table赋值见__schema_open_table，空间创建见__wt_conn_dhandle_alloc
+//table赋值见__schema_open_table，空间创建见__wt_conn_dhandle_alloc  
+//数据库表结构都在这里面
 struct __wt_table {
 	WT_DATA_HANDLE iface;
 
@@ -65,7 +66,9 @@ struct __wt_table {
 	size_t idx_alloc;
 
 	bool cg_complete, //__wt_schema_open_colgroups中赋值为true
-	    idx_complete, is_simple;
+	    idx_complete, 
+	    //见__schema_open_table
+	    is_simple;//tables are "simple" if the columns are not named.
 	u_int ncolgroups, nindices, nkey_columns;
 };
 

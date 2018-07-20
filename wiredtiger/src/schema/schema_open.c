@@ -416,7 +416,7 @@ __wt_schema_open_indices(WT_SESSION_IMPL *session, WT_TABLE *table)
 /*
  * __schema_open_table --
  *	Open the data handle for a table (internal version).
- */
+ */ //table成员赋值
 static int
 __schema_open_table(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -424,9 +424,18 @@ __schema_open_table(WT_SESSION_IMPL *session, const char *cfg[])
 	WT_CONFIG_ITEM ckey, cval;
 	WT_DECL_RET;
 	WT_TABLE *table;
+
+	/* 例如wtperf默认table配置
+    table_config默认配置:
+    DEF_OPT_AS_CONFIG_STRING(table_config,
+    "key_format=S,value_format=S,type=lsm,exclusive=true,"
+    "allocation_size=4kb,internal_page_max=64kb,leaf_page_max=4kb,"
+    "split_pct=100",
+	*/
 	const char **table_cfg;
 	const char *tablename;
 
+    //获取该table队员的config
 	table = (WT_TABLE *)session->dhandle;
 	table_cfg = table->iface.cfg;
 	tablename = table->iface.name;
@@ -450,12 +459,14 @@ __schema_open_table(WT_SESSION_IMPL *session, const char *cfg[])
 	 */
 	__wt_config_subinit(session, &cparser, &table->colconf);
 	table->is_simple = true;
+
+	//如果列关键字不止一项
 	while ((ret = __wt_config_next(&cparser, &ckey, &cval)) == 0)
 		table->is_simple = false;
 	WT_RET_NOTFOUND_OK(ret);
 
 	/* Check that the columns match the key and value formats. */
-	if (!table->is_simple)
+	if (!table->is_simple) //不止一项则进行format检查
 		WT_RET(__wt_schema_colcheck(session,
 		    table->key_format, table->value_format, &table->colconf,
 		    &table->nkey_columns, NULL));
@@ -581,7 +592,7 @@ err:	WT_TRET(__wt_schema_release_table(session, table));
 /*
  * __wt_schema_open_table --
  *	Open a named table.
- */
+ */ //获取对应的table，对table成员赋值
 int
 __wt_schema_open_table(WT_SESSION_IMPL *session, const char *cfg[])
 {

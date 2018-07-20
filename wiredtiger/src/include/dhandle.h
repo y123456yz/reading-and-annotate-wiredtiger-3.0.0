@@ -70,6 +70,7 @@ struct __wt_data_handle {
 	const char *checkpoint;		/* Checkpoint name (or NULL) */
 	//__conn_dhandle_config_clear  __conn_dhandle_config_set 分别清除配置和添加配置
 	//__conn_dhandle_config_set
+	//配置信息，例如table 配置  file 配置  index配置 colgroup配置
 	const char **cfg;		/* Configuration information */
 
 	/*
@@ -111,7 +112,7 @@ struct __wt_data_handle {
 #define	WT_DHANDLE_DISCARD	        0x02	/* Close on release */
 #define	WT_DHANDLE_DISCARD_KILL		0x04	/* Mark dead on release */
 #define	WT_DHANDLE_EXCLUSIVE	        0x08	/* Exclusive access */
-//WT_METAFILE_URI文件
+//WT_METAFILE_URI文件  set使用见__wt_conn_dhandle_alloc
 #define	WT_DHANDLE_IS_METADATA		0x10	/* Metadata handle */
 #define	WT_DHANDLE_LOCK_ONLY	        0x20	/* Handle only used as a lock */
 #define	WT_DHANDLE_OPEN		        0x40	/* Handle is open */
