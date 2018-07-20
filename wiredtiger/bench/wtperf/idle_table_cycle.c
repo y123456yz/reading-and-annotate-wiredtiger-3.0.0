@@ -56,7 +56,7 @@ check_timing(WTPERF *wtperf,
  * Regularly create, open a cursor and drop a table.
  * Measure how long each step takes, and flag an error if it exceeds the
  * configured maximum.
- */
+ *///计算建表 获取cursor  销毁表整个过程消耗的时间
 static WT_THREAD_RET
 cycle_idle_tables(void *arg)
 {
@@ -72,6 +72,7 @@ cycle_idle_tables(void *arg)
 	opts = wtperf->opts;
 	cycle_count = 0;
 
+    //__conn_open_session  获取一个session, 通过session_ret返回,同时获取cursor
 	if ((ret = wtperf->conn->open_session(
 	    wtperf->conn, NULL, opts->sess_config, &session)) != 0) {
 		lprintf(wtperf, ret, 0,
@@ -149,7 +150,8 @@ cycle_idle_tables(void *arg)
  * possible to portably statically initialize it in the global configuration
  * structure. Should reshuffle the configuration structure so explicit static
  * initialization isn't necessary.
- */
+ */ 
+//计算建表 获取cursor  销毁表整个过程消耗的时间
 void
 start_idle_table_cycle(WTPERF *wtperf, wt_thread_t *idle_table_cycle_thread)
 {

@@ -937,7 +937,7 @@ __curtable_open_indices(WT_CURSOR_TABLE *ctable)
  * __wt_curtable_open --
  *	WT_SESSION->open_cursor method for table cursors.
  */ 
-/*创建并打开table cursor*/
+/*创建并打开table cursor,获取cursor返回 */
 int
 __wt_curtable_open(WT_SESSION_IMPL *session,
     const char *uri, WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp)

@@ -34,6 +34,7 @@ __metadata_turtle(const char *key)
  * __wt_metadata_cursor_open --
  *	Opens a cursor on the metadata.
  */
+ //获取一个cursor,通过cursorp返回
 int
 __wt_metadata_cursor_open(
     WT_SESSION_IMPL *session, const char *config, WT_CURSOR **cursorp)
@@ -88,7 +89,7 @@ __wt_metadata_cursor_open(
  * which case it opens and returns another metadata cursor.
  */
 
-/*打开一个meta cursor*/
+/*打开一个meta cursor， 通过cursorp返回并记录到session->meta_cursor */
 int
 __wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
 {

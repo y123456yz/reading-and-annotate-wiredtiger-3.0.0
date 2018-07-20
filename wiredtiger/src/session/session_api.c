@@ -273,7 +273,8 @@ err:	API_END_RET_NOTFOUND_MAP(session, ret);
 /*
  * __session_open_cursor_int --
  *	Internal version of WT_SESSION::open_cursor, with second cursor arg.
- */ // 根据uri打开一个对应的cursor对象
+ */ // 根据uri打开一个对应的cursor对象 
+ /*获取cursor返回 */
 static int
 __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
     WT_CURSOR *owner, WT_CURSOR *other, const char *cfg[], WT_CURSOR **cursorp)
@@ -386,7 +387,7 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
 /*
  * __wt_open_cursor --
  *	Internal version of WT_SESSION::open_cursor.
- 根据uri打开一个对应的cursor对象
+ 根据uri打开一个对应的cursor对象返回
  */
 int
 __wt_open_cursor(WT_SESSION_IMPL *session,
@@ -524,7 +525,8 @@ err:	API_END_RET(session, ret);
 /*
  * __wt_session_create --
  *	Internal version of WT_SESSION::create.
- */
+ */ 
+//根据uri创建对应的colgroup  file  lsm index table等
 int
 __wt_session_create(
     WT_SESSION_IMPL *session, const char *uri, const char *config)
@@ -542,7 +544,8 @@ __wt_session_create(
  *	WT_SESSION->create method.
  */ 
 /*根据uri和config信息创建一个对应的schema对象
-util_create会调用该函数
+util_create会调用该函数  
+//根据uri创建对应的colgroup  file  lsm index table等
 */
 static int
 __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
@@ -583,7 +586,8 @@ __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 			    "%s: unsupported type configuration", uri);
 		WT_ERR_NOTFOUND_OK(ret);
 	}
-
+	
+    //根据uri创建对应的colgroup  file  lsm index table等
 	ret = __wt_session_create(session, uri, config);
 
 err:	if (ret != 0)
@@ -1942,7 +1946,7 @@ err:	__wt_spin_unlock(session, &conn->api_lock);
  * __wt_open_session --
  *	Allocate a session handle.
  */
-/*创建并打开一个外部使用的session对象*/
+/*创建并打开一个外部使用的session对象,如果open_metadata为ture则获取cursor赋值给session->meta_cursor*/
 int
 __wt_open_session(WT_CONNECTION_IMPL *conn,
     WT_EVENT_HANDLER *event_handler, const char *config,
@@ -1968,6 +1972,7 @@ __wt_open_session(WT_CONNECTION_IMPL *conn,
 	 */
 	if (open_metadata) {
 		WT_ASSERT(session, !F_ISSET(session, WT_SESSION_LOCKED_SCHEMA));
+		//获取cursor
 		if ((ret = __wt_metadata_cursor(session, NULL)) != 0) {
 			wt_session = &session->iface;
 			WT_TRET(wt_session->close(wt_session, NULL));

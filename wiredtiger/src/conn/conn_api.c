@@ -1205,7 +1205,10 @@ err:	API_END_RET(session, ret);
  * __conn_open_session --
  *	WT_CONNECTION->open_session method.
  */ 
-/*打开一个外部session， 通过wt_sessionp 返回*/
+/*
+打开一个外部session， 通过wt_sessionp 返回
+获取一个session, 通过session_ret返回,同时获取cursor
+*/
 //util_main.c中的main就会调用该函数
 static int
 __conn_open_session(WT_CONNECTION *wt_conn,
@@ -1220,16 +1223,18 @@ __conn_open_session(WT_CONNECTION *wt_conn,
 
 	conn = (WT_CONNECTION_IMPL *)wt_conn;
 
+    //这里面会修改session.dhandle和session.name
 	CONNECTION_API_CALL(conn, session, open_session, config, cfg);
 	WT_UNUSED(cfg);
 
 	session_ret = NULL;
 
-	//获取一个session, 通过session_ret返回
+	//获取一个session, 通过session_ret返回,同时获取cursor赋值给session->meta_cursor
 	WT_ERR(__wt_open_session(
 	    conn, event_handler, config, true, &session_ret));
 	*wt_sessionp = &session_ret->iface;
 
+    //还原dhandle和name
 err:	API_END_RET_NOTFOUND_MAP(session, ret);
 }
 
