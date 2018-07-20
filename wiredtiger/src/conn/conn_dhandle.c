@@ -467,7 +467,7 @@ __wt_conn_dhandle_open(
         /*创建或者打开一个btree及其对应的文件*/
 		WT_ERR(__wt_btree_open(session, cfg));
 		break;
-	case WT_DHANDLE_TYPE_TABLE: //创建对应的table
+	case WT_DHANDLE_TYPE_TABLE: //table成员赋值
 		WT_ERR(__wt_schema_open_table(session, cfg));
 		break;
 	}

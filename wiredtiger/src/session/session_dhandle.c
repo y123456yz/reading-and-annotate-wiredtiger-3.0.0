@@ -477,6 +477,7 @@ __session_get_dhandle(
 	WT_DATA_HANDLE_CACHE *dhandle_cache;
 	WT_DECL_RET;
 
+    //先从session->dhhash查找
 	__session_find_dhandle(session, uri, checkpoint, &dhandle_cache);
 	if (dhandle_cache != NULL) { //找到，直接返回
 		session->dhandle = dhandle_cache->dhandle;
@@ -491,6 +492,7 @@ __session_get_dhandle(
 	 * handle list and cache the handle we find.
 	 */
 	//从sessin对应的conn上面查找dhandle，没有则会新建一个dhandle
+	//在从conn->dhhash查找
 	WT_RET(__session_find_shared_dhandle(session, uri, checkpoint));
 
 	/*
@@ -511,6 +513,7 @@ __session_get_dhandle(
  *	Get a data handle for the given name, set session->dhandle.
  * 创建对应的btree也是在这里面
  * table也是根据该函数获取，见__wt_schema_get_table_uri
+ * file table有各自的dhandle
  */
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session,
@@ -563,7 +566,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 			return (ret);
 		}
 
-		/* Open the handle. 创建对应的btree或者table*/
+		/* Open the handle. 创建对应的btree或者table 并赋值*/
 		if ((ret = __wt_conn_dhandle_open(session, cfg, flags)) == 0 &&
 		    LF_ISSET(WT_DHANDLE_EXCLUSIVE))
 			break;

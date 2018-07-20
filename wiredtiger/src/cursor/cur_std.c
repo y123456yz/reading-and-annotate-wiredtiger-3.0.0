@@ -324,6 +324,7 @@ err:	API_END_RET(session, ret);
 /*
  * __wt_cursor_set_keyv --
  *	WT_CURSOR->set_key default implementation.
+ * Ìî³äcursor->key
  */
 void
 __wt_cursor_set_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
@@ -338,6 +339,7 @@ __wt_cursor_set_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 	buf = &cursor->key;
 	tmp.mem = NULL;
 
+    printf("yang test .................... set keyv\r\n");
 	CURSOR_API_CALL(cursor, session, set_key, NULL);
 	if (F_ISSET(cursor, WT_CURSTD_KEY_SET) && WT_DATA_IN_ITEM(buf)) {
 		tmp = *buf;
@@ -347,6 +349,7 @@ __wt_cursor_set_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 
 	F_CLR(cursor, WT_CURSTD_KEY_SET);
 
+    //#define	WT_CURSOR_RECNO(cursor)	WT_STREQ((cursor)->key_format, "r")
 	if (WT_CURSOR_RECNO(cursor)) {
 		if (LF_ISSET(WT_CURSTD_RAW)) {
 			item = va_arg(ap, WT_ITEM *);

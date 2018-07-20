@@ -1057,6 +1057,7 @@ populate_thread(void *arg)
 	cursors = dcalloc(opts->table_count, sizeof(WT_CURSOR *));
 	//获取每个//table:table_name%d的curosr
 	for (i = 0; i < opts->table_count; i++) {
+	    //__session_open_cursor  获取uri表对应的cursor
 		if ((ret = session->open_cursor(
 		    session, wtperf->uris[i], NULL,
 		    cursor_config, &cursors[i])) != 0) {
@@ -1090,16 +1091,23 @@ populate_thread(void *arg)
 		cursor = cursors[map_key_to_table(wtperf->opts, op)];
 		//op转换为字符串填充到key_buf
 		generate_key(opts, key_buf, op);
-		
+
+		//是否需要计算延迟
 		measure_latency =
 		    opts->sample_interval != 0 &&
 		    trk->ops != 0 && (trk->ops % opts->sample_rate == 0);
+		    
 		if (measure_latency)
-			__wt_epoch(NULL, &start);
+			__wt_epoch(NULL, &start); 
+
+		//__wt_cursor_set_key
 		cursor->set_key(cursor, key_buf);
 		if (opts->random_value)
 			randomize_value(thread, value_buf);
+		//__wt_cursor_set_value
 		cursor->set_value(cursor, value_buf);
+
+		//__curtable_insert
 		if ((ret = cursor->insert(cursor)) == WT_ROLLBACK) {
 			lprintf(wtperf, ret, 0, "insert retrying");
 			if ((ret = session->rollback_transaction(
@@ -1120,9 +1128,11 @@ populate_thread(void *arg)
 		 * are multiple tables, it is the time for insertion into all
 		 * of them.
 		 */
+		//计算latency
 		if (measure_latency) {
 			__wt_epoch(NULL, &stop);
 			++trk->latency_ops;
+			//
 			usecs = WT_TIMEDIFF_US(stop, start);
 			track_operation(trk, usecs);
 		}

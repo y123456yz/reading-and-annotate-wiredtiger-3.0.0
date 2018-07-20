@@ -205,6 +205,7 @@ err:	API_END_RET(session, ret);
 /*
  * __wt_curtable_set_key --
  *	WT_CURSOR->set_key implementation for tables.
+ * 填充cursor->key
  */
 void
 __wt_curtable_set_key(WT_CURSOR *cursor, ...)
@@ -214,6 +215,7 @@ __wt_curtable_set_key(WT_CURSOR *cursor, ...)
 	u_int i;
 	va_list ap;
 
+   
 	ctable = (WT_CURSOR_TABLE *)cursor;
 	cp = ctable->cg_cursors;
 	primary = *cp++;
@@ -237,6 +239,7 @@ __wt_curtable_set_key(WT_CURSOR *cursor, ...)
 /*
  * __wt_curtable_set_value --
  *	WT_CURSOR->set_value implementation for tables.
+ * 设置cursor->value
  */
 void
 __wt_curtable_set_value(WT_CURSOR *cursor, ...)
@@ -486,6 +489,7 @@ __curtable_insert(WT_CURSOR *cursor)
 	uint32_t flag_orig;
 	u_int i;
 
+    printf("yang test ...................... cursor insert\r\n");
 	ctable = (WT_CURSOR_TABLE *)cursor;
 	JOINABLE_CURSOR_UPDATE_API_CALL(cursor, session, insert);
 	WT_ERR(__curtable_open_indices(ctable));
@@ -499,6 +503,7 @@ __curtable_insert(WT_CURSOR *cursor)
 	 * the primary cursor for no-overwrite, and checking if the insert
 	 * detects a duplicate key.
 	 */
+	
 	cp = ctable->cg_cursors;
 	primary = *cp++;
 
@@ -515,6 +520,7 @@ __curtable_insert(WT_CURSOR *cursor)
 	 */
 	F_SET(primary, flag_orig | WT_CURSTD_KEY_EXT | WT_CURSTD_VALUE_EXT);
 
+    /*如果插入失败是因为主键冲突，那么判断是否是overwrite,如果是，进行update操作*/
 	if (ret == WT_DUPLICATE_KEY && F_ISSET(cursor, WT_CURSTD_OVERWRITE)) {
 		WT_ERR(__curtable_update(cursor));
 
@@ -891,11 +897,13 @@ __curtable_open_colgroups(WT_CURSOR_TABLE *ctable, const char *cfg_arg[])
 	WT_RET(__wt_calloc_def(session,
 	    WT_COLGROUPS(table), &ctable->cg_valcopy));
 
+    printf("yang test ................... cg cursors:%d\r\n", WT_COLGROUPS(table));
+    //填充ctable->cg_cursors
 	for (i = 0, cp = ctable->cg_cursors;
 	    i < WT_COLGROUPS(table);
 	    i++, cp++) {
 		WT_RET(__wt_open_cursor(session, table->cgroups[i]->source,
-		    &ctable->iface, cfg, cp));
+		    &ctable->iface, cfg, cp)); //获取ncolgroups个cursor对象填充到ctable->cg_cursors
 		cfg[3] = "next_random=false";
 	}
 	return (0);
@@ -904,7 +912,7 @@ __curtable_open_colgroups(WT_CURSOR_TABLE *ctable, const char *cfg_arg[])
 /*
  * __curtable_open_indices --
  *	Open cursors on indices for a table cursor.
- */
+ */ /*打开table相关所有index cursor对象*/
 static int
 __curtable_open_indices(WT_CURSOR_TABLE *ctable)
 {
@@ -970,6 +978,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 	size_t size;
 	int cfg_cnt;
 	const char *tablename, *columns;
+    printf("yang test .......1........................ccccccccccccc\r\n");
 
 	WT_STATIC_ASSERT(offsetof(WT_CURSOR_TABLE, iface) == 0);
 
@@ -979,7 +988,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 	WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:");
 	columns = strchr(tablename, '(');
 	if (columns == NULL)
-	    //获取uri对应的table
+	    //获取uri对应的table,也就是table对应的dhandle
 		WT_RET(__wt_schema_get_table_uri(
 		    session, uri, false, 0, &table));
 	else {
@@ -990,6 +999,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 	}
 
 	WT_RET(__curtable_complete(session, table));	/* completeness check */
+    printf("yang test .......2........................ccccccccccccc\r\n");
 
 	if (table->is_simple) {
 		/* Just return a cursor on the underlying data source. */
@@ -1033,6 +1043,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 		    session, tmp->data, tmp->size, &ctable->plan));
 	}
 
+    printf("yang test ...............................ccccccccccccc\r\n");
 	/*
 	 * random_retrieval
 	 * Random retrieval cursors only support next, reset and close.

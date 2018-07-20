@@ -481,7 +481,7 @@ struct __wt_cursor_stat {
 #define	WT_CURSOR_STATS(cursor)						\
 	(((WT_CURSOR_STAT *)(cursor))->stats)
 
-//赋值见__wt_curtable_open
+//赋值见__wt_curtable_open  __curtable_open_colgroups
 struct __wt_cursor_table {
 	WT_CURSOR iface;
 
@@ -490,6 +490,7 @@ struct __wt_cursor_table {
 
 	const char **cfg;		/* Saved configuration string */
 
+    //__curtable_open_colgroups中创建空间
 	WT_CURSOR **cg_cursors;
 	WT_ITEM *cg_valcopy;		/*
 					 * Copies of column group values, for
