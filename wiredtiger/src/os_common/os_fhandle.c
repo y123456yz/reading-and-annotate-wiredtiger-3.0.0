@@ -260,7 +260,7 @@ __wt_open(WT_SESSION_IMPL *session,
 		WT_ERR(__wt_filename(session, name, &path));
 
 	/* Call the underlying open function. */
-	//打开文件，并设置该fd对应的读写等函数handler接口
+	//打开文件，并设置该fd对应的读写等函数handler接口  __posix_open_file
 	WT_ERR(file_system->fs_open_file(file_system, &session->iface,
 	    path == NULL ? name : path, file_type, flags, &fh->handle));
 	open_called = true;

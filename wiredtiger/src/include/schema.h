@@ -13,6 +13,7 @@
 #define	WT_PROJ_SKIP	's' /* Skip a column in the cursor (<arg> repeats) */
 #define	WT_PROJ_VALUE	'v' /* Go to the value in cursor <arg> */
 
+//创建空间赋值见__wt_schema_open_colgroups
 struct __wt_colgroup {
 	const char *name;		/* Logical name */
 	const char *source;		/* Underlying data source */

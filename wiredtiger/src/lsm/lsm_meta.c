@@ -11,7 +11,9 @@
 /*
  * __lsm_meta_read_v0 --
  *	Read v0 of LSM metadata.
- */
+ */ //根据配置内容解析相应值赋值给lsm_tree
+/*读取lsm tree的元信息,这个过程是从lsmconfig中读取，lsm config是存在wiredtiger的metadata中*/
+//注意__lsm_meta_read_v0和__lsm_meta_read_v1的区别
 static int
 __lsm_meta_read_v0(
     WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree, const char *lsmconf)
@@ -345,7 +347,7 @@ err:	__wt_scr_free(session, &buf);
 /*
  * __lsm_meta_upgrade_v1 --
  *	Upgrade to v1 of LSM metadata.
- */
+ */ /*读取lsm tree的元信息,这个过程是从lsmconfig中读取，lsm config是存在wiredtiger的metadata中*/
 static int
 __lsm_meta_upgrade_v1(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 {
@@ -407,6 +409,7 @@ err:	__wt_scr_free(session, &buf);
  * __wt_lsm_meta_read --
  *	Read the metadata for an LSM tree.
  */
+//__wt_lsm_meta_read和__wt_lsm_meta_write对应
 int
 __wt_lsm_meta_read(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 {
@@ -419,18 +422,32 @@ __wt_lsm_meta_read(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 	if (F_ISSET(S2C(session), WT_CONN_LSM_MERGE))
 		F_SET(lsm_tree, WT_LSM_TREE_MERGES);
 
+    /*
+    access_pattern_hint=none,allocation_size=4kb,app_metadata=,assert=(commit_timestamp=none,read_timestamp=none),
+    block_allocation=best,block_compressor=,cache_resident=false,checksum=uncompressed,chunks=,collator=,columns=,
+    dictionary=0,encryption=(keyid=,name=),exclusive=true,format=btree,huffman_key=,huffman_value=,
+    ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,
+    internal_page_max=64kb,key_format=S,key_gap=10,last=,leaf_item_max=0,leaf_key_max=0,leaf_page_max=4kb,
+    leaf_value_max=0,log=(enabled=true),lsm=(auto_throttle=true,bloom=true,bloom_bit_count=16,bloom_config=,
+    bloom_hash_count=8,bloom_oldest=false,chunk_count_limit=0,chunk_max=5GB,chunk_size=10MB,merge_max=15,merge_min=0),
+    memory_page_max=5MB,old_chunks=,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,
+    split_deepen_min_child=0,split_deepen_per_child=0,split_pct=100,type=lsm,value_format=S
+    */
+    //获取该lsm的元数据信息
 	WT_RET(__wt_metadata_search(session, lsm_tree->name, &lsmconf));
 
 	upgrade = false;
 	ret = __wt_config_getones(session, lsmconf, "file_config", &cval);
 	if (ret == 0) {
+	    //根据配置内容解析相应值赋值给lsm_tree
 		ret = __lsm_meta_read_v0(session, lsm_tree, lsmconf);
-		__wt_free(session, lsmconf);
+		__wt_free(session, lsmconf); 
 		WT_RET(ret);
 		upgrade = true;
 	} else if (ret == WT_NOTFOUND) {
 		lsm_tree->config = lsmconf;
 		ret = 0;
+		//根据配置内容解析相应值赋值给lsm_tree
 		WT_RET(__lsm_meta_read_v1(session, lsm_tree, lsmconf));
 	}
 	/*
@@ -450,7 +467,7 @@ __wt_lsm_meta_read(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 /*
  * __wt_lsm_meta_write --
  *	Write the metadata for an LSM tree.
- */
+ */ //__wt_lsm_meta_read和__wt_lsm_meta_write对应
 int
 __wt_lsm_meta_write(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree,
     const char *newconfig)

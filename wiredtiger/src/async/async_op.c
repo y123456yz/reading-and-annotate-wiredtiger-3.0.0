@@ -27,6 +27,7 @@ __async_get_key(WT_ASYNC_OP *asyncop, ...)
 /*
  * __async_set_key --
  *	WT_ASYNC_OP->set_key implementation for op handles.
+ //注意__wt_cursor_set_keyv  __async_set_key  __wt_curtable_set_key的区别
  */
 static void
 __async_set_key(WT_ASYNC_OP *asyncop, ...)

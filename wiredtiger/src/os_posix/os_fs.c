@@ -472,7 +472,7 @@ __posix_file_sync_nowait(WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session)
 #ifdef HAVE_FTRUNCATE
 /*
  * __posix_file_truncate --
- *	POSIX ftruncate.
+ *	POSIX ftruncate. ftruncate会将参数fd指定的文件大小改为参数length指定的大小
  */
 static int
 __posix_file_truncate(

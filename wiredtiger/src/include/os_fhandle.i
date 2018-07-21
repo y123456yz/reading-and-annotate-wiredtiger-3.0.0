@@ -102,6 +102,7 @@ __wt_read(
 	WT_STAT_CONN_INCR_ATOMIC(session, thread_read_active);
 	WT_STAT_CONN_INCR(session, read_io);
 
+    //__posix_file_read
 	ret = fh->handle->fh_read(
 	    fh->handle, (WT_SESSION *)session, offset, len, buf);
 
@@ -112,19 +113,20 @@ __wt_read(
 /*
  * __wt_filesize --
  *	Get the size of a file in bytes, by file handle.
- */
+ */ /*通过WT_FH结构获取文件大小*/
 static inline int
 __wt_filesize(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t *sizep)
 {
-	__wt_verbose(
-	    session, WT_VERB_HANDLEOPS, "%s: handle-size", fh->handle->name);
+	int ret = (fh->handle->fh_size(fh->handle, (WT_SESSION *)session, sizep));
 
-	return (fh->handle->fh_size(fh->handle, (WT_SESSION *)session, sizep));
+	__wt_verbose(
+	    session, WT_VERB_HANDLEOPS, "%s: handle-size:%d", fh->handle->name, ret);
+	return ret;
 }
 
 /*
  * __wt_ftruncate --
- *	Truncate a file.
+ *	Truncate a file.  ftruncate会将参数fd指定的文件大小改为参数length指定的大小
  */
 static inline int
 __wt_ftruncate(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset)

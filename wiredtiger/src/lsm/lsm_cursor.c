@@ -159,6 +159,8 @@ __clsm_enter_update(WT_CURSOR_LSM *clsm)
  * __clsm_enter --
  *	Start an operation on an LSM cursor, update if the tree has changed.
  */
+
+/*开始一个lsm tree的操作*/
 static inline int
 __clsm_enter(WT_CURSOR_LSM *clsm, bool reset, bool update)
 {
@@ -173,6 +175,7 @@ __clsm_enter(WT_CURSOR_LSM *clsm, bool reset, bool update)
 	txn = &session->txn;
 
 	/* Merge cursors never update. */
+	/*merge过程是不能update*/
 	if (F_ISSET(clsm, WT_CLSM_MERGE))
 		return (0);
 
@@ -225,6 +228,7 @@ __clsm_enter(WT_CURSOR_LSM *clsm, bool reset, bool update)
 			 * metadata, which is not an LSM tree).
 			 */
 			clsm->nupdates = 1;
+			/*确保其他chunk的switch txn事务都在这次udate操作的snapshot事务快照中*/
 			if (txn->isolation == WT_ISO_SNAPSHOT &&
 			    F_ISSET(clsm, WT_CLSM_OPEN_SNAPSHOT)) {
 				WT_ASSERT(session,
@@ -276,6 +280,7 @@ open:		WT_WITH_SCHEMA_LOCK(session,
  * __clsm_leave --
  *	Finish an operation on an LSM cursor.
  */
+/*结束一个lsm tree上的操作*/
 static void
 __clsm_leave(WT_CURSOR_LSM *clsm)
 {
@@ -313,7 +318,7 @@ __clsm_deleted(WT_CURSOR_LSM *clsm, const WT_ITEM *item)
 /*
  * __clsm_deleted_encode --
  *	Encode values that are in the encoded name space.
- */
+ */ /*值编码*/
 static inline int
 __clsm_deleted_encode(WT_SESSION_IMPL *session,
     const WT_ITEM *value, WT_ITEM *final_value, WT_ITEM **tmpp)
@@ -325,6 +330,7 @@ __clsm_deleted_encode(WT_SESSION_IMPL *session,
 	 * and create a copy of the data with the first byte of the tombstone
 	 * appended.
 	 */
+	/*value的值和tombstone碰撞了，那么构建一个新的item，并在这个值后面添加一个tomstone的第一个字符来标记这个item*/
 	if (value->size >= __tombstone.size &&
 	    memcmp(value->data, __tombstone.data, __tombstone.size) == 0) {
 		WT_RET(__wt_scr_alloc(session, value->size + 1, tmpp));
@@ -1430,6 +1436,7 @@ err:	__clsm_leave(clsm);
  *	Put an entry into the in-memory tree, trigger a file switch if
  *	necessary.
  */
+/*lsm tree的put实现，将一个entry实例put到lsm tree的内存部分中*/
 static inline int
 __clsm_put(WT_SESSION_IMPL *session, WT_CURSOR_LSM *clsm,
     const WT_ITEM *key, const WT_ITEM *value, bool position, bool reserve)
@@ -1747,13 +1754,13 @@ __wt_clsm_open(WT_SESSION_IMPL *session,
 	    __clsm_reset,			/* reset */
 	    __clsm_search,			/* search */
 	    __clsm_search_near,			/* search-near */
-	    __clsm_insert,			/* insert */
+	    __clsm_insert,			/* insert */  //__wt_clsm_open_bulk中可能会重新赋值__clsm_insert_bulk
 	    __wt_cursor_modify_notsup,		/* modify */
 	    __clsm_update,			/* update */
 	    __clsm_remove,			/* remove */
 	    __clsm_reserve,			/* reserve */
 	    __wt_cursor_reconfigure,		/* reconfigure */
-	    __wt_clsm_close);			/* close */
+	    __wt_clsm_close);			/* close */ //__wt_clsm_open_bulk中可能会重新赋值 __clsm_close_bulk
 	WT_CURSOR *cursor;
 	WT_CURSOR_LSM *clsm;
 	WT_DECL_RET;
@@ -1766,12 +1773,18 @@ __wt_clsm_open(WT_SESSION_IMPL *session,
 	cursor = NULL;
 	lsm_tree = NULL;
 
-	if (!WT_PREFIX_MATCH(uri, "lsm:"))
+	if (!WT_PREFIX_MATCH(uri, "lsm:")) //前缀必须是lsm:
 		return (__wt_unexpected_object_type(session, uri, "lsm:"));
 
 	WT_RET(__wt_inmem_unsupported_op(session, "LSM trees"));
 
+    /*
+    cfg0:append=false,bulk=false,checkpoint=,checkpoint_wait=true,dump=,next_random=false,next_random_sample_size=0,
+        overwrite=true,raw=false,readonly=false,skip_sort_check=false,statistics=,target=
+    cfg1:bulk
+    */
 	WT_RET(__wt_config_gets_def(session, cfg, "checkpoint", 0, &cval));
+	printf("yang test .................... checkpoint val:%d\r\n", cval.len);
 	if (cval.len != 0)
 		WT_RET_MSG(session, EINVAL,
 		    "LSM does not support opening by checkpoint");
@@ -1795,6 +1808,7 @@ __wt_clsm_open(WT_SESSION_IMPL *session,
 	/* Make sure we have exclusive access if and only if we want it */
 	WT_ASSERT(session, !bulk || lsm_tree->excl_session != NULL);
 
+    //lsm cursor初始化
 	WT_ERR(__wt_calloc_one(session, &clsm));
 
 	cursor = &clsm->iface;

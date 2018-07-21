@@ -87,6 +87,9 @@ __bm_checkpoint_readonly(WT_BM *bm, WT_SESSION_IMPL *session,
  * __bm_checkpoint_load --
  *	Load a checkpoint.
  */
+/*载入一个block checkpoint*/ 
+//__wt_btree_open-> bm->checkpoint_load()中调用  
+//根据addr地址开始的addr_size长度内容来获取root_addr和root_addr_sizep   并做mmap操作
 static int
 __bm_checkpoint_load(WT_BM *bm, WT_SESSION_IMPL *session,
     const uint8_t *addr, size_t addr_size,
@@ -102,6 +105,7 @@ __bm_checkpoint_load(WT_BM *bm, WT_SESSION_IMPL *session,
 		 * Read-only objects are optionally mapped into memory instead
 		 * of being read into cache buffers.
 		 */
+		//对文件mamp操作，对应的地址为bm->map 长度bm->maplen
 		WT_RET(__wt_block_map(session,
 		    bm->block, &bm->map, &bm->maplen, &bm->mapped_cookie));
 

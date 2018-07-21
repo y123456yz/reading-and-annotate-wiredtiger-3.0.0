@@ -9,7 +9,7 @@
 /*
  * Initialize a static WT_CURSOR structure.
  */
-//参考__session_open_cursor_int  __wt_curtable_open  __wt_curindex_open 等
+//参考__session_open_cursor_int  __wt_curtable_open  __wt_curindex_open __wt_clsm_open等
 #define	WT_CURSOR_STATIC_INIT(n,					\
 	get_key,							\
 	get_value,							\

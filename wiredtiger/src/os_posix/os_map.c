@@ -12,6 +12,7 @@
  * __wt_posix_map --
  *	Map a file into memory.
  */
+/*mmap一个文件到内存, 内存地址通过mapped_regionp返回，长度lenp*/
 int
 __wt_posix_map(WT_FILE_HANDLE *fh, WT_SESSION *wt_session,
     void *mapped_regionp, size_t *lenp, void *mapped_cookiep)
@@ -46,6 +47,7 @@ __wt_posix_map(WT_FILE_HANDLE *fh, WT_SESSION *wt_session,
 	__wt_verbose(session, WT_VERB_HANDLEOPS,
 	    "%s: memory-map: %" WT_SIZET_FMT " bytes", fh->name, len);
 
+    //mmap
 	if ((map = mmap(NULL, len,
 	    PROT_READ,
 #ifdef MAP_NOCORE
@@ -66,6 +68,7 @@ __wt_posix_map(WT_FILE_HANDLE *fh, WT_SESSION *wt_session,
  * __wt_posix_map_preload --
  *	Cause a section of a memory map to be faulted in.
  */
+/*预加载block manager对应文件的page cache,从p地址开始，预加载size长度的数据,为了顺序读*/
 int
 __wt_posix_map_preload(WT_FILE_HANDLE *fh,
     WT_SESSION *wt_session, const void *map, size_t length, void *mapped_cookie)
@@ -84,6 +87,7 @@ __wt_posix_map_preload(WT_FILE_HANDLE *fh,
 	bm = S2BT(session)->bm;
 
 	/* Linux requires the address be aligned to a 4KB boundary. */
+	/**4KB对齐寻址,向前对齐，例如p = 4097,那么blk = 4096, size = size + 1*/
 	blk = (void *)((uintptr_t)map & ~(uintptr_t)(conn->page_size - 1));
 	length += WT_PTRDIFF(map, blk);
 
@@ -93,6 +97,7 @@ __wt_posix_map_preload(WT_FILE_HANDLE *fh,
 		if (((uintptr_t)((uint8_t *)blk + length) &
 		    (uintptr_t)((1<<20) - 1)) < (uintptr_t)blk)
 			return (0);
+			/*从新确定SIZE,最小清除空间2M*/
 		length = WT_MIN(WT_MAX(20 * length, 2 << 20),
 		    WT_PTRDIFF((uint8_t *)bm->map + bm->maplen, blk));
 	}
@@ -104,7 +109,8 @@ __wt_posix_map_preload(WT_FILE_HANDLE *fh,
 	length &= ~(size_t)(conn->page_size - 1);
 	if (length <= (size_t)conn->page_size)
 		return (0);
-
+		
+    /*文件缓冲预加载*/
 	WT_SYSCALL(posix_madvise(blk, length, POSIX_MADV_WILLNEED), ret);
 	if (ret == 0)
 		return (0);

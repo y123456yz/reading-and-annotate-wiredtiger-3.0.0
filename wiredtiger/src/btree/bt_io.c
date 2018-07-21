@@ -12,6 +12,8 @@
  * __wt_bt_read --
  *	Read a cookie referenced block into a buffer.
  */
+
+/*从block addr对应的文件位置中读取对应page的数据，根据btree的属性来觉得是否需要解压*/
 int
 __wt_bt_read(WT_SESSION_IMPL *session,
     WT_ITEM *buf, const uint8_t *addr, size_t addr_size)

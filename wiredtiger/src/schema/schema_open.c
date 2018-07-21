@@ -14,6 +14,8 @@
  *	The only complexity here is that simple tables (with a single column
  *	group) use a simpler naming scheme.
  */
+/*获得一个column group的uri*/
+//根据tablename，设置对应的colgroup，填充到buf
 int
 __wt_schema_colgroup_name(WT_SESSION_IMPL *session,
     WT_TABLE *table, const char *cgname, size_t len, WT_ITEM *buf)
@@ -72,8 +74,10 @@ __wt_schema_open_colgroups(WT_SESSION_IMPL *session, WT_TABLE *table)
 		__wt_schema_destroy_colgroup(session, &table->cgroups[i]);
     
 		WT_ERR(__wt_buf_init(session, buf, 0));
+		//根据tablename，设置对应的colgroup，填充到buf
 		WT_ERR(__wt_schema_colgroup_name(session, table,
 		    ckey.str, ckey.len, buf));
+		    
 		/*找到column group的meta元信息*/
 		if ((ret = __wt_metadata_search(
 		    session, buf->data, &cgconfig)) != 0) {
@@ -85,7 +89,9 @@ __wt_schema_open_colgroups(WT_SESSION_IMPL *session, WT_TABLE *table)
 
 		WT_ERR(__wt_calloc_one(session, &colgroup));
 		WT_ERR(__wt_strndup(
-		    session, buf->data, buf->size, &colgroup->name));
+		    session, buf->data, buf->size, &colgroup->name)); //name从buf获取
+
+        //cgconfig:app_metadata=,collator=,columns=,source="lsm:test",type=lsm
 		colgroup->config = cgconfig;
 		cgconfig = NULL;
 		WT_ERR(__wt_config_getones(session,
@@ -94,6 +100,7 @@ __wt_schema_open_colgroups(WT_SESSION_IMPL *session, WT_TABLE *table)
 		    session, colgroup->config, "source", &cval));
 		WT_ERR(__wt_strndup(
 		    session, cval.str, cval.len, &colgroup->source));
+		    
 		table->cgroups[i] = colgroup;
 		colgroup = NULL;
 	}

@@ -206,6 +206,7 @@ err:	API_END_RET(session, ret);
  * __wt_curtable_set_key --
  *	WT_CURSOR->set_key implementation for tables.
  * 填充cursor->key
+ //注意__wt_cursor_set_keyv  __async_set_key  __wt_curtable_set_key的区别
  */
 void
 __wt_curtable_set_key(WT_CURSOR *cursor, ...)
@@ -952,9 +953,9 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 {
 	WT_CURSOR_STATIC_INIT(iface,
 	    __wt_curtable_get_key,		/* get-key */
-	    __wt_curtable_get_value,		/* get-value */
+	    __wt_curtable_get_value,	/* get-value */
 	    __wt_curtable_set_key,		/* set-key */
-	    __wt_curtable_set_value,		/* set-value */
+	    __wt_curtable_set_value,	/* set-value */
 	    __curtable_compare,			/* compare */
 	    __wt_cursor_equals,			/* equals */
 	    __curtable_next,			/* next */
@@ -999,10 +1000,10 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 	}
 
 	WT_RET(__curtable_complete(session, table));	/* completeness check */
-    printf("yang test .......2........................ccccccccccccc\r\n");
 
 	if (table->is_simple) {
 		/* Just return a cursor on the underlying data source. */
+		//注意这里面会对WT_CURSOR重新赋值   table->cgroups[0]->source:lsm:test
 		ret = __wt_open_cursor(session,
 		    table->cgroups[0]->source, NULL, cfg, cursorp);
 

@@ -43,7 +43,7 @@ __wt_block_ckpt_init(
  * __wt_block_checkpoint_load --
  *	Load a checkpoint.
  */
-/*从block对应的文件中载入一个checkpoint信息,并读取avail list中的ext对象位置信息*/
+/*从block对应的文件中载入一个checkpoint信息,并获取对应的root_addr root_addr_sizep 返回*/
 int
 __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
     const uint8_t *addr, size_t addr_size,
@@ -72,7 +72,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 		}
 		__wt_verbose(session, WT_VERB_CHECKPOINT,
 		    "%s: load-checkpoint: %s", block->name,
-		    addr == NULL ? "[Empty]" : (const char *)tmp->data);
+		    addr == NULL ? "[Empty]" : (const char *)tmp->data); //empty说明没有配置对应的checkpoint或者
 	}
 #endif
 
@@ -105,9 +105,9 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * If the checkpoint has an on-disk root page, load it.  Otherwise, size
 	 * the file past the description information.
 	 */
-	if (addr == NULL || addr_size == 0)
+	if (addr == NULL || addr_size == 0) //没有配置checkpoint或者没找到 见__wt_meta_checkpoint
 		ci->file_size = block->allocsize;
-	else {
+	else { //有对应的checkpoint文件，则读取checkpoint信息
 		/* Crack the checkpoint cookie. */
 		/*从addr中读取各个checkpoint信息(root_addr, alloc_addr, avail_addr, discard_addr)*/
 		WT_ERR(__wt_block_buffer_to_ckpt(session, block, addr, ci));
@@ -143,7 +143,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * checkpoint might possibly make it relevant here, but it's unlikely
 	 * enough I don't bother).
 	 */
-	if (!checkpoint)
+	if (!checkpoint) //ftruncate会将参数fd指定的文件大小改为参数length指定的大小
 		WT_ERR(__wt_block_truncate(session, block, ci->file_size));
 
 	if (0) {

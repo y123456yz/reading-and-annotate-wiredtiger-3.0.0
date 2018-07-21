@@ -37,6 +37,7 @@ struct __wt_lsm_worker_args {
  * WT_LSM_CURSOR_CHUNK --
  *	Iterator struct containing all the LSM cursor access points for a chunk.
  */
+//赋值见__wt_clsm_open_bulk
 struct __wt_lsm_cursor_chunk {
 	WT_BLOOM *bloom;		/* Bloom filter handle for each chunk.*/
 	WT_CURSOR *cursor;		/* Cursor handle for each chunk. */
@@ -47,7 +48,8 @@ struct __wt_lsm_cursor_chunk {
 /*
  * WT_CURSOR_LSM --
  *	An LSM cursor.
- */
+ */ 
+//lsm cursor, 创建空间赋值见__wt_clsm_open
 struct __wt_cursor_lsm {
 	WT_CURSOR iface;
 
@@ -60,6 +62,7 @@ struct __wt_cursor_lsm {
 	WT_CURSOR *current;		/* The current cursor for iteration */
 	WT_LSM_CHUNK *primary_chunk;	/* The current primary chunk */
 
+    //赋值见__wt_clsm_open_bulk
 	WT_LSM_CURSOR_CHUNK **chunks;	/* Array of LSM cursor units */
 	size_t chunks_alloc;		/* Current size iterators array */
 	size_t chunks_count;		/* Current number of iterators */
@@ -82,7 +85,7 @@ struct __wt_cursor_lsm {
 /*
  * WT_LSM_CHUNK --
  *	A single chunk (file) in an LSM tree.
- */
+ */ //初始化及赋值见__lsm_meta_read_v0 __lsm_meta_read_v1
 struct __wt_lsm_chunk {
 	const char *uri;		/* Data source for this chunk */
 	const char *bloom_uri;		/* URI of Bloom filter, if any */
@@ -186,9 +189,11 @@ struct __wt_lsm_manager {
 /*
  * WT_LSM_TREE --
  *	An LSM tree.
- */
+ */ //创建空间和赋值见__lsm_tree_open
 struct __wt_lsm_tree {
-	const char *name, *config, *filename;
+	const char *name, 
+	    *config,  //赋值见__wt_lsm_meta_read
+	    *filename;//filename为去掉lsm:后的名字，见__lsm_tree_set_name
 	const char *key_format, *value_format;
 	const char *bloom_config, *file_config;
 
@@ -224,7 +229,8 @@ struct __wt_lsm_tree {
 	uint32_t chunk_count_limit;	/* Limit number of chunks */
 	uint64_t chunk_size;
 	uint64_t chunk_max;		/* Maximum chunk a merge creates */
-	u_int merge_min, merge_max;
+	u_int merge_min,  //赋值见__wt_lsm_meta_read
+	      merge_max;
 
 #define	WT_LSM_BLOOM_MERGED				0x00000001
 #define	WT_LSM_BLOOM_OFF				0x00000002

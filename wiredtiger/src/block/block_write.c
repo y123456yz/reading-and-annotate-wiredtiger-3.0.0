@@ -11,7 +11,8 @@
 /*
  * __wt_block_truncate --
  *	Truncate the file.
- */
+ */ 
+//ftruncate会将参数fd指定的文件大小改为参数length指定的大小
 int
 __wt_block_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t len)
 {
@@ -45,6 +46,7 @@ __wt_block_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t len)
 	if (!conn->hot_backup) {
 		__wt_readlock(session, &conn->hot_backup_lock);
 		if (!conn->hot_backup)
+		//ftruncate会将参数fd指定的文件大小改为参数length指定的大小
 			ret = __wt_ftruncate(session, block->fh, len);
 		__wt_readunlock(session, &conn->hot_backup_lock);
 	}
