@@ -75,7 +75,7 @@ __wt_block_addr_to_buffer(WT_BLOCK *block,
  * __wt_block_buffer_to_addr --
  *	Convert a filesystem address cookie into its components NOT UPDATING
  * the caller's buffer reference.
- */
+ */ /*从pp中读取block addr(size/checksum/offset),从磁盘隐射缓冲区中解析block addr*/
 int
 __wt_block_buffer_to_addr(WT_BLOCK *block,
     const uint8_t *p, wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump)
@@ -144,7 +144,7 @@ __wt_block_addr_string(WT_SESSION_IMPL *session,
 /*
  * __block_buffer_to_ckpt --
  *	Convert a checkpoint cookie into its components.
- */
+ */ /*从p缓冲区读出checkpoint的信息*/
 static int
 __block_buffer_to_ckpt(WT_SESSION_IMPL *session,
     uint32_t allocsize, const uint8_t *p, WT_BLOCK_CKPT *ci)
@@ -157,6 +157,7 @@ __block_buffer_to_ckpt(WT_SESSION_IMPL *session,
 		WT_RET_MSG(session, WT_ERROR, "unsupported checkpoint version");
 
 	pp = &p;
+	/*从pp的缓冲区中解析出各个block addr*/
 	WT_RET(__block_buffer_to_addr(allocsize, pp,
 	    &ci->root_offset, &ci->root_size, &ci->root_checksum));
 	WT_RET(__block_buffer_to_addr(allocsize, pp,
@@ -165,8 +166,12 @@ __block_buffer_to_ckpt(WT_SESSION_IMPL *session,
 	    &ci->avail.offset, &ci->avail.size, &ci->avail.checksum));
 	WT_RET(__block_buffer_to_addr(allocsize, pp,
 	    &ci->discard.offset, &ci->discard.size, &ci->discard.checksum));
+
+	/*读取ci的文件长度*/
 	WT_RET(__wt_vunpack_uint(pp, 0, &a));
 	ci->file_size = (wt_off_t)a;
+
+	/*读取checkpoint的字节数*/
 	WT_RET(__wt_vunpack_uint(pp, 0, &a));
 	ci->ckpt_size = a;
 
@@ -176,7 +181,8 @@ __block_buffer_to_ckpt(WT_SESSION_IMPL *session,
 /*
  * __wt_block_buffer_to_ckpt --
  *	Convert a checkpoint cookie into its components, block manager version.
- */
+ */ 
+/*从p缓冲区读出checkpoint的信息*/
 int
 __wt_block_buffer_to_ckpt(WT_SESSION_IMPL *session,
     WT_BLOCK *block, const uint8_t *p, WT_BLOCK_CKPT *ci)

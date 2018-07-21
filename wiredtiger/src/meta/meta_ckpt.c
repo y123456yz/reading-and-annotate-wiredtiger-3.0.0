@@ -47,7 +47,9 @@ __wt_meta_checkpoint(WT_SESSION_IMPL *session,
 	 * data" and let our caller handle it.
 	 */
 	if (checkpoint == NULL) { /*没有指定checkpoint，直接取最后一个checkpoint*/
-		if ((ret = __ckpt_last(session, config, ckpt)) == WT_NOTFOUND) {
+		if ((ret = __ckpt_last(session, config, ckpt)) == WT_NOTFOUND) { 
+		    //config中没有checkpoint配置并且没有找到最后一个checkpoint文件，则直接赋初值
+		    printf("yang test ..........__wt_meta_checkpoint no checkpoint\r\n");
 			ret = 0;
 			ckpt->addr.data = ckpt->raw.data = NULL;
 			ckpt->addr.size = ckpt->raw.size = 0;
@@ -147,6 +149,8 @@ __ckpt_named(WT_SESSION_IMPL *session,
 	WT_RET(__wt_config_getones(session, config, "checkpoint", &v));
 	__wt_config_subinit(session, &ckptconf, &v);
 
+	printf("yang test ....__ckpt_named........ checkpoint:%s\r\n", ckptconf);
+
 	/*
 	 * Take the first match: there should never be more than a single
 	 * checkpoint of any name.
@@ -172,6 +176,8 @@ __ckpt_last(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt)
 
 	WT_RET(__wt_config_getones(session, config, "checkpoint", &v));
 	__wt_config_subinit(session, &ckptconf, &v);
+
+	printf("yang test ....__ckpt_named........ config:%s\r\n", config);
 	for (found = 0; __wt_config_next(&ckptconf, &k, &v) == 0;) {
 		/* Ignore checkpoints before the ones we've already seen. 其实就是读取最大order的checkpoint*/
 		WT_RET(__wt_config_subgets(session, &v, "order", &a));

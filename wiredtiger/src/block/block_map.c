@@ -12,6 +12,8 @@
  * __wt_block_map --
  *	Map a segment of the file in, if possible.
  */
+/*conn指定了用mmap方式操作文件，那么block的操作方式需要设置成mmap方式操作*/
+//文件对应的内存地址通过mapped_regionp返回，长度lengthp
 int
 __wt_block_map(WT_SESSION_IMPL *session, WT_BLOCK *block,
     void *mapped_regionp, size_t *lengthp, void *mapped_cookiep)
@@ -32,6 +34,7 @@ __wt_block_map(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * checksum validation of mapped segments, and verify has to checksum
 	 * pages.
 	 */
+	/*如果block设置了verify操作函数，不能用mmap*/
 	if (block->verify)
 		return (0);
 
@@ -39,6 +42,7 @@ __wt_block_map(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * Turn off mapping if the application configured a cache size maximum,
 	 * we can't control how much of the cache size we use in that case.
 	 */
+	/*block对应的文件设置了os page cache，无法使用mmap,因为文件需要根据os_cache_max去清空os page cache,这是mmap做不到的*/
 	if (block->os_cache_max != 0)
 		return (0);
 
@@ -54,6 +58,7 @@ __wt_block_map(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * Ignore not-supported errors, we'll read the file through the cache
 	 * if map fails.
 	 */
+	//__wt_posix_map /*block 文件的mmap隐射挂载*/
 	ret = handle->fh_map(handle,
 	    (WT_SESSION *)session, mapped_regionp, lengthp, mapped_cookiep);
 	if (ret == EBUSY || ret == ENOTSUP) {

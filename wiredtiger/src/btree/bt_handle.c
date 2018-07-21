@@ -57,7 +57,7 @@ __btree_clear(WT_SESSION_IMPL *session)
  * __wt_btree_open --
  *	Open a Btree.
  */
-/*创建或者打开一个btree及其对应的文件*/
+//创建btree文件，同时根据checkpoint配置从checkpoint文件中读取镜像信息，然后
 int
 __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 {
@@ -104,7 +104,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 	 * Bulk-load is only permitted on newly created files, not any empty
 	 * file -- see the checkpoint code for a discussion.
 	 */
-	creation = ckpt.raw.size == 0;
+	creation = ckpt.raw.size == 0; //需要创建checkpoint文件
 	if (!creation && F_ISSET(btree, WT_BTREE_BULK))
 		WT_ERR_MSG(session, EINVAL,
 		    "bulk-load is only supported on newly created objects");
@@ -117,7 +117,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 	}
 
 	/* Initialize and configure the WT_BTREE structure. */
-	//根据ckpt，给session对应的btree赋值
+	//根据ckpt和btree->dhandle->cfg，给session对应的btree赋值
 	WT_ERR(__btree_conf(session, &ckpt));
 
 	/* Connect to the underlying block manager. */
@@ -125,7 +125,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 	if (!WT_PREFIX_SKIP(filename, "file:"))
 		WT_ERR_MSG(session, EINVAL, "expected a 'file:' URI");
 
-    //
+    //Open a file. 创建一个btree文件
 	WT_ERR(__wt_block_manager_open(session, filename, dhandle->cfg,
 	    forced_salvage, readonly, btree->allocsize, &btree->bm));
 	bm = btree->bm;
@@ -155,12 +155,16 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 		 * being created), or the load call returns no root page (the
 		 * checkpoint is for an empty file).
 		 */
+
+		//__bm_checkpoint_load    通过checkpoint文件获取root地址和长度 
 		WT_ERR(bm->checkpoint_load(bm, session,
-		    ckpt.raw.data, ckpt.raw.size,
+		    ckpt.raw.data, ckpt.raw.size, //ckpt.raw.data, ckpt.raw.size来源见__wt_meta_checkpoint
 		    root_addr, &root_addr_size, readonly));
-		if (creation || root_addr_size == 0)
+		    
+		if (creation || root_addr_size == 0) //没有对应的checkpoint文件
 			WT_ERR(__btree_tree_open_empty(session, creation));
 		else {
+		    /*从磁盘中读取btree的数据并初始化各个page*/
 			WT_ERR(__wt_btree_tree_open(
 			    session, root_addr, root_addr_size));
 
@@ -170,6 +174,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 			 */
 			if (!F_ISSET(btree, WT_BTREE_REBALANCE)) {
 				/* Warm the cache, if possible. */
+				/*预热加载数据*/
 				WT_WITH_PAGE_INDEX(session,
 				    ret = __btree_preload(session));
 				WT_ERR(ret);
@@ -178,6 +183,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 				 * Get the last record number in a column-store
 				 * file.
 				 */
+				/*获取列式存储最后的记录序号*/
 				if (btree->type != BTREE_ROW)
 					WT_ERR(__btree_get_last_recno(session));
 			}
@@ -287,7 +293,7 @@ __wt_btree_discard(WT_SESSION_IMPL *session)
  * __btree_conf --
  *	Configure a WT_BTREE structure.
  */
-/*根据ckpt信息构建btree对应的结构对象并初始化*/
+/*根据ckpt和btree->dhandle->cfg信息构建btree对应的结构对象并初始化*/
 static int
 __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 {
@@ -304,6 +310,8 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	WT_UNUSED(min_version);				/* !HAVE_VERBOSE */
 
 	btree = S2BT(session);
+
+	//对应WT_CONFIG_ENTRY_file_meta配置
 	cfg = btree->dhandle->cfg;
 	conn = S2C(session);
 
@@ -527,6 +535,7 @@ __wt_root_ref_init(WT_REF *root_ref, WT_PAGE *root, bool is_recno)
  * __wt_btree_tree_open --
  *	Read in a tree from disk.
  */
+/*从磁盘中读取btree的数据并初始化各个page*/
 int
 __wt_btree_tree_open(
     WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size)
@@ -558,6 +567,7 @@ __wt_btree_tree_open(
 	WT_ERR(bm->addr_string(bm, session, tmp, addr, addr_size));
 
 	F_SET(session, WT_SESSION_QUIET_CORRUPT_FILE);
+	/*根据block addr读取对应的文件数据*/
 	if ((ret = __wt_bt_read(session, &dsk, addr, addr_size)) == 0)
 		ret = __wt_verify_dsk(session, tmp->data, &dsk);
 	F_CLR(session, WT_SESSION_QUIET_CORRUPT_FILE);
@@ -585,6 +595,7 @@ __wt_btree_tree_open(
 	 * the allocated copy of the disk image on return, the in-memory object
 	 * steals it.
 	 */
+	/*将一个page从磁盘上读入内存，并且构建其page的内存结构信息*/
 	WT_ERR(__wt_page_inmem(session, NULL, dsk.data,
 	    WT_DATA_IN_ITEM(&dsk) ?
 	    WT_PAGE_DISK_ALLOC : WT_PAGE_DISK_MAPPED, &page));
@@ -603,6 +614,7 @@ err:	__wt_buf_free(session, &dsk);
  * __btree_tree_open_empty --
  *	Create an empty in-memory tree.
  */
+/*在内存中创建一个空的btree对象  创建一个root跟节点 */
 static int
 __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 {
@@ -635,7 +647,7 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 	 * __wt_page_out on error, we require a correct page setup at each point
 	 * where we might fail.
 	 */
-	switch (btree->type) {
+	switch (btree->type) {  //行存储还是列存储，参考__btree_conf配置解析
 	case BTREE_COL_FIX:
 	case BTREE_COL_VAR:
 		WT_ERR(__wt_page_alloc(
@@ -666,6 +678,7 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 	}
 
 	/* Bulk loads require a leaf page for reconciliation: create it now. */
+	/*如果bulk load操作，需要提前新建一个叶子页来做协调存储*/
 	if (F_ISSET(btree, WT_BTREE_BULK)) {
 		WT_ERR(__wt_btree_new_leaf_page(session, &leaf));
 		ref->page = leaf;
@@ -717,7 +730,7 @@ __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_PAGE **pagep)
 /*
  * __btree_preload --
  *	Pre-load internal pages.
- */
+ */ /*预读internal page数据*/
 static int
 __btree_preload(WT_SESSION_IMPL *session)
 {
@@ -733,7 +746,7 @@ __btree_preload(WT_SESSION_IMPL *session)
 	/* Pre-load the second-level internal pages. */
 	WT_INTL_FOREACH_BEGIN(session, btree->root.page, ref) {
 		__wt_ref_info(ref, &addr, &addr_size, NULL);
-		if (addr != NULL)
+		if (addr != NULL) //__wt_bm_preload
 			WT_RET(bm->preload(bm, session, addr, addr_size));
 	} WT_INTL_FOREACH_END;
 	return (0);

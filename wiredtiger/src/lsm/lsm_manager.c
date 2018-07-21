@@ -37,7 +37,8 @@ __wt_lsm_manager_config(WT_SESSION_IMPL *session, const char **cfg)
 /*
  * __lsm_general_worker_start --
  *	Start up all of the general LSM worker threads.
- */
+ */ 
+/*启动lsm 的worker线程*/
 static int
 __lsm_general_worker_start(WT_SESSION_IMPL *session)
 {
@@ -58,6 +59,7 @@ __lsm_general_worker_start(WT_SESSION_IMPL *session)
 	WT_ASSERT(session, manager->lsm_workers < manager->lsm_workers_max);
 	for (; manager->lsm_workers < manager->lsm_workers_max;
 	    manager->lsm_workers++) {
+	    /*设置worker的运行参数*/
 		worker_args =
 		    &manager->lsm_worker_cookies[manager->lsm_workers];
 		worker_args->work_cond = manager->work_cond;
@@ -68,6 +70,7 @@ __lsm_general_worker_start(WT_SESSION_IMPL *session)
 		 * that switches are responsive to avoid introducing
 		 * throttling stalls.
 		 */
+		/*第一个worker是用来做switch和drop操作的*/
 		if (manager->lsm_workers == 1)
 			worker_args->type =
 			    WT_LSM_WORK_DROP | WT_LSM_WORK_SWITCH;
@@ -86,9 +89,11 @@ __lsm_general_worker_start(WT_SESSION_IMPL *session)
 			 * worker is id 2, so set merges on even numbered
 			 * workers.
 			 */
+			/*每2个线程之中才设置一个LSM merge操作*/
 			if (manager->lsm_workers % 2 == 0)
 				FLD_SET(worker_args->type, WT_LSM_WORK_MERGE);
 		}
+		/*启动工作线程*/
 		WT_RET(__wt_lsm_worker_start(session, worker_args));
 	}
 
@@ -99,6 +104,7 @@ __lsm_general_worker_start(WT_SESSION_IMPL *session)
 	 * This is separate to the main loop so that it is applied on startup
 	 * and reconfigure.
 	 */
+	/*如果线程数没有超过3个，那么将第一个线程加上flush操作*/
 	if (manager->lsm_workers_max == WT_LSM_MIN_WORKERS)
 		FLD_SET(manager->lsm_worker_cookies[1].type, WT_LSM_WORK_FLUSH);
 	else
@@ -630,7 +636,8 @@ __wt_lsm_manager_pop_entry(
 /*
  * __wt_lsm_manager_push_entry --
  *	Add an entry to the end of the switch queue.
- */
+ */ 
+/*根据type类型值，向对应的操作队列中插入一个任务*/
 int
 __wt_lsm_manager_push_entry(WT_SESSION_IMPL *session,
     uint32_t type, uint32_t flags, WT_LSM_TREE *lsm_tree)
@@ -646,7 +653,7 @@ __wt_lsm_manager_push_entry(WT_SESSION_IMPL *session,
 	 * or bloom filters are disabled in the tree.
 	 */
 	switch (type) {
-	case WT_LSM_WORK_BLOOM:
+	case WT_LSM_WORK_BLOOM: /*BLOOM操作类型关闭*/
 		if (FLD_ISSET(lsm_tree->bloom, WT_LSM_BLOOM_OFF))
 			return (0);
 		break;
@@ -688,6 +695,7 @@ __wt_lsm_manager_push_entry(WT_SESSION_IMPL *session,
 		LSM_PUSH_ENTRY(&manager->appqh,
 		    &manager->app_lock, lsm_work_queue_app);
 
+    /*向worker thread触发处理任务的信号*/
 	__wt_cond_signal(session, manager->work_cond);
 	return (0);
 }

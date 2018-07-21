@@ -125,6 +125,7 @@ err:			if ((pindex = WT_INTL_INDEX_GET_SAFE(page)) != NULL) {
  * __wt_page_inmem --
  *	Build in-memory page information.
  */
+/*将一个page从磁盘上读入内存，并且构建其page的内存结构信息*/
 int
 __wt_page_inmem(WT_SESSION_IMPL *session,
     WT_REF *ref, const void *image, uint32_t flags, WT_PAGE **pagep)
@@ -144,6 +145,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session,
 	 * Figure out how many underlying objects the page references so we can
 	 * allocate them along with the page.
 	 */
+	/*确定需要在内存中分配的entry数量*/
 	switch (dsk->type) {
 	case WT_PAGE_COL_FIX:
 	case WT_PAGE_COL_INT:
@@ -179,7 +181,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session,
 			alloc_entries = dsk->u.entries;
 		else if (F_ISSET(dsk, WT_PAGE_EMPTY_V_NONE))
 			alloc_entries = dsk->u.entries / 2;
-		else
+		else /*根据实际情况扫描得到到底有多少个k/v entry*/
 			WT_RET(__inmem_row_leaf_entries(
 			    session, dsk, &alloc_entries));
 		break;
@@ -187,6 +189,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session,
 	}
 
 	/* Allocate and initialize a new WT_PAGE. */
+	/*分配page对象的内存并初始化*/
 	WT_RET(__wt_page_alloc(session, dsk->type, alloc_entries, true, &page));
 	page->dsk = dsk;
 	F_SET_ATOMIC(page, flags);
@@ -203,6 +206,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session,
 	 */
 	size = LF_ISSET(WT_PAGE_DISK_ALLOC) ? dsk->mem_size : 0;
 
+    /*设置page内部内存对象结构和记录长度等*/
 	switch (page->type) {
 	case WT_PAGE_COL_FIX:
 		__inmem_col_fix(session, page);
@@ -223,6 +227,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session,
 	}
 
 	/* Update the page's cache statistics. */
+	/*修改page对应的内存cache统计*/
 	__wt_cache_page_inmem_incr(session, page, size);
 	if (LF_ISSET(WT_PAGE_DISK_ALLOC))
 		__wt_cache_page_image_incr(session, dsk->mem_size);
@@ -241,6 +246,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session,
 	*pagep = page;
 	return (0);
 
+    /*如果内存对象失败，将内存对象page废弃*/
 err:	__wt_page_out(session, &page);
 	return (ret);
 }

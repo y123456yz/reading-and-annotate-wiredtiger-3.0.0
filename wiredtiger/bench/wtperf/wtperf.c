@@ -1056,6 +1056,8 @@ populate_thread(void *arg)
 	/* Create the cursors. */
 	cursors = dcalloc(opts->table_count, sizeof(WT_CURSOR *));
 	//获取每个//table:table_name%d的curosr
+
+	printf("yang test xxxxxxxxxxxxxxxxxxxxxxxxxxxx 1\r\n");
 	for (i = 0; i < opts->table_count; i++) {
 	    //__session_open_cursor  获取uri表对应的cursor
 		if ((ret = session->open_cursor(
@@ -1067,7 +1069,7 @@ populate_thread(void *arg)
 			goto err;
 		}
 	}
-
+    printf("yang test xxxxxxxxxxxxxxxxxxxxxxxxxxxx 2\r\n");
 	/* Populate the databases. */
 	//表中填充KV数据
 	for (intxn = 0, opcount = 0;;) {

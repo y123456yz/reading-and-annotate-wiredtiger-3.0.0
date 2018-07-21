@@ -177,6 +177,8 @@ __lsm_tree_set_name(WT_SESSION_IMPL *session,
 	WT_RET(__wt_strdup(session, uri, &p));
 
 	__wt_free(session, lsm_tree->name);
+
+    //filename为去掉lsm:后的名字
 	lsm_tree->name = p;
 	lsm_tree->filename = lsm_tree->name + strlen("lsm:");
 	return (0);
@@ -250,7 +252,8 @@ __wt_lsm_tree_set_chunk_size(
  *	Cleanup any old LSM chunks that might conflict with one we are
  *	about to create. Sometimes failed LSM metadata operations can
  *	leave old files and bloom filters behind.
- */
+ */ 
+/*清除掉一个lsm chunk文件，这个文件可能是BTree文件，也有可能是bloom数据文件*/
 static int
 __lsm_tree_cleanup_old(WT_SESSION_IMPL *session, const char *uri)
 {
@@ -270,6 +273,7 @@ __lsm_tree_cleanup_old(WT_SESSION_IMPL *session, const char *uri)
  * __wt_lsm_tree_setup_chunk --
  *	Initialize a chunk of an LSM tree.
  */
+/*初始化一个lsm tree的chunk信息, 主要包括：chunk name,设置时间戳、创建schema等*/
 int
 __wt_lsm_tree_setup_chunk(
     WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree, WT_LSM_CHUNK *chunk)
@@ -291,7 +295,7 @@ __wt_lsm_tree_setup_chunk(
 	 * things with handle locks and metadata tracking.  It can never have
 	 * been the result of an interrupted merge, anyway.
 	 */
-	if (chunk->id > 1)
+	if (chunk->id > 1) /*这个chunk前面已经使用过，将前面过去的产生文件删除*/
 		WT_RET(__lsm_tree_cleanup_old(session, chunk->uri));
 
 	return (__wt_schema_create(session, chunk->uri, lsm_tree->file_config));
@@ -372,6 +376,7 @@ err:	__wt_free(session, metadata);
  *	lock - since operations that need exclusive access may also need to
  *	take the LSM tree lock for example outstanding work unit operations.
  */
+//根据uri查找lsm tree
 static int
 __lsm_tree_find(WT_SESSION_IMPL *session,
     const char *uri, bool exclusive, WT_LSM_TREE **treep)
@@ -433,7 +438,7 @@ __lsm_tree_find(WT_SESSION_IMPL *session,
 /*
  * __lsm_tree_open_check --
  *	Validate the configuration of an LSM tree.
- */
+ */ /*检查lsm tree的配置信息是否合理*/
 static int
 __lsm_tree_open_check(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 {
@@ -451,6 +456,7 @@ __lsm_tree_open_check(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 	 */
 	required = 3 * lsm_tree->chunk_size +
 	    3 * (lsm_tree->merge_max * maxleafpage);
+	/*超出设置的cache size，打印一个错误信息，并返回一个错误值*/
 	if (S2C(session)->cache_size < required)
 		WT_RET_MSG(session, EINVAL,
 		    "LSM cache size %" PRIu64 " (%" PRIu64 "MB) too small, "
@@ -464,7 +470,8 @@ __lsm_tree_open_check(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 /*
  * __lsm_tree_open --
  *	Open an LSM tree structure.
- */
+ */ 
+/*打开一个lsm tree,其实就是将lsm tree载入内存中*/
 static int
 __lsm_tree_open(WT_SESSION_IMPL *session,
     const char *uri, bool exclusive, WT_LSM_TREE **treep)
@@ -480,19 +487,22 @@ __lsm_tree_open(WT_SESSION_IMPL *session,
 	    F_ISSET(session, WT_SESSION_LOCKED_HANDLE_LIST_WRITE));
 
 	/* Start the LSM manager thread if it isn't running. */
-	WT_RET(__wt_lsm_manager_start(session));
+	WT_RET(__wt_lsm_manager_start(session)); //启动lsm 管理线程
 
 	/* Make sure no one beat us to it. */
+	//查找是否已经存在
 	if ((ret = __lsm_tree_find(
 	    session, uri, exclusive, treep)) != WT_NOTFOUND)
 		return (ret);
 
+    /*构建open lsm tree对象*/
 	/* Try to open the tree. */
 	WT_RET(__wt_calloc_one(session, &lsm_tree));
 	WT_ERR(__wt_rwlock_init(session, &lsm_tree->rwlock));
 
 	WT_ERR(__lsm_tree_set_name(session, lsm_tree, uri));
 
+    //获取lsm配置存入lsm_tree
 	WT_ERR(__wt_lsm_meta_read(session, lsm_tree));
 
 	/*
@@ -517,6 +527,7 @@ __lsm_tree_open(WT_SESSION_IMPL *session,
 	__wt_epoch(session, &lsm_tree->last_flush_time);
 
 	/* Now the tree is setup, make it visible to others. */
+	//lsm tree插入到lsmqh链中
 	TAILQ_INSERT_HEAD(&conn->lsmqh, lsm_tree, q);
 	if (!exclusive)
 		lsm_tree->active = true;
@@ -551,7 +562,7 @@ __wt_lsm_tree_get(WT_SESSION_IMPL *session,
 	else
 		WT_WITH_HANDLE_LIST_READ_LOCK(session,
 		    ret = __lsm_tree_find(session, uri, exclusive, treep));
-	if (ret == WT_NOTFOUND)
+	if (ret == WT_NOTFOUND) //没找到创建
 		WT_WITH_HANDLE_LIST_WRITE_LOCK(session,
 		    ret = __lsm_tree_open(session, uri, exclusive, treep));
 
@@ -739,6 +750,7 @@ __wt_lsm_tree_throttle(
  * __wt_lsm_tree_switch --
  *	Switch to a new in-memory tree.
  */
+/*在内存中切换lsm tree*/
 int
 __wt_lsm_tree_switch(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 {
@@ -751,6 +763,7 @@ __wt_lsm_tree_switch(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 
 	nchunks = lsm_tree->nchunks;
 
+    /*树上没有任何chunk,表明是第一次switch*/
 	first_switch = nchunks == 0;
 
 	/*
@@ -781,8 +794,11 @@ __wt_lsm_tree_switch(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 	chunk->id = new_id;
 	chunk->switch_txn = WT_TXN_NONE;
 	lsm_tree->chunk[lsm_tree->nchunks++] = chunk;
+
+	/*初始化lsm tree chunk块*/
 	WT_ERR(__wt_lsm_tree_setup_chunk(session, lsm_tree, chunk));
 
+    /*写入meta信息*/
 	WT_ERR(__wt_lsm_meta_write(session, lsm_tree, NULL));
 	lsm_tree->need_switch = false;
 	lsm_tree->modified = true;
@@ -799,13 +815,13 @@ __wt_lsm_tree_switch(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 	 * the first chunk in a new or newly opened tree.
 	 */
 	if (last_chunk != NULL && last_chunk->switch_txn == WT_TXN_NONE &&
-	    !F_ISSET(last_chunk, WT_LSM_CHUNK_ONDISK))
+	    !F_ISSET(last_chunk, WT_LSM_CHUNK_ONDISK)) /*确定一个新的事务ID*/
 		last_chunk->switch_txn = __wt_txn_id_alloc(session, false);
 
 	/*
 	 * If a maximum number of chunks are configured, drop the any chunks
 	 * past the limit.
-	 */
+	 */ /*假如lsm tree 的设置了chunk 数量限制，那么需要chunk对象的淘汰,将淘汰的chunk对象移入old chunks列表中*/
 	if (lsm_tree->chunk_count_limit != 0 &&
 	    lsm_tree->nchunks > lsm_tree->chunk_count_limit) {
 		chunks_moved = lsm_tree->nchunks - lsm_tree->chunk_count_limit;
@@ -823,6 +839,7 @@ __wt_lsm_tree_switch(WT_SESSION_IMPL *session, WT_LSM_TREE *lsm_tree)
 		memset(lsm_tree->chunk + lsm_tree->nchunks,
 		    0, chunks_moved * sizeof(*lsm_tree->chunk));
 
+        /* 清空掉old chunks中的多余chunk对象，只有里面有没有任何引用记录，才删除对应的文件*/
 		/* Make sure the manager knows there is work to do. */
 		WT_ERR(__wt_lsm_manager_push_entry(
 		    session, WT_LSM_WORK_DROP, 0, lsm_tree));
@@ -846,7 +863,8 @@ err:	__wt_lsm_tree_writeunlock(session, lsm_tree);
  *	Move a set of chunks onto the old chunks list.
  *	It's the callers responsibility to update the active chunks list.
  *	Must be called with the LSM lock held.
- */
+ */ 
+/*将chunks中最旧的n个chunk移到old chunks*/
 int
 __wt_lsm_tree_retire_chunks(WT_SESSION_IMPL *session,
     WT_LSM_TREE *lsm_tree, u_int start_chunk, u_int nchunks)

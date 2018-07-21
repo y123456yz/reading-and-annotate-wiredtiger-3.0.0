@@ -26,6 +26,7 @@ __wt_block_manager_drop(
  *	Create a file.
  * 为block manager创建一个文件，并写入基本的元数据信息
   构造WT_BLOCK_DESC结构，并写入到磁盘,一次写入allocsize字节到文件，其中前面的内容为WT_BLOCK_DESC结构内容，后面的默认全部为0
+  注意__wt_block_manager_create(写文件)和__wt_block_open(读文件并缓存到blockhash)的关系
  */
 int
 __wt_block_manager_create(
@@ -143,6 +144,7 @@ __wt_block_configure_first_fit(WT_BLOCK *block, bool on)
  *	Open a block handle.
  */
  /*为session创建并打开一个block manager对象,相当于打开一个btree文件*/
+//注意__wt_block_manager_create(写文件)和__wt_block_open(读文件并缓存到blockhash)的关系
 int
 __wt_block_open(WT_SESSION_IMPL *session,
     const char *filename, const char *cfg[],

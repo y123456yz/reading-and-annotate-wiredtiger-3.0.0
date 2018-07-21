@@ -125,7 +125,8 @@ struct __wt_size {
  */
 #define	WT_BM_CHECKPOINT_VERSION	1	/* Checkpoint format version */
 #define	WT_BLOCK_EXTLIST_MAGIC		71002	/* Identify a list */
-struct __wt_block_ckpt {
+//读取checkpoint文件赋值见__wt_block_checkpoint_load  __block_buffer_to_ckpt
+struct __wt_block_ckpt { //__block_buffer_to_ckpt
 	uint8_t	 version;			/* Version */
 
 	wt_off_t root_offset;			/* The root */
@@ -154,7 +155,7 @@ struct __wt_block_ckpt {
  * WT_BM --
  *	Block manager handle, references a single checkpoint in a file.
  */
-//赋值见__bm_method_set
+//赋值见__bm_method_set  __wt_block_manager_open
 struct __wt_bm {
 						/* Methods */
 	int (*addr_invalid)
@@ -198,8 +199,10 @@ struct __wt_bm {
 	    WT_SESSION_IMPL *, WT_ITEM *, uint8_t *, size_t *, bool, bool);
 	int (*write_size)(WT_BM *, WT_SESSION_IMPL *, size_t *);
 
+    //__bm_checkpoint_load中做mmap操作
 	WT_BLOCK *block;			/* Underlying file */
 
+    //mmap文件内存映射对应的地址和文件长度，见__bm_checkpoint_load
 	void	*map;				/* Mapped region */
 	size_t	 maplen;
 	void	*mapped_cookie;
@@ -207,7 +210,7 @@ struct __wt_bm {
 	/*
 	 * There's only a single block manager handle that can be written, all
 	 * others are checkpoints.
-	 */
+	 */ //__bm_checkpoint_load中赋值
 	bool is_live;				/* The live system */
 };
 
@@ -215,7 +218,8 @@ struct __wt_bm {
  * WT_BLOCK --
  *	Block manager handle, references a single file.
  */
-//block创建见__wt_block_open
+//block创建见__wt_block_open  
+//__bm_checkpoint_load中做mmap操作
 struct __wt_block {
 	const char *name;		/* Name */
 	uint64_t name_hash;		/* Hash of name */

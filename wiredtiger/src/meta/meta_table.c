@@ -273,7 +273,7 @@ err:	WT_TRET(__wt_metadata_cursor_release(session, &cursor));
  *	Return a copied row from the metadata.
  *	The caller is responsible for freeing the allocated memory.
  */
-/*在meta中查找key对应的value值，并拷贝对应的value进行返回*/
+/*在meta WiredTiger.turtle中查找key对应的value值，并拷贝对应的value进行返回*/
 int
 __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 {

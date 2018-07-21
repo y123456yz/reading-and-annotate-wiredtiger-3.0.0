@@ -464,7 +464,7 @@ __wt_conn_dhandle_open(
 		if (dhandle->stat_array == NULL)
 			WT_ERR(__wt_stat_dsrc_init(session, dhandle));
 
-        /*创建或者打开一个btree及其对应的文件*/
+        /*打开一个btree及其对应的文件*/
 		WT_ERR(__wt_btree_open(session, cfg));
 		break;
 	case WT_DHANDLE_TYPE_TABLE: //table成员赋值

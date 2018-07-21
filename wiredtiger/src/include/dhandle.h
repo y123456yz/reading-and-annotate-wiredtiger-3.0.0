@@ -60,17 +60,20 @@
  *	A handle for a generic named data source.
  */
 //__wt_conn_dhandle_alloc中创建改结构   __wt_table.iface为该结构
+//可以对应table  file  index colgroup等，
 struct __wt_data_handle {
 	WT_RWLOCK rwlock;		/* Lock for shared/exclusive ops */
 	TAILQ_ENTRY(__wt_data_handle) q;
 	TAILQ_ENTRY(__wt_data_handle) hashq;
 
+    //table  index  file colgroup名
 	const char *name;		/* Object name as a URI */
 	uint64_t name_hash;		/* Hash of name */
 	const char *checkpoint;		/* Checkpoint name (or NULL) */
 	//__conn_dhandle_config_clear  __conn_dhandle_config_set 分别清除配置和添加配置
 	//__conn_dhandle_config_set
-	//配置信息，例如table 配置  file 配置  index配置 colgroup配置
+	//配置信息，例如table 配置  file 配置  index配置 colgroup配置 
+	//对应WT_CONFIG_ENTRY_file_meta配置
 	const char **cfg;		/* Configuration information */
 
 	/*

@@ -76,6 +76,7 @@ struct __wt_btree {
     /*checkpoint信息结构指针*/
 	WT_CKPT	  *ckpt;		/* Checkpoint information */
 
+    //见__btree_conf
 	enum {	BTREE_COL_FIX=1,	/* Fixed-length column store */  /*列式定长存储*/
 		BTREE_COL_VAR=2,	/* Variable-length column store */   /*列式变长存储*/
 		BTREE_ROW=3		/* Row-store */                     /*行式存储*/

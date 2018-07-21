@@ -44,16 +44,21 @@ access_example(void)
 
 	/* Open a connection to the database, creating it if necessary. */
 	error_check(wiredtiger_open(home, NULL, "create", &conn));
-
+    printf("yang test 11111111111111111111111111\r\n");
+    
 	/* Open a session handle for the database. */
+	//__conn_open_session
 	error_check(conn->open_session(conn, NULL, NULL, &session));
 	/*! [access example connection] */
-
+    printf("yang test 11111111111111111111111111\r\n");
+    
 	/*! [access example table create] */
+	//__session_create
 	error_check(session->create(
 	    session, "table:access", "key_format=S,value_format=S"));
 	/*! [access example table create] */
-
+    printf("yang test 3333333333333333333333333333\r\n");
+    
 	/*! [access example cursor open] */
 	error_check(session->open_cursor(
 	    session, "table:access", NULL, NULL, &cursor));

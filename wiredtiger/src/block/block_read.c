@@ -11,7 +11,8 @@
 /*
  * __wt_bm_preload --
  *	Pre-load a page.
- */
+ */ 
+/*对addr指向的block进行预加载*/
 int
 __wt_bm_preload(
     WT_BM *bm, WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size)
@@ -28,16 +29,20 @@ __wt_bm_preload(
 
 	WT_STAT_CONN_INCR(session, block_preload);
 
-	/* Crack the cookie. */
-	WT_RET(
+	/* Crack the cookie. */ /* 校验addr的合法性,并读取对应的offset/size/checksum*/
+	WT_RET( 
 	    __wt_block_buffer_to_addr(block, addr, &offset, &size, &checksum));
 
 	handle = block->fh->handle;
+    /*检查是否可以为mmap方式提供预读*/
 	mapped = bm->map != NULL && offset + size <= (wt_off_t)bm->maplen;
-	if (mapped && handle->fh_map_preload != NULL)
+	if (mapped && handle->fh_map_preload != NULL) /*进行mmap方式的文件预加载*/
 		ret = handle->fh_map_preload(handle, (WT_SESSION *)session,
-		    (uint8_t *)bm->map + offset, size, bm->mapped_cookie);
+		    (uint8_t *)bm->map + offset, size, bm->mapped_cookie); //__wt_posix_map_preload
+
 	if (!mapped && handle->fh_advise != NULL)
+	     /*直接对文件方式的预加载*/  
+	     //__posix_file_advise
 		ret = handle->fh_advise(handle, (WT_SESSION *)session,
 		    offset, (wt_off_t)size, WT_FILE_HANDLE_WILLNEED);
 	if (ret != EBUSY && ret != ENOTSUP)

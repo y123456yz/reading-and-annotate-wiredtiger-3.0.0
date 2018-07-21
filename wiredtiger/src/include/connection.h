@@ -223,7 +223,8 @@ struct __wt_connection_impl {
 	TAILQ_HEAD(__wt_dhhash, __wt_data_handle) dhhash[WT_HASH_ARRAY_SIZE];
 					/* Locked: data handle list */
 	TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh; //dhqh和dhhash一起配合
-	
+
+	//lsm hander树，参考__lsm_tree_find， 插入lsm tree节点见__lsm_tree_open  删除lsm节点见__lsm_tree_discard
 					/* Locked: LSM handle list. */
 	TAILQ_HEAD(__wt_lsm_qh, __wt_lsm_tree) lsmqh;
 					/* Locked: file list */
@@ -234,7 +235,7 @@ struct __wt_connection_impl {
 	TAILQ_HEAD(__wt_dlh_qh, __wt_dlh) dlhqh;
 
 	WT_SPINLOCK block_lock;		/* Locked: block manager list */
-	//插入WT_CONN_BLOCK_INSERT  删除WT_CONN_BLOCK_REMOVE
+	//插入WT_CONN_BLOCK_INSERT  删除WT_CONN_BLOCK_REMOVE  __wt_block_open
 	TAILQ_HEAD(__wt_blockhash, __wt_block) blockhash[WT_HASH_ARRAY_SIZE];
 	TAILQ_HEAD(__wt_block_qh, __wt_block) blockqh;
 

@@ -109,7 +109,7 @@ __create_file(WT_SESSION_IMPL *session,
 		WT_ERR(__wt_config_collapse(session, filecfg, &fileconf));
 		WT_ERR(__wt_metadata_insert(session, uri, fileconf));
 	}
-
+    
 	/*
 	 * Open the file to check that it was setup correctly. We don't need to
 	 * pass the configuration, we just wrote the collapsed configuration
@@ -126,7 +126,7 @@ __create_file(WT_SESSION_IMPL *session,
 		WT_ERR(__wt_meta_track_handle_lock(session, true));
 	else
 		WT_ERR(__wt_session_release_dhandle(session));
-
+    printf("yang test xxxxxxxxxxxxxxxxxxxsssssssssssssssss \r\n");
 err:	__wt_scr_free(session, &val);
 	__wt_free(session, fileconf);
 	return (ret);
