@@ -12,38 +12,58 @@
 [1532162660:746140][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.isrc: file-exist
 [1532162660:746151][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.backup: file-exist
 [1532162660:746161][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.turtle: file-exist
-yang test ..111.... uri:file:WiredTiger.wt
+
+
+//__metadata_init->__wt_schema_create->__create_file->__wt_block_manager_create
 [1532162660:746215][23883:0x7f01c5c3f740][__open_verbose, 194], connection: WiredTiger.wt: file-open: type data (create, exclusive)
 [1532162660:746690][23883:0x7f01c5c3f740][__wt_write, 169], connection: WT_HOME/WiredTiger.wt: handle-write: 4096 at 0
 [1532162660:746741][23883:0x7f01c5c3f740][__wt_fsync, 22], connection: WT_HOME/WiredTiger.wt: handle-sync
 [1532162660:747468][23883:0x7f01c5c3f740][__wt_close, 344], connection: WiredTiger.wt: file-close
 [1532162660:747557][23883:0x7f01c5c3f740][__wt_metadata_search, 289], file:WiredTiger.wt, connection: Search: key: file:WiredTiger.wt, tracking: true, turtle
 [1532162660:747569][23883:0x7f01c5c3f740][__wt_fs_exist, 76], file:WiredTiger.wt, connection: WiredTiger.turtle: file-exist
+
+//__wt_session_get_dhandle->__wt_conn_dhandle_open->__conn_dhandle_config_set->__wt_metadata_search->__wt_turtle_read
 [1532162660:748074][23883:0x7f01c5c3f740][__wt_metadata_search, 289], file:WiredTiger.wt, connection: Search: key: file:WiredTiger.wt, tracking: true, turtle
 [1532162660:748083][23883:0x7f01c5c3f740][__wt_fs_exist, 76], file:WiredTiger.wt, connection: WiredTiger.turtle: file-exist
+
+//__wt_session_get_dhandle->__wt_conn_dhandle_open->__wt_btree_open
 [1532162660:748575][23883:0x7f01c5c3f740][__btree_conf, 318], file:WiredTiger.wt, connection: 1.1
 [1532162660:748916][23883:0x7f01c5c3f740][__wt_block_open, 160], file:WiredTiger.wt, connection: open: WiredTiger.wt
 [1532162660:748964][23883:0x7f01c5c3f740][__open_verbose, 194], file:WiredTiger.wt, connection: WiredTiger.wt: file-open: type data
 [1532162660:748987][23883:0x7f01c5c3f740][__wt_filesize, 122], file:WiredTiger.wt, connection: WT_HOME/WiredTiger.wt: handle-size:0
 [1532162660:748995][23883:0x7f01c5c3f740][__wt_read, 100], file:WiredTiger.wt, connection: WT_HOME/WiredTiger.wt: handle-read: 4096 at 0
 [1532162660:749009][23883:0x7f01c5c3f740][__desc_read, 398], file:WiredTiger.wt, connection: WiredTiger.wt: magic 120897, major/minor: 1/0, checksum 0xb72308d8
+
+//__wt_session_get_dhandle->__wt_conn_dhandle_open->__wt_btree_open->__bm_checkpoint_load->__wt_block_checkpoint_load
 [1532162660:749024][23883:0x7f01c5c3f740][__wt_block_checkpoint_load, 75], file:WiredTiger.wt, connection: WiredTiger.wt: load-checkpoint: [Empty]
 [1532162660:749047][23883:0x7f01c5c3f740][__wt_block_truncate, 24], file:WiredTiger.wt, connection: truncate file to 4096
 [1532162660:749054][23883:0x7f01c5c3f740][__wt_ftruncate, 139], file:WiredTiger.wt, connection: WT_HOME/WiredTiger.wt: handle-truncate: to 4096
+
+//__metadata_load_hot_backup
 [1532162660:749111][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.backup: file-exist
+
+
+//__metadata_load_bulk 
 [1532162660:749156][23883:0x7f01c5c3f740][__curfile_next, 87], file:WiredTiger.wt, WT_CURSOR.next: CALL: WT_CURSOR:next
 [1532162660:749195][23883:0x7f01c5c3f740][__curfile_reset, 160], file:WiredTiger.wt, WT_CURSOR.reset: CALL: WT_CURSOR:reset
+
+
+//__wt_turtle_update
 [1532162660:749644][23883:0x7f01c5c3f740][__open_verbose, 194], connection: WiredTiger.turtle.set: file-open: type regular (create, exclusive)
 [1532162660:749870][23883:0x7f01c5c3f740][__wt_filesize, 122], connection: WT_HOME/WiredTiger.turtle.set: handle-size:0
 [1532162660:749902][23883:0x7f01c5c3f740][__wt_write, 169], connection: WT_HOME/WiredTiger.turtle.set: handle-write: 892 at 0
 [1532162660:749920][23883:0x7f01c5c3f740][__wt_fsync, 22], connection: WT_HOME/WiredTiger.turtle.set: handle-sync
 [1532162660:750630][23883:0x7f01c5c3f740][__wt_close, 344], connection: WiredTiger.turtle.set: file-close
 [1532162660:750670][23883:0x7f01c5c3f740][__wt_fs_rename, 141], connection: WiredTiger.turtle.set to WiredTiger.turtle: file-rename
+
+//__wt_turtle_update->__wt_backup_file_remove
 [1532162660:751045][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.turtle.set: file-exist
 [1532162660:751095][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.backup.tmp: file-exist
 [1532162660:751110][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.ibackup: file-exist
 [1532162660:751119][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.isrc: file-exist
 [1532162660:751127][23883:0x7f01c5c3f740][__wt_fs_exist, 76], connection: WiredTiger.backup: file-exist
+
+
 [1532162660:751626][23883:0x7f01c5c3f740][__wt_fs_directory_list, 27], connection: .: directory-list: prefix WiredTigerTmplog
 [1532162660:751703][23883:0x7f01c5c3f740][__wt_fs_directory_list, 27], connection: .: directory-list: prefix WiredTigerPreplog
 [1532162660:751730][23883:0x7f01c5c3f740][__wt_log_open, 1559], connection: log_open: open fh to directory .
@@ -275,7 +295,8 @@ Got record: key1 : value1
 [1532162660:780122][23883:0x7f01c5c3f740][__wt_curfile_insert_check, 270], file:WiredTiger.wt, WT_CURSOR.update: CALL: WT_CURSOR:update
 [1532162660:780137][23883:0x7f01c5c3f740][__curfile_reset, 160], file:WiredTiger.wt, WT_CURSOR.reset: CALL: WT_CURSOR:reset
 [1532162660:780145][23883:0x7f01c5c3f740][__wt_metadata_search, 289], file:access.wt, close_ckpt: Search: key: file:access.wt, tracking: true, not turtle
-[1532162660:780152][23883:0x7f01c5c3f740][__wt_cursor_set_keyv, 343], WT_CURSOR.set_key: CALL: WT_CURSOR:set_key
+[1532162660:780152][23883:0x7f01c5c3f740][__w:q
+t_cursor_set_keyv, 343], WT_CURSOR.set_key: CALL: WT_CURSOR:set_key
 [1532162660:780158][23883:0x7f01c5c3f740][__curfile_search, 184], file:WiredTiger.wt, WT_CURSOR.search: CALL: WT_CURSOR:search
 [1532162660:780169][23883:0x7f01c5c3f740][__wt_cursor_get_valuev, 443], WT_CURSOR.get_value: CALL: WT_CURSOR:get_value
 [1532162660:780176][23883:0x7f01c5c3f740][__curfile_reset, 160], file:WiredTiger.wt, WT_CURSOR.reset: CALL: WT_CURSOR:reset
