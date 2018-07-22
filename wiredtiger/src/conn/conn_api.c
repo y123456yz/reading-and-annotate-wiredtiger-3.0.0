@@ -1897,7 +1897,6 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[])
 		WT_RET_NOTFOUND_OK(ret);
 	}
 
-    //printf("yang test .... flags:0x%x\r\n", flags);
 	conn->verbose = flags; //ªÒ»°≈‰÷√  
 	return (0);
 }

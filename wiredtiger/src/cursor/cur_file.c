@@ -643,7 +643,6 @@ __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri,
 	 * open to fail with EBUSY due to a database-wide checkpoint,
 	 * get the handle while holding the checkpoint lock.
 	 */
-	printf("yang test ..........1............__wt_curfile_open end\r\n");
 	if (LF_ISSET(WT_DHANDLE_EXCLUSIVE) && checkpoint_wait)
 		WT_WITH_CHECKPOINT_LOCK(session,
 		    ret = __wt_session_get_btree_ckpt(

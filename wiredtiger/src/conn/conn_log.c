@@ -401,6 +401,7 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
 	log = conn->log;
 	reccount = 0;
 	recfiles = NULL;
+    printf("yang test ..... __log_prealloc_once\r\n");
 
 	/*
 	 * Allocate up to the maximum number, accounting for any existing
@@ -903,6 +904,7 @@ __log_server(void *arg)
 	conn = S2C(session);
 	log = conn->log;
 	signalled = false;
+    printf("yang test ..... __log_server\r\n");
 
 	/*
 	 * Set this to the number of milliseconds we want to run archive and
@@ -1005,6 +1007,7 @@ __wt_logmgr_create(WT_SESSION_IMPL *session, const char *cfg[])
 	conn = S2C(session);
 
 	/* Handle configuration. */
+	/*读取日志文件的配置文件*/
 	WT_RET(__logmgr_config(session, cfg, &run, false));
 
 	/* If logging is not configured, we're done. */
