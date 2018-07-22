@@ -94,6 +94,7 @@ __log_prealloc_remove(WT_SESSION_IMPL *session)
 	u_int i, logcount;
 	char **logfiles;
 
+    printf("yang test ....................................... __log_prealloc_remove\r\n");
 	logfiles = NULL;
 	logcount = 0;
 	log = S2C(session)->log;
@@ -102,14 +103,19 @@ __log_prealloc_remove(WT_SESSION_IMPL *session)
 	 * Clean up any old interim pre-allocated files.  We clean
 	 * up these files because settings may have changed upon reboot
 	 * and we want those settings to take effect right away.
-	 */
+	 */ //获取所有的WiredTigerTmplog前缀开头的文件
 	WT_ERR(__log_get_files(session,
 	    WT_LOG_TMPNAME, &logfiles, &logcount));
+
+	/*删除所有的临时日志文件,因为要打开一个更大LSN对应的文件，就必须将现在关闭现在正在使用的LSN日志文件，那么它对应的
+	 *临时文件就会被关闭*/
 	for (i = 0; i < logcount; i++) {
 		WT_ERR(__wt_log_extract_lognum(session, logfiles[i], &lognum));
 		WT_ERR(__wt_log_remove(session, WT_LOG_TMPNAME, lognum));
 	}
 	WT_ERR(__wt_fs_directory_list_free(session, &logfiles, logcount));
+
+	//获取所有的WiredTigerPreplog前缀开头的文件
 	WT_ERR(__log_get_files(session,
 	    WT_LOG_PREPNAME, &logfiles, &logcount));
 	for (i = 0; i < logcount; i++) {
@@ -505,6 +511,7 @@ __log_filename(WT_SESSION_IMPL *session,
  * __wt_log_extract_lognum --
  *	Given a log file name, extract out the log number.
  */
+/*从log文件名中解析一个log number(LSN中的file id)*/
 int
 __wt_log_extract_lognum(
     WT_SESSION_IMPL *session, const char *name, uint32_t *id)
@@ -886,6 +893,7 @@ __log_openfile(
 	WT_DECL_RET;
 	u_int wtopen_flags;
 
+    printf("yang test ....................................... __log_openfile\r\n");
 	conn = S2C(session);
 	WT_RET(__wt_scr_alloc(session, 0, &buf));
 	/*
@@ -915,6 +923,7 @@ err:	__wt_scr_free(session, &buf);
  *	header and return various pieces of system information about
  *	this log file.
  */
+//日志文件判断检查
 static int
 __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp,
     WT_LSN *lsnp, uint16_t *versionp)
@@ -952,6 +961,7 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp,
 	__wt_log_record_byteswap(logrec);
 	desc = (WT_LOG_DESC *)logrec->record;
 	__wt_log_desc_byteswap(desc);
+
 	if (desc->log_magic != WT_LOG_MAGIC)
 		WT_PANIC_RET(session, WT_ERROR,
 		    "log file %s corrupted: Bad magic number %" PRIu32,
@@ -998,7 +1008,7 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp,
 	if (!__log_checksum_match(session, buf, allocsize))
 		WT_ERR_MSG(session, WT_ERROR,
 		    "%s: System log record checksum mismatch", fh->name);
-    
+
 	__wt_log_record_byteswap(logrec);
 	p = WT_LOG_SKIP_HEADER(buf->data);
 	end = (const uint8_t *)buf->data + allocsize;
@@ -1026,6 +1036,7 @@ err:	__wt_scr_free(session, &buf);
  *	Look for a pre-allocated log file and rename it to use as the next
  *	real log file.  Called locked.
  */
+/*提取一个预分配log文件，并用to_num产生一个正式的log文件名顶替这个预分配文件 这样做的目的可能是加快文件的建立*/
 static int
 __log_alloc_prealloc(WT_SESSION_IMPL *session, uint32_t to_num)
 {
@@ -1043,7 +1054,7 @@ __log_alloc_prealloc(WT_SESSION_IMPL *session, uint32_t to_num)
 	log = S2C(session)->log;
 	logfiles = NULL;
 	WT_ERR(__log_get_files(session, WT_LOG_PREPNAME, &logfiles, &logcount));
-	if (logcount == 0)
+	if (logcount == 0) //不存在直接返回，如果是存在该日志文件，则在后面用to_num产生一个正式的log文件名顶替这个预分配文件
 		return (WT_NOTFOUND);
 
 	/*
@@ -1076,7 +1087,8 @@ err:	__wt_scr_free(session, &from_path);
 /*
  * __log_newfile --
  *	Create the next log file and write the file header record into it.
- */
+ */ 
+/*为日志session建立一个新的日志文件，并将日志文件头信息写入到日志文件中*/
 static int
 __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 {
@@ -1098,6 +1110,8 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 	 * Wait for that to close.
 	 */
 	WT_ASSERT(session, F_ISSET(session, WT_SESSION_LOCKED_SLOT));
+	/*等待__log_close_server线程主体函数对log_close_fh的关闭完成，因为在新建新的日志文件，正在使用的
+	 *日志文件可能正在被写，所以一定要等待其写完成*/
 	for (yield_cnt = 0; log->log_close_fh != NULL;) {
 		WT_STAT_CONN_INCR(session, log_close_yields);
 		__wt_log_wrlsn(session, NULL);
@@ -1129,6 +1143,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 		if (conn->hot_backup)
 			__wt_readunlock(session, &conn->hot_backup_lock);
 		else {
+		    /*预先分配一个日志文件，这样做的目的可能是加快文件的建立*/
 			ret = __log_alloc_prealloc(session, log->fileid);
 			__wt_readunlock(session, &conn->hot_backup_lock);
 
@@ -1140,7 +1155,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 			 * error.
 			 */
 			WT_RET_NOTFOUND_OK(ret);
-			if (ret == 0)
+			if (ret == 0) /*如果返回的是ret = 0, 表示log->fileid对应的文件已经被其他的线程创建了*/
 				create_log = false;
 			else {
 				WT_STAT_CONN_INCR(session, log_prealloc_missed);
@@ -1155,6 +1170,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 	 */
 	if (create_log) {  //WT_LOG_FILENAME等日志文件相关创建
 		log->prep_missed++;
+		/*没有预分配文件，进行重新创建，并将日志文件头信息写入到新建立的日志文件中*/
 		WT_RET(__wt_log_allocfile(
 		    session, log->fileid, WT_LOG_FILENAME));
 	}
@@ -1164,11 +1180,14 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 	 * we must pass in a local file handle.  Otherwise there is a wide
 	 * window where another thread could see a NULL log file handle.
 	 */
+	/*打开新创建的日志文件 判断检查*/
 	WT_RET(__log_open_verify(session, log->fileid, &log_fh, NULL, NULL));
 	/*
 	 * Write the LSN at the end of the last record in the previous log file
 	 * as the first record in this log file.
 	 */
+
+	 /*以下对当前日志alloc_lsn的位置做更新*/
 	if (log->fileid == 1)
 		WT_INIT_LSN(&logrec_lsn);
 	else
@@ -1193,7 +1212,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
 	/*
 	 * If we're called from connection creation code, we need to update
 	 * the LSNs since we're the only write in progress.
-	 */
+	 */ /*对新建日志数据落盘*/
 	if (conn_open) {
 		WT_RET(__wt_fsync(session, log->log_fh, true));
 		log->sync_lsn = end_lsn;
@@ -1458,6 +1477,7 @@ __wt_log_allocfile(
 	WT_LOG *log;
 	uint32_t tmp_id;
 
+    printf("yang test ....................................... __wt_log_allocfile\r\n");
 	conn = S2C(session);
 	log = conn->log;
 	log_fh = NULL;
@@ -1504,6 +1524,7 @@ err:	__wt_scr_free(session, &from_path);
  * __wt_log_remove --
  *	Given a log number, remove that log file.
  */
+/*根据log number移除一个对应的文件*/
 int
 __wt_log_remove(WT_SESSION_IMPL *session,
     const char *file_prefix, uint32_t lognum)
@@ -1574,7 +1595,6 @@ __wt_log_open(WT_SESSION_IMPL *session)
 		WT_ERR(__wt_log_extract_lognum(session, logfiles[i], &lognum));
 		lastlog = WT_MAX(lastlog, lognum);
 		firstlog = WT_MIN(firstlog, lognum);
-		printf("yang test ............. logfile:%s\r\n", logfiles[i]);
 	}
 	log->fileid = lastlog;
 	__wt_verbose(session, WT_VERB_LOG,
@@ -1596,6 +1616,7 @@ __wt_log_open(WT_SESSION_IMPL *session)
 		WT_ERR(ret);
 	}
 
+    printf("yang test log open 1111111111111111111111\r\n");
 	/* If we found log files, save the new state. */
 	if (logcount > 0) {
 		/*
@@ -1628,7 +1649,8 @@ __wt_log_open(WT_SESSION_IMPL *session)
 		log->trunc_lsn = log->alloc_lsn;
 		FLD_SET(conn->log_flags, WT_CONN_LOG_EXISTED);
 	}
-
+    printf("yang test log open 22222222222222222222222222222222222222\r\n");
+    
 err:	WT_TRET(__wt_fs_directory_list_free(session, &logfiles, logcount));
 	if (ret == 0)
 		F_SET(log, WT_LOG_OPENED);

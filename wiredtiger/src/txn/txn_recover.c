@@ -454,7 +454,7 @@ __recovery_file_scan(WT_RECOVERY *r)
  */
 /*redo log恢复
 red log将所有对页面的修改操作写入一个专门的文件，并在数据库启动时从此文件进行恢复操作，这个文件就是redo log file
-*/
+*/ /*redo log推演*/
 int
 __wt_txn_recover(WT_SESSION_IMPL *session)
 {
