@@ -272,6 +272,7 @@ err:	__wt_scr_free(session, &buf);
  * __schema_open_index --
  *	Open one or more indices for a table (internal version).
  */
+/*打开表的所有索引对象*/
 static int
 __schema_open_index(WT_SESSION_IMPL *session,
     WT_TABLE *table, const char *idxname, size_t len, WT_INDEX **indexp)
@@ -286,7 +287,7 @@ __schema_open_index(WT_SESSION_IMPL *session,
 	bool match;
 
 	/* Check if we've already done the work. */
-	if (idxname == NULL && table->idx_complete)
+	if (idxname == NULL && table->idx_complete) //如果没有索引直接返回
 		return (0);
 
 	cursor = NULL;

@@ -75,7 +75,7 @@ __ckpt_server_run_chk(WT_SESSION_IMPL *session)
 /*
  * __ckpt_server --
  *	The checkpoint server thread.
- */
+ */ 
 static WT_THREAD_RET
 __ckpt_server(void *arg)
 {
@@ -93,7 +93,8 @@ __ckpt_server(void *arg)
 		 * Wait...
 		 * NOTE: If the user only configured logsize, then usecs
 		 * will be 0 and this wait won't return until signalled.
-		 */
+		 */ 
+		/*等待建立checkpoint间隔时间或者log file超过了对应阈值触发了checkpoint*/
 		__wt_cond_wait(session,
 		    conn->ckpt_cond, conn->ckpt_usecs, __ckpt_server_run_chk);
 
@@ -113,6 +114,8 @@ __ckpt_server(void *arg)
 		 * hence the checkpoint will not be skipped this time.
 		 */
 		if (conn->modified) {
+		    /*对数据库建立一个新的checkpoint*/
+		    //__session_checkpoint或者__session_checkpoint_readonly
 			WT_ERR(wt_session->checkpoint(wt_session, NULL));
 
 			/* Reset. */
@@ -126,7 +129,9 @@ __ckpt_server(void *arg)
 				 * already signalled, do a tiny wait to clear
 				 * it so we don't do another checkpoint
 				 * immediately.
-				 */
+				 * 不能立即进入上一个cond_wait,因为底下的日志一直在append,在conn->ckpt_signalled不等于0是，会触发多次
+    		 	 * __wt_checkpoint_signal，防止在这个时候太过于频繁的checkpoint,这里设置了一个1秒的等待
+    			 */
 				__wt_cond_wait(
 				    session, conn->ckpt_cond, 1, NULL);
 			}

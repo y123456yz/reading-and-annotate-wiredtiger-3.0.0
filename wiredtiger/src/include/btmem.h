@@ -210,6 +210,7 @@ struct __wt_page_lookaside {
  * WT_PAGE_MODIFY --
  *	When a page is modified, there's additional information to maintain.
  */
+//创建空间赋值见__wt_page_modify_alloc
 struct __wt_page_modify {
 	/* The first unwritten transaction ID (approximate). */
 	uint64_t first_dirty_txn;
@@ -383,7 +384,7 @@ struct __wt_page_modify {
 #define	mod_col_split_recno	u2.column_leaf.split_recno
 	struct {
 		/* Inserted items for row-store. */
-		WT_INSERT_HEAD	**insert;
+		WT_INSERT_HEAD	**insert; //上面的insert
 
 		/* Updated items for row-stores. */
 		WT_UPDATE	**update;
@@ -391,7 +392,7 @@ struct __wt_page_modify {
 #undef	mod_row_insert
 #define	mod_row_insert		u2.row_leaf.insert
 #undef	mod_row_update
-#define	mod_row_update		u2.row_leaf.update
+#define	mod_row_update		u2.row_leaf.update  //上面的update
 	} u2;
 
 	/*
@@ -746,7 +747,9 @@ struct __wt_page_deleted {
  *	A single in-memory page and the state information used to determine if
  * it's OK to dereference the pointer to the page.
  */
+//可以参考__wt_row_modify
 struct __wt_ref {
+    //在__wt_row_modify会插入tree中
 	WT_PAGE *page;			/* Page */
 
 	/*

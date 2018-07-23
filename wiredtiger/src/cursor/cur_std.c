@@ -326,7 +326,7 @@ err:	API_END_RET(session, ret);
  *	WT_CURSOR->set_key default implementation.
  * 填充cursor->key
  //注意__wt_cursor_set_keyv  __async_set_key  __wt_curtable_set_key的区别
- */
+ */ //填充cursor->key
 void
 __wt_cursor_set_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 {
@@ -732,7 +732,7 @@ __wt_cursor_dup_position(WT_CURSOR *to_dup, WT_CURSOR *cursor)
  * __wt_cursor_init --
  *	Default cursor initialization.
  */
-/*对cursor进行初始化*/
+/*对cursor进行初始化 通过cursorp返回*/
 int
 __wt_cursor_init(WT_CURSOR *cursor,
     const char *uri, WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp)

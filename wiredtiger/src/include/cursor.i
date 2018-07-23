@@ -116,7 +116,7 @@ __cursor_needvalue(WT_CURSOR *cursor)
 /*
  * __cursor_pos_clear --
  *	Reset the cursor's location.
- */
+ */ /* btree cursor ¸´Î» */
 static inline void
 __cursor_pos_clear(WT_CURSOR_BTREE *cbt)
 {

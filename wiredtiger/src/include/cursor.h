@@ -80,6 +80,7 @@ struct __wt_cursor_backup {
 };
 #define	WT_CURSOR_BACKUP_ID(cursor)	(((WT_CURSOR_BACKUP *)(cursor))->maxid)
 
+//__curfile_create中创建空间和赋值  插入一条记录到btree参考__wt_btcur_insert
 struct __wt_cursor_btree {
 	WT_CURSOR iface;
 
@@ -92,6 +93,7 @@ struct __wt_cursor_btree {
 	 * skiplist entries leading to the insert point).  The search functions
 	 * also return the relationship of the search key to the found key.
 	 */
+	//在__wt_row_modify会插入tree中
 	WT_REF	  *ref;			/* Current page */
 	uint32_t   slot;		/* WT_COL/WT_ROW 0-based slot */
 
@@ -481,6 +483,7 @@ struct __wt_cursor_stat {
 #define	WT_CURSOR_STATS(cursor)						\
 	(((WT_CURSOR_STAT *)(cursor))->stats)
 
+//__wt_cursor_table转换为session = (WT_SESSION_IMPL *)ctable->iface.session;
 //赋值见__wt_curtable_open  __curtable_open_colgroups
 struct __wt_cursor_table {
 	WT_CURSOR iface;

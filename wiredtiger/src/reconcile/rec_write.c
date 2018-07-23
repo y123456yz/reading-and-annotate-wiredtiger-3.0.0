@@ -19,7 +19,8 @@ struct __rec_kv;		typedef struct __rec_kv WT_KV;
  *
  * WT_RECONCILE --
  *	Information tracking a single page reconciliation.
- */
+ */ 
+//创建空间和赋值见__rec_init
 typedef struct {
 	WT_REF  *ref;			/* Page being reconciled */
 	WT_PAGE *page;
@@ -898,7 +899,7 @@ __rec_raw_compression_config(WT_SESSION_IMPL *session,
 /*
  * __rec_init --
  *	Initialize the reconciliation structure.
- */
+ */ /*分配一个WT_RECONCILE对象，并进行初始化*/
 static int
 __rec_init(WT_SESSION_IMPL *session,
     WT_REF *ref, uint32_t flags, WT_SALVAGE_COOKIE *salvage, void *reconcilep)

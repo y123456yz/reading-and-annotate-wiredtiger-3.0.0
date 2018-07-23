@@ -603,6 +603,13 @@ __create_table(WT_SESSION_IMPL *session,
     //test .......... uri:table:./yyz-test, tablename:./yyz-test
     //printf("test .......... uri:%s, tablename:%s\r\n", uri, tablename);
 	/* Check if the table already exists. */
+
+	/*
+[1532331783:898590][5465:0x7f3f1db28740][__wt_metadata_search, 289], WT_SESSION.create: Search: key: table:access, tracking: true, not turtle
+[1532331783:898600][5465:0x7f3f1db28740][__wt_cursor_set_keyv, 343], WT_CURSOR.set_key: CALL: WT_CURSOR:set_key
+[1532331783:898609][5465:0x7f3f1db28740][__curfile_search, 184], file:WiredTiger.wt, WT_CURSOR.search: CALL: WT_CURSOR:search
+[1532331783:898620][5465:0x7f3f1db28740][__curfile_reset, 160], file:WiredTiger.wt, WT_CURSOR.reset: CALL: WT_CURSOR:reset
+	*/
 	if ((ret = __wt_metadata_search(
 	    session, uri, &tableconf)) != WT_NOTFOUND) {
 		if (exclusive)
@@ -610,7 +617,8 @@ __create_table(WT_SESSION_IMPL *session,
 		goto err;
 	}
 
-    printf("yang test .............. uri:%s, tableconf:%s", uri, tableconf);
+//uri:table:access, tableconf:(null)[1532331783:898653][5465:0x7f3f1db28740][__wt_metadata_insert, 179], WT_SESSION.create: Insert: key: table:access, value: app_metadata=,colgroups=,collator=,columns=,key_format=S,value_format=S, tracking: true, not turtle
+//printf("uri:%s, tableconf:%s", uri, tableconf);
 	WT_ERR(__wt_config_gets(session, cfg, "colgroups", &cval));
 	__wt_config_subinit(session, &conf, &cval);//根据cval来构建WT_CONFIG对象
 	
@@ -620,6 +628,7 @@ __create_table(WT_SESSION_IMPL *session,
 		;
 	WT_ERR_NOTFOUND_OK(ret);
 
+    //根据cfg获取tableconf配置信息
 	WT_ERR(__wt_config_collapse(session, cfg, &tableconf));
 	WT_ERR(__wt_metadata_insert(session, uri, tableconf));
 
@@ -688,7 +697,7 @@ __create_data_source(WT_SESSION_IMPL *session,
  * __wt_schema_create --
  *	Process a WT_SESSION::create operation for all supported types.
  */
-//根据uri创建对应的colgroup  file  lsm index table等
+//根据uri创建colgroup  file  lsm index table对应的schema
 int
 __wt_schema_create(
     WT_SESSION_IMPL *session, const char *uri, const char *config)
