@@ -216,7 +216,6 @@ __wt_curtable_set_key(WT_CURSOR *cursor, ...)
 	u_int i;
 	va_list ap;
 
-   
 	ctable = (WT_CURSOR_TABLE *)cursor;
 	cp = ctable->cg_cursors;
 	primary = *cp++;
@@ -492,6 +491,7 @@ __curtable_insert(WT_CURSOR *cursor)
 
     printf("yang test ...................... cursor insert\r\n");
 	ctable = (WT_CURSOR_TABLE *)cursor;
+	//[1532331783:898680][5465:0x7f3f1db28740][__curfile_insert, 234], file:WiredTiger.wt, WT_CURSOR.insert: CALL: WT_CURSOR:insert
 	JOINABLE_CURSOR_UPDATE_API_CALL(cursor, session, insert);
 	WT_ERR(__curtable_open_indices(ctable));
 
@@ -925,6 +925,7 @@ __curtable_open_indices(WT_CURSOR_TABLE *ctable)
 	session = (WT_SESSION_IMPL *)ctable->iface.session;
 	table = ctable->table;
 
+    //
 	WT_RET(__wt_schema_open_indices(session, table));
 	if (table->nindices == 0 || ctable->idx_cursors != NULL)
 		return (0);
@@ -951,7 +952,7 @@ int
 __wt_curtable_open(WT_SESSION_IMPL *session,
     const char *uri, WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp)
 {
-	WT_CURSOR_STATIC_INIT(iface,
+	WT_CURSOR_STATIC_INIT(iface,            //注意下面的__wt_open_cursor可能会重新赋值
 	    __wt_curtable_get_key,		/* get-key */
 	    __wt_curtable_get_value,	/* get-value */
 	    __wt_curtable_set_key,		/* set-key */
@@ -979,12 +980,12 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 	size_t size;
 	int cfg_cnt;
 	const char *tablename, *columns;
-    printf("yang test .......1........................ccccccccccccc\r\n");
 
 	WT_STATIC_ASSERT(offsetof(WT_CURSOR_TABLE, iface) == 0);
 
 	ctable = NULL;
 
+    printf("yang test ....................__wt_curtable_open\r\n");
 	tablename = uri;
 	WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:");
 	columns = strchr(tablename, '(');
@@ -1001,8 +1002,9 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 
 	WT_RET(__curtable_complete(session, table));	/* completeness check */
 
-	if (table->is_simple) {
-		/* Just return a cursor on the underlying data source. */
+	if (table->is_simple) { //这里面会对cursor重新赋值
+	    //ex_access对应 ....................__wt_open_cursor table->cgroups[0]->source:file:access.wt
+    	/* Just return a cursor on the underlying data source. */
 		//注意这里面会对WT_CURSOR重新赋值   table->cgroups[0]->source:lsm:test
 		ret = __wt_open_cursor(session,
 		    table->cgroups[0]->source, NULL, cfg, cursorp);
@@ -1044,7 +1046,6 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 		    session, tmp->data, tmp->size, &ctable->plan));
 	}
 
-    printf("yang test ...............................ccccccccccccc\r\n");
 	/*
 	 * random_retrieval
 	 * Random retrieval cursors only support next, reset and close.

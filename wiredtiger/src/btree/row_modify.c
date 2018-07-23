@@ -11,7 +11,7 @@
 /*
  * __wt_page_modify_alloc --
  *	Allocate a page's modification structure.
- */
+ */ //分配一个modify
 int
 __wt_page_modify_alloc(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -40,6 +40,7 @@ err:		__wt_free(session, modify);
  * __wt_row_modify --
  *	Row-store insert, update and delete.
  */
+/*row store btree的修改实现，包括:insert, update和delete */
 int
 __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
     const WT_ITEM *key, const WT_ITEM *value,
@@ -62,6 +63,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	logged = false;
 
 	/* If we don't yet have a modify structure, we'll need one. */
+	/*分配并初始化一个page modify对象*/
 	WT_RET(__wt_page_modify_init(session, page));
 	mod = page->modify;
 
@@ -73,19 +75,20 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	 * Insert: allocate an insert array as necessary, build a WT_INSERT
 	 * and WT_UPDATE structure pair, and call a serialized function to
 	 * insert the WT_INSERT structure.
-	 */
+	 */ /* 修改操作， */
 	if (cbt->compare == 0) {
 		if (cbt->ins == NULL) {
 			/* Allocate an update array as necessary. */
 			WT_PAGE_ALLOC_AND_SWAP(session, page,
 			    mod->mod_row_update, upd_entry, page->entries);
-
+            /*是在update list当中找到修改的记录，直接获取udpate list当中对应的update对象*/
+			/* 为cbt游标分配一个update对象数组,并设置update数组槽位，原子操作性的分配*/
 			/* Set the WT_UPDATE array reference. */
 			upd_entry = &mod->mod_row_update[cbt->slot];
-		} else
+		} else /* 获取一个upd_entry */
 			upd_entry = &cbt->ins->upd;
 
-		if (upd_arg == NULL) {
+		if (upd_arg == NULL) { /*确定是否可以进行更新操作*/
 			/* Make sure the update can proceed. */
 			WT_ERR(__wt_txn_update_check(
 			    session, old_upd = *upd_entry));
@@ -123,9 +126,10 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		upd->next = old_upd;
 
 		/* Serialize the update. */
+		/*进行串行更新操作*/
 		WT_ERR(__wt_update_serial(
 		    session, page, upd_entry, &upd, upd_size, exclusive));
-	} else {
+	} else {/*没有定位到具体的记录，那么相当于插入一个新的记录行*/
 		/*
 		 * Allocate the insert array as necessary.
 		 *
@@ -136,7 +140,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		 * comparison value indicates the search key was smaller than
 		 * the returned slot, then we're using the smallest-key insert
 		 * slot.  That's hard, so we set a flag.
-		 */
+		 */ /*分配一个insert head数组*/
 		WT_PAGE_ALLOC_AND_SWAP(session, page,
 		    mod->mod_row_insert, ins_headp, page->entries + 1);
 
@@ -161,7 +165,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		cbt->ins_head = ins_head;
 		cbt->ins = ins;
 
-		if (upd_arg == NULL) {
+		if (upd_arg == NULL) { /*通过value构建upd对象*/
 			WT_ERR(__wt_update_alloc(session,
 			    value, &upd, &upd_size, modify_type));
 			WT_ERR(__wt_txn_modify(session, upd));
@@ -294,7 +298,7 @@ __wt_update_alloc(WT_SESSION_IMPL *session, const WT_ITEM *value,
 /*
  * __wt_update_obsolete_check --
  *	Check for obsolete updates.
- */
+ *//* 检查过期废弃的update，只有下最近一个session能看到的update版本，前面处于rollback的版本作为废弃数据 */
 WT_UPDATE *
 __wt_update_obsolete_check(
     WT_SESSION_IMPL *session, WT_PAGE *page, WT_UPDATE *upd)

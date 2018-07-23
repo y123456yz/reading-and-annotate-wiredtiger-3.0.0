@@ -44,29 +44,34 @@ access_example(void)
 
 	/* Open a connection to the database, creating it if necessary. */
 	error_check(wiredtiger_open(home, NULL, "create", &conn));
-    printf("yang test 11111111111111111111111111\r\n");
+    printf("yang test 11111111111111111111111111 wiredtiger_open end\r\n");
     
 	/* Open a session handle for the database. */
 	//__conn_open_session
 	error_check(conn->open_session(conn, NULL, NULL, &session));
 	/*! [access example connection] */
-    printf("yang test 11111111111111111111111111\r\n");
+    printf("yang test 11111111111111111111111111 __conn_open_session end\r\n");
     
 	/*! [access example table create] */
-	//__session_create
+	//__session_create  创建table表
 	error_check(session->create(
 	    session, "table:access", "key_format=S,value_format=S"));
 	/*! [access example table create] */
-    printf("yang test 3333333333333333333333333333\r\n");
+    printf("yang test 3333333333333333333333333333 __session_create end\r\n");
     
 	/*! [access example cursor open] */
+	//__session_open_cursor  //获取一个cursor通过cursorp返回
 	error_check(session->open_cursor(
 	    session, "table:access", NULL, NULL, &cursor));
 	/*! [access example cursor open] */
 
+    printf("yang test 3333333333333333333333333333 __session_open_cursor end\r\n");
 	/*! [access example cursor insert] */
+	//__wt_cursor_set_keyv
 	cursor->set_key(cursor, "key1");	/* Insert a record. */
+	//__wt_cursor_set_valuev
 	cursor->set_value(cursor, "value1");
+	//__curfile_insert
 	error_check(cursor->insert(cursor));
 	/*! [access example cursor insert] */
 

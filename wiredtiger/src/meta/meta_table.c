@@ -183,8 +183,12 @@ __wt_metadata_insert(
 		    "%s: insert not supported on the turtle file", key);
 
 	WT_RET(__wt_metadata_cursor(session, &cursor));
+
+	//__wt_cursor_set_keyv  Ìî³äkeyµ½cursor->key
 	cursor->set_key(cursor, key);
+	//__wt_cursor_set_valuev Ìî³ävalueµ½cursor->value
 	cursor->set_value(cursor, value);
+	//__curfile_insert
 	WT_ERR(cursor->insert(cursor));
 	if (WT_META_TRACKING(session))
 		WT_ERR(__wt_meta_track_insert(session, key));

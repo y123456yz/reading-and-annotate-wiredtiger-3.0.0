@@ -322,6 +322,7 @@ __wt_session_release_dhandle(WT_SESSION_IMPL *session)
  * handle for the given name, set session->dhandle.
  */
 /*获得cfg配置中file的最后一个checkpoint对应的btree对象,并打开它*/
+//获取的uri和checkpoint对应的dhandle赋值给session->dhandle
 int
 __wt_session_get_btree_ckpt(WT_SESSION_IMPL *session,
     const char *uri, const char *cfg[], uint32_t flags)
@@ -355,6 +356,7 @@ retry:			WT_RET(__wt_meta_checkpoint_last_name(
 			    session, cval.str, cval.len, &checkpoint));
 	}
 
+    //获取的uri和checkpoint对应的dhandle赋值给session->dhandle
 	ret = __wt_session_get_dhandle(session, uri, checkpoint, cfg, flags);
 	__wt_free(session, checkpoint);
 
@@ -514,6 +516,7 @@ __session_get_dhandle(
  * 创建对应的btree也是在这里面
  * table也是根据该函数获取，见__wt_schema_get_table_uri
  * file table有各自的dhandle
+ * 把获取的uri和checkpoint对应的dhandle赋值给session->dhandle
  */
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session,

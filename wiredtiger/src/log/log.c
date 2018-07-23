@@ -94,7 +94,6 @@ __log_prealloc_remove(WT_SESSION_IMPL *session)
 	u_int i, logcount;
 	char **logfiles;
 
-    printf("yang test ....................................... __log_prealloc_remove\r\n");
 	logfiles = NULL;
 	logcount = 0;
 	log = S2C(session)->log;
@@ -893,7 +892,6 @@ __log_openfile(
 	WT_DECL_RET;
 	u_int wtopen_flags;
 
-    printf("yang test ....................................... __log_openfile\r\n");
 	conn = S2C(session);
 	WT_RET(__wt_scr_alloc(session, 0, &buf));
 	/*
@@ -1477,7 +1475,6 @@ __wt_log_allocfile(
 	WT_LOG *log;
 	uint32_t tmp_id;
 
-    printf("yang test ....................................... __wt_log_allocfile\r\n");
 	conn = S2C(session);
 	log = conn->log;
 	log_fh = NULL;
@@ -1616,7 +1613,6 @@ __wt_log_open(WT_SESSION_IMPL *session)
 		WT_ERR(ret);
 	}
 
-    printf("yang test log open 1111111111111111111111\r\n");
 	/* If we found log files, save the new state. */
 	if (logcount > 0) {
 		/*
@@ -1649,7 +1645,6 @@ __wt_log_open(WT_SESSION_IMPL *session)
 		log->trunc_lsn = log->alloc_lsn;
 		FLD_SET(conn->log_flags, WT_CONN_LOG_EXISTED);
 	}
-    printf("yang test log open 22222222222222222222222222222222222222\r\n");
     
 err:	WT_TRET(__wt_fs_directory_list_free(session, &logfiles, logcount));
 	if (ret == 0)

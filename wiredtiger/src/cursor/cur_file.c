@@ -223,6 +223,7 @@ err:	API_END_RET(session, ret);
  * __curfile_insert --
  *	WT_CURSOR->insert method for the btree cursor type.
  */
+/*将cursor的kv insert到btree上*/
 static int
 __curfile_insert(WT_CURSOR *cursor)
 {
@@ -456,7 +457,9 @@ err:	API_END_RET(session, ret);
 /*
  * __curfile_create --
  *	Open a cursor for a given btree handle.
- */
+ */ 
+/*创建一个btree cursor*/
+/*对cursor进行初始化 通过cursorp返回*/
 static int
 __curfile_create(WT_SESSION_IMPL *session,
     WT_CURSOR *owner, const char *cfg[], bool bulk, bool bitmap,
@@ -587,6 +590,7 @@ err:		/*
  * __wt_curfile_open --
  *	WT_SESSION->open_cursor method for the btree cursor type.
  */
+ //获取uri对应的cursor，通过cursorp返回
 int
 __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri,
     WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp)
@@ -648,6 +652,7 @@ __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri,
 		    ret = __wt_session_get_btree_ckpt(
 		    session, uri, cfg, flags));
 	else
+	    //获取的uri和checkpoint对应的dhandle赋值给session->dhandle
 		ret = __wt_session_get_btree_ckpt(
 		    session, uri, cfg, flags);
 	WT_RET(ret);

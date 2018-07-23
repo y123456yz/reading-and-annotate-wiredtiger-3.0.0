@@ -1208,7 +1208,7 @@ err:	API_END_RET(session, ret);
 /*
 打开一个外部session， 通过wt_sessionp 返回
 获取一个session, 通过session_ret返回,同时获取cursor
-*/
+*/ //从conn->sessions[]获取一个可用session并赋值,同时把session_ret->iface通过wt_sessionp返回
 //util_main.c中的main就会调用该函数
 static int
 __conn_open_session(WT_CONNECTION *wt_conn,
@@ -1220,7 +1220,7 @@ __conn_open_session(WT_CONNECTION *wt_conn,
 	WT_SESSION_IMPL *session, *session_ret;
 
 	*wt_sessionp = NULL;
-
+    printf("yang test ................... __conn_open_session\r\n");
 	conn = (WT_CONNECTION_IMPL *)wt_conn;
 
     //这里面会修改session.dhandle和session.name

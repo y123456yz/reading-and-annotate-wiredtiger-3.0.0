@@ -190,6 +190,7 @@
 	(s) = (WT_SESSION_IMPL *)(cur)->session;			\
 	TXN_API_CALL_NOCONF(s, WT_CURSOR, n, NULL);
 
+//©ирт╡н©╪__curtable_insert
 #define	JOINABLE_CURSOR_UPDATE_API_CALL(cur, s, n)			\
 	CURSOR_UPDATE_API_CALL(cur, s, n);				\
 	JOINABLE_CURSOR_CALL_CHECK(cur)

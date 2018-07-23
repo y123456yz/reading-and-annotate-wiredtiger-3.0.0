@@ -184,12 +184,14 @@ __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
  * __wt_hazard_clear --
  *	Clear a hazard pointer.
  */
+/*从session hazard列表清除一个hazard pointer*/
 int
 __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
 {
 	WT_HAZARD *hp;
 
 	/* If a file can never be evicted, hazard pointers aren't required. */
+	/*btree不做page淘汰，也就不存在hazard pointer*/
 	if (F_ISSET(S2BT(session), WT_BTREE_IN_MEMORY))
 		return (0);
 
@@ -208,7 +210,8 @@ __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
 			 * page were the page selected for eviction, but the
 			 * generation number was just set, it's unlikely the
 			 * page will be selected for eviction.
-			 */
+			 */ 
+			/*这个地方不需要用内存屏障来保证，因为hp->page在设置NULL的过程，不需要保证完全正确*/
 			hp->ref = NULL;
 
 			/*

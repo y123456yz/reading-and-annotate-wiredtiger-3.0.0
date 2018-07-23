@@ -79,8 +79,8 @@ struct __wt_btree {
     //见__btree_conf
 	enum {	BTREE_COL_FIX=1,	/* Fixed-length column store */  /*列式定长存储*/
 		BTREE_COL_VAR=2,	/* Variable-length column store */   /*列式变长存储*/
-		BTREE_ROW=3		/* Row-store */                     /*行式存储*/
-	} type;				/* Type */
+		BTREE_ROW=3		/* Row-store */                     /*行式存储*/  //默认行存储
+	} type;				/* Type */  //根据配置key_format是否r来判断，见__btree_conf
 
 	const char *key_format;		/* Key format */
 	const char *value_format;	/* Value format */

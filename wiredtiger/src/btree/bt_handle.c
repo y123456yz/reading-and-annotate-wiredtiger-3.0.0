@@ -338,7 +338,8 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 	if (WT_STRING_MATCH("r", cval.str, cval.len))
 		btree->type = BTREE_COL_VAR;
 	else
-		btree->type = BTREE_ROW;
+		btree->type = BTREE_ROW; //默认为这个，例如不携带r
+
 	WT_RET(__wt_strndup(session, cval.str, cval.len, &btree->key_format));
 
 	WT_RET(__wt_config_gets(session, cfg, "value_format", &cval));

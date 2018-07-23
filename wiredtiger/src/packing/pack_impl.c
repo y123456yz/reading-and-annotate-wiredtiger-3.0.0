@@ -12,7 +12,7 @@
  * __wt_struct_check --
  *	Check that the specified packing format is valid, and whether it fits
  *	into a fixed-sized bitfield.
- */
+ */ /*检查packing fmt格式串是否是正常的*/
 int
 __wt_struct_check(WT_SESSION_IMPL *session,
     const char *fmt, size_t len, bool *fixedp, uint32_t *fixed_lenp)
@@ -46,7 +46,7 @@ __wt_struct_check(WT_SESSION_IMPL *session,
 /*
  * __wt_struct_confchk --
  *	Check that the specified packing format is valid, configuration version.
- */
+ */ /*检查packing fmt格式串是否是正常的*/
 int
 __wt_struct_confchk(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *v)
 {

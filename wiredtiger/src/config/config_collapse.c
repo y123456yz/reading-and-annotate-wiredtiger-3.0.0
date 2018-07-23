@@ -29,6 +29,7 @@
  *	use the final value of "key", regardless of field overlap or missing
  *	fields in the nested value.
  */
+//¸ù¾Ýcfg
 int
 __wt_config_collapse(
     WT_SESSION_IMPL *session, const char **cfg, char **config_ret)

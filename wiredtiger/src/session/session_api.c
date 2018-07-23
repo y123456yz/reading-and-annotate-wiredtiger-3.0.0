@@ -337,7 +337,7 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
 	/*
 	 * Less common cursor types.
 	 */
-	case 'f':
+	case 'f':  //获取uri对应的cursor，通过cursorp返回
 		if (WT_PREFIX_MATCH(uri, "file:"))
 			WT_RET(__wt_curfile_open(
 			    session, uri, owner, cfg, cursorp));
@@ -400,7 +400,7 @@ __wt_open_cursor(WT_SESSION_IMPL *session,
 /*
  * __session_open_cursor --
  *	WT_SESSION->open_cursor method.
- */
+ */ //获取一个cursor通过cursorp返回
 static int
 __session_open_cursor(WT_SESSION *wt_session,
     const char *uri, WT_CURSOR *to_dup, const char *config, WT_CURSOR **cursorp)
@@ -412,6 +412,7 @@ __session_open_cursor(WT_SESSION *wt_session,
 
 	cursor = *cursorp = NULL;
 
+    printf("yang test .... __session_open_cursor\r\n");
 	session = (WT_SESSION_IMPL *)wt_session;
 	SESSION_API_CALL(session, open_cursor, config, cfg);
 
@@ -1960,6 +1961,7 @@ __wt_open_session(WT_CONNECTION_IMPL *conn,
 
 	/* Acquire a session. */
 	//根据conn config 填充session内容,并通过session返回
+	//从conn->sessions[]获取一个可用session并赋值
 	WT_RET(__open_session(conn, event_handler, config, &session));
 
 	/*

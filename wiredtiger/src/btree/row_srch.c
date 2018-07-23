@@ -204,6 +204,7 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
  * __wt_row_search --
  *	Search a row-store tree for a specific key.
  */
+/* 用指定的key在ref对应的page进行查找定位，存储方式为row store方式 */
 int
 __wt_row_search(WT_SESSION_IMPL *session,
     WT_ITEM *srch_key, WT_REF *leaf, WT_CURSOR_BTREE *cbt,
@@ -227,7 +228,8 @@ __wt_row_search(WT_SESSION_IMPL *session,
 	collator = btree->collator;
 	item = cbt->tmp;
 	current = NULL;
-
+	
+    /* btree cursor 复位 */
 	__cursor_pos_clear(cbt);
 
 	/*
@@ -257,7 +259,7 @@ __wt_row_search(WT_SESSION_IMPL *session,
 	 * cursor is being re-positioned.  Skip this if the page is being
 	 * re-instantiated in memory.
 	 */
-	if (leaf != NULL) {
+	if (leaf != NULL) { /*如果BTREE SPLITS, 只能检索单个叶子节点, 而不能检索整个树*/
 		if (!restore) {
 			WT_RET(__check_leaf_key_range(
 			    session, srch_key, leaf, cbt));
@@ -287,9 +289,11 @@ restart:	/*
 
 	/* Search the internal pages of the tree. */
 	current = &btree->root;
+	/*对internal page做检索定位*/
 	for (depth = 2, pindex = NULL;; ++depth) {
 		parent_pindex = pindex;
 		page = current->page;
+		/*已经到叶子节点了，退出对叶子节点做检索*/
 		if (page->type != WT_PAGE_ROW_INT)
 			break;
 
@@ -310,9 +314,11 @@ restart:	/*
 		 * comparison). For these reasons, special-case the 0th key, and
 		 * never pass it to a collator.
 		 */
+		/* Fast-path appends. 追加式插入，只需要定位最后一个entry,判断最后一个entry是否包含了插入KEY的值范围，
+		如果是，直接进入下一层 */
 		if (append_check) {
 			descent = pindex->index[pindex->entries - 1];
-
+            /*只有一个孩子，直接深入下一级孩子节点做检索*/
 			if (pindex->entries == 1)
 				goto append;
 			__wt_ref_key(page, descent, &item->data, &item->size);
@@ -337,7 +343,8 @@ restart:	/*
 		 */
 		base = 1;
 		limit = pindex->entries - 1;
-		if (collator == NULL &&
+		
+		if (collator == NULL && /*key范围增量比较,防止比较过程运算过多*/
 		    srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
 			for (; limit != 0; limit >>= 1) {
 				indx = base + (limit >> 1);
@@ -351,8 +358,8 @@ restart:	/*
 					--limit;
 				} else if (cmp == 0)
 					goto descend;
-			}
-		else if (collator == NULL) {
+			} 
+		else if (collator == NULL) { /*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
 			/*
 			 * Reset the skipped prefix counts; we'd normally expect
 			 * the parent's skipped prefix values to be larger than
@@ -371,6 +378,7 @@ restart:	/*
 			 * in flight.
 			 */
 			skiphigh = 0;
+            /*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
 
 			for (; limit != 0; limit >>= 1) {
 				indx = base + (limit >> 1);
@@ -391,7 +399,7 @@ restart:	/*
 					goto descend;
 			}
 		} else
-			for (; limit != 0; limit >>= 1) {
+			for (; limit != 0; limit >>= 1) { /*通过collator来比较*/
 				indx = base + (limit >> 1);
 				descent = pindex->index[indx];
 				__wt_ref_key(
@@ -411,7 +419,7 @@ restart:	/*
 		 * there was an exact match on the page, otherwise, base is the
 		 * smallest index greater than key, possibly one past the last
 		 * slot.
-		 */
+		 */ /*定位到存储key的范围page ref*/
 		descent = pindex->index[base - 1];
 
 		/*
@@ -443,17 +451,20 @@ descend:	/*
 		 * On other error, simply return, the swap call ensures we're
 		 * holding nothing on failure.
 		 */
+		 /*进行下一级页读取，如果有限制，先从内存中淘汰正在操作的page,如果正要读取的page在splits,
+		 那么我们从新检索当前(current)的page*/
 		if ((ret = __wt_page_swap(
 		    session, current, descent, WT_READ_RESTART_OK)) == 0) {
 			current = descent;
 			continue;
 		}
-		if (ret == WT_RESTART)
+		if (ret == WT_RESTART) /*读取失败，从新再试*/
 			goto restart;
 		return (ret);
 	}
 
 	/* Track how deep the tree gets. */
+	/*检索超过了btree的最大层级，那么扩大最大层级限制*/
 	if (depth > btree->maximum_depth)
 		btree->maximum_depth = depth;
 

@@ -12,7 +12,7 @@
  * When returning an error, we need to restore the cursor to a valid state, the
  * upper-level cursor code is likely to retry. This structure and the associated
  * functions are used save and restore the cursor state.
- */
+ */ //__wt_btcur_insert中用到
 typedef struct {
 	WT_ITEM key;
 	WT_ITEM value;
@@ -66,7 +66,8 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt)
 /*
  * __cursor_size_chk --
  *	Return if an inserted item is too large.
- */
+ */ 
+/*检查插入的k/v的value是否太大,如果太大抛出一个错误信息*/
 static inline int
 __cursor_size_chk(WT_SESSION_IMPL *session, WT_ITEM *kv)
 {
@@ -89,11 +90,11 @@ __cursor_size_chk(WT_SESSION_IMPL *session, WT_ITEM *kv)
 	}
 
 	/* Don't waste effort, 1GB is always cool. */
-	if (kv->size <= WT_GIGABYTE)
+	if (kv->size <= WT_GIGABYTE) /*1G以下的key长度默认是合法的，最大可以到4G*/
 		return (0);
 
 	/* Check what we are willing to store in the tree. */
-	if (kv->size > WT_BTREE_MAX_OBJECT_SIZE)
+	if (kv->size > WT_BTREE_MAX_OBJECT_SIZE)/*超过4G，返回异常*/
 		WT_RET_MSG(session, EINVAL,
 		    "item size of %" WT_SIZET_FMT " exceeds the maximum "
 		    "supported WiredTiger size of %" PRIu32,
@@ -101,6 +102,8 @@ __cursor_size_chk(WT_SESSION_IMPL *session, WT_ITEM *kv)
 
 	/* Check what the block manager can actually write. */
 	size = kv->size;
+
+	/*进行block write长度校验，并返回写入后的size,看是否能正常写入*/
 	if ((ret = bm->write_size(bm, session, &size)) != 0)
 		WT_RET_MSG(session, ret,
 		    "item size of %" WT_SIZET_FMT " refused by block manager",
@@ -326,7 +329,7 @@ __cursor_kv_return(
 /*
  * __cursor_col_search --
  *	Column-store search from a cursor.
- */
+ */ /*用btree cursor进行列式检索*/
 static inline int
 __cursor_col_search(
     WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_REF *leaf)
@@ -341,7 +344,7 @@ __cursor_col_search(
 /*
  * __cursor_row_search --
  *	Row-store search from a cursor.
- */
+ */ /*用btree cursor进行行式检索*/
 static inline int
 __cursor_row_search(
     WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_REF *leaf, bool insert)
@@ -356,7 +359,7 @@ __cursor_row_search(
 /*
  * __cursor_col_modify_v --
  *	Column-store modify from a cursor, with a separate value.
- */
+ */ /*Column store 修改操作（包括:删除、插入、update）*/
 static inline int
 __cursor_col_modify_v(WT_SESSION_IMPL *session,
     WT_CURSOR_BTREE *cbt, WT_ITEM *value, u_int modify_type)
@@ -368,7 +371,7 @@ __cursor_col_modify_v(WT_SESSION_IMPL *session,
 /*
  * __cursor_row_modify_v --
  *	Row-store modify from a cursor, with a separate value.
- */
+ *//*row store 修改操作（包括:删除、插入、update）*/
 static inline int
 __cursor_row_modify_v(WT_SESSION_IMPL *session,
     WT_CURSOR_BTREE *cbt, WT_ITEM *value, u_int modify_type)
@@ -392,7 +395,7 @@ __cursor_col_modify(
 /*
  * __cursor_row_modify --
  *	Row-store modify from a cursor.
- */
+ */ /*row store 修改操作（包括:删除、插入、update）*/
 static inline int
 __cursor_row_modify(
     WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, u_int modify_type)
@@ -404,7 +407,7 @@ __cursor_row_modify(
 /*
  * __wt_btcur_reset --
  *	Invalidate the cursor position.
- */
+ */ /*重置btree cursor*/
 int
 __wt_btcur_reset(WT_CURSOR_BTREE *cbt)
 {
@@ -426,6 +429,7 @@ __wt_btcur_reset(WT_CURSOR_BTREE *cbt)
  * __wt_btcur_search --
  *	Search for a matching record in the tree.
  */
+/* 在btree中进行记录匹配检索 */
 int
 __wt_btcur_search(WT_CURSOR_BTREE *cbt)
 {
@@ -647,7 +651,8 @@ err:	if (ret == 0 && exactp != NULL)
 /*
  * __wt_btcur_insert --
  *	Insert a record into the tree.
- */
+ */ 
+/*插入一条记录到btree上*/
 int
 __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
 {
@@ -667,7 +672,7 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
 	WT_STAT_DATA_INCRV(session,
 	    cursor_insert_bytes, cursor->key.size + cursor->value.size);
 
-	if (btree->type == BTREE_ROW)
+	if (btree->type == BTREE_ROW) /*对kv的值大小做校验过滤*/
 		WT_RET(__cursor_size_chk(session, &cursor->key));
 	WT_RET(__cursor_size_chk(session, &cursor->value));
 
@@ -702,10 +707,11 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
 		 * value not equal to zero). Correct to an exact match so we can
 		 * update whatever we're pointing at.
 		 */
+		//存起来
 		cbt->compare = 0;
 		ret = btree->type == BTREE_ROW ?
-		    __cursor_row_modify(session, cbt, WT_UPDATE_STANDARD) :
-		    __cursor_col_modify(session, cbt, WT_UPDATE_STANDARD);
+		    __cursor_row_modify(session, cbt, WT_UPDATE_STANDARD) : //行存储
+		    __cursor_col_modify(session, cbt, WT_UPDATE_STANDARD); //列存储
 		if (ret == 0)
 			goto done;
 
@@ -733,6 +739,7 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
 retry:	WT_ERR(__cursor_func_init(cbt, true));
 
 	if (btree->type == BTREE_ROW) {
+	    //
 		WT_ERR(__cursor_row_search(session, cbt, NULL, true));
 		/*
 		 * If not overwriting, fail if the key exists, else insert the
