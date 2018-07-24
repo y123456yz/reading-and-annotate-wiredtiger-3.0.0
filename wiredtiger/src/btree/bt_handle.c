@@ -161,7 +161,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 		    ckpt.raw.data, ckpt.raw.size, //ckpt.raw.data, ckpt.raw.size来源见__wt_meta_checkpoint
 		    root_addr, &root_addr_size, readonly));
 		    
-		if (creation || root_addr_size == 0) //没有对应的checkpoint文件
+		if (creation || root_addr_size == 0) //没有对应的checkpoint
 			WT_ERR(__btree_tree_open_empty(session, creation));
 		else {
 		    /*从磁盘中读取btree的数据并初始化各个page*/
@@ -518,7 +518,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 /*
  * __wt_root_ref_init --
  *	Initialize a tree root reference, and link in the root page.
- */
+ */ /*初始化btree root的ref对象*/
 void
 __wt_root_ref_init(WT_REF *root_ref, WT_PAGE *root, bool is_recno)
 {

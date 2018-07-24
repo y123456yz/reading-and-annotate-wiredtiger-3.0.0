@@ -88,6 +88,10 @@ main(int argc, char *argv[])
 	cursor->set_key(cursor, "key1");
 	cursor->set_value(cursor, "value1");
 	error_check(cursor->insert(cursor));
+
+	cursor->set_key(cursor, "key1xxxxxxxxxxxxx");
+	cursor->set_value(cursor, "value1xxxxxxxxxxx");
+	error_check(cursor->insert(cursor));
 	error_check(session->close(session, NULL));
 
 	for (i = 0; i < NUM_THREADS; i++)

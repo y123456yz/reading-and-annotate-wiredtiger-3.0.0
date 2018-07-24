@@ -206,6 +206,7 @@ __wt_txn_unmodify(WT_SESSION_IMPL *session)
  * __wt_txn_modify --
  *	Mark a WT_UPDATE object modified by the current transaction.
  */
+/*向session对应的事务的操作列表添加一个update操作,标记这个操作属于这个事务*/
 static inline int
 __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
@@ -728,7 +729,7 @@ __wt_txn_update_check(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __wt_txn_read_last --
  *	Called when the last page for a session is released.
- */
+ */ /*release当前的事务的snapshot*/
 static inline void
 __wt_txn_read_last(WT_SESSION_IMPL *session)
 {

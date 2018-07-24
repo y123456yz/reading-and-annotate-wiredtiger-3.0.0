@@ -559,6 +559,7 @@ __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
  * __wt_btcur_next --
  *	Move to the next record in the tree.
  */
+/*将btree cursor移动到下一个记录*/
 int
 __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 {

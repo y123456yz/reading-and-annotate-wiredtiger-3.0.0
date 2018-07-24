@@ -1665,6 +1665,7 @@ __session_checkpoint(WT_SESSION *wt_session, const char *config)
 
 	session = (WT_SESSION_IMPL *)wt_session;
 
+    printf("yang test .............. __session_checkpoint\r\n");
 	WT_STAT_CONN_INCR(session, txn_checkpoint);
 	SESSION_API_CALL(session, checkpoint, config, cfg);
 

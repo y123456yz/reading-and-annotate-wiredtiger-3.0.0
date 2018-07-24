@@ -194,6 +194,7 @@ __wt_col_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 			    session, page, cbt->ins_head, cbt->ins_stack,
 			    &ins, ins_size, &cbt->recno, skipdepth, exclusive));
 		else
+		    /*串行的增加一个WT_INSERT entry到btree上，这个过程是被lock住的*/
 			WT_ERR(__wt_insert_serial(
 			    session, page, cbt->ins_head, cbt->ins_stack,
 			    &ins, ins_size, skipdepth, exclusive));

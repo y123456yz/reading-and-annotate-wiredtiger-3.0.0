@@ -255,7 +255,7 @@ main(int argc, char *argv[])
 	error_check(system(cmd_buf));
 	error_check(wiredtiger_open(home, NULL, CONN_CONFIG, &wt_conn));
 
-	setup_directories();
+	//setup_directories();
 	error_check(wt_conn->open_session(wt_conn, NULL, NULL, &session));
 	error_check(session->create(
 	    session, uri, "key_format=S,value_format=S"));
@@ -263,10 +263,12 @@ main(int argc, char *argv[])
 	add_work(session, 0);
 
 	printf("Taking initial backup\n");
-	take_full_backup(session, 0);
+	//take_full_backup(session, 0);
 
-	error_check(session->checkpoint(session, NULL));
+	//error_check(session->checkpoint(session, NULL));
 
+    return 1;
+    
 	for (i = 1; i < MAX_ITERATIONS; i++) {
 		printf("Iteration %d: adding data\n", i);
 		add_work(session, i);

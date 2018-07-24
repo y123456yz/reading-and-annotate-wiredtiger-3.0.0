@@ -373,7 +373,7 @@ __wt_cache_full(WT_SESSION_IMPL *session)
 /*
  * __wt_cache_eviction_check --
  *	Evict pages if the cache crosses its boundaries.
- */
+ */ 
 static inline int
 __wt_cache_eviction_check(
     WT_SESSION_IMPL *session, bool busy, bool readonly, bool *didworkp)

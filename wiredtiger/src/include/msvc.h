@@ -77,6 +77,7 @@ WT_ATOMIC_FUNC(size, size_t, size_t, 64, __int64)
  * __wt_atomic_cas_ptr --
  *	Pointer compare and swap.
  */
+//比较并交换
 static inline bool
 __wt_atomic_cas_ptr(void *vp, void *old, void *new)
 {
