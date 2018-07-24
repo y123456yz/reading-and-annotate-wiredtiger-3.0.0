@@ -33,6 +33,7 @@ __page_write_gen_wrapped_check(WT_PAGE *page)
  * __insert_simple_func --
  *	Worker function to add a WT_INSERT entry to the middle of a skiplist.
  */
+//插入跳跃表
 static inline int
 __insert_simple_func(WT_SESSION_IMPL *session,
     WT_INSERT ***ins_stack, WT_INSERT *new_ins, u_int skipdepth)
@@ -66,7 +67,7 @@ __insert_simple_func(WT_SESSION_IMPL *session,
 /*
  * __insert_serial_func --
  *	Worker function to add a WT_INSERT entry to a skiplist.
- */
+ */ /*向指定skip list中增加一个WT_INSERT entry*/
 static inline int
 __insert_serial_func(WT_SESSION_IMPL *session, WT_INSERT_HEAD *ins_head,
     WT_INSERT ***ins_stack, WT_INSERT *new_ins, u_int skipdepth)
@@ -92,9 +93,12 @@ __insert_serial_func(WT_SESSION_IMPL *session, WT_INSERT_HEAD *ins_head,
 	 */
 	for (i = 0; i < skipdepth; i++) {
 		WT_INSERT *old_ins = *ins_stack[i];
+		/*先做错误检查，确定位置是否是skip list中的位置*/
 		if (old_ins != new_ins->next[i] ||
 		    !__wt_atomic_cas_ptr(ins_stack[i], old_ins, new_ins))
 			return (i == 0 ? WT_RESTART : 0);
+
+			/*将new ins插入到ins_head skip list*/
 		if (ins_head->tail[i] == NULL ||
 		    ins_stack[i] == &ins_head->tail[i]->next[i])
 			ins_head->tail[i] = new_ins;
@@ -200,6 +204,7 @@ __wt_col_append_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
  * __wt_insert_serial --
  *	Insert a row or column-store entry.
  */
+/*串行的增加一个WT_INSERT entry到btree上，这个过程是被lock住的*/
 static inline int
 __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
     WT_INSERT_HEAD *ins_head, WT_INSERT ***ins_stack, WT_INSERT **new_insp,
@@ -227,6 +232,7 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
 	else {
 		if (!exclusive)
 			WT_PAGE_LOCK(session, page);
+		/*向指定skip list中增加一个WT_INSERT entry*/
 		ret = __insert_serial_func(
 		    session, ins_head, ins_stack, new_ins, skipdepth);
 		if (!exclusive)

@@ -11,7 +11,7 @@
 /*
  * __wt_page_modify_alloc --
  *	Allocate a page's modification structure.
- */ //分配一个modify
+ */ //分配一个modify  赋值给page->modify
 int
 __wt_page_modify_alloc(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -29,6 +29,7 @@ __wt_page_modify_alloc(WT_SESSION_IMPL *session, WT_PAGE *page)
 	 * footprint, else discard the modify structure, another thread did the
 	 * work.
 	 */
+	//modify赋值给page->modify
 	if (__wt_atomic_cas_ptr(&page->modify, NULL, modify))
 		__wt_cache_page_inmem_incr(session, page, sizeof(*modify));
 	else
@@ -64,6 +65,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 
 	/* If we don't yet have a modify structure, we'll need one. */
 	/*分配并初始化一个page modify对象*/
+	//分配一个modify  赋值给page->modify
 	WT_RET(__wt_page_modify_init(session, page));
 	mod = page->modify;
 
@@ -141,9 +143,11 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		 * the returned slot, then we're using the smallest-key insert
 		 * slot.  That's hard, so we set a flag.
 		 */ /*分配一个insert head数组*/
+		 //分配page->entries + 1个WT_INSERT_HEAD，然后赋值给mod->mod_row_insert
 		WT_PAGE_ALLOC_AND_SWAP(session, page,
 		    mod->mod_row_insert, ins_headp, page->entries + 1);
 
+        printf("yang test .............page->entries + 1:%d\r\n", page->entries + 1);
 		ins_slot = F_ISSET(cbt, WT_CBT_SEARCH_SMALLEST) ?
 		    page->entries: cbt->slot;
 		ins_headp = &mod->mod_row_insert[ins_slot];
@@ -229,6 +233,7 @@ err:		/*
  * __wt_row_insert_alloc --
  *	Row-store insert: allocate a WT_INSERT structure and fill it in.
  */
+/* 分配一个row insert的WT_INSERT对象，拷贝key到该对象中 */
 int
 __wt_row_insert_alloc(WT_SESSION_IMPL *session,
     const WT_ITEM *key, u_int skipdepth, WT_INSERT **insp, size_t *ins_sizep)
@@ -244,8 +249,11 @@ __wt_row_insert_alloc(WT_SESSION_IMPL *session,
 	    skipdepth * sizeof(WT_INSERT *) + key->size;
 	WT_RET(__wt_calloc(session, 1, ins_size, &ins));
 
+    /*确定key的起始偏移位置*/
 	ins->u.key.offset = WT_STORE_SIZE(ins_size - key->size);
+	/*设置key的长度*/
 	WT_INSERT_KEY_SIZE(ins) = WT_STORE_SIZE(key->size);
+	/*key值的拷贝*/
 	memcpy(WT_INSERT_KEY(ins), key->data, key->size);
 
 	*insp = ins;
@@ -258,6 +266,7 @@ __wt_row_insert_alloc(WT_SESSION_IMPL *session,
  * __wt_update_alloc --
  *	Allocate a WT_UPDATE structure and associated value and fill it in.
  */
+/* 分配一个row update的WT_UPDATE对象, value = NULL表示delete操作, 通过updp返回 */
 int
 __wt_update_alloc(WT_SESSION_IMPL *session, const WT_ITEM *value,
     WT_UPDATE **updp, size_t *sizep, u_int modify_type)

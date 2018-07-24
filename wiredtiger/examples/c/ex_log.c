@@ -36,7 +36,7 @@ static const char *home2 = "WT_HOME_LOG_2";
 static const char * const uri = "table:logtest";
 
 #define	CONN_CONFIG "create,cache_size=100MB,log=(archive=false,enabled=true)"
-#define	MAX_KEYS	10
+#define	MAX_KEYS	100000000
 
 static void
 setup_copy(WT_CONNECTION **wt_connp, WT_SESSION **sessionp)
@@ -298,6 +298,22 @@ main(int argc, char *argv[])
 		error_check(cursor->insert(cursor));
 		count_min++;
 	}
+
+    int ret = 0;
+    char *key, *value;
+    while ((ret = cursor->next(cursor)) == 0) { //__curfile_next
+	    //__wt_cursor_get_key
+		error_check(cursor->get_key(cursor, &key));
+		//printf("yang test ....................__wt_cursor_get_key end\r\n");
+
+		//__wt_cursor_get_value
+		error_check(cursor->get_value(cursor, &value));
+		//printf("yang test ....................__wt_cursor_set_valuev end\r\n");
+
+		printf("Got record: %s : %s\n", key, value);
+	}
+
+	sleep(100);
 	error_check(session->begin_transaction(session, NULL));
 	/*
 	 * Perform some operations within a single transaction.

@@ -213,31 +213,12 @@ struct __wt_page_lookaside {
 //创建空间赋值见__wt_page_modify_alloc
 struct __wt_page_modify {
 	/* The first unwritten transaction ID (approximate). */
-	uint64_t first_dirty_txn;
+	uint64_t first_dirty_txn; //赋值见__wt_page_only_modify_set
 
 	/* The transaction state last time eviction was attempted. */
 	uint64_t last_evict_pass_gen;
 	uint64_t last_eviction_id;
-	WT_DECL_TIMESTAMP(last_eviction_timestamp)
 
-#ifdef HAVE_DIAGNOSTIC
-	/* Check that transaction time moves forward. */
-	uint64_t last_oldest_id;
-#endif
-
-	/* Avoid checking for obsolete updates during checkpoints. */
-	uint64_t obsolete_check_txn;
-	WT_DECL_TIMESTAMP(obsolete_check_timestamp)
-
-	/* The largest transaction seen on the page by reconciliation. */
-	uint64_t rec_max_txn;
-	WT_DECL_TIMESTAMP(rec_max_timestamp)
-
-	/* The largest update transaction ID (approximate). */
-	uint64_t update_txn;
-
-	/* Dirty bytes added to the cache. */
-	size_t bytes_dirty;
 
 	/*
 	 * When pages are reconciled, the result is one or more replacement
@@ -384,13 +365,17 @@ struct __wt_page_modify {
 #define	mod_col_split_recno	u2.column_leaf.split_recno
 	struct {
 		/* Inserted items for row-store. */
+		//赋值见__wt_row_modify
 		WT_INSERT_HEAD	**insert; //上面的insert
 
 		/* Updated items for row-stores. */
 		WT_UPDATE	**update;
 	} row_leaf;
+
+//赋值见__wt_row_modify
 #undef	mod_row_insert
 #define	mod_row_insert		u2.row_leaf.insert
+
 #undef	mod_row_update
 #define	mod_row_update		u2.row_leaf.update  //上面的update
 	} u2;
@@ -437,6 +422,7 @@ struct __wt_page_modify {
 	 * The write generation is incremented when a page is modified, a page
 	 * is clean if the write generation is 0.
 	 */
+	//如果是从0变为1，表示是由未修改状态转变为修改状态，设置脏页状态，见__wt_page_only_modify_set
 	uint32_t write_gen;
 
 #define	WT_PM_REC_EMPTY		1	/* Reconciliation: no replacement */
@@ -445,6 +431,28 @@ struct __wt_page_modify {
 	uint8_t rec_result;		/* Reconciliation state */
 
 	uint8_t update_restored;	/* Page created by restoring updates */
+
+
+#ifdef HAVE_DIAGNOSTIC
+	/* Check that transaction time moves forward. */
+	uint64_t last_oldest_id;
+#endif
+
+    
+    /* Dirty bytes added to the cache. */
+    size_t bytes_dirty;
+
+    
+	/* Avoid checking for obsolete updates during checkpoints. */
+	uint64_t obsolete_check_txn;
+	/* The largest transaction seen on the page by reconciliation. */
+	uint64_t rec_max_txn;
+	/* The largest update transaction ID (approximate). */
+	uint64_t update_txn; //赋值见__wt_page_only_modify_set
+
+	WT_DECL_TIMESTAMP(last_eviction_timestamp)
+	WT_DECL_TIMESTAMP(obsolete_check_timestamp)
+	WT_DECL_TIMESTAMP(rec_max_timestamp)
 };
 
 /*
@@ -454,18 +462,25 @@ struct __wt_page_modify {
  * the page counting records to find a specific entry. We can do a binary search
  * in this array, then an offset calculation to find the cell.
  */
-WT_PACKED_STRUCT_BEGIN(__wt_col_rle)
+//WT_PACKED_STRUCT_BEGIN(__wt_col_rle)
+//	uint64_t recno;			/* Record number of first repeat. */
+//	uint64_t rle;			/* Repeat count. */
+//	uint32_t indx;			/* Slot of entry in col_var. */
+//WT_PACKED_STRUCT_END
+struct __wt_col_rle {
 	uint64_t recno;			/* Record number of first repeat. */
 	uint64_t rle;			/* Repeat count. */
-	uint32_t indx;			/* Slot of entry in col_var. */
-WT_PACKED_STRUCT_END
+	uint32_t indx;			/* Slot of entry in col_var. */    
+};
+
 
 /*
  * WT_PAGE --
  * The WT_PAGE structure describes the in-memory page information.
  */
 //内存中的 page 结构对象，page 的访问入口。
-struct __wt_page {
+struct __wt_page { 
+//创建空间和赋值见__wt_page_alloc
 	/* Per page-type information. */
 	union {
 		/*
@@ -499,16 +514,13 @@ struct __wt_page {
 			WT_REF	*parent_ref;	/* Parent reference */
 			uint64_t split_gen;	/* Generation of last split */
 
+            //创建空间和赋值见__wt_page_alloc
 			struct __wt_page_index {
 				uint32_t entries;
 				uint32_t deleted_entries;
 				WT_REF	**index;
 			} * volatile __index;	/* Collated children */
 		} intl;
-#undef	pg_intl_parent_ref
-#define	pg_intl_parent_ref		u.intl.parent_ref
-#undef	pg_intl_split_gen
-#define	pg_intl_split_gen		u.intl.split_gen
 
 	/*
 	 * Macros to copy/set the index because the name is obscured to ensure
@@ -517,22 +529,25 @@ struct __wt_page {
 	 * There are two versions of WT_INTL_INDEX_GET because the session split
 	 * generation is usually set, but it's not always required: for example,
 	 * if a page is locked for splitting, or being created or destroyed.
-	 */
+	 yang change
 #define	WT_INTL_INDEX_GET_SAFE(page)					\
 	((page)->u.intl.__index)
+	
 #define	WT_INTL_INDEX_GET(session, page, pindex) do {			\
 	WT_ASSERT(session,						\
 	    __wt_session_gen(session, WT_GEN_SPLIT) != 0);		\
 	(pindex) = WT_INTL_INDEX_GET_SAFE(page);			\
 } while (0)
+
 #define	WT_INTL_INDEX_SET(page, v) do {					\
 	WT_WRITE_BARRIER();						\
 	((page)->u.intl.__index) = (v);					\
-} while (0)
+} while (0)  
+*/
 
 	/*
 	 * Macro to walk the list of references in an internal page.
-	 */
+	 
 #define	WT_INTL_FOREACH_BEGIN(session, page, ref) do {			\
 	WT_PAGE_INDEX *__pindex;					\
 	WT_REF **__refp;						\
@@ -544,16 +559,14 @@ struct __wt_page {
 #define	WT_INTL_FOREACH_END						\
 	}								\
 } while (0)
+        */
 
 		/* Row-store leaf page. */
 		WT_ROW *row;			/* Key/value pairs */
-#undef	pg_row
-#define	pg_row		u.row
 
 		/* Fixed-length column-store leaf page. */
 		uint8_t *fix_bitf;		/* Values */
-#undef	pg_fix_bitf
-#define	pg_fix_bitf	u.fix_bitf
+
 
 		/* Variable-length column-store leaf page. */
 		struct {
@@ -574,15 +587,7 @@ struct __wt_page {
 				uint32_t   nrepeats;	/* repeat slots */
 				WT_COL_RLE repeats[0];	/* lookup RLE array */
 			} *repeats;
-#define	WT_COL_VAR_REPEAT_SET(page)					\
-	((page)->u.col_var.repeats != NULL)
 		} col_var;
-#undef	pg_var
-#define	pg_var		u.col_var.col_var
-#undef	pg_var_repeats
-#define	pg_var_repeats	u.col_var.repeats->repeats
-#undef	pg_var_nrepeats
-#define	pg_var_nrepeats	u.col_var.repeats->nrepeats
 	} u;
 
 	/*
@@ -596,6 +601,11 @@ struct __wt_page {
 
 #define	WT_PAGE_IS_INTERNAL(page)					\
 	((page)->type == WT_PAGE_COL_INT || (page)->type == WT_PAGE_ROW_INT)
+
+/*
+基本page类型：root_page(btree根节点), internal_page(索引页), leaf_page(数据页, 叶子节点)
+https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
+*/
 #define	WT_PAGE_INVALID		0	/* Invalid page */
 #define	WT_PAGE_BLOCK_MANAGER	1	/* Block-manager page */
 #define	WT_PAGE_COL_FIX		2	/* Col-store fixed-len leaf */
@@ -653,6 +663,7 @@ struct __wt_page {
 	const WT_PAGE_HEADER *dsk;
 
 	/* If/when the page is modified, we need lots more information. */
+	//赋值见__wt_page_modify_alloc
 	WT_PAGE_MODIFY *modify;
 
 	/* This is the 64 byte boundary, try to keep hot fields above here. */
@@ -660,6 +671,58 @@ struct __wt_page {
 	uint64_t cache_create_gen;	/* Page create timestamp */
 	uint64_t evict_pass_gen;	/* Eviction pass generation */
 };
+
+#undef	pg_intl_parent_ref
+#define	pg_intl_parent_ref		u.intl.parent_ref
+#undef	pg_intl_split_gen
+#define	pg_intl_split_gen		u.intl.split_gen
+                    
+#undef	pg_row
+#define	pg_row		u.row
+                    
+#undef	pg_fix_bitf
+#define	pg_fix_bitf	u.fix_bitf
+        
+                    
+#define	WT_COL_VAR_REPEAT_SET(page)					\
+            ((page)->u.col_var.repeats != NULL)
+
+		
+#undef	pg_var
+#define	pg_var		u.col_var.col_var
+#undef	pg_var_repeats
+#define	pg_var_repeats	u.col_var.repeats->repeats
+#undef	pg_var_nrepeats
+#define	pg_var_nrepeats	u.col_var.repeats->nrepeats
+
+
+#define	WT_INTL_FOREACH_BEGIN(session, page, ref) do {			\
+	WT_PAGE_INDEX *__pindex;					\
+	WT_REF **__refp;						\
+	uint32_t __entries;						\
+	WT_INTL_INDEX_GET(session, page, __pindex);			\
+	for (__refp = __pindex->index,					\
+	    __entries = __pindex->entries; __entries > 0; --__entries) {\
+		(ref) = *__refp++;
+#define	WT_INTL_FOREACH_END						\
+	}								\
+} while (0)
+
+
+//参考__wt_page_alloc
+#define	WT_INTL_INDEX_GET_SAFE(page)					\
+	((page)->u.intl.__index)
+	
+#define	WT_INTL_INDEX_GET(session, page, pindex) do {			\
+	WT_ASSERT(session,						\
+	    __wt_session_gen(session, WT_GEN_SPLIT) != 0);		\
+	(pindex) = WT_INTL_INDEX_GET_SAFE(page);			\
+} while (0)
+
+#define	WT_INTL_INDEX_SET(page, v) do {					\
+	WT_WRITE_BARRIER();						\
+	((page)->u.intl.__index) = (v);					\
+} while (0)  
 
 /*
  * WT_PAGE_DISK_OFFSET, WT_PAGE_REF_OFFSET --
@@ -747,7 +810,7 @@ struct __wt_page_deleted {
  *	A single in-memory page and the state information used to determine if
  * it's OK to dereference the pointer to the page.
  */
-//可以参考__wt_row_modify
+//可以参考__wt_row_modify   赋值见__btree_tree_open_empty
 struct __wt_ref {
     //在__wt_row_modify会插入tree中
 	WT_PAGE *page;			/* Page */
@@ -786,7 +849,7 @@ struct __wt_ref {
 #undef	ref_recno
 #define	ref_recno	key.recno
 #undef	ref_ikey
-#define	ref_ikey	key.ikey
+#define	ref_ikey	key.ikey  //赋值见__wt_row_ikey
 
 	union {
 		WT_PAGE_DELETED	*page_del;	/* Deleted page information */
@@ -904,6 +967,7 @@ struct __wt_col {
  * in memory, in which case the row-store page in-memory key points to a WT_IKEY
  * structure.
  */
+//创建空间见__wt_row_ikey_alloc
 struct __wt_ikey {
 	uint32_t size;			/* Key length */
 
@@ -932,6 +996,7 @@ struct __wt_ikey {
  * is done for an entry, WT_UPDATE structures are formed into a forward-linked
  * list.
  */
+//创建空间赋值见__wt_update_alloc
 struct __wt_update {
 	volatile uint64_t txnid;	/* transaction ID */
 #if WT_TIMESTAMP_SIZE == 8
@@ -940,6 +1005,7 @@ struct __wt_update {
 
 	WT_UPDATE *next;		/* forward-linked list */
 
+    //赋值见__wt_update_alloc
 	uint32_t size;			/* data length */
 
 #define	WT_UPDATE_INVALID	0	/* diagnostic check */
@@ -962,6 +1028,7 @@ struct __wt_update {
 	 * WT_UPDATE structure.  We use a C99 flexible array member which has
 	 * the semantics we want.
 	 */
+	//赋值见__wt_update_alloc
 	uint8_t data[];			/* start of the data */
 };
 
@@ -1017,13 +1084,16 @@ struct __wt_update {
  * subsequent records.  Berkeley DB did support mutable records, but it won't
  * scale and it isn't useful enough to re-implement, IMNSHO.)
  */
+//分配空间可以参考__wt_row_insert_alloc  __wt_insert_serial中添加到tree中
 struct __wt_insert {
 	WT_UPDATE *upd;				/* value */
 
 	union {
 		uint64_t recno;			/* column-store record number */
 		struct {
+		    //key的起始偏移位置 WT_INSERT_KEY
 			uint32_t offset;	/* row-store key data start */
+			/*key的长度  WT_INSERT_KEY_SIZE*/
 			uint32_t size;		/* row-store key data size */
 		} key;
 	} u;
@@ -1052,6 +1122,7 @@ struct __wt_insert {
 /*
  * Atomically allocate and swap a structure or array into place.
  */
+//分配一个v，然后赋值给dest
 #define	WT_PAGE_ALLOC_AND_SWAP(s, page, dest, v, count)	do {		\
 	if (((v) = (dest)) == NULL) {					\
 		WT_ERR(__wt_calloc_def(s, count, &(v)));		\

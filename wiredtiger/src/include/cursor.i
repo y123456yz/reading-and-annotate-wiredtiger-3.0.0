@@ -140,7 +140,8 @@ __cursor_pos_clear(WT_CURSOR_BTREE *cbt)
 /*
  * __cursor_enter --
  *	Activate a cursor.
- */
+ */ 
+/*激活一个CURSOR_BTREE*/
 static inline int
 __cursor_enter(WT_SESSION_IMPL *session)
 {
@@ -158,6 +159,7 @@ __cursor_enter(WT_SESSION_IMPL *session)
  * __cursor_leave --
  *	Deactivate a cursor.
  */
+/*将session对应的cursors置为无效,假如没有激活状态的cursor，我们将释放所有为了读隔离的snapshot*/
 static inline void
 __cursor_leave(WT_SESSION_IMPL *session)
 {
@@ -174,7 +176,7 @@ __cursor_leave(WT_SESSION_IMPL *session)
 /*
  * __cursor_reset --
  *	Reset the cursor, it no longer holds any position.
- */
+ */ /*对cbt进行重置*/
 static inline int
 __cursor_reset(WT_CURSOR_BTREE *cbt)
 {
@@ -186,6 +188,7 @@ __cursor_reset(WT_CURSOR_BTREE *cbt)
 	__cursor_pos_clear(cbt);
 
 	/* If the cursor was active, deactivate it. */
+	/*如果cursor_btree的状态是active，我们先清除其ACTIVE标识*/
 	if (F_ISSET(cbt, WT_CBT_ACTIVE)) {
 		if (!F_ISSET(cbt, WT_CBT_NO_TXN))
 			__cursor_leave(session);
@@ -200,6 +203,7 @@ __cursor_reset(WT_CURSOR_BTREE *cbt)
 	 * If we were scanning and saw a lot of deleted records on this page,
 	 * try to evict the page when we release it.
 	 */
+	/*如果在某个page上删除太多的记录，那么我们释放cursor时会尝试evict这个page*/
 	if (cbt->page_deleted_count > WT_BTREE_DELETE_THRESHOLD)
 		__wt_page_evict_soon(session, cbt->ref);
 	cbt->page_deleted_count = 0;
@@ -314,6 +318,7 @@ __wt_cursor_dhandle_decr_use(WT_SESSION_IMPL *session)
  * __cursor_func_init --
  *	Cursor call setup.
  */
+/*对cbt进行初始化，并激活它*/
 static inline int
 __cursor_func_init(WT_CURSOR_BTREE *cbt, bool reenter)
 {
@@ -325,6 +330,7 @@ __cursor_func_init(WT_CURSOR_BTREE *cbt, bool reenter)
 #ifdef HAVE_DIAGNOSTIC
 		__wt_cursor_key_order_reset(cbt);
 #endif
+        /*对cbt进行撤销*/
 		WT_RET(__cursor_reset(cbt));
 	}
 
@@ -337,7 +343,8 @@ __cursor_func_init(WT_CURSOR_BTREE *cbt, bool reenter)
 	/* If the transaction is idle, check that the cache isn't full. */
 	WT_RET(__wt_txn_idle_cache_check(session));
 
-	/* Activate the file cursor. */
+	/* Activate the file cursor. */ 
+	/*激活cbt对象*/
 	if (!F_ISSET(cbt, WT_CBT_ACTIVE)) {
 		if (!F_ISSET(cbt, WT_CBT_NO_TXN))
 			WT_RET(__cursor_enter(session));
@@ -349,6 +356,7 @@ __cursor_func_init(WT_CURSOR_BTREE *cbt, bool reenter)
 	 * to read.
 	 */
 	if (!F_ISSET(cbt, WT_CBT_NO_TXN))
+	/*为一个readcommited事务更新snapshot，让已提交的事务修改的数据对本事务可见*/
 		__wt_txn_cursor_op(session);
 	return (0);
 }

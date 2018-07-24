@@ -179,6 +179,7 @@ __wt_cursor_get_key(WT_CURSOR *cursor, ...)
 {
 	WT_DECL_RET;
 	va_list ap;
+    printf("yang test ....................__wt_cursor_get_key\r\n");
 
 	va_start(ap, cursor);
 	ret = __wt_cursor_get_keyv(cursor, cursor->flags, ap);
@@ -290,6 +291,7 @@ __wt_cursor_get_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 	const char *fmt;
 
 	CURSOR_API_CALL(cursor, session, get_key, NULL);
+	/*不是数字和字符串，无法格式化读取,进行错误*/
 	if (!F_ISSET(cursor, WT_CURSTD_KEY_SET))
 		WT_ERR(__wt_cursor_kv_not_set(cursor, true));
 
@@ -421,6 +423,7 @@ __wt_cursor_get_value(WT_CURSOR *cursor, ...)
 {
 	WT_DECL_RET;
 	va_list ap;
+    printf("yang test ....................__wt_cursor_get_value\r\n");
 
 	va_start(ap, cursor);
 	ret = __wt_cursor_get_valuev(cursor, ap);

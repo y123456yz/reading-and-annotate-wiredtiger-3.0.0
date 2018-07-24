@@ -19,7 +19,7 @@ static int  __inmem_row_leaf_entries(
 /*
  * __wt_page_alloc --
  *	Create or read a page into the cache.
- */
+ */ /*根据page的entries分配一个完成的page内存对象*/
 int
 __wt_page_alloc(WT_SESSION_IMPL *session,
     uint8_t type, uint32_t alloc_entries, bool alloc_refs, WT_PAGE **pagep)
@@ -47,7 +47,8 @@ __wt_page_alloc(WT_SESSION_IMPL *session,
 		/*
 		 * Variable-length column-store leaf page: allocate memory to
 		 * describe the page's contents with the initial allocation.
-		 */
+		 */ 
+		/*计算page的内存空间占用*/
 		size += alloc_entries * sizeof(WT_COL);
 		break;
 	case WT_PAGE_ROW_LEAF:
@@ -59,10 +60,11 @@ __wt_page_alloc(WT_SESSION_IMPL *session,
 		break;
 	WT_ILLEGAL_VALUE(session);
 	}
-
+    /*分配page对象空间并进行page类型设置*/
 	WT_RET(__wt_calloc(session, 1, size, &page));
 
 	page->type = type;
+	/*设置一个初始化的read_gen值*/
 	page->read_gen = WT_READGEN_NOTSET;
 
 	switch (type) {
@@ -76,20 +78,24 @@ __wt_page_alloc(WT_SESSION_IMPL *session,
 		 * can split.  Allocate the array of references and optionally,
 		 * the objects to which they point.
 		 */
+		/*创建内存中的WT_REF对象和对应的ref slot array空间*/
 		WT_ERR(__wt_calloc(session, 1,
 		    sizeof(WT_PAGE_INDEX) + alloc_entries * sizeof(WT_REF *),
 		    &p));
 		size +=
 		    sizeof(WT_PAGE_INDEX) + alloc_entries * sizeof(WT_REF *);
-		pindex = p;
+		    
+		pindex = p; //指向WT_PAGE_INDEX
+		//指向alloc_entries个WT_REF结构的开始位置
 		pindex->index = (WT_REF **)((WT_PAGE_INDEX *)p + 1);
-		pindex->entries = alloc_entries;
+		pindex->entries = alloc_entries; //多少个WT_REF*
+		//((page)->u.intl.__index) = (pindex);	
 		WT_INTL_INDEX_SET(page, pindex);
 		if (alloc_refs)
 			for (i = 0; i < pindex->entries; ++i) {
 				WT_ERR(__wt_calloc_one(
 				    session, &pindex->index[i]));
-				size += sizeof(WT_REF);
+				size += sizeof(WT_REF);//为index指针创建WT_REF文件，一个index[i]对应一个WT_REF空间
 			}
 		if (0) {
 err:			if ((pindex = WT_INTL_INDEX_GET_SAFE(page)) != NULL) {
@@ -113,6 +119,7 @@ err:			if ((pindex = WT_INTL_INDEX_GET_SAFE(page)) != NULL) {
 	}
 
 	/* Increment the cache statistics. */
+	/*更新cache的状态信息*/
 	__wt_cache_page_inmem_incr(session, page, size);
 	(void)__wt_atomic_add64(&cache->pages_inmem, 1);
 	page->cache_create_gen = cache->evict_pass_gen;

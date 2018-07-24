@@ -141,7 +141,8 @@ __wt_btree_dirty_leaf_inuse(WT_SESSION_IMPL *session)
 /*
  * __wt_cache_page_inmem_incr --
  *	Increment a page's memory footprint in the cache.
- */
+ */ 
+/*在cache增加对page的内存信息统计*/
 static inline void
 __wt_cache_page_inmem_incr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
 {
@@ -311,7 +312,7 @@ __wt_cache_page_inmem_decr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
  * __wt_cache_dirty_incr --
  *	Page switch from clean to dirty: increment the cache dirty page/byte
  * counts.
- */
+ */ /*page switch动作，造成cache dirty page的字节统计增加*/
 static inline void
 __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -328,8 +329,10 @@ __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
 	 */
 	size = page->memory_footprint;
 	if (WT_PAGE_IS_INTERNAL(page)) {
+	    /*增加脏数据总量*/
 		(void)__wt_atomic_add64(&btree->bytes_dirty_intl, size);
 		(void)__wt_atomic_add64(&cache->bytes_dirty_intl, size);
+		/*增加脏页数量*/
 		(void)__wt_atomic_add64(&cache->pages_dirty_intl, 1);
 	} else {
 		if (!btree->lsm_primary) {
@@ -466,6 +469,7 @@ __wt_cache_page_evict(WT_SESSION_IMPL *session, WT_PAGE *page, bool rewrite)
  * __wt_update_list_memsize --
  *      The size in memory of a list of updates.
  */
+/*计算upd list中多个版本记录在内存中修改的数据总数空间*/
 static inline size_t
 __wt_update_list_memsize(WT_UPDATE *upd)
 {
@@ -491,7 +495,8 @@ __wt_page_modify_init(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_page_only_modify_set --
  *	Mark the page (but only the page) dirty.
- */
+ */ 
+/*在page由未修改状态变为修改状态，标记此page为脏页*/
 static inline void
 __wt_page_only_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -512,6 +517,7 @@ __wt_page_only_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
 	 * Every time the page transitions from clean to dirty, update the cache
 	 * and transactional information.
 	 */
+	/*设置write gen计数器，如果是从0变为1，表示是由未修改状态转变为修改状态，设置脏页状态*/
 	if (__wt_atomic_add32(&page->modify->write_gen, 1) == 1) {
 		__wt_cache_dirty_incr(session, page);
 
@@ -528,10 +534,11 @@ __wt_page_only_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
 		 * first_dirty_txn rather than potentially racing to update it,
 		 * at worst, we'll unnecessarily write a page in a checkpoint.
 		 */
-		if (last_running != 0)
+		if (last_running != 0)/*设置snapshot的落盘事务ID*/
 			page->modify->first_dirty_txn = last_running;
 	}
 
+    /*更新最新的txn id*/
 	/* Check if this is the largest transaction ID to update the page. */
 	if (WT_TXNID_LT(page->modify->update_txn, session->txn.id))
 		page->modify->update_txn = session->txn.id;
@@ -591,7 +598,7 @@ __wt_page_modify_clear(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_page_modify_set --
  *	Mark the page and tree dirty.
- */
+ *//*标记page为btree上的脏页,并标记树上有脏页*/
 static inline void
 __wt_page_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -1424,6 +1431,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
  * __wt_page_release --
  *	Release a reference to a page.
  */
+/*释放一个ref对应的page*/
 static inline int
 __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {
