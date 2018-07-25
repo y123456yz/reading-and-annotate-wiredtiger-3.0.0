@@ -42,7 +42,7 @@ static const char * const uri = "table:logtest";
 #define	CONN_CONFIG \
     "create,cache_size=100MB,log=(archive=false,enabled=true,file_max=100K)"
 #define	MAX_ITERATIONS	5
-#define	MAX_KEYS	10000
+#define	MAX_KEYS	10
 
 static int
 compare_backups(int i)
@@ -255,9 +255,10 @@ main(int argc, char *argv[])
 	error_check(system(cmd_buf));
 	error_check(wiredtiger_open(home, NULL, CONN_CONFIG, &wt_conn));
 
-	//setup_directories();
+	//setup_directories();  __conn_open_session
 	error_check(wt_conn->open_session(wt_conn, NULL, NULL, &session));
-	error_check(session->create(
+	//__session_create
+	error_check(session->create( 
 	    session, uri, "key_format=S,value_format=S"));
 	printf("Adding initial data\n");
 	add_work(session, 0);
@@ -265,7 +266,8 @@ main(int argc, char *argv[])
 	printf("Taking initial backup\n");
 	//take_full_backup(session, 0);
 
-	//error_check(session->checkpoint(session, NULL));
+    //__session_checkpoint
+	error_check(session->checkpoint(session, NULL));
 
     return 1;
     

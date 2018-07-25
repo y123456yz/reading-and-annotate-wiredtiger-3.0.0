@@ -71,6 +71,7 @@ journal存储Write ahead log
  *	Encapsulation of checkpoint information, shared by the metadata, the
  * btree engine, and the block manager.
  */
+///* checkpoint文件前缀一定是WiredTigerCheckpoint， 见__checkpoint_name_ok*/
 #define	WT_CHECKPOINT		"WiredTigerCheckpoint"
 #define	WT_CKPT_FOREACH(ckptbase, ckpt)					\
 	for ((ckpt) = (ckptbase); (ckpt)->name != NULL; ++(ckpt))

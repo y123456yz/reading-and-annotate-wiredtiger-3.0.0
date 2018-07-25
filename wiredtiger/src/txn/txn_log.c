@@ -353,7 +353,14 @@ __wt_txn_checkpoint_logread(WT_SESSION_IMPL *session,
 /*
  * __wt_txn_checkpoint_log --
  *	Write a log record for a checkpoint operation.
- */
+[1532489003:331912][27579:0x7f13ca3d4740][__log_openfile, 909], WT_SESSION.checkpoint: opening log ./WiredTigerLog.0000000001
+[1532489003:331920][27579:0x7f13ca3d4740][__open_verbose, 194], WT_SESSION.checkpoint: ./WiredTigerLog.0000000001: file-open: type log
+[1532489003:331939][27579:0x7f13ca3d4740][__wt_log_force_sync, 321], WT_SESSION.checkpoint: log_force_sync: sync ./WiredTigerLog.0000000001 to LSN 1/3968
+[1532489003:331948][27579:0x7f13ca3d4740][__wt_fsync, 22], WT_SESSION.checkpoint: WT_HOME_LOG/./WiredTigerLog.0000000001: handle-sync
+[1532489003:331956][27579:0x7f13ca3d4740][__wt_cond_signal, 153], WT_SESSION.checkpoint: signal log sync
+[1532489003:331964][27579:0x7f13ca3d4740][__wt_close, 344], WT_SESSION.checkpoint: ./WiredTigerLog.0000000001: file-close
+ */ 
+/*写入一条checkpoint操作的log*/
 int
 __wt_txn_checkpoint_log(
     WT_SESSION_IMPL *session, bool full, uint32_t flags, WT_LSN *lsnp)
@@ -434,6 +441,7 @@ __wt_txn_checkpoint_log(
 		break;
 	case WT_TXN_LOG_CKPT_START:
 		/* Take a copy of the transaction snapshot. */
+		/*将txn中的snapshot值全部拷贝到checkpoint_snapshot中*/
 		txn->ckpt_nsnapshot = txn->snapshot_count;
 		recsize = (size_t)txn->ckpt_nsnapshot * WT_INTPACK64_MAXSIZE;
 		WT_ERR(__wt_scr_alloc(session, recsize, &txn->ckpt_snapshot));

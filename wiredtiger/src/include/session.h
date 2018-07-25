@@ -22,6 +22,7 @@ struct __wt_data_handle_cache {
  * WT_HAZARD --
  *	A hazard pointer.
  */
+//__wt_hazard_set中赋值
 struct __wt_hazard {
 	WT_REF *ref;			/* Page reference */
 #ifdef HAVE_DIAGNOSTIC
@@ -136,6 +137,7 @@ struct __wt_session_impl {
 	WT_TXN	txn; 			/* Transaction state */
 #define	WT_SESSION_BG_SYNC_MSEC		1200000
 	WT_LSN	bg_sync_lsn;		/* Background sync operation LSN. */
+	//该session对应的有效cursor数
 	u_int	ncursors;		/* Count of active file cursors. */
 
 	void	*block_manager;		/* Block-manager support */
@@ -224,6 +226,24 @@ struct __wt_session_impl {
 #define	WT_SESSION_FIRST_USE(s)						\
 	((s)->hazard == NULL)
 
+
+
+    /*
+    Hazard Pointer（风险指针）
+    Hazard Pointer是lock-free技术的一种实现方式， 它将我们常用的锁机制问题转换为一个内存管理问题， 
+    通常额也能减少程序所等待的时间以及死锁的风险， 并且能够提高性能， 在多线程环境下面，它很好的解决读多写少的问题。 
+    基本原理 
+    对于一个资源， 建立一个Hazard Pointer List， 每当有线程需要读该资源的时候， 给该链表添加一个节点， 
+    当读结束的时候， 删除该节点； 要删除该资源的时候， 判断该链表是不是空， 如不， 表明有线程在读取该资源， 就不能删除。 
+    
+    
+    HazardPointer在WiredTiger中的使用 
+    在WiredTiger里， 对于每一个缓存的页， 使用一个Hazard Pointer 来对它管理， 之所以需要这样的管理方式， 是因为， 
+    每当读了一个物理页到内存， WiredTiger会把它尽可能的放入缓存， 以备后续的内存访问， 但是徐彤同时由一些evict 线程
+    在运行，当内存吃紧的时候， evict线程就会按照LRU算法， 将一些不常被访问到的内存页写回磁盘。 
+    由于每一个内存页有一个Hazard Point， 在evict的时候， 就可以根据Hazard Pointer List的长度， 来决定是否可以将该
+    内存页从缓存中写回磁盘。
+    */
 	/*
 	 * The hazard pointer array grows as necessary, initialize with 250
 	 * slots.

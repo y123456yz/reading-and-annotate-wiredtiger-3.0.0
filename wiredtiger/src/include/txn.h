@@ -128,6 +128,7 @@ struct __wt_txn_global {
 	 * the metadata; and (b) once checkpoint has finished reading a table,
 	 * it won't revisit it.
 	 */
+	//说明在做checkpoint过程中，见__txn_checkpoint_wrapper
 	volatile bool	  checkpoint_running;	/* Checkpoint running */
 	volatile uint32_t checkpoint_id;	/* Checkpoint's session ID */
 	WT_TXN_STATE	  checkpoint_state;	/* Checkpoint's txn state */
@@ -247,6 +248,10 @@ struct __wt_txn {
 	WT_ITEM		*ckpt_snapshot;
 	bool		full_ckpt;
 
+	uint32_t flags;
+};
+
+//上面的__wt_txn.flags中用到
 #define	WT_TXN_AUTOCOMMIT	0x00001
 #define	WT_TXN_ERROR		0x00002
 #define	WT_TXN_HAS_ID		0x00004
@@ -261,5 +266,4 @@ struct __wt_txn {
 #define	WT_TXN_SYNC_SET		0x00800
 #define	WT_TXN_TS_COMMIT_ALWAYS	0x01000
 #define	WT_TXN_TS_COMMIT_NEVER	0x02000
-	uint32_t flags;
-};
+

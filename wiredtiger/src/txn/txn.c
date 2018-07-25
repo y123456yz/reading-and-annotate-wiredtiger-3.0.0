@@ -264,6 +264,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session,
  * __wt_txn_update_oldest --
  *	Sweep the running transactions to update the oldest ID required.
  */
+//清除正在运行的事务以更新所需的最旧ID。 
 int
 __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
 {
@@ -294,7 +295,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
 	/*
 	 * For pure read-only workloads, or if the update isn't forced and the
 	 * oldest ID isn't too far behind, avoid scanning.
-	 */
+	 */ /*当前事务已经是最早且存活的事务，不用扫描整个全局事务队列，将snapshot中的txn id数组排序即可*/
 	if ((prev_oldest_id == current_id &&
 	    prev_metadata_pinned == current_id) ||
 	    (!strict && WT_TXNID_LT(current_id, prev_oldest_id + 100)))

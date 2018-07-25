@@ -2339,7 +2339,8 @@ __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
 /*
  * __wt_log_write --
  *	Write a record into the log, compressing as necessary.
- */
+ */ 
+/*将一个logrec写入日志文件中,在这个过程如果设置了日志压缩，会对logrec body做压缩*/
 int
 __wt_log_write(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
     uint32_t flags)

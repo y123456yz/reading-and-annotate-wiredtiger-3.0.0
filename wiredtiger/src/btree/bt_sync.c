@@ -66,6 +66,7 @@ __sync_checkpoint_can_skip(WT_SESSION_IMPL *session, WT_PAGE *page)
  * __sync_dup_walk --
  *	Duplicate a tree walk point.
  */
+//讲walk->page与hazard指针关联起来
 static inline int
 __sync_dup_walk(
     WT_SESSION_IMPL *session, WT_REF *walk, uint32_t flags, WT_REF **dupp)
@@ -90,6 +91,8 @@ __sync_dup_walk(
 		WT_RET(
 		    __wt_hazard_set(session, walk, &busy, __func__, __LINE__));
 #else
+        //hazard set 
+        /*将一个walk.page作为hazard pointer设置到session hazard pointer list中*/
 		WT_RET(__wt_hazard_set(session, walk, &busy));
 #endif
 		/*
@@ -111,6 +114,9 @@ __sync_dup_walk(
  * __sync_file --
  *	Flush pages for a specific file.
  */
+/***********************************************************
+ * flush page实现，将page的数据落盘固化,并建立CHECKPOINT
+ **********************************************************/
 static int
 __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 {
@@ -148,7 +154,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 		 * Writing the leaf pages is done without acquiring a high-level
 		 * lock, serialize so multiple threads don't walk the tree at
 		 * the same time.
-		 */
+		 */ /* 将所有可以写入磁盘的脏页落盘,只刷入leaf page的数据入盘 */
 		if (!btree->modified)
 			return (0);
 		__wt_spin_lock(session, &btree->flush_lock);
@@ -167,7 +173,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 		oldest_id = __wt_txn_oldest_id(session);
 
 		LF_SET(WT_READ_NO_WAIT | WT_READ_SKIP_INTL);
-		for (;;) {
+		for (;;) { /*遍历所有无操作的page*/
 			WT_ERR(__wt_tree_walk(session, &walk, flags));
 			if (walk == NULL)
 				break;
@@ -179,6 +185,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 			 * checkpoint will have to visit them anyway.
 			 */
 			page = walk->page;
+			/* 将无操作的脏写入磁盘，如果有的更新在刷盘事务之后产生，那么这个更新的page不做刷盘操作*/
 			if (__wt_page_is_modified(page) &&
 			    WT_TXNID_LT(page->modify->update_txn, oldest_id)) {
 				if (txn->isolation == WT_ISO_READ_COMMITTED)
@@ -236,7 +243,9 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 		/* Read pages with lookaside entries and evict them asap. */
 		LF_SET(WT_READ_LOOKASIDE | WT_READ_WONT_NEED);
 
+        /*对脏页进行落盘*/
 		for (;;) {
+		    //将walk->page与hazard指针关联起来
 			WT_ERR(__sync_dup_walk(session, walk, flags, &prev));
 			WT_ERR(__wt_tree_walk(session, &walk, flags));
 
@@ -373,7 +382,7 @@ err:	/* On error, clear any left-over tree walk. */
 /*
  * __wt_cache_op --
  *	Cache operations.
- */
+ */ /* cache 磁盘相关的操作实现 */
 int
 __wt_cache_op(WT_SESSION_IMPL *session, WT_CACHE_OP op)
 {

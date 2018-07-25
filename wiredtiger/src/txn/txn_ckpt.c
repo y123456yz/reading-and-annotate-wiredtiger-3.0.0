@@ -18,7 +18,8 @@ static int __checkpoint_tree_helper(WT_SESSION_IMPL *, const char *[]);
 /*
  * __checkpoint_name_ok --
  *	Complain if the checkpoint name isn't acceptable.
- */
+ */ 
+/*判断指定的checkpoint name是否合法*/
 static int
 __checkpoint_name_ok(WT_SESSION_IMPL *session, const char *name, size_t len)
 {
@@ -29,7 +30,7 @@ __checkpoint_name_ok(WT_SESSION_IMPL *session, const char *name, size_t len)
 	 * The internal checkpoint name is special, applications aren't allowed
 	 * to use it.  Be aggressive and disallow any matching prefix, it makes
 	 * things easier when checking in other places.
-	 */
+	 */ /*前缀一定是WiredTigerCheckpoint*/
 	if (len < strlen(WT_CHECKPOINT))
 		return (0);
 	if (!WT_PREFIX_MATCH(name, WT_CHECKPOINT))
@@ -120,19 +121,23 @@ __checkpoint_update_generation(WT_SESSION_IMPL *session)
  * __checkpoint_apply_all --
  *	Apply an operation to all files involved in a checkpoint.
  */
+//将配置中target配置项指定的操作在所有相关的文件对象中进行执行op操作，一般是涉及到schema的修改
 static int
 __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
-    int (*op)(WT_SESSION_IMPL *, const char *[]), bool *fullp)
+    int (*op)(WT_SESSION_IMPL *, const char *[]), bool *fullp) //
 {
 	WT_CONFIG targetconf;
 	WT_CONFIG_ITEM cval, k, v;
 	WT_DECL_ITEM(tmp);
 	WT_DECL_RET;
-	bool ckpt_closed, named, target_list;
+	bool ckpt_closed, named, 
+	    //是否有配置target存在
+        target_list; //checkpoint默认配置"drop=,force=false,name=,target=,use_timestamp=true",
 
 	target_list = false;
 
 	/* Flag if this is a named checkpoint, and check if the name is OK. */
+	/*从配置项里面取出checkpoint的命名，并检查名字的是否合适*/
 	WT_RET(__wt_config_gets(session, cfg, "name", &cval));
 	named = cval.len != 0;
 	if (named)
@@ -141,10 +146,11 @@ __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
 	/* Step through the targets and optionally operate on each one. */
 	WT_ERR(__wt_config_gets(session, cfg, "target", &cval));
 	__wt_config_subinit(session, &targetconf, &cval);
+
 	while ((ret = __wt_config_next(&targetconf, &k, &v)) == 0) {
 		if (!target_list) {
 			WT_ERR(__wt_scr_alloc(session, 512, &tmp));
-			target_list = true;
+			target_list = true; //说明有配置项
 		}
 
 		if (v.len != 0)
@@ -157,8 +163,10 @@ __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
 		if (named)
 			WT_ERR(__checkpoint_name_check(session, k.str));
 
-		if (op == NULL)
+		if (op == NULL) //没有op func，直接返回
 			continue;
+
+		/*让uri对应的btree file执行op操作函数*/
 		WT_ERR(__wt_buf_fmt(session, tmp, "%.*s", (int)k.len, k.str));
 		if ((ret = __wt_schema_worker(
 		    session, tmp->data, op, NULL, cfg, 0)) != 0)
@@ -214,6 +222,8 @@ __checkpoint_apply(WT_SESSION_IMPL *session, const char *cfg[],
 	for (i = 0; i < session->ckpt_handle_next; ++i) {
 		if (session->ckpt_handle[i] == NULL)
 			continue;
+
+		//执行op
 		WT_WITH_DHANDLE(session, session->ckpt_handle[i],
 		    ret = (*op)(session, cfg));
 		WT_RET(ret);
@@ -225,7 +235,7 @@ __checkpoint_apply(WT_SESSION_IMPL *session, const char *cfg[],
 /*
  * __checkpoint_data_source --
  *	Checkpoint all data sources.
- */
+ */ /*为所有的datasource建立一个checkpoint*/
 static int
 __checkpoint_data_source(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -803,7 +813,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 	__checkpoint_reduce_dirty_cache(session);
 
 	/* Tell logging that we are about to start a database checkpoint. */
-	if (full && logging)
+	if (full && logging) /*写入一条checkpoint操作的log*/
 		WT_ERR(__wt_txn_checkpoint_log(
 		    session, full, WT_TXN_LOG_CKPT_PREPARE, NULL));
 
@@ -1051,7 +1061,8 @@ __txn_checkpoint_wrapper(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_txn_checkpoint --
  *	Checkpoint a database or a list of objects in the database.
- */
+ */ 
+/*完成建立checkpoint的事务*/
 int
 __wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], bool waiting)
 {
@@ -1091,8 +1102,9 @@ __wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], bool waiting)
 #undef WT_CHECKPOINT_SESSION_FLAGS_OFF
 #define	WT_CHECKPOINT_SESSION_FLAGS_OFF \
 	(WT_SESSION_LOOKASIDE_CURSOR)
-	orig_flags = F_MASK(session,
+	orig_flags = F_MASK(session, //后面欢迎
 	    WT_CHECKPOINT_SESSION_FLAGS | WT_CHECKPOINT_SESSION_FLAGS_OFF);
+	    
 	F_SET(session, WT_CHECKPOINT_SESSION_FLAGS);
 	F_CLR(session, WT_CHECKPOINT_SESSION_FLAGS_OFF);
 
@@ -1563,7 +1575,8 @@ __checkpoint_tree(
 		    session, false, WT_TXN_LOG_CKPT_START, &ckptlsn));
 
 	/* Tell the block manager that a file checkpoint is starting. */
-	WT_ERR(bm->checkpoint_start(bm, session));
+	//__bm_checkpoint_start_readonly 或者 __bm_checkpoint_start
+	WT_ERR(bm->checkpoint_start(bm, session)); //设置checkpoint start开始
 	resolve_bm = true;
 
 	/* Flush the file from the cache, creating the checkpoint. */
@@ -1671,6 +1684,7 @@ __checkpoint_presync(WT_SESSION_IMPL *session, const char *cfg[])
  * __checkpoint_tree_helper --
  *	Checkpoint a tree (suitable for use in *_apply functions).
  */
+/* 将checkpoint信息同步写入到文件中 */
 static int
 __checkpoint_tree_helper(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -1690,7 +1704,7 @@ __checkpoint_tree_helper(WT_SESSION_IMPL *session, const char *cfg[])
 	 * enabled), ignore any read timestamp configured for the checkpoint.
 	 */
 	if (__wt_btree_immediately_durable(session))
-		F_CLR(txn, WT_TXN_HAS_TS_READ);
+		F_CLR(txn, WT_TXN_HAS_TS_READ); //忽略read timestamp configured
 
 	ret = __checkpoint_tree(session, true, cfg);
 

@@ -184,7 +184,8 @@ __wt_vunpack_negint(const uint8_t **pp, size_t maxlen, uint64_t *retp)
 /*
  * __wt_vpack_uint --
  *	Variable-sized packing for unsigned integers
- */
+ */ 
+/*用可变打包长度方式pack一个无符号数到pp中*/
 static inline int
 __wt_vpack_uint(uint8_t **pp, size_t maxlen, uint64_t x)
 {

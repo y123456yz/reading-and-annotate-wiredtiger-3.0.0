@@ -6,6 +6,23 @@
  * See the file LICENSE for redistribution information.
  */
 
+/*
+Hazard Pointer（风险指针）
+Hazard Pointer是lock-free技术的一种实现方式， 它将我们常用的锁机制问题转换为一个内存管理问题， 
+通常额也能减少程序所等待的时间以及死锁的风险， 并且能够提高性能， 在多线程环境下面，它很好的解决读多写少的问题。 
+基本原理 
+对于一个资源， 建立一个Hazard Pointer List， 每当有线程需要读该资源的时候， 给该链表添加一个节点， 
+当读结束的时候， 删除该节点； 要删除该资源的时候， 判断该链表是不是空， 如不， 表明有线程在读取该资源， 就不能删除。 
+
+
+HazardPointer在WiredTiger中的使用 
+在WiredTiger里， 对于每一个缓存的页， 使用一个Hazard Pointer 来对它管理， 之所以需要这样的管理方式， 是因为， 
+每当读了一个物理页到内存， WiredTiger会把它尽可能的放入缓存， 以备后续的内存访问， 但是徐彤同时由一些evict 线程
+在运行，当内存吃紧的时候， evict线程就会按照LRU算法， 将一些不常被访问到的内存页写回磁盘。 
+由于每一个内存页有一个Hazard Point， 在evict的时候， 就可以根据Hazard Pointer List的长度， 来决定是否可以将该
+内存页从缓存中写回磁盘。
+*/
+
 #include "wt_internal.h"
 
 #ifdef HAVE_DIAGNOSTIC
@@ -63,8 +80,9 @@ hazard_grow(WT_SESSION_IMPL *session)
 /*
  * __wt_hazard_set --
  *	Set a hazard pointer.
- */
-int
+ */ 
+/*将一个page作为hazard pointer设置到session hazard pointer list中*/
+int //将ref->page与hazard指针关联
 __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 #ifdef HAVE_DIAGNOSTIC
     , const char *file, int line
@@ -76,6 +94,7 @@ __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 	*busyp = false;
 
 	/* If a file can never be evicted, hazard pointers aren't required. */
+	/*btree不会从内存中淘汰page,hazard pointer是无意义的*/
 	if (F_ISSET(S2BT(session), WT_BTREE_IN_MEMORY))
 		return (0);
 
@@ -88,6 +107,7 @@ __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 		*busyp = true;
 		return (0);
 	}
+    /*hp超出hazard的数组范围,需要做几个处理，如果是初始扫描溢出范围的话，定位到hazard的开始部分继续扫描,如果hazard满的话，放大session->hazard_size，这个过程不能超过session->hazard_max*/
 
 	/* If we have filled the current hazard pointer array, grow it. */
 	if (session->nhazard >= session->hazard_size) {
@@ -101,7 +121,10 @@ __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 	 * If there are no available hazard pointer slots, make another one
 	 * visible.
 	 */
+
+	 
 	if (session->nhazard >= session->hazard_inuse) {
+	    //找一个可用的hazard,说明存在空的hazard,直接使用
 		WT_ASSERT(session,
 		    session->nhazard == session->hazard_inuse &&
 		    session->hazard_inuse < session->hazard_size);
@@ -118,6 +141,7 @@ __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 		 * expensive. If we reach the end of the array, continue the
 		 * search from the beginning of the array.
 		 */
+		/*hp超出hazard的数组范围,需要做几个处理，如果是初始扫描溢出范围的话，定位到hazard的开始部分继续扫描*/
 		for (hp = session->hazard + session->nhazard;; ++hp) {
 			if (hp >= session->hazard + session->hazard_inuse)
 				hp = session->hazard;
@@ -154,8 +178,9 @@ __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 	 * Check if the page state is still valid, where valid means a
 	 * state of WT_REF_MEM.
 	 */
+	//该ref对应的page处于有效状态
 	if (ref->state == WT_REF_MEM) {
-		++session->nhazard;
+		++session->nhazard; //用掉一个hazard
 
 		/*
 		 * Callers require a barrier here so operations holding
@@ -212,7 +237,7 @@ __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
 			 * page will be selected for eviction.
 			 */ 
 			/*这个地方不需要用内存屏障来保证，因为hp->page在设置NULL的过程，不需要保证完全正确*/
-			hp->ref = NULL;
+			hp->ref = NULL; //置为NULL就表示该hp没有占用page，其他线程可以使用该page
 
 			/*
 			 * If this was the last hazard pointer in the session,
@@ -239,7 +264,8 @@ __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __wt_hazard_close --
  *	Verify that no hazard pointers are set.
- */
+ */ 
+/*清除掉session hazard列表中所有的hazard pointer*/
 void
 __wt_hazard_close(WT_SESSION_IMPL *session)
 {

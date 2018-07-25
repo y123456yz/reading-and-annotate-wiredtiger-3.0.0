@@ -224,11 +224,6 @@ struct __wt_block {
 	const char *name;		/* Name */
 	uint64_t name_hash;		/* Hash of name */
 
-	/* A list of block manager handles, sharing a file descriptor. */
-	uint32_t ref;			/* References */
-	TAILQ_ENTRY(__wt_block) q;	/* Linked list of handles */
-	TAILQ_ENTRY(__wt_block) hashq;	/* Hashed list of handles */
-
 	WT_FH	*fh;			/* Backing file handle */
 	wt_off_t size;			/* File size */
 	wt_off_t extend_size;		/* File extended size */
@@ -256,9 +251,14 @@ struct __wt_block {
 #ifdef HAVE_DIAGNOSTIC
 	bool		live_open;	/* Live system is open */
 #endif
-					/* Live checkpoint status */
-	enum { WT_CKPT_NONE=0, WT_CKPT_INPROGRESS,
-	    WT_CKPT_PANIC_ON_FAILURE, WT_CKPT_SALVAGE } ckpt_state;
+
+	/* Live checkpoint status */
+	enum { 
+	    WT_CKPT_NONE=0, 
+	    WT_CKPT_INPROGRESS, //__wt_block_checkpoint_start÷–∏≥÷µ
+	    WT_CKPT_PANIC_ON_FAILURE, 
+	    WT_CKPT_SALVAGE 
+    } ckpt_state;
 
 				/* Compaction support */
 	int	 compact_pct_tenths;	/* Percent to compact */
@@ -278,6 +278,12 @@ struct __wt_block {
 	uint64_t   frags;		/* Maximum frags in the file */
 	uint8_t   *fragfile;		/* Per-file frag tracking list */
 	uint8_t   *fragckpt;		/* Per-checkpoint frag tracking list */
+
+    //yang change
+	/* A list of block manager handles, sharing a file descriptor. */
+	uint32_t ref;			/* References */
+	TAILQ_ENTRY(__wt_block) q;	/* Linked list of handles */
+	TAILQ_ENTRY(__wt_block) hashq;	/* Hashed list of handles */
 };
 
 /*

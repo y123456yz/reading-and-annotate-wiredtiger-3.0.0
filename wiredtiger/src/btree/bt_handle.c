@@ -943,6 +943,7 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
  * __wt_btree_immediately_durable --
  *	Check whether this btree is configured for immediate durability.
  */
+//检查该tree是否配置了立即持久化
 bool
 __wt_btree_immediately_durable(WT_SESSION_IMPL *session)
 {

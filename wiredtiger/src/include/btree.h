@@ -69,6 +69,7 @@
  __wt_conn_dhandle_alloc中分配空间
  btree结构  S2BT(session)完成session到btree的转换   成员赋值__btree_conf
  btree对应的文件见__wt_block_open
+ btree结构可以参考https://blog.csdn.net/xu_flash/article/details/62216969
  */
 struct __wt_btree {
     //赋值见__wt_btree_open
@@ -212,24 +213,28 @@ struct __wt_btree {
 		WT_EVICT_WALK_RAND_PREV
 	} evict_start_type;
 
-	/*
-	 * Flag values up to 0xff are reserved for WT_DHANDLE_XXX.
-	 */
+	uint32_t flags;
+};
+
+/* 上面的flags中用到
+ * Flag values up to 0xff are reserved for WT_DHANDLE_XXX.
+ */
 #define	WT_BTREE_ALTER		0x000100 /* Handle is for alter */
 #define	WT_BTREE_BULK		0x000200 /* Bulk-load handle */
 #define	WT_BTREE_CLOSED		0x000400 /* Handle closed */
 #define	WT_BTREE_IGNORE_CACHE	0x000800 /* Cache-resident object */
+//常驻内存，通过cache_resident配置，见__btree_conf
 #define	WT_BTREE_IN_MEMORY	0x001000 /* Cache-resident object */
 #define	WT_BTREE_LOOKASIDE	0x002000 /* Look-aside table */
 #define	WT_BTREE_NO_CHECKPOINT	0x004000 /* Disable checkpoints */
+//log.enabled配置
 #define	WT_BTREE_NO_LOGGING	0x008000 /* Disable logging */
 #define	WT_BTREE_REBALANCE	0x010000 /* Handle is for rebalance */
 #define	WT_BTREE_SALVAGE	0x020000 /* Handle is for salvage */
 #define	WT_BTREE_SKIP_CKPT	0x040000 /* Handle skipped checkpoint */
 #define	WT_BTREE_UPGRADE	0x080000 /* Handle is for upgrade */
 #define	WT_BTREE_VERIFY		0x100000 /* Handle is for verify */
-	uint32_t flags;
-};
+
 
 /* Flags that make a btree handle special (not for normal use). */
 #define	WT_BTREE_SPECIAL_FLAGS	 					\
