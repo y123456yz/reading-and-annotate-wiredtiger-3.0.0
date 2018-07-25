@@ -340,7 +340,7 @@ __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
  *	Check if a given transaction is "globally visible". This is, if all
  *	sessions in the system will see the transaction ID including the ID
  *	that belongs to a running checkpoint.
- */
+ */ /*判断事务ID是否对系统中所有的事务是可见的*/
 static inline bool
 __wt_txn_visible_all(
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)

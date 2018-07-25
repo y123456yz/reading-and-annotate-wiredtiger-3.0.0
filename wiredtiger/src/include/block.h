@@ -219,7 +219,8 @@ struct __wt_bm {
  *	Block manager handle, references a single file.
  */
 //block创建见__wt_block_open  
-//__bm_checkpoint_load中做mmap操作
+//__bm_checkpoint_load中做mmap操作  
+//见__wt_block_alloc
 struct __wt_block {
 	const char *name;		/* Name */
 	uint64_t name_hash;		/* Hash of name */

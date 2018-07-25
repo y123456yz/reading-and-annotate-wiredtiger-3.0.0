@@ -471,19 +471,20 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
 	valid = false;
 	if (__cursor_page_pinned(cbt)) {
 		__wt_txn_cursor_op(session);
-
+        /*进行记录定位查找*/
 		WT_ERR(btree->type == BTREE_ROW ?
 		    __cursor_row_search(session, cbt, cbt->ref, false) :
 		    __cursor_col_search(session, cbt, cbt->ref));
-		valid = cbt->compare == 0 && __wt_cursor_valid(cbt, &upd);
+		valid = cbt->compare == 0 && __wt_cursor_valid(cbt, &upd);/*记录找到了，进行value返回*/
 	}
 	if (!valid) {
 		WT_ERR(__cursor_func_init(cbt, true));
-
+		
+        /*进行记录定位查找*/
 		WT_ERR(btree->type == BTREE_ROW ?
 		    __cursor_row_search(session, cbt, NULL, false) :
 		    __cursor_col_search(session, cbt, NULL));
-		valid = cbt->compare == 0 && __wt_cursor_valid(cbt, &upd);
+		valid = cbt->compare == 0 && __wt_cursor_valid(cbt, &upd); /*记录找到了，进行value返回*/
 	}
 
 	if (valid)
@@ -511,6 +512,11 @@ err:	if (ret != 0) {
 		WT_TRET(__cursor_reset(cbt));
 		__cursor_state_restore(cursor, &state);
 	}
+
+    if(ret == WT_NOTFOUND)
+	    __wt_verbose(session, WT_VERB_API, "__wt_btcur_search, key:%s, value:%s", cursor->key.data, "not found");
+	else
+	    __wt_verbose(session, WT_VERB_API, "__wt_btcur_search, key:%s, value:%s", cursor->key.data, cursor->value.data);
 	return (ret);
 }
 

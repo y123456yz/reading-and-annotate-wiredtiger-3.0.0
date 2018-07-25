@@ -220,7 +220,7 @@ __evict_queue_full(WT_EVICT_QUEUE *queue)
 /*
  * __wt_evict_server_wake --
  *	Wake the eviction server thread.
- */
+ */ /*»½ÐÑeviction thread*/
 void
 __wt_evict_server_wake(WT_SESSION_IMPL *session)
 {
@@ -246,6 +246,7 @@ __wt_evict_server_wake(WT_SESSION_IMPL *session)
 	}
 #endif
 
+    /*»½ÐÑevictÏß³Ì*/
 	__wt_cond_signal(session, cache->evict_cond);
 }
 

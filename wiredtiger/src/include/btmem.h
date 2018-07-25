@@ -398,6 +398,7 @@ struct __wt_page_modify {
 		 */
 		WT_CELL **discard;
 		size_t	  discard_entries;
+		//__wt_ovfl_discard_add中赋值
 		size_t	  discard_allocated;
 
 		/* Cached overflow value cell/update address pairs. */
@@ -408,7 +409,7 @@ struct __wt_page_modify {
 		} *remove;
 		size_t	 remove_allocated;
 		uint32_t remove_next;
-	} *ovfl_track;
+	} *ovfl_track; //赋值见__wt_ovfl_discard_add
 
 #define	WT_PAGE_LOCK(s, p) 						\
 	__wt_spin_lock((s), &(p)->modify->page_lock)
@@ -852,6 +853,7 @@ struct __wt_ref {
 	volatile uint32_t state;	/* Page state */
 };
 
+//赋值见__evict_page_dirty_update
 #define	WT_REF_DISK	 0		/* Page is on disk */
 #define	WT_REF_DELETED	 1		/* Page is on disk, but deleted */
 #define	WT_REF_LOCKED	 2		/* Page locked for exclusive access */

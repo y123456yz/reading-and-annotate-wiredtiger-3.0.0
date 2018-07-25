@@ -528,6 +528,7 @@ done:	WT_PUBLISH(ref->state, WT_REF_LOOKASIDE);
  *	Acquire a hazard pointer to a page; if the page is not in-memory,
  *	read it from the disk and build an in-memory version.
  */
+/*帮助ref对应的page获得一个hazard pointer,如果page是在磁盘上，将page读入memory中*/
 int
 __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 #ifdef HAVE_DIAGNOSTIC

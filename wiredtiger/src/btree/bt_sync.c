@@ -174,6 +174,9 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 
 		LF_SET(WT_READ_NO_WAIT | WT_READ_SKIP_INTL);
 		for (;;) { /*遍历所有无操作的page*/
+		    //获取refp的前一个(flags带WT_READ_PREV)或者后一个节点(flags不带WT_READ_PREV) 默认后一个节点
+		    /* *walk是NULL，表示是从root page开始*/
+		    //从root开始一步一步获取btree中所有节点
 			WT_ERR(__wt_tree_walk(session, &walk, flags));
 			if (walk == NULL)
 				break;
@@ -185,7 +188,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 			 * checkpoint will have to visit them anyway.
 			 */
 			page = walk->page;
-			/* 将无操作的脏写入磁盘，如果有的更新在刷盘事务之后产生，那么这个更新的page不做刷盘操作*/
+			/* 将无操作的脏数据写入磁盘，如果有的更新在刷盘事务之后产生，那么这个更新的page不做刷盘操作*/
 			if (__wt_page_is_modified(page) &&
 			    WT_TXNID_LT(page->modify->update_txn, oldest_id)) {
 				if (txn->isolation == WT_ISO_READ_COMMITTED)
@@ -247,6 +250,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 		for (;;) {
 		    //将walk->page与hazard指针关联起来
 			WT_ERR(__sync_dup_walk(session, walk, flags, &prev));
+			//获取refp的前一个(flags带WT_READ_PREV)或者后一个节点(flags不带WT_READ_PREV) 默认后一个节点
 			WT_ERR(__wt_tree_walk(session, &walk, flags));
 
 			if (walk == NULL)

@@ -209,6 +209,7 @@ err:	if (ref != NULL)
  * __wt_compact_page_skip --
  *	Return if compaction requires we read this page.
  */
+/*在读取ref对应的page时，检查它是否需要compact*/
 int
 __wt_compact_page_skip(
     WT_SESSION_IMPL *session, WT_REF *ref, void *context, bool *skipp)

@@ -179,7 +179,6 @@ __wt_cursor_get_key(WT_CURSOR *cursor, ...)
 {
 	WT_DECL_RET;
 	va_list ap;
-    printf("yang test ....................__wt_cursor_get_key\r\n");
 
 	va_start(ap, cursor);
 	ret = __wt_cursor_get_keyv(cursor, cursor->flags, ap);
@@ -319,6 +318,7 @@ __wt_cursor_get_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 			ret = __wt_struct_unpackv(session,
 			    cursor->key.data, cursor->key.size, fmt, ap);
 	}
+    __wt_verbose(session, WT_VERB_API, "__wt_cursor_get_keyv:%s", key->data);
 
 err:	API_END_RET(session, ret);
 }
@@ -395,6 +395,9 @@ __wt_cursor_set_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 		    "Key size (%" PRIu64 ") out of range", (uint64_t)sz);
 	cursor->saved_err = 0;
 	buf->size = sz;
+
+    __wt_verbose(session, WT_VERB_API, "__wt_cursor_set_keyv:%s", buf->data);
+
 	F_SET(cursor, WT_CURSTD_KEY_EXT);
 	if (0) {
 err:		cursor->saved_err = ret;
@@ -423,7 +426,6 @@ __wt_cursor_get_value(WT_CURSOR *cursor, ...)
 {
 	WT_DECL_RET;
 	va_list ap;
-    printf("yang test ....................__wt_cursor_get_value\r\n");
 
 	va_start(ap, cursor);
 	ret = __wt_cursor_get_valuev(cursor, ap);
@@ -463,6 +465,7 @@ __wt_cursor_get_valuev(WT_CURSOR *cursor, va_list ap)
 		ret = __wt_struct_unpackv(session,
 		    cursor->value.data, cursor->value.size, fmt, ap);
 
+     __wt_verbose(session, WT_VERB_API, "__wt_cursor_get_valuev:%s", cursor->value.data);
 err:	API_END_RET(session, ret);
 }
 
@@ -534,6 +537,7 @@ __wt_cursor_set_valuev(WT_CURSOR *cursor, va_list ap)
 	}
 	F_SET(cursor, WT_CURSTD_VALUE_EXT);
 	buf->size = sz;
+    __wt_verbose(session, WT_VERB_API, "__wt_cursor_set_valuev:%s", buf->data);
 
 	if (0) {
 err:		cursor->saved_err = ret;

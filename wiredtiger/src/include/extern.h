@@ -696,12 +696,12 @@ extern int __wt_library_init(void) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_resul
 extern void __wt_breakpoint(void);
 extern uint64_t __wt_hash_city64(const void *s, size_t len);
 extern uint64_t __wt_hash_fnv64(const void *string, size_t len);
-extern int
+extern int //将ref->page与hazard指针关联
 __wt_hazard_set(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 #ifdef HAVE_DIAGNOSTIC
  , const char *file, int line
 #endif
- );
+ ) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern int __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern void __wt_hazard_close(WT_SESSION_IMPL *session);
 extern WT_HAZARD *__wt_hazard_check(WT_SESSION_IMPL *session, WT_REF *ref);

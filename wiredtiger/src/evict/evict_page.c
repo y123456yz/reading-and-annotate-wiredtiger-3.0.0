@@ -259,6 +259,7 @@ __evict_delete_ref(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
  * __evict_page_clean_update --
  *	Update a clean page's reference on eviction.
  */
+/*将内存中的page结构对象全部删除，完成这个操作后需要改变page对应的ref状态*/
 static int
 __evict_page_clean_update(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
 {
@@ -284,6 +285,7 @@ __evict_page_clean_update(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
  * __evict_page_dirty_update --
  *	Update a dirty page's reference on eviction.
  */
+/*先将page中的脏数据reconcile到磁盘上，再evict page出内存*/
 static int
 __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
 {
