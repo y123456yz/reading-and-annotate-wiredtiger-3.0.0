@@ -10,6 +10,7 @@
  * __wt_fsync --
  *	POSIX fsync.
  */
+
 static inline int
 __wt_fsync(WT_SESSION_IMPL *session, WT_FH *fh, bool block)
 {

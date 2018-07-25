@@ -48,9 +48,6 @@ typedef struct {
 
 	/* Track the page's min/maximum transactions. */
 	uint64_t max_txn;
-	WT_DECL_TIMESTAMP(max_timestamp)
-	WT_DECL_TIMESTAMP(max_onpage_timestamp)
-	WT_DECL_TIMESTAMP(min_saved_timestamp)
 
 	u_int updates_seen;		/* Count of updates seen. */
 	u_int updates_unstable;		/* Count of updates not visible_all. */
@@ -255,6 +252,7 @@ typedef struct {
 	 * WT_KV--
 	 *	An on-page key/value item we're building.
 	 */
+	//v赋值见__rec_cell_build_addr   k赋值见__rec_cell_build_int_key
 	struct __rec_kv {
 		WT_ITEM	 buf;		/* Data */
 		WT_CELL	 cell;		/* Cell and cell's length */
@@ -287,6 +285,10 @@ typedef struct {
 	 * we need a better solution.
 	 */
 	WT_CURSOR_BTREE update_modify_cbt;
+
+	WT_DECL_TIMESTAMP(max_timestamp)
+	WT_DECL_TIMESTAMP(max_onpage_timestamp)
+	WT_DECL_TIMESTAMP(min_saved_timestamp)
 } WT_RECONCILE;
 
 #define	WT_CROSSING_MIN_BND(r, next_len)				\
@@ -351,6 +353,8 @@ static void __rec_dictionary_reset(WT_RECONCILE *);
  * __wt_reconcile --
  *	Reconcile an in-memory page into its on-disk format, and write it.
  */
+//checkpoint时会遍历所有btree，把btree的所有leaf_page做reconcile操作，然后对重新分配root
+/*将一个内存中的page转化成磁盘存储的格式数据序列*/
 int
 __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref,
     WT_SALVAGE_COOKIE *salvage, uint32_t flags, bool *lookaside_retryp)
@@ -406,6 +410,7 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref,
 	 *    In-memory splits: reconciliation of an internal page cannot handle
 	 * a child page splitting during the reconciliation.
 	 */
+	/*这个锁是为了防止page中有新的数据添加，如果在reconcile过称重需要进行内存的compact，那么必须防止新的数据添加*/
 	WT_PAGE_LOCK(session, page);
 
 	/*
@@ -931,7 +936,7 @@ __rec_init(WT_SESSION_IMPL *session,
 	/* Reconciliation is not re-entrant, make sure that doesn't happen. */
 	WT_ASSERT(session, r->ref == NULL);
 
-	/* Remember the configuration. */
+	/* Remember the configuration. */ 
 	r->ref = ref;
 	r->page = page;
 
@@ -1912,7 +1917,7 @@ __rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size)
 /*
  * __rec_copy_incr --
  *	Copy a key/value cell and buffer pair into the new image.
- */
+ */ /*将kv的值拷贝到r中buff中*/
 static inline void
 __rec_copy_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_KV *kv)
 {
@@ -1926,13 +1931,17 @@ __rec_copy_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_KV *kv)
 	 *
 	 * WT_CELLs are typically small, 1 or 2 bytes -- don't call memcpy, do
 	 * the copy in-line.
-	 */
+	 */ 
+    //cell和kv的内容都会拷贝到p，也就是first_free中
+
+
+	/*拷贝cell的内容*/
 	for (p = r->first_free,
 	    t = (uint8_t *)&kv->cell, len = kv->cell_len; len > 0; --len)
 		*p++ = *t++;
 
 	/* The data can be quite large -- call memcpy. */
-	if (kv->buf.size != 0)
+	if (kv->buf.size != 0) /*拷贝kv的值*/
 		memcpy(p, kv->buf.data, kv->buf.size);
 
 	WT_ASSERT(session, kv->len == kv->cell_len + kv->buf.size);
@@ -3228,7 +3237,8 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 /*
  * __rec_split_finish --
  *	Finish processing a page.
- */
+ */ 
+/*结束page的reconcile操作*/
 static int
 __rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 {
@@ -3241,7 +3251,7 @@ __rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 	 * We're done reconciling, write the final page. Call raw compression
 	 * until/unless there's not enough data to compress.
 	 */
-	if (r->entries != 0 && r->raw_compression) {
+	if (r->entries != 0 && r->raw_compression) {  /*进行compress split*/
 		while (r->entries != 0) {
 			data_size =
 			    WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem);
@@ -3274,6 +3284,7 @@ __rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 		WT_RET(__rec_split_finish_process_prev(session, r));
 
 	/* Write the remaining data/last page. */
+	 /*直接将page写入盘里面*/
 	return (__rec_split_write(session, r, r->cur_ptr, NULL, true));
 }
 
@@ -4962,7 +4973,8 @@ err:	__wt_scr_free(session, &orig);
 /*
  * __rec_row_int --
  *	Reconcile a row-store internal page.
- */
+ */ 
+/*row store的internal page的reconcile操作*/
 static int
 __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 {
@@ -5033,6 +5045,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 			key_onpage_ovfl = false;
 			ikey = __wt_ref_key_instantiated(ref);
 			if (ikey != NULL && ikey->cell_offset != 0) {
+			    /*确定key是否是overflow方式存储*/
 				cell =
 				    WT_PAGE_REF_OFFSET(page, ikey->cell_offset);
 				__wt_cell_unpack(cell, kpack);
@@ -5041,12 +5054,13 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 			}
 		}
 
+        /*将孩子节点修改为脏page,并获取其hazard pointer防止被evict出内存*/
 		WT_ERR(__rec_child_modify(session, r, ref, &hazard, &state));
 		addr = ref->addr;
 		child = ref->page;
 
 		switch (state) {
-		case WT_CHILD_IGNORE:
+		case WT_CHILD_IGNORE: /*孩子被标记为deleted，不需要对这个ref记录做reconcile操作*/
 			/*
 			 * Ignored child.
 			 *
@@ -5123,19 +5137,20 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 		 * a special cell type in the case of page deletion requiring
 		 * a proxy cell, otherwise use the information from the addr or
 		 * original cell.
-		 */
+		 */ /*判断p的位置是否在page的内存连续空间数据上*/
 		if (__wt_off_page(page, addr)) {
 			p = addr->addr;
 			size = addr->size;
 			vtype = state == WT_CHILD_PROXY ?
 			    WT_CELL_ADDR_DEL : __rec_vtype(addr);
-		} else {
+		} else { /*连续内存中分配的addr,进行cell upack*/
 			__wt_cell_unpack(ref->addr, vpack);
 			p = vpack->data;
 			size = vpack->size;
 			vtype = state == WT_CHILD_PROXY ?
 			    WT_CELL_ADDR_DEL : (u_int)vpack->raw;
 		}
+		//构建value
 		__rec_cell_build_addr(session, r, p, size, vtype, WT_RECNO_OOB);
 		WT_CHILD_RELEASE_ERR(session, hazard, ref);
 
@@ -5151,12 +5166,14 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 			ovfl_key = true;
 		} else {
 			__wt_ref_key(page, ref, &p, &size);
+			/*通过data构建一个用于reconcile的internal key值*/
 			WT_ERR(__rec_cell_build_int_key(
 			    session, r, p, r->cell_zero ? 1 : size, &ovfl_key));
 		}
 		r->cell_zero = false;
 
 		/* Boundary: split or write the page. */
+		/*将key/value写入到reconcile buf中*/
 		if (__rec_need_split(r, key->len + val->len)) {
 			if (r->raw_compression)
 				WT_ERR(__rec_split_raw(
@@ -5180,6 +5197,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 		}
 
 		/* Copy the key and value onto the page. */
+		/*将kv的值拷贝到r中buff中*/
 		__rec_copy_incr(session, r, key);
 		__rec_copy_incr(session, r, val);
 
@@ -6153,6 +6171,8 @@ __rec_las_wrapup_err(WT_SESSION_IMPL *session, WT_RECONCILE *r)
  *	Process a key and return a WT_CELL structure and byte string to be
  *	stored on a row-store internal page.
  */
+//v赋值见__rec_cell_build_addr   k赋值见__rec_cell_build_int_key
+/*通过data构建一个用于reconcile的internal key值*/
 static int
 __rec_cell_build_int_key(WT_SESSION_IMPL *session,
     WT_RECONCILE *r, const void *data, size_t size, bool *is_ovflp)
@@ -6171,6 +6191,7 @@ __rec_cell_build_int_key(WT_SESSION_IMPL *session,
 	WT_RET(__wt_buf_set(session, &key->buf, data, size));
 
 	/* Create an overflow object if the data won't fit. */
+	/*ovfl key，需要用另外的内存空间（cell）来做存储*/
 	if (size > btree->maxintlkey) {
 		WT_STAT_DATA_INCR(session, rec_overflow_key_internal);
 
@@ -6292,7 +6313,9 @@ __rec_cell_build_leaf_key(WT_SESSION_IMPL *session,
  * __rec_cell_build_addr --
  *	Process an address reference and return a cell structure to be stored
  *	on the page.
- */
+ */ 
+//v赋值见__rec_cell_build_addr   k赋值见__rec_cell_build_int_key
+/*构建一个reconcile的block addr的值*/
 static void
 __rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r,
     const void *addr, size_t size, u_int cell_type, uint64_t recno)
@@ -6372,6 +6395,7 @@ __rec_cell_build_val(WT_SESSION_IMPL *session,
  * __rec_cell_build_ovfl --
  *	Store overflow items in the file, returning the address cookie.
  */
+/*为ovfl的kv数据分配一个ovfl block并将block addr更新到kv对应关系中，以便reconcile过程建立关联关系*/
 static int
 __rec_cell_build_ovfl(WT_SESSION_IMPL *session,
     WT_RECONCILE *r, WT_KV *kv, uint8_t type, uint64_t rle)

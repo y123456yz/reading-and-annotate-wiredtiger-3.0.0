@@ -288,7 +288,9 @@ __ref_initial_descent_prev(
 /*
  * __tree_walk_internal --
  *	Move to the next/previous page in the tree.
- */
+ */ 
+//获取refp的前一个(flags带WT_READ_PREV)或者后一个节点(flags不带WT_READ_PREV) 默认后一个节点
+/* *refp是NULL，表示是从root page开始*/
 static inline int
 __tree_walk_internal(WT_SESSION_IMPL *session,
     WT_REF **refp, uint64_t *walkcntp,
@@ -412,7 +414,7 @@ restart:	/*
 			 * If at the root and returning internal pages, return
 			 * the root page, otherwise we're done. Regardless, no
 			 * hazard pointer is required, release the one we hold.
-			 */
+			 */ /*回到root page了，表示已经walk完毕，释放我们所保持的harzard pointer*/
 			if (__wt_ref_is_root(ref)) {
 				WT_ERR(__wt_page_release(
 				    session, couple, flags));
@@ -438,7 +440,7 @@ restart:	/*
 			 * additional complexity and is not a possible return:
 			 * we're moving to the parent of the current child page,
 			 * the parent can't have been evicted.
-			 */
+			 */ /*读取父亲节点来顶替孩子节点，然后继续索引*/
 			if (!LF_ISSET(WT_READ_SKIP_INTL)) {
 				WT_ERR(__wt_page_swap(
 				    session, couple, ref, flags));
@@ -447,11 +449,13 @@ restart:	/*
 			}
 		}
 
+        /*前移或者后移*/
 		if (prev)
 			--slot;
 		else
 			++slot;
 
+        /*步数计数*/
 		if (walkcntp != NULL)
 			++*walkcntp;
 
@@ -492,6 +496,7 @@ restart:	/*
 				 * Avoid pulling a deleted page back in to try
 				 * to delete it again.
 				 */
+				/*页如果已经被删除了，跳过它*/
 				if (ref->state == WT_REF_DELETED &&
 				    __wt_delete_page_skip(session, ref, false))
 					break;
@@ -645,7 +650,9 @@ err:	WT_LEAVE_PAGE_INDEX(session);
 /*
  * __wt_tree_walk --
  *	Move to the next/previous page in the tree.
- */
+ */ 
+//获取refp的前一个(flags带WT_READ_PREV)或者后一个节点(flags不带WT_READ_PREV) 默认后一个节点
+/* *refp是NULL，表示是从root page开始*/
 int
 __wt_tree_walk(WT_SESSION_IMPL *session, WT_REF **refp, uint32_t flags)
 {

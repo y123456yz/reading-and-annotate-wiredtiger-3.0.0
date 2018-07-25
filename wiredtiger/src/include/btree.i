@@ -41,7 +41,8 @@ __wt_page_evict_clean(WT_PAGE *page)
 /*
  * __wt_page_is_modified --
  *	Return if the page is dirty.
- */
+ */ 
+/*判断page是否存在内存中的修改，也就是脏页判断*/
 static inline bool
 __wt_page_is_modified(WT_PAGE *page)
 {
@@ -645,7 +646,8 @@ __wt_page_parent_modify_set(
 /*
  * __wt_off_page --
  *	Return if a pointer references off-page data.
- */
+ */ 
+/*判断p的位置是否在page的内存连续空间数据上*/
 static inline bool
 __wt_off_page(WT_PAGE *page, const void *p)
 {
@@ -679,7 +681,7 @@ __wt_ref_addr_free(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_ref_key --
  *	Return a reference to a row-store internal page key as cheaply as
  * possible.
- */
+ */ /*获取行存储时ref对应page中的内部key值*/
 static inline void
 __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
 {
@@ -1338,7 +1340,7 @@ __wt_page_evict_retry(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_page_can_evict --
  *	Check whether a page can be evicted.
- */
+ */ /*判断page是否可以进行LRU淘汰*/
 static inline bool
 __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 {
@@ -1353,6 +1355,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 	mod = page->modify;
 
 	/* Pages that have never been modified can always be evicted. */
+	/*page没有进行过修改，可以直接进行淘汰，不需要数据落盘操作*/
 	if (mod == NULL)
 		return (true);
 
@@ -1369,7 +1372,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 	/*
 	 * If the page was restored after a truncate, it can't be evicted until
 	 * the truncate completes.
-	 */
+	 */ 
 	if (ref->page_del != NULL && !__wt_txn_visible_all(session,
 	    ref->page_del->txnid, WT_TIMESTAMP_NULL(&ref->page_del->timestamp)))
 		return (false);
@@ -1380,6 +1383,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 	 * detailed eviction tests. We don't need further tests since the page
 	 * won't be written or discarded from the cache.
 	 */
+	/*internal page正在分裂,不能进行淘汰*/
 	if (__wt_leaf_page_can_split(session, page)) {
 		if (inmem_splitp != NULL)
 			*inmem_splitp = true;
@@ -1419,7 +1423,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 	/*
 	 * If the page is clean but has modifications that appear too new to
 	 * evict, skip it.
-	 */
+	 */ 
 	if (!modified && !__wt_txn_visible_all(session,
 	    mod->rec_max_txn, WT_TIMESTAMP_NULL(&mod->rec_max_timestamp)))
 		return (false);
@@ -1432,6 +1436,8 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
  *	Release a reference to a page.
  */
 /*释放一个ref对应的page*/
+/*判断是否能淘汰page, page被标记为可evcit状态在读且不是常驻内存的BTREE，可以尝试进行page的evict操作*/
+//同时clear hazard指针
 static inline int
 __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {
@@ -1484,6 +1490,7 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 		}
 	}
 
+    //hazard clear
 	return (__wt_hazard_clear(session, ref));
 }
 
@@ -1492,6 +1499,7 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
  *	Swap one page's hazard pointer for another one when hazard pointer
  * coupling up/down the tree.
  */
+/*交换held和want的page指针，相当于淘汰held,从磁盘中读取want来顶替held的位置*/
 static inline int
 __wt_page_swap_func(
     WT_SESSION_IMPL *session, WT_REF *held, WT_REF *want, uint32_t flags

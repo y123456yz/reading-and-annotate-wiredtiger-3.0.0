@@ -124,7 +124,7 @@ __ovfl_discard_wrapup_err(WT_SESSION_IMPL *session, WT_PAGE *page)
  * __wt_ovfl_discard_add --
  *	Add a new entry to the page's list of overflow records that have been
  * discarded.
- */
+ */ /*增加一个discard ovfl cell到track对象中*/
 int
 __wt_ovfl_discard_add(WT_SESSION_IMPL *session, WT_PAGE *page, WT_CELL *cell)
 {
@@ -133,6 +133,7 @@ __wt_ovfl_discard_add(WT_SESSION_IMPL *session, WT_PAGE *page, WT_CELL *cell)
 	if (page->modify->ovfl_track == NULL)
 		WT_RET(__wt_ovfl_track_init(session, page));
 
+    /*保证track->discard数组能存入新加入的discard ovfl cell*/
 	track = page->modify->ovfl_track;
 	WT_RET(__wt_realloc_def(session, &track->discard_allocated,
 	    track->discard_entries + 1, &track->discard));

@@ -458,7 +458,7 @@ __wt_block_off_remove_overlap(WT_SESSION_IMPL *session, WT_BLOCK *block,
 /*
  * __block_extend --
  *	Extend the file to allocate space.
- */
+ */ /*扩大一个block对应的文件大小*/
 static inline int
 __block_extend(
     WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off_t size)
@@ -478,7 +478,7 @@ __block_extend(
 	 * easy way to know the maximum wt_off_t on a system, limit growth to
 	 * 8B bits (we currently check an wt_off_t is 8B in verify_build.h). I
 	 * don't think we're likely to see anything bigger for awhile.
-	 */
+	 */ /*文件超过最大值了，不能再扩展*/
 	if (block->size > (wt_off_t)INT64_MAX - size)
 		WT_RET_MSG(session, WT_ERROR,
 		    "block allocation failed, file cannot grow further");
@@ -497,7 +497,7 @@ __block_extend(
 /*
  * __wt_block_alloc --
  *	Alloc a chunk of space from the underlying file.
- */
+ */ /*在一个block对应的文件中分配一个数据空间(chunk)*/
 int
 __wt_block_alloc(
     WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off_t size)
@@ -509,7 +509,7 @@ __wt_block_alloc(
 	WT_ASSERT(session, block->live.avail.track_size != 0);
 
 	WT_STAT_DATA_INCR(session, block_alloc);
-	if (size % block->allocsize != 0)
+	if (size % block->allocsize != 0)/*size没有和block要求的对齐方式对齐，不进行下一步处理*/
 		WT_RET_MSG(session, EINVAL,
 		    "cannot allocate a block size %" PRIdMAX " that is not "
 		    "a multiple of the allocation size %" PRIu32,
@@ -526,14 +526,16 @@ __wt_block_alloc(
 	 * offset appearing earlier in the file.
 	 *
 	 * If we don't have anything big enough, extend the file.
-	 */
+	 */ /*block数据长度还未达到要求建立数据空间的长度，对block对应的文件进行扩充,暂时不分配数据空间*/
 	if (block->live.avail.bytes < (uint64_t)size)
 		goto append;
 	if (block->allocfirst) {
+	    /*查找off跳表中第一个能存入size大小的ext对象位置*/
 		if (!__block_first_srch(block->live.avail.off, size, estack))
 			goto append;
 		ext = *estack[0];
 	} else {
+	    /*在WT_SIZE的跳表中找能存下size长度的ext对象*/
 		__block_size_srch(block->live.avail.sz, size, sstack);
 		if ((szp = *sstack[0]) == NULL) {
 append:			WT_RET(__block_extend(session, block, offp, size));
@@ -547,11 +549,13 @@ append:			WT_RET(__block_extend(session, block, offp, size));
 	}
 
 	/* Remove the record, and set the returned offset. */
+	/*将ext从avail列表中删除，表示这个ext被占用了*/
 	WT_RET(__block_off_remove(
 	    session, block, &block->live.avail, ext->off, &ext));
 	*offp = ext->off;
 
 	/* If doing a partial allocation, adjust the record and put it back. */
+	/*数据没有充满ext对象长度，去掉已经占用的，把未占用的重新放入到live.avail中继续使用*/
 	if (ext->size > size) {
 		__wt_verbose(session, WT_VERB_BLOCK,
 		    "allocate %" PRIdMAX " from range %" PRIdMAX "-%"
@@ -564,7 +568,7 @@ append:			WT_RET(__block_extend(session, block, offp, size));
 		ext->off += size;
 		ext->size -= size;
 		WT_RET(__block_ext_insert(session, &block->live.avail, ext));
-	} else {
+	} else {/*刚好充满这个ext,释放掉这个ext对象*/
 		__wt_verbose(session, WT_VERB_BLOCK,
 		    "allocate range %" PRIdMAX "-%" PRIdMAX,
 		    (intmax_t)ext->off, (intmax_t)(ext->off + ext->size));
@@ -573,6 +577,7 @@ append:			WT_RET(__block_extend(session, block, offp, size));
 	}
 
 	/* Add the newly allocated extent to the list of allocations. */
+	/*将新获得的文件数据空间合并到live.alloc列表中*/
 	WT_RET(__block_merge(
 	    session, block, &block->live.alloc, *offp, (wt_off_t)size));
 	return (0);

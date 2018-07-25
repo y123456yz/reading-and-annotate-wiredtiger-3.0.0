@@ -161,6 +161,7 @@ struct __wt_session_impl {
 	u_int   op_handle_next;		/* Next empty slot */
 	size_t  op_handle_allocated;	/* Bytes allocated */
 
+    //¸³Öµ¼û__wt_reconcile
 	void	*reconcile;		/* Reconciliation support */
 	int	(*reconcile_cleanup)(WT_SESSION_IMPL *);
 

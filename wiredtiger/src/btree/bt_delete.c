@@ -216,6 +216,8 @@ __wt_delete_page_rollback(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_delete_page_skip --
  *	If iterating a cursor, skip deleted pages that are either visible to
  * us or globally visible.
+ * 在btree cursor操作btree时，需要判断page是否是删除，如果删除了，
+ * 需要skip 它
  */
 bool
 __wt_delete_page_skip(WT_SESSION_IMPL *session, WT_REF *ref, bool visible_all)
