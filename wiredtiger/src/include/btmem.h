@@ -511,6 +511,7 @@ struct __wt_page {
 		 * doesn't read it multiple times).
 		 */
 		struct {
+		    //pg_intl_parent_ref 指向父节点
 			WT_REF	*parent_ref;	/* Parent reference */
 			uint64_t split_gen;	/* Generation of last split */
 
@@ -820,17 +821,9 @@ struct __wt_ref {
 	 * changes.  Don't cache it, we need to see that change when looking
 	 * up our slot in the page's index structure.
 	 */
+	//指向父节点root节点
 	WT_PAGE * volatile home;	/* Reference page */
 	volatile uint32_t pindex_hint;	/* Reference page index hint */
-
-#define	WT_REF_DISK	 0		/* Page is on disk */
-#define	WT_REF_DELETED	 1		/* Page is on disk, but deleted */
-#define	WT_REF_LOCKED	 2		/* Page locked for exclusive access */
-#define	WT_REF_LOOKASIDE 3		/* Page is on disk with lookaside */
-#define	WT_REF_MEM	 4		/* Page is in cache and valid */
-#define	WT_REF_READING	 5		/* Page being read */
-#define	WT_REF_SPLIT	 6		/* Parent page split (WT_REF dead) */
-	volatile uint32_t state;	/* Page state */
 
 	/*
 	 * Address: on-page cell if read from backing block, off-page WT_ADDR
@@ -855,7 +848,18 @@ struct __wt_ref {
 		WT_PAGE_DELETED	*page_del;	/* Deleted page information */
 		WT_PAGE_LOOKASIDE *page_las;	/* Lookaside information */
 	};
+
+	volatile uint32_t state;	/* Page state */
 };
+
+#define	WT_REF_DISK	 0		/* Page is on disk */
+#define	WT_REF_DELETED	 1		/* Page is on disk, but deleted */
+#define	WT_REF_LOCKED	 2		/* Page locked for exclusive access */
+#define	WT_REF_LOOKASIDE 3		/* Page is on disk with lookaside */
+#define	WT_REF_MEM	 4		/* Page is in cache and valid */
+#define	WT_REF_READING	 5		/* Page being read */
+#define	WT_REF_SPLIT	 6		/* Parent page split (WT_REF dead) */
+
 /*
  * WT_REF_SIZE is the expected structure size -- we verify the build to ensure
  * the compiler hasn't inserted padding which would break the world.

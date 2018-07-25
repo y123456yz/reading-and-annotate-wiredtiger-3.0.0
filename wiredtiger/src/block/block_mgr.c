@@ -148,6 +148,7 @@ __bm_checkpoint_resolve_readonly(
  * __bm_checkpoint_start --
  *	Start the checkpoint.
  */
+//设置checkpoint start开始  __checkpoint_tree中执行
 static int
 __bm_checkpoint_start(WT_BM *bm, WT_SESSION_IMPL *session)
 {
@@ -450,7 +451,7 @@ __bm_stat(WT_BM *bm, WT_SESSION_IMPL *session, WT_DSRC_STATS *stats)
 /*
  * __bm_sync --
  *	Flush a file to disk.
- */
+ */ /*将bm->block对应的文件脏数据sync到磁盘上*/
 static int
 __bm_sync(WT_BM *bm, WT_SESSION_IMPL *session, bool block)
 {

@@ -5,13 +5,18 @@
  *
  * See the file LICENSE for redistribution information.
  */
+ /************************************************************
+ * btree 的cursor向前或者向后移动page操作实现
+ ************************************************************/
 
 #include "wt_internal.h"
 
 /*
  * __ref_index_slot --
  *      Return the page's index and slot for a reference.
- */
+ */ 
+/*查找ref对应page的pindex，及其pindex中对应的槽位ID*/
+//__ref_index_slot本层查找  __ref_ascend父层查找
 static inline void
 __ref_index_slot(WT_SESSION_IMPL *session,
     WT_REF *ref, WT_PAGE_INDEX **pindexp, uint32_t *slotp)
@@ -105,6 +110,7 @@ __ref_is_leaf(WT_REF *ref)
  * __ref_ascend --
  *	Ascend the tree one level.
  */
+//回到refp的父节点查找
 static inline void
 __ref_ascend(WT_SESSION_IMPL *session,
     WT_REF **refp, WT_PAGE_INDEX **pindexp, uint32_t *slotp)
@@ -313,7 +319,7 @@ __tree_walk_internal(WT_SESSION_IMPL *session,
 	/*
 	 * !!!
 	 * Fast-truncate currently only works on row-store trees.
-	 */
+	 */ /*fast truncate 仅仅在行存储btree中使用*/
 	if (btree->type != BTREE_ROW)
 		LF_CLR(WT_READ_TRUNCATE);
 
@@ -357,7 +363,7 @@ __tree_walk_internal(WT_SESSION_IMPL *session,
 	*refp = NULL;
 
 	/* If no page is active, begin a walk from the start/end of the tree. */
-	if (ref == NULL) {
+	if (ref == NULL) { /*ref是NULL，表示是从root page开始*/
 restart:	/*
 		 * We can be here with a NULL or root WT_REF; the page release
 		 * function handles them internally, don't complicate this code
@@ -381,10 +387,13 @@ restart:	/*
 	 * only get here if we've returned the root to our caller, so we're
 	 * holding no hazard pointers.
 	 */
+	/*假如回到root page,表示已经walk完毕，释放我们所保持的harzard pointer*/
 	if (__wt_ref_is_root(ref))
 		goto done;
 
 	/* Figure out the current slot in the WT_REF array. */
+	/*获得当前ref信息在internal page的slot位置*/
+	/*查找ref对应page的pindex，及其pindex中对应的槽位ID*/
 	__ref_index_slot(session, ref, &pindex, &slot);
 
 	for (;;) {
@@ -392,10 +401,11 @@ restart:	/*
 		 * If we're at the last/first slot on the internal page, return
 		 * it in post-order traversal. Otherwise move to the next/prev
 		 * slot and left/right-most element in that subtree.
-		 */
+		 */ /*已经到internal page的末尾，应该换下一个internal page来索引*/
 		while ((prev && slot == 0) ||
 		    (!prev && slot == pindex->entries - 1)) {
 			/* Ascend to the parent. */
+			/*回到父亲internal*/
 			__ref_ascend(session, &ref, &pindex, &slot);
 
 			/*

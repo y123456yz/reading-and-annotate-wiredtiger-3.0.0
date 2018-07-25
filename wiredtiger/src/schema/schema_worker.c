@@ -45,7 +45,7 @@ __wt_schema_worker(WT_SESSION_IMPL *session,
 			/*
 			 * If the operation requires exclusive access, close
 			 * any open file handles, including checkpoints.
-			 */
+			 */ /*独占式访问，那么必须获得dhandle的锁控制权*/
 			if (FLD_ISSET(open_flags, WT_DHANDLE_EXCLUSIVE)) {
 				WT_WITH_HANDLE_LIST_WRITE_LOCK(session,
 				    ret = __wt_conn_dhandle_close_all(

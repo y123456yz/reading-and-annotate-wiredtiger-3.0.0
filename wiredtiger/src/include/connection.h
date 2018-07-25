@@ -74,7 +74,7 @@ struct __wt_named_compressor {
 /*
  * WT_NAMED_DATA_SOURCE --
  *	A data source list entry
- */
+ */ //创建空间赋值见__conn_add_data_source
 struct __wt_named_data_source {
 	const char *prefix;		/* Name of data source */
 	WT_DATA_SOURCE *dsrc;		/* User supplied callbacks */
@@ -294,6 +294,7 @@ struct __wt_connection_impl {
 	uint64_t  ckpt_time_total;
 
 	/* Checkpoint stats and verbosity timers */
+	//赋值见__txn_checkpoint
 	struct timespec ckpt_timer_start;
 	struct timespec ckpt_timer_scrub_end;
 
@@ -344,6 +345,7 @@ struct __wt_connection_impl {
 
 #define	WT_CONN_LOG_ARCHIVE		0x001	/* Archive is enabled */
 #define	WT_CONN_LOG_DOWNGRADED		0x002	/* Running older version */
+//log.enabled是否使能
 #define	WT_CONN_LOG_ENABLED		0x004	/* Logging is enabled */  //启用日志功能，赋值见__wt_logmgr_create
 #define	WT_CONN_LOG_EXISTED		0x008	/* Log files found */
 #define	WT_CONN_LOG_FORCE_DOWNGRADE	0x010	/* Force downgrade */

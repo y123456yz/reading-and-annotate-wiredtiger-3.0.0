@@ -32,7 +32,8 @@ typedef struct __wt_meta_track {
  * __meta_track_next --
  *	Extend the list of operations we're tracking, as necessary, and
  *	optionally return the next slot.
- */
+ */ 
+/*在进行记录meta track时，如果meta track缓冲区不足，需要进行扩充*/
 static int
 __meta_track_next(WT_SESSION_IMPL *session, WT_META_TRACK **trkp)
 {
@@ -40,7 +41,8 @@ __meta_track_next(WT_SESSION_IMPL *session, WT_META_TRACK **trkp)
 
 	if (session->meta_track_next == NULL)
 		session->meta_track_next = session->meta_track;
-
+		
+    /*计算当前track实例所在的偏移位置，可以根据这个偏移确定是否需要扩充操作*/
 	offset = WT_PTRDIFF(session->meta_track_next, session->meta_track);
 	sub_off = WT_PTRDIFF(session->meta_track_sub, session->meta_track);
 	if (offset == session->meta_track_alloc) {
@@ -48,6 +50,7 @@ __meta_track_next(WT_SESSION_IMPL *session, WT_META_TRACK **trkp)
 		    WT_MAX(2 * session->meta_track_alloc,
 		    20 * sizeof(WT_META_TRACK)), &session->meta_track));
 
+        /*重新确定 track next和track sub的位置*/
 		/* Maintain positions in the new chunk of memory. */
 		session->meta_track_next =
 		    (uint8_t *)session->meta_track + offset;
@@ -57,7 +60,8 @@ __meta_track_next(WT_SESSION_IMPL *session, WT_META_TRACK **trkp)
 	}
 
 	WT_ASSERT(session, session->meta_track_next != NULL);
-
+	
+    /*是否要进行track实例申请，如果要返回track next对应的实例*/
 	if (trkp != NULL) {
 		*trkp = session->meta_track_next;
 		session->meta_track_next = *trkp + 1;
@@ -110,7 +114,7 @@ __wt_meta_track_discard(WT_SESSION_IMPL *session)
 /*
  * __wt_meta_track_on --
  *	Turn on metadata operation tracking.
- */
+ */ /*开启meta track*/
 int
 __wt_meta_track_on(WT_SESSION_IMPL *session)
 {

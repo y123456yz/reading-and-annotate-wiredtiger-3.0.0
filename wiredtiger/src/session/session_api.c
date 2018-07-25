@@ -25,7 +25,7 @@ __wt_session_notsup(WT_SESSION_IMPL *session)
 /*
  * __wt_session_reset_cursors --
  *	Reset all open cursors.
- */
+ */ /*重置session对应的cursor*/
 int
 __wt_session_reset_cursors(WT_SESSION_IMPL *session, bool free_buffers)
 {
@@ -36,6 +36,8 @@ __wt_session_reset_cursors(WT_SESSION_IMPL *session, bool free_buffers)
 		/* Stop when there are no positioned cursors. */
 		if (session->ncursors == 0)
 			break;
+
+	    /*将session管理的cursor进行reset*/
 		if (!F_ISSET(cursor, WT_CURSTD_JOINED))
 			WT_TRET(cursor->reset(cursor));
 		/* Optionally, free the cursor buffers */

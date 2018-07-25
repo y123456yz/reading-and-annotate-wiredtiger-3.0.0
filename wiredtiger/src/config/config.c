@@ -665,6 +665,7 @@ __wt_config_get(WT_SESSION_IMPL *session,
  *	value for a given string key.
  */
 /*通过key字符串值获得value*/
+//例如cfg为"target="，则解析出的value.str为空，为内容
 int
 __wt_config_gets(WT_SESSION_IMPL *session,
     const char **cfg, const char *key, WT_CONFIG_ITEM *value)
