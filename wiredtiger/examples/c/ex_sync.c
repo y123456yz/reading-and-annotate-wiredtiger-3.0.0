@@ -34,7 +34,7 @@ static const char *home;
 static const char *const uri = "table:test";
 
 #define	CONN_CONFIG "create,cache_size=100MB,log=(archive=false,enabled=true)"
-#define	MAX_KEYS	100
+#define	MAX_KEYS	3
 
 int
 main(int argc, char *argv[])

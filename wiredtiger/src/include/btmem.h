@@ -209,8 +209,9 @@ struct __wt_page_lookaside {
 /*
  * WT_PAGE_MODIFY --
  *	When a page is modified, there's additional information to maintain.
+ page 的修改状态信息，主要包含脏页标示、当前更新事务 ID 和 page 的 insert lock等。
  */
-//创建空间赋值见__wt_page_modify_alloc
+//创建空间赋值见__wt_page_modify_alloc   __wt_page.modify
 struct __wt_page_modify {
 	/* The first unwritten transaction ID (approximate). */
 	uint64_t first_dirty_txn; //赋值见__wt_page_only_modify_set
@@ -363,13 +364,16 @@ struct __wt_page_modify {
 #define	mod_col_update		u2.column_leaf.update
 #undef	mod_col_split_recno
 #define	mod_col_split_recno	u2.column_leaf.split_recno
+    //添加insert是加入到__wt_cursor_btree.ins_head， 更新是__wt_page_modify.mod_row_update
+    //见__wt_row_modify
 	struct {
 		/* Inserted items for row-store. */
-		//赋值见__wt_row_modify
+		//赋值见__wt_row_modify 
+		//实际上和__wt_cursor_btree.ins_head指向相同
 		WT_INSERT_HEAD	**insert; //上面的insert
 
 		/* Updated items for row-stores. */
-		WT_UPDATE	**update;
+		WT_UPDATE	**update; 
 	} row_leaf;
 
 //赋值见__wt_row_modify
@@ -478,8 +482,9 @@ struct __wt_col_rle {
 /*
  * WT_PAGE --
  * The WT_PAGE structure describes the in-memory page information.
+ * 参考https://weibo.com/ttarticle/p/show?id=2309403992797932856430
  */
-//内存中的 page 结构对象，page 的访问入口。
+//内存中的 page 结构对象，page 的访问入口。  同一个table操作，起page是同一个
 struct __wt_page { 
 //创建空间和赋值见__wt_page_alloc
 	/* Per page-type information. */
@@ -523,6 +528,35 @@ struct __wt_page {
 				WT_REF	**index;
 			} * volatile __index;	/* Collated children */
 		} intl;
+        
+        /* Row-store leaf page. */
+        WT_ROW *row;            /* Key/value pairs */
+    
+        /* Fixed-length column-store leaf page. */
+        uint8_t *fix_bitf;      /* Values */
+    
+    
+        /* Variable-length column-store leaf page. */
+        struct {
+            WT_COL *col_var;    /* Values */
+    
+            /*
+             * Variable-length column-store pages have an array
+             * of page entries with RLE counts greater than 1 when
+             * reading the page, so it's not necessary to walk the
+             * page counting records to find a specific entry. We
+             * can do a binary search in this array, then an offset
+             * calculation to find the cell.
+             *
+             * It's a separate structure to keep the page structure
+             * as small as possible.
+             */
+            struct __wt_col_var_repeat {
+                uint32_t   nrepeats;    /* repeat slots */
+                WT_COL_RLE repeats[0];  /* lookup RLE array */
+            } *repeats;
+        } col_var;
+    } u; 
 
 	/*
 	 * Macros to copy/set the index because the name is obscured to ensure
@@ -562,35 +596,6 @@ struct __wt_page {
 	}								\
 } while (0)
         */
-
-		/* Row-store leaf page. */
-		WT_ROW *row;			/* Key/value pairs */
-
-		/* Fixed-length column-store leaf page. */
-		uint8_t *fix_bitf;		/* Values */
-
-
-		/* Variable-length column-store leaf page. */
-		struct {
-			WT_COL *col_var;	/* Values */
-
-			/*
-			 * Variable-length column-store pages have an array
-			 * of page entries with RLE counts greater than 1 when
-			 * reading the page, so it's not necessary to walk the
-			 * page counting records to find a specific entry. We
-			 * can do a binary search in this array, then an offset
-			 * calculation to find the cell.
-			 *
-			 * It's a separate structure to keep the page structure
-			 * as small as possible.
-			 */
-			struct __wt_col_var_repeat {
-				uint32_t   nrepeats;	/* repeat slots */
-				WT_COL_RLE repeats[0];	/* lookup RLE array */
-			} *repeats;
-		} col_var;
-	} u;
 
 	/*
 	 * Page entries, type and flags are positioned at the end of the WT_PAGE
@@ -666,6 +671,7 @@ https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 
 	/* If/when the page is modified, we need lots more information. */
 	//赋值见__wt_page_modify_alloc
+	//page 的修改状态信息，主要包含脏页标示、当前更新事务 ID 和 page 的 insert lock等。
 	WT_PAGE_MODIFY *modify;
 
 	/* This is the 64 byte boundary, try to keep hot fields above here. */
@@ -822,7 +828,7 @@ struct __wt_ref {
 	 * changes.  Don't cache it, we need to see that change when looking
 	 * up our slot in the page's index structure.
 	 */
-	//指向父节点root节点
+	//指向父节点
 	WT_PAGE * volatile home;	/* Reference page */
 	volatile uint32_t pindex_hint;	/* Reference page index hint */
 
@@ -1002,7 +1008,7 @@ struct __wt_ikey {
  * is done for an entry, WT_UPDATE structures are formed into a forward-linked
  * list.
  */
-//创建空间赋值见__wt_update_alloc
+//创建空间赋值见__wt_update_alloc   __wt_insert.udp为见结构，__wt_insert包含key和value
 struct __wt_update {
 	volatile uint64_t txnid;	/* transaction ID */
 #if WT_TIMESTAMP_SIZE == 8
@@ -1096,7 +1102,7 @@ struct __wt_insert {
 
 	union {
 		uint64_t recno;			/* column-store record number */
-		struct {
+		struct { //key内容参考__wt_row_insert_alloc
 		    //key的起始偏移位置 WT_INSERT_KEY
 			uint32_t offset;	/* row-store key data start */
 			/*key的长度  WT_INSERT_KEY_SIZE*/

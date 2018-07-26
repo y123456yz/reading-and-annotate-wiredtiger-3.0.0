@@ -323,9 +323,11 @@ struct __wt_connection_impl {
 
     //__wt_evict_create中赋值
 	WT_THREAD_GROUP  evict_threads; 
-	//线程组中总的线程数  __cache_config_local
+	//线程组中总的线程数  __cache_config_local  
+	//最大并发的evict线程数
 	uint32_t	 evict_threads_max;/* Max eviction threads */
 	//线程组中活跃线程数 __cache_config_local
+	//最少并发的evict线程数
 	uint32_t	 evict_threads_min;/* Min eviction threads */
 
     //赋值见__statlog_config

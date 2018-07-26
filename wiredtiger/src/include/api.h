@@ -177,6 +177,7 @@
 	CURSOR_REMOVE_API_CALL(cur, s, bt);				\
 	JOINABLE_CURSOR_CALL_CHECK(cur)
 
+//cache_size配置相关，如果配置为in_memory,并且内存使用超过阀值，则返回WT_CACHE_FULL
 #define	CURSOR_UPDATE_API_CALL_BTREE(cur, s, n, bt)			\
 	(s) = (WT_SESSION_IMPL *)(cur)->session;			\
 	TXN_API_CALL_NOCONF(						\

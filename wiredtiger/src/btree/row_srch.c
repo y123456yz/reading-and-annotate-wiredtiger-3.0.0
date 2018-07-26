@@ -13,6 +13,8 @@
  *	Fast append search of a row-store insert list, creating a skiplist stack
  * as we go.
  */
+/* 在insert append列表中查找定位key对应的记录, 并构建一个skip list stack 对象返回*/
+//insert list定位该KV应该放在什么位置
 static inline int
 __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
     WT_INSERT_HEAD *ins_head, WT_ITEM *srch_key, bool *donep)
@@ -30,6 +32,8 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 
 	if ((ins = WT_SKIP_LAST(ins_head)) == NULL)
 		return (0);
+
+	/*通过ins获得key的值*/
 	key.data = WT_INSERT_KEY(ins);
 	key.size = WT_INSERT_KEY_SIZE(ins);
 

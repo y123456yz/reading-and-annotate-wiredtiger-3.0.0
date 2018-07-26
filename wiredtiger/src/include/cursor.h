@@ -97,6 +97,8 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
 	WT_REF	  *ref;			/* Current page */
 	uint32_t   slot;		/* WT_COL/WT_ROW 0-based slot */
 
+    //赋值见__search_insert_append  __wt_search_insert insert操作相关定位
+    //实际上就是__wt_page_modify.mod_row_insert，见__wt_row_modify
 	WT_INSERT_HEAD	*ins_head;	/* Insert chain head */
 	WT_INSERT	*ins;		/* Current insert node */
 					/* Search stack */

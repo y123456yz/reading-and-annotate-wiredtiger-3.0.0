@@ -264,7 +264,8 @@ new_page:	/* Find the matching WT_COL slot. */
 /*
  * __cursor_row_next --
  *	Move to the next row-store item.
- */
+ */ 
+/*移向行存储的下一个行对象*/
 static inline int
 __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage)
 {

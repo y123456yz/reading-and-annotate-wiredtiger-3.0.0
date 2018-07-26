@@ -107,6 +107,12 @@ struct __wt_cache {
 	WT_CONDVAR *evict_cond;		/* Eviction server condition */
 	WT_SPINLOCK evict_walk_lock;	/* Eviction walk location */
 
+    /* https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
+    eviction_trigger：cache总使用量达到该百分比时，触发evict操作
+    eviction_target：触发上述参数evict后，需要将cache总使用量降低到该百分比水位，才停止evict
+    eviction_dirty_trigger：cache脏页使用量到该百分比时，触发evict操作
+    eviction_dirty_target：触发上述参数evict后，需要将cache脏页使用量降低到该百分比水位，才停止evict
+    */
 	u_int eviction_dirty_target;    /* Percent to allow dirty */
 	u_int eviction_dirty_trigger;	/* Percent to trigger dirty eviction */
 	u_int eviction_trigger;		/* Percent to trigger eviction */
@@ -139,12 +145,14 @@ struct __wt_cache {
 
 	/*
 	 * LRU eviction list information.
+	 参考https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 	 */
 	WT_SPINLOCK evict_pass_lock;	/* Eviction pass lock */
 	WT_SESSION_IMPL *walk_session;	/* Eviction pass session */
 	WT_DATA_HANDLE *evict_file_next;/* LRU next file to search */
 
 	WT_SPINLOCK evict_queue_lock;	/* Eviction current queue lock */
+	//server线程负责扫描btree找到一些page，然后进行lru排序，放入一个evict_queue中
 	WT_EVICT_QUEUE evict_queues[WT_EVICT_QUEUE_MAX];
 	WT_EVICT_QUEUE *evict_current_queue; /* LRU current queue in use */
 	WT_EVICT_QUEUE *evict_fill_queue;    /* LRU next queue to fill.

@@ -377,7 +377,8 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref,
 	    (void *)ref, __wt_page_type_string(page->type),
 	    LF_ISSET(WT_REC_EVICT) ? "evict" : "checkpoint",
 	    LF_ISSET(WT_REC_LOOKASIDE) ? ", lookaside" : "",
-	    LF_ISSET(WT_REC_UPDATE_RESTORE) ? ", update/restore" : "");
+	    LF_ISSET(WT_REC_UPDATE_RESTORE) ? ", update/restore" : "",
+	    "page:%p", page);
 
 	/*
 	 * Sanity check flags.
