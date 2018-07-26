@@ -235,6 +235,7 @@ __curfile_insert(WT_CURSOR *cursor)
 
     printf("yang test .............. curfile insert\r\n");
 	cbt = (WT_CURSOR_BTREE *)cursor;
+	//判断inmem内存是否超过限制
 	CURSOR_UPDATE_API_CALL_BTREE(cursor, session, insert, cbt->btree);
 
 	if (!F_ISSET(cursor, WT_CURSTD_APPEND))

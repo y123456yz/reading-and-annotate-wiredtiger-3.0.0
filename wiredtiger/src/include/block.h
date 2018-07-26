@@ -231,13 +231,19 @@ struct __wt_block {
 	wt_off_t extend_len;		/* File extend chunk size */
 
 	/* Configuration information, set when the file is opened. */
+	/*从文件开始处进行写的标识*/	
 	uint32_t allocfirst;		/* Allocation is first-fit */
+	/*文件写入对齐的长度*/
 	uint32_t allocsize;		/* Allocation size */
+	/*当前block中在os page cache中的数据字节数*/
 	size_t	 os_cache;		/* System buffer cache flush max */
+	/*操作系统对文件最大的page cache的字节数*/
 	size_t	 os_cache_max;
+	/*当前脏数据的字节数*/
 	size_t	 os_cache_dirty;	/* System buffer cache write max */
-	size_t	 os_cache_dirty_max;
-
+	size_t	 os_cache_dirty_max;  /*允许最大的脏数据字节数*/
+	
+    /*block header的长度*/
 	u_int	 block_header;		/* Header length */
 
 	/*
@@ -247,7 +253,9 @@ struct __wt_block {
 	 * rather not do that.  So, it's stored here, only accessed by one WT_BM
 	 * handle.
 	 */
+	/*对live的保护锁*/
 	WT_SPINLOCK	live_lock;	/* Live checkpoint lock */
+	/*checkpoint的详细信息*/
 	WT_BLOCK_CKPT	live;		/* Live checkpoint */
 #ifdef HAVE_DIAGNOSTIC
 	bool		live_open;	/* Live system is open */

@@ -40,9 +40,9 @@ static const char * const incr_out = "./backup_incr";
 static const char * const uri = "table:logtest";
 
 #define	CONN_CONFIG \
-    "create,cache_size=100MB,log=(archive=false,enabled=true,file_max=100K)"
+    "create,cache_size=1MB,log=(archive=false,enabled=true,file_max=100K)"
 #define	MAX_ITERATIONS	5
-#define	MAX_KEYS	10
+#define	MAX_KEYS	3
 
 static int
 compare_backups(int i)
@@ -146,11 +146,25 @@ add_work(WT_SESSION *session, int iter)
 	 * Perform some operations with individual auto-commit transactions.
 	 */
 	for (i = 0; i < MAX_KEYS; i++) {
-		(void)snprintf(k, sizeof(k), "key.%d.%d", iter, i);
-		(void)snprintf(v, sizeof(v), "value.%d.%d", iter, i);
+	    
+		(void)snprintf(k, sizeof(k), "k77 .%d 777777777777777777777777777777777ey.", i);
+		(void)snprintf(v, sizeof(v), "va777 .%d 7777777777777777777777777777777777777777777777777777777777777lue", i);
+		//__wt_cursor_set_keyv
 		cursor->set_key(cursor, k);
+		//__wt_cursor_set_valuev
 		cursor->set_value(cursor, v);
+		//__curfile_insert
+        error_check(cursor->insert(cursor));
+
+		(void)snprintf(k, sizeof(k), "ccke5555555 .%d 55555555555555555555555555577777777777777777y", i);
+		(void)snprintf(v, sizeof(v), "value222227777 .%d  7777777777777777777777777777777777777777777777772222", i);
+		//__wt_cursor_set_keyv
+		cursor->set_key(cursor, k);
+		//__wt_cursor_set_valuev
+		cursor->set_value(cursor, v);
+		//__curfile_update
 		error_check(cursor->insert(cursor));
+		
 	}
 	error_check(cursor->close(cursor));
 }

@@ -204,7 +204,9 @@ __wt_col_append_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
  * __wt_insert_serial --
  *	Insert a row or column-store entry.
  */
-/*串行的增加一个WT_INSERT entry到btree上，这个过程是被lock住的*/
+/*串行的增加一个WT_INSERT entry到btree上，这个过程是被lock住的
+insert是添加到ins_head跳跃表中
+*/
 static inline int
 __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
     WT_INSERT_HEAD *ins_head, WT_INSERT ***ins_stack, WT_INSERT **new_insp,
@@ -262,7 +264,7 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
 /*
  * __wt_update_serial --
  *	Update a row or column-store entry.
- */
+ */ /*串行更新*/
 static inline int
 __wt_update_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
     WT_UPDATE **srch_upd, WT_UPDATE **updp, size_t upd_size, bool exclusive)
@@ -285,8 +287,9 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
 	 *
 	 * Swap the update into place.  If that fails, a new update was added
 	 * after our search, we raced.  Check if our update is still permitted.
-	 */
+	 */ //这里的WT_WRITE_BARRIER作用是每次获取upd->next都应该是新的
 	while (!__wt_atomic_cas_ptr(srch_upd, upd->next, upd)) {
+	    /*检查是否有其他的session在这个更新之前做了upd更新且对这个session不可见，如果有，只能回滚这次更新*/
 		if ((ret = __wt_txn_update_check(
 		    session, upd->next = *srch_upd)) != 0) {
 			/* Free unused memory on error. */
@@ -300,7 +303,7 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
 	 * Safe because the structures we added cannot be discarded while
 	 * visible to any running transaction, and we're a running transaction,
 	 * which means there can be no corresponding delete until we complete.
-	 */
+	 */ /*更新内存占用统计，footprint memsize*/
 	__wt_cache_page_inmem_incr(session, page, upd_size);
 
 	/* Mark the page dirty after updating the footprint. */

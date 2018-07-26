@@ -369,6 +369,15 @@ err:		WT_PANIC_MSG(session, ret, "cache eviction thread error");
  * __evict_server --
  *	Thread to evict pages from the cache.
  */
+/*
+每次evict_server执行cache pass是对所有btree的一次扫描，会根据当前cache情况最多扫描100个page出来。
+__btree的扫描是迭代的，结束时会记录当前扫描道德btree的位置，下次继续从这个地方开始walk，每个btree
+最多扫描出10个page，如果这个btree被exclusive独占，如checkpoint正在访问这个btree，则跳过__ ，这是为
+了让btree所有page都有可能被扫描到。如果扫描了足够多的page，则会停止本次cache pass，进入page的evict阶段。
+
+这个扫描策略应该可以page尽可能全的被覆盖，但其实不具备LRU的特性(evict_queue里的page排序是基于LRU，
+也就是说扫描出来的page是会使用LRU)。
+*/
 static int
 __evict_server(WT_SESSION_IMPL *session, bool *did_work)
 {
@@ -650,6 +659,14 @@ __evict_update_work(WT_SESSION_IMPL *session)
 /*
  * __evict_pass --
  *	Evict pages from memory.
+ cache evict在wt v2.8.1早期版本时，采用的是server-worker模型，1个server线程负责扫描btree找到一些page，
+ 然后进行lru排序，放入一个evict_queue中，再由worker线程消费，进行page evict动作。
+
+ 后面v2.8.1在MongoDB v3.2.9这个版本中，对线程模型进行了升级， 将server线程和worker线程合并(worker通过抢一把
+ evict_pass_lock锁来成为server)，相当于N个worker线程，同一时刻，有一个worker会成为server，负责执行evict_pass
+ (扫描btree，并填充evict_queue)的工作，较少了切换的代价 。并且把原来单一的evict_queue变成了两个，降低了server、
+ worker之间操作一个queue的概率减少冲突，增加了并发。
+ 参考https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
  */
 static int
 __evict_pass(WT_SESSION_IMPL *session)
@@ -1188,7 +1205,7 @@ __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
 /*
  * __evict_lru_walk --
  *	Add pages to the LRU queue to be evicted from cache.
- */
+ */ /* 根据read_gen的版本号确定可以evict的page数量，多余的page移出lru queue*/
 static int
 __evict_lru_walk(WT_SESSION_IMPL *session)
 {

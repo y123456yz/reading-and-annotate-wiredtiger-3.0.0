@@ -59,7 +59,11 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	bool logged;
 
 	ins = NULL;
+	
+	//同一个table操作，其page一样，打印地址看是一样的。除非page占用内存过多达到cache_size限制的内存大学，则会把page拆分到两个
+	//然后同一个table的后续KV会均分到这两个page中
 	page = cbt->ref->page;
+	printf("__wt_row_modify....... page:%p\r\n", page);
 	upd = upd_arg;
 	logged = false;
 
@@ -79,6 +83,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	 * insert the WT_INSERT structure.
 	 */ /* 修改操作， */
 	if (cbt->compare == 0) {
+	    printf("yang test __wt_row_modify.........222.... ins:%p\r\n", cbt->ins);
 		if (cbt->ins == NULL) {
 			/* Allocate an update array as necessary. */
 			WT_PAGE_ALLOC_AND_SWAP(session, page,
@@ -87,17 +92,18 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 			/* 为cbt游标分配一个update对象数组,并设置update数组槽位，原子操作性的分配*/
 			/* Set the WT_UPDATE array reference. */
 			upd_entry = &mod->mod_row_update[cbt->slot];
-		} else /* 获取一个upd_entry */
+		} else /* 更新会走这个分支，因为在insert的时候cbt->ins会赋值
+		    直接获取insert时候的ins，insert的时候key和value都放入ins中 */
 			upd_entry = &cbt->ins->upd;
 
-		if (upd_arg == NULL) { /*确定是否可以进行更新操作*/
+		if (upd_arg == NULL) { //update和insert udp_arg都是等于NULL
 			/* Make sure the update can proceed. */
 			WT_ERR(__wt_txn_update_check(
-			    session, old_upd = *upd_entry));
+			    session, old_upd = *upd_entry)); //old_upd现在变为更新前之前的udp了
 
 			/* Allocate a WT_UPDATE structure and transaction ID. */
 			WT_ERR(__wt_update_alloc(session,
-			    value, &upd, &upd_size, modify_type));
+			    value, &upd, &upd_size, modify_type));  //构建一个新的upd,
 			WT_ERR(__wt_txn_modify(session, upd));
 			logged = true;
 
@@ -125,6 +131,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		 * If we get it right, the serialization function lock acts as
 		 * our memory barrier to flush this write.
 		 */
+		//添加到
 		upd->next = old_upd;
 
 		/* Serialize the update. */
@@ -147,9 +154,8 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		WT_PAGE_ALLOC_AND_SWAP(session, page,
 		    mod->mod_row_insert, ins_headp, page->entries + 1);
 
-        printf("yang test .............page->entries + 1:%d\r\n", page->entries + 1);
 		ins_slot = F_ISSET(cbt, WT_CBT_SEARCH_SMALLEST) ?
-		    page->entries: cbt->slot;
+		    page->entries: cbt->slot; 
 		ins_headp = &mod->mod_row_insert[ins_slot];
 
 		/* Allocate the WT_INSERT_HEAD structure as necessary. */
@@ -164,12 +170,15 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		 * update the cursor to reference it (the WT_INSERT_HEAD might
 		 * be allocated, the WT_INSERT was allocated).
 		 */
+		//key存入ins
 		WT_ERR(__wt_row_insert_alloc(
 		    session, key, skipdepth, &ins, &ins_size));
 		cbt->ins_head = ins_head;
 		cbt->ins = ins;
+        printf("yang test __wt_row_modify.......2223..222.... ins:%p\r\n", cbt->ins);
 
 		if (upd_arg == NULL) { /*通过value构建upd对象*/
+		    //value存入upd
 			WT_ERR(__wt_update_alloc(session,
 			    value, &upd, &upd_size, modify_type));
 			WT_ERR(__wt_txn_modify(session, upd));
@@ -180,8 +189,10 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		} else
 			upd_size = __wt_update_list_memsize(upd);
 
+        //最终key value都存入ins
 		ins->upd = upd;
 		ins_size += upd_size;
+        
 
 		/*
 		 * If there was no insert list during the search, the cursor's
@@ -286,7 +297,7 @@ __wt_update_alloc(WT_SESSION_IMPL *session, const WT_ITEM *value,
 	 * Allocate the WT_UPDATE structure and room for the value, then copy
 	 * the value into place.
 	 */
-	if (modify_type == WT_UPDATE_DELETED ||
+	if (modify_type == WT_UPDATE_DELETED ||  //删除的话不用拷贝数据了
 	    modify_type == WT_UPDATE_RESERVED)
 		WT_RET(__wt_calloc(session, 1, WT_UPDATE_SIZE, &upd));
 	else {
