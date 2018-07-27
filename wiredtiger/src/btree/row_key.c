@@ -13,7 +13,7 @@ static void __inmem_row_leaf_slots(uint8_t *, uint32_t, uint32_t, uint32_t);
 /*
  * __wt_row_leaf_keys --
  *	Instantiate the interesting keys for random search of a page.
- */
+ */ /*在内存中实例化page中row中的key对象*/
 int
 __wt_row_leaf_keys(WT_SESSION_IMPL *session, WT_PAGE *page)
 {

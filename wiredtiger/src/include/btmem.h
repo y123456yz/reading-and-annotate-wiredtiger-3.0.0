@@ -370,17 +370,20 @@ struct __wt_page_modify {
 		/* Inserted items for row-store. */
 		//赋值见__wt_row_modify 
 		//实际上和__wt_cursor_btree.ins_head指向相同
+		// WT_ROW_INSERT_SLOT获取
 		WT_INSERT_HEAD	**insert; //上面的insert
 
 		/* Updated items for row-stores. */
+		//WT_ROW_UPDATE获取
 		WT_UPDATE	**update; 
 	} row_leaf;
 
-//赋值见__wt_row_modify
+//赋值见__wt_row_modify   WT_ROW_INSERT_SLOT获取
 #undef	mod_row_insert
 #define	mod_row_insert		u2.row_leaf.insert
 
-#undef	mod_row_update
+//WT_ROW_UPDATE获取
+#undef	mod_row_update  
 #define	mod_row_update		u2.row_leaf.update  //上面的update
 	} u2;
 
@@ -485,6 +488,7 @@ struct __wt_col_rle {
  * 参考https://weibo.com/ttarticle/p/show?id=2309403992797932856430
  */
 //内存中的 page 结构对象，page 的访问入口。  同一个table操作，起page是同一个
+//page都是挂载__wt_btree.root下面，组成tree树
 struct __wt_page { 
 //创建空间和赋值见__wt_page_alloc
 	/* Per page-type information. */
@@ -530,6 +534,9 @@ struct __wt_page {
 		} intl;
         
         /* Row-store leaf page. */
+        //下面的pg_row进行了宏定义直接返回u.row  __wt_row_search中做二分查找
+        //__wt_page_alloc中赋值 
+        //在WT_ROW_FOREACH  WT_ROW_FOREACH_REVERSE中遍历，__rec_row_leaf中把leaf page写入磁盘  
         WT_ROW *row;            /* Key/value pairs */
     
         /* Fixed-length column-store leaf page. */
@@ -609,18 +616,6 @@ struct __wt_page {
 #define	WT_PAGE_IS_INTERNAL(page)					\
 	((page)->type == WT_PAGE_COL_INT || (page)->type == WT_PAGE_ROW_INT)
 
-/*
-基本page类型：root_page(btree根节点), internal_page(索引页), leaf_page(数据页, 叶子节点)
-https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
-*/
-#define	WT_PAGE_INVALID		0	/* Invalid page */
-#define	WT_PAGE_BLOCK_MANAGER	1	/* Block-manager page */
-#define	WT_PAGE_COL_FIX		2	/* Col-store fixed-len leaf */
-#define	WT_PAGE_COL_INT		3	/* Col-store internal page */
-#define	WT_PAGE_COL_VAR		4	/* Col-store var-length leaf page */
-#define	WT_PAGE_OVFL		5	/* Overflow page */
-#define	WT_PAGE_ROW_INT		6	/* Row-store internal page */
-#define	WT_PAGE_ROW_LEAF	7	/* Row-store leaf page */
 	uint8_t type;			/* Page type */
 
 #define	WT_PAGE_BUILD_KEYS	0x01	/* Keys have been built in memory */
@@ -680,13 +675,28 @@ https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 	uint64_t evict_pass_gen;	/* Eviction pass generation */
 };
 
+/*
+基本page类型：root_page(btree根节点), internal_page(索引页), leaf_page(数据页, 叶子节点)
+https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
+*/ //__wt_page中的type   internal page在__btree_tree_open_empty中创建
+#define	WT_PAGE_INVALID		0	/* Invalid page */
+#define	WT_PAGE_BLOCK_MANAGER	1	/* Block-manager page */
+#define	WT_PAGE_COL_FIX		2	/* Col-store fixed-len leaf */
+#define	WT_PAGE_COL_INT		3	/* Col-store internal page */
+#define	WT_PAGE_COL_VAR		4	/* Col-store var-length leaf page */
+#define	WT_PAGE_OVFL		5	/* Overflow page */
+#define	WT_PAGE_ROW_INT		6	/* Row-store internal page */
+#define	WT_PAGE_ROW_LEAF	7	/* Row-store leaf page */
+
+
 #undef	pg_intl_parent_ref
 #define	pg_intl_parent_ref		u.intl.parent_ref
 #undef	pg_intl_split_gen
 #define	pg_intl_split_gen		u.intl.split_gen
-                    
+
+//在WT_ROW_FOREACH  WT_ROW_FOREACH_REVERSE中遍历，__rec_row_leaf中把leaf page写入磁盘                 
 #undef	pg_row
-#define	pg_row		u.row
+#define	pg_row		u.row  //__wt_page_alloc中赋值
                     
 #undef	pg_fix_bitf
 #define	pg_fix_bitf	u.fix_bitf

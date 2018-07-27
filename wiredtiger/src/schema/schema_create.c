@@ -126,7 +126,6 @@ __create_file(WT_SESSION_IMPL *session,
 		WT_ERR(__wt_meta_track_handle_lock(session, true));
 	else
 		WT_ERR(__wt_session_release_dhandle(session));
-    printf("yang test xxxxxxxxxxxxxxxxxxxsssssssssssssssss \r\n");
 err:	__wt_scr_free(session, &val);
 	__wt_free(session, fileconf);
 	return (ret);
@@ -717,7 +716,6 @@ __wt_schema_create(
 	 * complex object, we want to back it all out.
 	 */
 	WT_RET(__wt_meta_track_on(session));
-     printf("yang test ..111.... uri:%s\r\n", uri);
 	if (WT_PREFIX_MATCH(uri, "colgroup:")) //
 		ret = __create_colgroup(session, uri, exclusive, config);
 	else if (WT_PREFIX_MATCH(uri, "file:")) //∂‘”¶btree

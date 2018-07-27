@@ -74,15 +74,6 @@ access_example(void)
 	printf("yang test ....................__wt_cursor_set_valuev end\r\n");
 	//__curfile_insert
     error_check(cursor->insert(cursor));
-
-    cursor->set_key(cursor, "xxxxxkey1");
-	cursor->set_value(cursor, "xxxxvalue1");
-	error_check(cursor->insert(cursor));
-
-
-	cursor->set_key(cursor, "xxxxxkey2");
-	cursor->set_value(cursor, "xxxxvalue2");
-	error_check(cursor->insert(cursor));
     
 	/*! [access example cursor list] */
 	//__curfile_reset

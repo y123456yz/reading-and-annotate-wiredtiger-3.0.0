@@ -1784,7 +1784,6 @@ __wt_clsm_open(WT_SESSION_IMPL *session,
     cfg1:bulk
     */
 	WT_RET(__wt_config_gets_def(session, cfg, "checkpoint", 0, &cval));
-	printf("yang test .................... checkpoint val:%d\r\n", cval.len);
 	if (cval.len != 0)
 		WT_RET_MSG(session, EINVAL,
 		    "LSM does not support opening by checkpoint");

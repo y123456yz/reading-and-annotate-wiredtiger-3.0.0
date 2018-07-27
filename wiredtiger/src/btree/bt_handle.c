@@ -648,12 +648,14 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 	 * __wt_page_out on error, we require a correct page setup at each point
 	 * where we might fail.
 	 */
-	switch (btree->type) {  //行存储还是列存储，参考__btree_conf配置解析
+	
+	switch (btree->type) {  //行存储还是列存储，参考__btree_conf配置解析  swich里面对应创建的是internal page
 	case BTREE_COL_FIX:
 	case BTREE_COL_VAR:
+	    //root page和internal page在后面__wt_root_ref_init这里关联
 		WT_ERR(__wt_page_alloc(
 		    session, WT_PAGE_COL_INT, 1, true, &root));
-		root->pg_intl_parent_ref = &btree->root;
+		root->pg_intl_parent_ref = &btree->root; //
 
 		pindex = WT_INTL_INDEX_GET_SAFE(root);
 		ref = pindex->index[0];
@@ -680,7 +682,7 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 
 	/* Bulk loads require a leaf page for reconciliation: create it now. */
 	/*如果bulk load操作，需要提前新建一个叶子页来做协调存储*/
-	if (F_ISSET(btree, WT_BTREE_BULK)) {
+	if (F_ISSET(btree, WT_BTREE_BULK)) { //叶子page创建
 		WT_ERR(__wt_btree_new_leaf_page(session, &leaf));
 		ref->page = leaf;
 		ref->state = WT_REF_MEM;

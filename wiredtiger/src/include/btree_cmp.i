@@ -26,7 +26,7 @@
  *
  * We use the names "user" and "tree" so it's clear in the btree code which
  * the application is looking at when we call its comparison function.
- */
+ */ /*比较user与item的内存内容的大小*/
 static inline int
 __wt_lex_compare(const WT_ITEM *user_item, const WT_ITEM *tree_item)
 {
@@ -201,6 +201,8 @@ __wt_compare_skip(WT_SESSION_IMPL *session, WT_COLLATOR *collator,
  * We use the names "user" and "tree" so it's clear in the btree code which
  * the application is looking at when we call its comparison function.
  */
+#define	WT_COMPARE_SHORT_MAXLEN 9
+
 static inline int
 __wt_lex_compare_short(const WT_ITEM *user_item, const WT_ITEM *tree_item)
 {
@@ -222,7 +224,7 @@ __wt_lex_compare_short(const WT_ITEM *user_item, const WT_ITEM *tree_item)
 	 * about implicit fallthrough and doesn't support explicit fallthrough
 	 * comments in macros.
 	 */
-#define	WT_COMPARE_SHORT_MAXLEN 9
+
 	switch (len) {
 	case 9:
 		if (*userp != *treep)

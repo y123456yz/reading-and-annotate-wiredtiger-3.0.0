@@ -222,10 +222,10 @@ __checkpoint_apply(WT_SESSION_IMPL *session, const char *cfg[],
 	for (i = 0; i < session->ckpt_handle_next; ++i) {
 		if (session->ckpt_handle[i] == NULL)
 			continue;
-
 		//执行op
 		WT_WITH_DHANDLE(session, session->ckpt_handle[i],
 		    ret = (*op)(session, cfg));
+		
 		WT_RET(ret);
 	}
 
@@ -874,8 +874,10 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 		    session, full, WT_TXN_LOG_CKPT_START, NULL));
 
 	__checkpoint_timing_stress(session);
-
+	
+    printf("yang test ............1111111111.............. __checkpoint_apply\r\n");
 	WT_ERR(__checkpoint_apply(session, cfg, __checkpoint_tree_helper));
+    printf("yang test ............222222222222.............. __checkpoint_apply\r\n");
 
 	/*
 	 * Clear the dhandle so the visibility check doesn't get confused about
@@ -1580,7 +1582,7 @@ __checkpoint_tree(
 	resolve_bm = true;
 
 	/* Flush the file from the cache, creating the checkpoint. */
-	if (is_checkpoint)
+	if (is_checkpoint) //真正的checkpoint在这里
 		WT_ERR(__wt_cache_op(session, WT_SYNC_CHECKPOINT));
 	else
 		WT_ERR(__wt_cache_op(session, WT_SYNC_CLOSE));

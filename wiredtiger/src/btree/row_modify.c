@@ -60,8 +60,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 
 	ins = NULL;
 	
-	//同一个table操作，其page一样，打印地址看是一样的。除非page占用内存过多达到cache_size限制的内存大学，则会把page拆分到两个
-	//然后同一个table的后续KV会均分到这两个page中
+	//同一个table操作，其page一样，打印地址看是一样的。除非page占用内存过多达到cache_size限制的内存大学，则会把page拆分
 	page = cbt->ref->page;
 	printf("__wt_row_modify....... page:%p\r\n", page);
 	upd = upd_arg;
@@ -83,8 +82,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	 * insert the WT_INSERT structure.
 	 */ /* 修改操作， */
 	if (cbt->compare == 0) {
-	    printf("yang test __wt_row_modify.........222.... ins:%p\r\n", cbt->ins);
-		if (cbt->ins == NULL) {
+		if (cbt->ins == NULL) { //如果打开的cursor，reset后重新打开cursor做update，则ins=null
 			/* Allocate an update array as necessary. */
 			WT_PAGE_ALLOC_AND_SWAP(session, page,
 			    mod->mod_row_update, upd_entry, page->entries);
@@ -175,7 +173,6 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		    session, key, skipdepth, &ins, &ins_size));
 		cbt->ins_head = ins_head;
 		cbt->ins = ins;
-        printf("yang test __wt_row_modify.......2223..222.... ins:%p\r\n", cbt->ins);
 
 		if (upd_arg == NULL) { /*通过value构建upd对象*/
 		    //value存入upd

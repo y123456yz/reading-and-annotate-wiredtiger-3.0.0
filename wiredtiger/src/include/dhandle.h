@@ -61,10 +61,10 @@
  */
 //__wt_conn_dhandle_alloc中创建改结构   __wt_table.iface为该结构
 //可以对应table  file  index colgroup等，
+//__wt_data_handle_cache.dhandle 
+//__session_add_dhandle  __conn_dhandle_get创建空间和赋值
 struct __wt_data_handle {
 	WT_RWLOCK rwlock;		/* Lock for shared/exclusive ops */
-	TAILQ_ENTRY(__wt_data_handle) q;
-	TAILQ_ENTRY(__wt_data_handle) hashq;
 
     //table  index  file colgroup名
 	const char *name;		/* Object name as a URI */
@@ -88,6 +88,7 @@ struct __wt_data_handle {
 	WT_SESSION_IMPL *excl_session;	/* Session with exclusive use, if any */
 
 	WT_DATA_SOURCE *dsrc;		/* Data source for this handle */
+	//赋值见__conn_dhandle_get
 	void *handle;			/* Generic handle */
 
 	enum {
@@ -109,6 +110,9 @@ struct __wt_data_handle {
 	WT_DSRC_STATS *stats[WT_COUNTER_SLOTS]; //见__wt_stat_dsrc_init初始化
 	//见__wt_stat_dsrc_init初始化
 	WT_DSRC_STATS *stat_array;
+	
+	TAILQ_ENTRY(__wt_data_handle) q;
+	TAILQ_ENTRY(__wt_data_handle) hashq;
 
 	/* Flags values over 0xff are reserved for WT_BTREE_* */
 #define	WT_DHANDLE_DEAD		        0x01	/* Dead, awaiting discard */

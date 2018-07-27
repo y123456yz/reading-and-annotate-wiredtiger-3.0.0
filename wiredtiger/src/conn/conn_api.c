@@ -1220,7 +1220,6 @@ __conn_open_session(WT_CONNECTION *wt_conn,
 	WT_SESSION_IMPL *session, *session_ret;
 
 	*wt_sessionp = NULL;
-    printf("yang test ................... __conn_open_session\r\n");
 	conn = (WT_CONNECTION_IMPL *)wt_conn;
 
     //这里面会修改session.dhandle和session.name

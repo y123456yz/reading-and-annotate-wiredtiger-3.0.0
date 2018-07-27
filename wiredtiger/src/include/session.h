@@ -11,6 +11,8 @@
  *	Per-session cache of handles to avoid synchronization when opening
  *	cursors.
  */
+//__session_add_dhandle创建空间和赋值
+/*session的cahce*/
 struct __wt_data_handle_cache {
 	WT_DATA_HANDLE *dhandle;
 
@@ -64,7 +66,7 @@ struct __wt_session_impl {
     //赋值见__wt_event_handler_set
 	WT_EVENT_HANDLER *event_handler;/* Application's event handlers */
 
-    //__session_get_dhandle  __wt_conn_dhandle_alloc中赋值
+    //__session_get_dhandle  __wt_conn_dhandle_alloc中 __wt_conn_dhandle_find赋值 
 	WT_DATA_HANDLE *dhandle;	/* Current data handle */
 
 	/*

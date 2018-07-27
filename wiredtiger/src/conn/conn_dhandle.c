@@ -141,6 +141,7 @@ __wt_conn_dhandle_alloc(
 	     __wt_conn_dhandle_find(session, uri, checkpoint)) != WT_NOTFOUND)
 		return (ret);
 
+    //这些新建不同文件xx.wt对应的的dhandle会通过下面的WT_CONN_DHANDLE_INSERT放入conn->dhhash
 	if (WT_PREFIX_MATCH(uri, "file:")) {
 		WT_RET(__wt_calloc_one(session, &dhandle));
 		dhandle->type = WT_DHANDLE_TYPE_BTREE;
@@ -152,7 +153,9 @@ __wt_conn_dhandle_alloc(
 		return (__wt_illegal_value(session, NULL));
 
 	/* Btree handles keep their data separate from the interface. */
-	if (dhandle->type == WT_DHANDLE_TYPE_BTREE) {
+	if (dhandle->type == WT_DHANDLE_TYPE_BTREE) { //对应文件xxx.wt 
+	    //这些新建不同文件xx.wt对应的的dhandle(btree与之对应)会通过下面的WT_CONN_DHANDLE_INSERT放入conn->dhhash
+	    //从而就可以通过遍历该dhhash找到所有的btree，然后遍历btree->root找到所有的internal page和leaf page
 		WT_ERR(__wt_calloc_one(session, &btree));
 		dhandle->handle = btree;
 		btree->dhandle = dhandle;
