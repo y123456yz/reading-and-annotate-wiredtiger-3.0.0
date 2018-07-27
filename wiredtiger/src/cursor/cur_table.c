@@ -489,7 +489,6 @@ __curtable_insert(WT_CURSOR *cursor)
 	uint32_t flag_orig;
 	u_int i;
 
-    printf("yang test ...................... cursor insert\r\n");
 	ctable = (WT_CURSOR_TABLE *)cursor;
 	//[1532331783:898680][5465:0x7f3f1db28740][__curfile_insert, 234], file:WiredTiger.wt, WT_CURSOR.insert: CALL: WT_CURSOR:insert
 	JOINABLE_CURSOR_UPDATE_API_CALL(cursor, session, insert);
@@ -898,7 +897,6 @@ __curtable_open_colgroups(WT_CURSOR_TABLE *ctable, const char *cfg_arg[])
 	WT_RET(__wt_calloc_def(session,
 	    WT_COLGROUPS(table), &ctable->cg_valcopy));
 
-    printf("yang test ................... cg cursors:%d\r\n", WT_COLGROUPS(table));
     //Ìî³äctable->cg_cursors
 	for (i = 0, cp = ctable->cg_cursors;
 	    i < WT_COLGROUPS(table);
@@ -985,7 +983,6 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 
 	ctable = NULL;
 
-    printf("yang test ....................__wt_curtable_open\r\n");
 	tablename = uri;
 	WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:");
 	columns = strchr(tablename, '(');

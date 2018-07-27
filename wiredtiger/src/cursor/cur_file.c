@@ -79,7 +79,6 @@ err:	API_END_RET(session, ret);
 static int
 __curfile_next(WT_CURSOR *cursor)
 {
-    printf("yang test ....................curfile next\r\n");
 	WT_CURSOR_BTREE *cbt;
 	WT_DECL_RET;
 	WT_SESSION_IMPL *session;
@@ -153,7 +152,6 @@ err:	API_END_RET(session, ret);
 static int
 __curfile_reset(WT_CURSOR *cursor)
 {
-    printf("yang test .............. curfile reset\r\n");
 	WT_CURSOR_BTREE *cbt;
 	WT_DECL_RET;
 	WT_SESSION_IMPL *session;
@@ -233,7 +231,6 @@ __curfile_insert(WT_CURSOR *cursor)
 	WT_DECL_RET;
 	WT_SESSION_IMPL *session;
 
-    printf("yang test .............. curfile insert\r\n");
 	cbt = (WT_CURSOR_BTREE *)cursor;
 	//判断inmem内存是否超过限制
 	CURSOR_UPDATE_API_CALL_BTREE(cursor, session, insert, cbt->btree);

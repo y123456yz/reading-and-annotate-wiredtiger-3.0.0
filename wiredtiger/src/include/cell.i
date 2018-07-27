@@ -713,7 +713,7 @@ done:	WT_CELL_LEN_CHK(cell, unpack->__len);
 /*
  * __wt_cell_unpack --
  *	Unpack a WT_CELL into a structure.
- */
+ */ /*解析cell到unpack结构中*/
 static inline void
 __wt_cell_unpack(WT_CELL *cell, WT_CELL_UNPACK *unpack)
 {

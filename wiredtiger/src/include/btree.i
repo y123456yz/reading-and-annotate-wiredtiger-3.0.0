@@ -715,6 +715,7 @@ __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
 #define	WT_IK_ENCODE_KEY_OFFSET(v)	((uintptr_t)(v) << 1)
 #define	WT_IK_DECODE_KEY_OFFSET(v)	(((v) & 0xFFFFFFFF) >> 1)
 	v = (uintptr_t)ref->ref_ikey;
+	/*key的值与key.ikey内存关系是不连续的，keyp指向key值开始位置,通过v的值计算偏移*/
 	if (v & WT_IK_FLAG) {
 		*(void **)keyp =
 		    WT_PAGE_REF_OFFSET(page, WT_IK_DECODE_KEY_OFFSET(v));
@@ -780,7 +781,8 @@ __wt_ref_key_clear(WT_REF *ref)
  *	Return a row-store leaf page key referenced by a WT_ROW if it can be
  * had without unpacking a cell, and information about the cell, if the key
  * isn't cheaply available.
- */
+ */ /*解析copy的值，通过解析得到page的key的指针偏移位置和对应数据长度*/
+ //ikeyp对应解析的key,datap和sizep对应value
 static inline bool
 __wt_row_leaf_key_info(WT_PAGE *page, void *copy,
     WT_IKEY **ikeyp, WT_CELL **cellp, void *datap, size_t *sizep)
@@ -1438,6 +1440,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 /*释放一个ref对应的page*/
 /*判断是否能淘汰page, page被标记为可evcit状态在读且不是常驻内存的BTREE，可以尝试进行page的evict操作*/
 //同时clear hazard指针
+//只有在满足evict条件才会evict
 static inline int
 __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {

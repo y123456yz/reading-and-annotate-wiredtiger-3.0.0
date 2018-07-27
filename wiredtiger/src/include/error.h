@@ -139,7 +139,7 @@
  */
 
 //#define HAVE_VERBOSE 1
-//打印输出
+//打印输出,加上函数名和行号，利于调试
 #ifdef HAVE_VERBOSE
 #define	__wt_verbose(session, flag, fmt, ...) do {			\
 	if (WT_VERBOSE_ISSET(session, flag))				\

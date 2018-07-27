@@ -246,12 +246,13 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 		/* Read pages with lookaside entries and evict them asap. */
 		LF_SET(WT_READ_LOOKASIDE | WT_READ_WONT_NEED);
 
+        printf("yang test sync file 1111111111111111111111111111111111\r\n");
         /*对脏页进行落盘*/
 		for (;;) {
 		    //将walk->page与hazard指针关联起来
 			WT_ERR(__sync_dup_walk(session, walk, flags, &prev));
 			//获取refp的前一个(flags带WT_READ_PREV)或者后一个节点(flags不带WT_READ_PREV) 默认后一个节点
-			WT_ERR(__wt_tree_walk(session, &walk, flags));
+			WT_ERR(__wt_tree_walk(session, &walk, flags)); //walk为NULL则第一个获取到的walk为root
 
 			if (walk == NULL)
 				break;
@@ -317,6 +318,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 			}
 			tried_eviction = false;
 
+            //对walk做罗盘处理
 			WT_ERR(__wt_reconcile(
 			    session, walk, NULL, WT_REC_CHECKPOINT, NULL));
 
@@ -335,6 +337,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 					    session, false);
 			}
 		}
+		printf("yang test sync file 22222222222222222222222222222222222\r\n");
 		break;
 	case WT_SYNC_CLOSE:
 	case WT_SYNC_DISCARD:

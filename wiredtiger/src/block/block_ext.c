@@ -488,8 +488,8 @@ __block_extend(
 
 	WT_STAT_DATA_INCR(session, block_extension);
 	__wt_verbose(session, WT_VERB_BLOCK,
-	    "file extend %" PRIdMAX "B @ %" PRIdMAX,
-	    (intmax_t)size, (intmax_t)*offp);
+	    "file name:%s extend %" PRIdMAX "B @ %" PRIdMAX,
+	    block->name, (intmax_t)size, (intmax_t)*offp);
 
 	return (0);
 }

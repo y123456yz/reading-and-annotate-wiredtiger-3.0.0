@@ -20,7 +20,7 @@ struct __rec_kv;		typedef struct __rec_kv WT_KV;
  * WT_RECONCILE --
  *	Information tracking a single page reconciliation.
  */ 
-//创建空间和赋值见__rec_init
+//创建空间和赋值见__rec_init  和checkpoint相关，可以参考__rec_row_leaf
 typedef struct {
 	WT_REF  *ref;			/* Page being reconciled */
 	WT_PAGE *page;
@@ -457,6 +457,7 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref,
 	r = session->reconcile;
 
 	/* Reconcile the page. */
+	printf("yang test ...........page type:%d\r\n", page->type);
 	switch (page->type) {
 	case WT_PAGE_COL_FIX:
 		if (salvage != NULL)
@@ -3239,7 +3240,7 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
  * __rec_split_finish --
  *	Finish processing a page.
  */ 
-/*结束page的reconcile操作*/
+/*结束page的reconcile操作 ，写数据到磁盘*/
 static int
 __rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 {
@@ -3551,7 +3552,7 @@ __rec_split_write_reuse(WT_SESSION_IMPL *session,
 /*
  * __rec_split_write --
  *	Write a disk block out for the split helper functions.
- */
+ */ //数据写入磁盘
 static int
 __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r,
     WT_CHUNK *chunk, WT_ITEM *compressed_image, bool last_block)
@@ -3690,6 +3691,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r,
 		goto copy_image;
 
 	/* Write the disk image and get an address. */
+	// /*将数据写入到block中,并获得block addr cookie*/
 	WT_RET(__wt_bt_write(session,
 	    compressed_image == NULL ? &chunk->image : compressed_image,
 	    addr, &addr_size, false, F_ISSET(r, WT_REC_CHECKPOINT),
@@ -5269,6 +5271,7 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
  * __rec_row_leaf --
  *	Reconcile a row-store leaf page.
  */
+/*解析cell到unpack结构中*/
 static int
 __rec_row_leaf(WT_SESSION_IMPL *session,
     WT_RECONCILE *r, WT_PAGE *page, WT_SALVAGE_COOKIE *salvage)
@@ -5316,7 +5319,7 @@ __rec_row_leaf(WT_SESSION_IMPL *session,
 	WT_ERR(__wt_scr_alloc(session, 0, &tmpval));
 
 	/* For each entry in the page... */
-	WT_ROW_FOREACH(page, rip, i) {
+	WT_ROW_FOREACH(page, rip, i) { //遍历page中的所有kv
 		/*
 		 * The salvage code, on some rare occasions, wants to reconcile
 		 * a page but skip some leading records on the page.  Because
@@ -5337,6 +5340,7 @@ __rec_row_leaf(WT_SESSION_IMPL *session,
 		 * set any instantiated key reference.
 		 */
 		copy = WT_ROW_KEY_COPY(rip);
+		//获取key cell
 		(void)__wt_row_leaf_key_info(
 		    page, copy, &ikey, &cell, NULL, NULL);
 		if (cell == NULL)
@@ -5347,17 +5351,20 @@ __rec_row_leaf(WT_SESSION_IMPL *session,
 		}
 
 		/* Unpack the on-page value cell, and look for an update. */
+		//获取value cell
 		if ((val_cell =
 		    __wt_row_leaf_value_cell(page, rip, NULL)) == NULL)
 			vpack = NULL;
 		else {
 			vpack = &_vpack;
+			/*解析cell到unpack结构中*/
 			__wt_cell_unpack(val_cell, vpack);
 		}
 		WT_ERR(__rec_txn_read(
 		    session, r, NULL, rip, vpack, NULL, &upd));
 
 		/* Build value cell. */
+		//row数组遍历得到的这个KV，是否有做过update或者delete操作，如果upd不为NULL，说明有更新或者delete操作
 		dictionary = false;
 		if (upd == NULL) {
 			/*
@@ -5443,7 +5450,8 @@ __rec_row_leaf(WT_SESSION_IMPL *session,
 				if (vpack->ovfl)
 					r->ovfl_items = true;
 			}
-		} else {
+		} else { //
+		//该key后面有被更新或者删除过
 			/*
 			 * The first time we find an overflow record we're not
 			 * going to use, discard the underlying blocks.
@@ -5493,7 +5501,7 @@ __rec_row_leaf(WT_SESSION_IMPL *session,
 
 				/* Proceed with appended key/value pairs. */
 				goto leaf_insert;
-			case WT_UPDATE_MODIFIED:
+			case WT_UPDATE_MODIFIED: //value更新过，则__rec_cell_build_val重写组value
 				cbt->slot = WT_ROW_SLOT(page, rip);
 				WT_ERR(__wt_value_return_upd(
 				    session, cbt, upd,
@@ -5532,6 +5540,8 @@ __rec_row_leaf(WT_SESSION_IMPL *session,
 		 */
 		key_onpage_ovfl = kpack != NULL &&
 		    kpack->ovfl && kpack->raw != WT_CELL_KEY_OVFL_RM;
+
+		//下面构建key
 		if (key_onpage_ovfl) {
 			key->buf.data = cell;
 			key->buf.size = __wt_cell_total_len(kpack);
@@ -5590,7 +5600,7 @@ __rec_row_leaf(WT_SESSION_IMPL *session,
 			} else
 				WT_ERR(__wt_row_leaf_key_copy(
 				    session, page, rip, tmpkey));
-build:
+build:      /*通过data构建一个用于reconcile的leaf key值*/
 			WT_ERR(__rec_cell_build_leaf_key(session, r,
 			    tmpkey->data, tmpkey->size, &ovfl_key));
 		}
@@ -5634,6 +5644,7 @@ build:
 		}
 
 		/* Copy the key/value pair onto the page. */
+		//拷贝KV数据到r buf中
 		__rec_copy_incr(session, r, key);
 		if (val->len == 0)
 			r->any_empty_value = true;
@@ -5679,6 +5690,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 	key = &r->k;
 	val = &r->v;
 
+    printf("yang test ..................... __rec_row_leaf_insert  key:%s value:%s\r\n", key->buf.data, val->buf.data);
 	for (; ins != NULL; ins = WT_SKIP_NEXT(ins)) {
 		WT_RET(__rec_txn_read(
 		    session, r, ins, NULL, NULL, &upd_saved, &upd));
@@ -6211,7 +6223,7 @@ __rec_cell_build_int_key(WT_SESSION_IMPL *session,
  * __rec_cell_build_leaf_key --
  *	Process a key and return a WT_CELL structure and byte string to be
  *	stored on a row-store leaf page.
- */
+ *//*通过data构建一个用于reconcile的leaf key值*/
 static int
 __rec_cell_build_leaf_key(WT_SESSION_IMPL *session,
     WT_RECONCILE *r, const void *data, size_t size, bool *is_ovflp)

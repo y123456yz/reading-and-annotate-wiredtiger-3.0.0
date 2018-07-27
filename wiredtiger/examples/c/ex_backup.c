@@ -40,9 +40,9 @@ static const char * const incr_out = "./backup_incr";
 static const char * const uri = "table:logtest";
 
 #define	CONN_CONFIG \
-    "create,cache_size=1MB,log=(archive=false,enabled=true,file_max=100K)"
+    "create,cache_size=1M,log=(archive=false,enabled=true,file_max=100K)"
 #define	MAX_ITERATIONS	5
-#define	MAX_KEYS	3
+#define	MAX_KEYS	2
 
 static int
 compare_backups(int i)
@@ -147,24 +147,24 @@ add_work(WT_SESSION *session, int iter)
 	 */
 	for (i = 0; i < MAX_KEYS; i++) {
 	    
-		(void)snprintf(k, sizeof(k), "k77 .%d 777777777777777777777777777777777ey.", i);
-		(void)snprintf(v, sizeof(v), "va777 .%d 7777777777777777777777777777777777777777777777777777777777777lue", i);
+		(void)snprintf(k, sizeof(k), "key%d", i);
+		(void)snprintf(v, sizeof(v), "value%d", i);
 		//__wt_cursor_set_keyv
 		cursor->set_key(cursor, k);
 		//__wt_cursor_set_valuev
 		cursor->set_value(cursor, v);
 		//__curfile_insert
         error_check(cursor->insert(cursor));
+        
 
-		(void)snprintf(k, sizeof(k), "ccke5555555 .%d 55555555555555555555555555577777777777777777y", i);
+		/*(void)snprintf(k, sizeof(k), "ccke5555555 .%d 55555555555555555555555555577777777777777777y", i);
 		(void)snprintf(v, sizeof(v), "value222227777 .%d  7777777777777777777777777777777777777777777777772222", i);
 		//__wt_cursor_set_keyv
 		cursor->set_key(cursor, k);
 		//__wt_cursor_set_valuev
 		cursor->set_value(cursor, v);
 		//__curfile_update
-		error_check(cursor->insert(cursor));
-		
+		error_check(cursor->insert(cursor));*/
 	}
 	error_check(cursor->close(cursor));
 }
@@ -274,11 +274,8 @@ main(int argc, char *argv[])
 	//__session_create
 	error_check(session->create( 
 	    session, uri, "key_format=S,value_format=S"));
-	printf("Adding initial data\n");
+	printf("Adding initial data1\n");
 	add_work(session, 0);
-
-	printf("Taking initial backup\n");
-	//take_full_backup(session, 0);
 
     //__session_checkpoint
 	error_check(session->checkpoint(session, NULL));

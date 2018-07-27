@@ -206,7 +206,6 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
 int
 __wt_connection_workers(WT_SESSION_IMPL *session, const char *cfg[])
 {
-    printf("yang test ..... __wt_connection_workers\r\n");
 	/*
 	 * Start the optional statistics thread.  Start statistics first so that
 	 * other optional threads can know if statistics are enabled or not.
@@ -232,13 +231,11 @@ __wt_connection_workers(WT_SESSION_IMPL *session, const char *cfg[])
 	 */
 	WT_RET(__wt_logmgr_open(session));
 
-    printf("yang test ...................... thread 11111111111111111111\r\n");
 	/* Initialize metadata tracking, required before creating tables. */
 	WT_RET(__wt_meta_track_init(session));
 
 	/* Create the lookaside table. */
 	WT_RET(__wt_las_create(session));
-    printf("yang test ...................... thread 2222222222222222222222\r\n");
 
 	/*
 	 * Start eviction threads.
@@ -248,11 +245,9 @@ __wt_connection_workers(WT_SESSION_IMPL *session, const char *cfg[])
 
 	/* Start the handle sweep thread. */
 	WT_RET(__wt_sweep_create(session));
-    printf("yang test ...................... thread 444444444444444444444444444\r\n");
 
 	/* Start the optional async threads. */
 	WT_RET(__wt_async_create(session, cfg));
-    printf("yang test ...................... thread eedccc\r\n");
 
 	/* Start the optional checkpoint thread. */
 	WT_RET(__wt_checkpoint_server_create(session, cfg));

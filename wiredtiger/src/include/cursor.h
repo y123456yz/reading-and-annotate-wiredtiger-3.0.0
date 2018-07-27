@@ -93,12 +93,13 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
 	 * skiplist entries leading to the insert point).  The search functions
 	 * also return the relationship of the search key to the found key.
 	 */
-	//在__wt_row_modify会插入tree中
+	//在__wt_row_modify会插入tree中   __wt_row_search或者__wt_col_search中赋值
 	WT_REF	  *ref;			/* Current page */
 	uint32_t   slot;		/* WT_COL/WT_ROW 0-based slot */
 
     //赋值见__search_insert_append  __wt_search_insert insert操作相关定位
     //实际上就是__wt_page_modify.mod_row_insert，见__wt_row_modify
+    //实际上对应mod_row_insert
 	WT_INSERT_HEAD	*ins_head;	/* Insert chain head */
 	WT_INSERT	*ins;		/* Current insert node */
 					/* Search stack */
@@ -125,6 +126,7 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
 	 *	  0 if the found key matches the specified key
 	 *	> 1 if the found key is larger than the specified key
 	 */
+	//赋值见__search_insert_append  __wt_search_insert
 	int	compare;
 
 	/*
@@ -197,6 +199,7 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
 	 * The update structure allocated by the row- and column-store modify
 	 * functions, used to avoid a data copy in the WT_CURSOR.update call.
 	 */
+	//赋值见__wt_row_modify
 	WT_UPDATE *modify_update;
 
 	/*

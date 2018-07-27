@@ -67,6 +67,7 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
  * __wt_search_insert --
  *	Search a row-store insert list, creating a skiplist stack as we go.
  */
+/* 为row store方式检索insert list,并构建一个skip list stack */
 int
 __wt_search_insert(WT_SESSION_IMPL *session,
     WT_CURSOR_BTREE *cbt, WT_INSERT_HEAD *ins_head, WT_ITEM *srch_key)
@@ -298,9 +299,10 @@ restart:	/*
 		parent_pindex = pindex;
 		page = current->page;
 		/*已经到叶子节点了，退出对叶子节点做检索*/
-		if (page->type != WT_PAGE_ROW_INT)
+		if (page->type != WT_PAGE_ROW_INT) //只遍历internal page下的leaf page
 			break;
 
+        //获取internal page对应的pindex
 		WT_INTL_INDEX_GET(session, page, pindex);
 
 		/*
@@ -325,6 +327,8 @@ restart:	/*
             /*只有一个孩子，直接深入下一级孩子节点做检索*/
 			if (pindex->entries == 1)
 				goto append;
+
+			//获取page对应的key存储到item中
 			__wt_ref_key(page, descent, &item->data, &item->size);
 			WT_ERR(__wt_compare(
 			    session, collator, srch_key, item, &cmp));
@@ -347,8 +351,9 @@ restart:	/*
 		 */
 		base = 1;
 		limit = pindex->entries - 1;
-		
-		if (collator == NULL && /*key范围增量比较,防止比较过程运算过多*/
+		/*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
+		if (collator == NULL && //没有指定collator比较方法
+		/*key范围增量比较,防止比较过程运算过多*/
 		    srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
 			for (; limit != 0; limit >>= 1) {
 				indx = base + (limit >> 1);
@@ -425,7 +430,6 @@ restart:	/*
 		 * slot.
 		 */ /*定位到存储key的范围page ref*/
 		descent = pindex->index[base - 1];
-
 		/*
 		 * If we end up somewhere other than the last slot, it's not a
 		 * right-side descent.
@@ -462,6 +466,7 @@ descend:	/*
 			current = descent;
 			continue;
 		}
+
 		if (ret == WT_RESTART) /*读取失败，从新再试*/
 			goto restart;
 		return (ret);
@@ -474,7 +479,7 @@ descend:	/*
 
 leaf_only:
 	page = current->page;
-	cbt->ref = current;
+	cbt->ref = current; //找到leaf对应的internal page
 
 	/*
 	 * Clear current now that we have moved the reference into the btree
@@ -605,16 +610,19 @@ leaf_match:	cbt->compare = 0;
 	 * use the extra slot of the insert array, otherwise the insert array
 	 * maps one-to-one to the WT_ROW array.
 	 */
+	//确定mod_row_insert[x]
 	if (base == 0) {
 		cbt->compare = 1;
 		cbt->slot = 0;
 
 		F_SET(cbt, WT_CBT_SEARCH_SMALLEST);
+		//(page)->modify->mod_row_insert[(page)->entries])
 		ins_head = WT_ROW_INSERT_SMALLEST(page);
 	} else {
 		cbt->compare = -1;
 		cbt->slot = base - 1;
 
+        //(page)->modify->mod_row_insert[slot])
 		ins_head = WT_ROW_INSERT_SLOT(page, cbt->slot);
 	}
 

@@ -264,7 +264,7 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
 /*
  * __wt_update_serial --
  *	Update a row or column-store entry.
- */ /*串行更新*/
+ */ /*串行更新*/ //srch_udp为老udp  udpd为新的udp
 static inline int
 __wt_update_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
     WT_UPDATE **srch_upd, WT_UPDATE **updp, size_t upd_size, bool exclusive)
@@ -288,7 +288,7 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_PAGE *page,
 	 * Swap the update into place.  If that fails, a new update was added
 	 * after our search, we raced.  Check if our update is still permitted.
 	 */ //这里的WT_WRITE_BARRIER作用是每次获取upd->next都应该是新的
-	while (!__wt_atomic_cas_ptr(srch_upd, upd->next, upd)) {
+	while (!__wt_atomic_cas_ptr(srch_upd, upd->next, upd)) { //见lint.h
 	    /*检查是否有其他的session在这个更新之前做了upd更新且对这个session不可见，如果有，只能回滚这次更新*/
 		if ((ret = __wt_txn_update_check(
 		    session, upd->next = *srch_upd)) != 0) {

@@ -70,8 +70,9 @@
  btree结构  S2BT(session)完成session到btree的转换   成员赋值__btree_conf
  btree对应的文件见__wt_block_open
  btree结构可以参考https://blog.csdn.net/xu_flash/article/details/62216969
- */
-struct __wt_btree {
+ */ //该结构实际上是S2BT(session)，可以参考__wt_btree_open
+ //不同xxx.wt对应的文btree可以通过conn->dhhash关联起来，参考__wt_conn_dhandle_alloc
+struct __wt_btree { //btree创建空间在__wt_conn_dhandle_alloc
     //赋值见__wt_btree_open
 	WT_DATA_HANDLE *dhandle;
     /*checkpoint信息结构指针*/
@@ -155,7 +156,9 @@ struct __wt_btree {
     /*列式存储时最后的记录序号*/
 	uint64_t last_recno;		/* Column-store last record number */
 
-    /*btree root的根节点句柄*/
+    /*btree root的根节点句柄  root page*/
+    /* root page在__wt_btree.root, internal page在__wt_btree_open->__btree_tree_open_empty创建 */
+    //internal page   leaf page都挂载该ROOT下组成btree树
 	WT_REF	root;			/* Root page reference */
 	/*btree修改标示*/
 	bool	modified;		/* If the tree ever modified */
@@ -172,7 +175,6 @@ struct __wt_btree {
 
 	uint64_t write_gen;		/* Write generation */
 	uint64_t rec_max_txn;		/* Maximum txn seen (clean trees) */
-	WT_DECL_TIMESTAMP(rec_max_timestamp)
 
 	uint64_t checkpoint_gen;	/* Checkpoint generation */
 	volatile enum {
@@ -216,6 +218,8 @@ struct __wt_btree {
 	} evict_start_type;
 
 	uint32_t flags;
+
+	WT_DECL_TIMESTAMP(rec_max_timestamp)
 };
 
 /* 上面的flags中用到
