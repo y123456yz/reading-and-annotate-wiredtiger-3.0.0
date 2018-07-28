@@ -75,7 +75,7 @@ err:	API_END_RET(session, ret);
 /*
  * __curfile_next --
  *	WT_CURSOR->next method for the btree cursor type.
- */
+ */ //遍历btree，然后填充key value到cursor.key cursor.value，返回
 static int
 __curfile_next(WT_CURSOR *cursor)
 {

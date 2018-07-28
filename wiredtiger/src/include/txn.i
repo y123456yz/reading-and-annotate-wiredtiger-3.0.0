@@ -396,7 +396,7 @@ __wt_txn_upd_visible_all(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __txn_visible_id --
  *	Can the current transaction see the given ID?
- */
+ *//*检查事务id是否对当前session对应事务可见*/
 static inline bool
 __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 {
@@ -449,7 +449,7 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 /*
  * __wt_txn_visible --
  *	Can the current transaction see the given ID / timestamp?
- */
+ */ /*检查事务id是否对当前session对应事务可见*/
 static inline bool
 __wt_txn_visible(
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)

@@ -310,7 +310,10 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __page_read --
  *	Read a page from the file.
- */
+ */ //这里面会分配leaf page
+ /****************************************************
+* 从文件中读取一个page的数据到内存中并构建其内存对象  __wt_row_search->__wt_page_in_func中会调用
+****************************************************/
 static int
 __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {
@@ -363,7 +366,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 	 * re-creation of the name space.
 	 */
 	__wt_ref_info(ref, &addr, &addr_size, NULL);
-	if (addr == NULL) {
+	if (addr == NULL) { /*没找到block addr,直接新建一个page*/
 		WT_ASSERT(session, previous_state != WT_REF_DISK);
 
 		WT_ERR(__wt_btree_new_leaf_page(session, &page));
@@ -380,6 +383,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 	timer = !F_ISSET(session, WT_SESSION_INTERNAL);
 	if (timer)
 		__wt_epoch(session, &start);
+	/*从磁盘文件上将page数据读入内存*/
 	WT_ERR(__wt_bt_read(session, &tmp, addr, addr_size));
 	if (timer) {
 		__wt_epoch(session, &stop);
@@ -397,6 +401,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 	    WT_DATA_IN_ITEM(&tmp) ? WT_PAGE_DISK_ALLOC : WT_PAGE_DISK_MAPPED;
 	if (LF_ISSET(WT_READ_IGNORE_CACHE_SIZE))
 		FLD_SET(page_flags, WT_PAGE_READ_NO_EVICT);
+	/*构建page数据组织结构和对象*/
 	WT_ERR(__wt_page_inmem(session, ref, tmp.data, page_flags, &page));
 	tmp.mem = NULL;
 
@@ -410,6 +415,7 @@ skip_read:
 
 	/* If the page was deleted, instantiate that information. */
 	if (previous_state == WT_REF_DELETED)
+	/*如果page已经处于删除状态，那么需要构建一个page_deleted特殊实例化这个page，并做删除事务隔离*/
 		WT_ERR(__wt_delete_page_instantiate(session, ref));
 
 	/*
@@ -437,7 +443,7 @@ skip_read:
 		    session, NULL, btree->id, ref->page_las->las_pageid));
 		__wt_free(session, ref->page_las);
 	}
-
+    /*将page的内存状态生效到索引页上*/
 done:	WT_PUBLISH(ref->state, WT_REF_MEM);
 	return (ret);
 
@@ -529,6 +535,8 @@ done:	WT_PUBLISH(ref->state, WT_REF_LOOKASIDE);
  *	read it from the disk and build an in-memory version.
  */
 /*帮助ref对应的page获得一个hazard pointer,如果page是在磁盘上，将page读入memory中*/
+//这里面会分配leaf page,
+//__wt_row_search会调用该行  
 int
 __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 #ifdef HAVE_DIAGNOSTIC
@@ -544,7 +552,7 @@ __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 	bool busy, cache_work, did_read, stalled, wont_need;
 
 	btree = S2BT(session);
-
+    
 	if (F_ISSET(session, WT_SESSION_IGNORE_CACHE_SIZE))
 		LF_SET(WT_READ_IGNORE_CACHE_SIZE);
 
@@ -559,12 +567,15 @@ __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 
 	for (did_read = wont_need = stalled = false,
 	    force_attempts = 0, sleep_cnt = wait_cnt = 0;;) {
+	 
 		switch (ref->state) {
-		case WT_REF_DELETED:
+		case WT_REF_DELETED: //
 			if (LF_ISSET(WT_READ_NO_EMPTY) &&
-			    __wt_delete_page_skip(session, ref, false))
+			    __wt_delete_page_skip(session, ref, false)) {
+		
 				return (WT_NOTFOUND);
-			goto read;
+			}
+			goto read; //会分配leaf page
 		case WT_REF_LOOKASIDE:
 			if (LF_ISSET(WT_READ_CACHE)) {
 				if (!LF_ISSET(WT_READ_LOOKASIDE))
@@ -589,7 +600,7 @@ read:			/*
 				    session, true,
 				    !F_ISSET(&session->txn, WT_TXN_HAS_ID),
 				    NULL));
-			WT_RET(__page_read(session, ref, flags));
+			WT_RET(__page_read(session, ref, flags));//这里面会分配leaf page
 
 			/*
 			 * We just read a page, don't evict it before we have a
@@ -765,6 +776,7 @@ skip_evict:		/*
 		__wt_ref_state_yield_sleep(&wait_cnt, &sleep_cnt);
 		WT_STAT_CONN_INCRV(session, page_sleep, sleep_cnt);
 	}
+	printf("yang test ......1....2................... __wt_page_in_func\r\n");
 }
 
 /*

@@ -11,7 +11,7 @@
 /*
  * __key_return --
  *	Change the cursor to reference an internal return key.
- */
+ */ //填充key到cursor
 static inline int
 __key_return(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 {
@@ -76,7 +76,7 @@ __key_return(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 /*
  * __value_return --
  *	Change the cursor to reference an internal original-page return value.
- */
+ */ //获取value
 static inline int
 __value_return(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 {
@@ -261,8 +261,8 @@ __wt_key_return(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 /*
  * __wt_value_return --
  *	Change the cursor to reference an internal return value.
- */
-int
+ */ //获取value 填充到cursor.value
+int 
 __wt_value_return(
     WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE *upd)
 {

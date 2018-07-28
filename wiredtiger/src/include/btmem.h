@@ -382,7 +382,7 @@ struct __wt_page_modify {
 #undef	mod_row_insert
 #define	mod_row_insert		u2.row_leaf.insert
 
-//WT_ROW_UPDATE获取
+//WT_ROW_UPDATE获取  WT_PAGE_ALLOC_AND_SWAP中开辟空间
 #undef	mod_row_update  
 #define	mod_row_update		u2.row_leaf.update  //上面的update
 	} u2;
@@ -694,7 +694,8 @@ https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 #undef	pg_intl_split_gen
 #define	pg_intl_split_gen		u.intl.split_gen
 
-//在WT_ROW_FOREACH  WT_ROW_FOREACH_REVERSE中遍历，__rec_row_leaf中把leaf page写入磁盘                 
+//在WT_ROW_FOREACH  WT_ROW_FOREACH_REVERSE中遍历，__rec_row_leaf中把leaf page写入磁盘    在__value_return   
+//在__inmem_row_leaf中从磁盘空间加载数据到leaf page的时候是放入改row中的，但是insert update delete中的数据是放入 mod_row_update  mod_row_insert
 #undef	pg_row
 #define	pg_row		u.row  //__wt_page_alloc中赋值
                     
@@ -846,6 +847,7 @@ struct __wt_ref {
 	 * Address: on-page cell if read from backing block, off-page WT_ADDR
 	 * if instantiated in-memory, or NULL if page created in-memory.
 	 */
+	 //该page已经写入磁盘，执行对应的地址
 	void	*addr;
 
 	/*
@@ -929,7 +931,7 @@ struct __wt_row {	/* On-page key, on-page cell, or off-page WT_IKEY */
 /*
  * WT_ROW_SLOT --
  *	Return the 0-based array offset based on a WT_ROW reference.
- */
+ */ //定位rip在pg_row中的位置，可以参考__wt_row_search
 #define	WT_ROW_SLOT(page, rip)						\
 	((uint32_t)(((WT_ROW *)(rip)) - (page)->pg_row))
 
@@ -1029,12 +1031,7 @@ struct __wt_update {
 
     //赋值见__wt_update_alloc
 	uint32_t size;			/* data length */
-
-#define	WT_UPDATE_INVALID	0	/* diagnostic check */
-#define	WT_UPDATE_DELETED	1	/* deleted */
-#define	WT_UPDATE_MODIFIED	2	/* partial-update modify value */
-#define	WT_UPDATE_RESERVED	3	/* reserved */
-#define	WT_UPDATE_STANDARD	4	/* complete value */
+    //WT_UPDATE_DELETED等
 	uint8_t type;			/* type (one byte to conserve memory) */
 
 	/* If the update includes a complete value. */
@@ -1053,6 +1050,13 @@ struct __wt_update {
 	//赋值见__wt_update_alloc
 	uint8_t data[];			/* start of the data */
 };
+
+#define	WT_UPDATE_INVALID	0	/* diagnostic check */
+#define	WT_UPDATE_DELETED	1	/* deleted */
+#define	WT_UPDATE_MODIFIED	2	/* partial-update modify value */
+#define	WT_UPDATE_RESERVED	3	/* reserved */
+#define	WT_UPDATE_STANDARD	4	/* complete value */
+
 
 /*
  * WT_UPDATE_SIZE is the expected structure size excluding the payload data --
@@ -1120,13 +1124,14 @@ struct __wt_insert {
 		} key;
 	} u;
 
+	WT_INSERT *next[0];			/* forward-linked skip list */
+};
+
 #define	WT_INSERT_KEY_SIZE(ins) (((WT_INSERT *)(ins))->u.key.size)
 #define	WT_INSERT_KEY(ins)						\
 	((void *)((uint8_t *)(ins) + ((WT_INSERT *)(ins))->u.key.offset))
 #define	WT_INSERT_RECNO(ins)	(((WT_INSERT *)(ins))->u.recno)
 
-	WT_INSERT *next[0];			/* forward-linked skip list */
-};
 
 /*
  * Skiplist helper macros.

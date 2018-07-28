@@ -166,7 +166,7 @@ __cursor_fix_implicit(WT_BTREE *btree, WT_CURSOR_BTREE *cbt)
 /*
  * __wt_cursor_valid --
  *	Return if the cursor references an valid key/value pair.
- */
+ */  //ins不为NULL，直接获取ins->udp,如果为NULL则从mod_row_update表中根据cbt->slot定位获取
 bool
 __wt_cursor_valid(WT_CURSOR_BTREE *cbt, WT_UPDATE **updp)
 {
@@ -226,10 +226,10 @@ __wt_cursor_valid(WT_CURSOR_BTREE *cbt, WT_UPDATE **updp)
 	 *
 	 * First, check for an insert object with a visible update (a visible
 	 * update that's been deleted is not a valid key/value pair).
-	 */
+	 */ //ins不为NULL，直接获取ins->udp
 	if (cbt->ins != NULL &&
 	    (upd = __wt_txn_read(session, cbt->ins->upd)) != NULL) {
-		if (upd->type == WT_UPDATE_DELETED)
+		if (upd->type == WT_UPDATE_DELETED) //如果该udp已经删除，则返回false
 			return (false);
 		if (updp != NULL)
 			*updp = upd;
@@ -298,6 +298,7 @@ __wt_cursor_valid(WT_CURSOR_BTREE *cbt, WT_UPDATE **updp)
 			return (false);
 
 		/* Check for an update. */
+		//从mod_row_update表中根据cbt->slot定位获取
 		if (page->modify != NULL &&
 		    page->modify->mod_row_update != NULL &&
 		    (upd = __wt_txn_read(session,
@@ -752,7 +753,7 @@ retry:	WT_ERR(__cursor_func_init(cbt, true));
 		 * key/value pair.
 		 */
 		if (!F_ISSET(cursor, WT_CURSTD_OVERWRITE) &&
-		    cbt->compare == 0 && __wt_cursor_valid(cbt, NULL))
+		    cbt->compare == 0 && __wt_cursor_valid(cbt, NULL)) //根据前面的查找是否找到这里是否返回重复WT_DUPLICATE_KEY
 			WT_ERR(WT_DUPLICATE_KEY);
 
 		ret = __cursor_row_modify(session, cbt, WT_UPDATE_STANDARD);

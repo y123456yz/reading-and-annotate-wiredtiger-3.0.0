@@ -30,13 +30,14 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	btree = S2BT(session);
 	collator = btree->collator;
 
-	if ((ins = WT_SKIP_LAST(ins_head)) == NULL)
+	if ((ins = WT_SKIP_LAST(ins_head)) == NULL) //下次插入到skip末尾
 		return (0);
 
 	/*通过ins获得key的值*/
 	key.data = WT_INSERT_KEY(ins);
 	key.size = WT_INSERT_KEY_SIZE(ins);
 
+    printf("yang test  insert append:%s\r\n", key.data);
 	WT_RET(__wt_compare(session, collator, srch_key, &key, &cmp));
 	if (cmp >= 0) {
 		/*
@@ -48,7 +49,7 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		 * another thread, one of the next pointers will not be NULL by
 		 * the time they are checked against the next stack inside the
 		 * serialized insert function.
-		 */
+		 */ //cbt->ins_stack[]来定位位置
 		for (i = WT_SKIP_MAXDEPTH - 1; i >= 0; i--) {
 			cbt->ins_stack[i] = (i == 0) ? &ins->next[0] :
 			    (ins_head->tail[i] != NULL) ?
@@ -67,7 +68,7 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
  * __wt_search_insert --
  *	Search a row-store insert list, creating a skiplist stack as we go.
  */
-/* 为row store方式检索insert list,并构建一个skip list stack */
+/* 为row store方式检索insert list,并构建一个skip list stack，确定ins_head */
 int
 __wt_search_insert(WT_SESSION_IMPL *session,
     WT_CURSOR_BTREE *cbt, WT_INSERT_HEAD *ins_head, WT_ITEM *srch_key)
@@ -100,7 +101,7 @@ __wt_search_insert(WT_SESSION_IMPL *session,
 		 * Comparisons may be repeated as we drop down skiplist levels;
 		 * don't repeat comparisons, they might be expensive.
 		 */
-		if (ins != last_ins) {
+		if (ins != last_ins) { //查找key
 			last_ins = ins;
 			key.data = WT_INSERT_KEY(ins);
 			key.size = WT_INSERT_KEY_SIZE(ins);
@@ -130,6 +131,7 @@ __wt_search_insert(WT_SESSION_IMPL *session,
 	 * decide whether we are positioned in a skiplist.
 	 */
 	cbt->compare = -cmp;
+	//记录下这个找到的位置，例如serch操作查找某个key的value的时候，就从ins取，见__wt_btcur_search
 	cbt->ins = (ins != NULL) ? ins : last_ins;
 	cbt->ins_head = ins_head;
 	return (0);
@@ -351,6 +353,7 @@ restart:	/*
 		 */
 		base = 1;
 		limit = pindex->entries - 1;
+		
 		/*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
 		if (collator == NULL && //没有指定collator比较方法
 		/*key范围增量比较,防止比较过程运算过多*/
@@ -443,8 +446,9 @@ restart:	/*
 		 */
 		if (pindex->entries == base) {
 append:			if (__wt_split_descent_race(
-			    session, current, parent_pindex))
-				goto restart;
+			    session, current, parent_pindex)) {
+				    goto restart;
+				}
 		}
 
 descend:	/*
@@ -461,12 +465,13 @@ descend:	/*
 		 */
 		 /*进行下一级页读取，如果有限制，先从内存中淘汰正在操作的page,如果正要读取的page在splits,
 		 那么我们从新检索当前(current)的page*/
-		if ((ret = __wt_page_swap(
+		 //这里面会调用__wt_page_alloc分配page leaf
+		if ((ret = __wt_page_swap( //current和descent交换，下次循环就从descent = pindex->index[base - 1]开始，也就是到子节点了
 		    session, current, descent, WT_READ_RESTART_OK)) == 0) {
 			current = descent;
 			continue;
 		}
-
+        
 		if (ret == WT_RESTART) /*读取失败，从新再试*/
 			goto restart;
 		return (ret);
@@ -518,10 +523,10 @@ leaf_only:
 
 			ins_head = WT_ROW_INSERT_SLOT(page, cbt->slot);
 		}
-
+        printf("yang test          leaf match 000000000000000000000 cbt->slot:%d  inshead:%p\r\n", cbt->slot, ins_head);
 		WT_ERR(__search_insert_append(
 		    session, cbt, ins_head, srch_key, &done));
-		if (done)
+		if (done) //已经定位到srch_key要插入的位置，直接返回
 			return (0);
 	}
 
@@ -531,13 +536,16 @@ leaf_only:
 	 * and keys with an application-specified collation order), because
 	 * doing the tests and error handling inside the loop costs about 5%.
 	 */
+	//匹配查找，找到leaf中有该key，则cbt->slot代表该key在pg_row[]中的位置
+	//没查到要么limit为0，要么查找遍了limit范围也没找到  
 	base = 0;
-	limit = page->entries;
+	limit = page->entries;//二分查找的最大边界
+	//注意leaf查找是根据pg_row中查找的,找不到才会从后面的__wt_search_insert中查找
 	if (collator == NULL && srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
 		for (; limit != 0; limit >>= 1) {
-			indx = base + (limit >> 1);
+			indx = base + (limit >> 1); //右移一位代表除2，用于二分查找
 			rip = page->pg_row + indx;
-			WT_ERR(
+			WT_ERR( /*获取row store的叶子节ref的KEY值*/
 			    __wt_row_leaf_key(session, page, rip, item, true));
 
 			cmp = __wt_lex_compare_short(srch_key, item);
@@ -588,7 +596,8 @@ leaf_only:
 	 */
 	if (0) {
 leaf_match:	cbt->compare = 0;
-		cbt->slot = WT_ROW_SLOT(page, rip);
+        printf("yang test          leaf match 1111111111111111\r\n");
+		cbt->slot = WT_ROW_SLOT(page, rip); //找到了leaf中有该key
 		return (0);
 	}
 
@@ -610,7 +619,7 @@ leaf_match:	cbt->compare = 0;
 	 * use the extra slot of the insert array, otherwise the insert array
 	 * maps one-to-one to the WT_ROW array.
 	 */
-	//确定mod_row_insert[x]
+	//说明page->entries为0，也就是page没有子节点了
 	if (base == 0) {
 		cbt->compare = 1;
 		cbt->slot = 0;
@@ -618,7 +627,7 @@ leaf_match:	cbt->compare = 0;
 		F_SET(cbt, WT_CBT_SEARCH_SMALLEST);
 		//(page)->modify->mod_row_insert[(page)->entries])
 		ins_head = WT_ROW_INSERT_SMALLEST(page);
-	} else {
+	} else { //说明查找了整个page->entries也没找到，则下次直接从base个后面插入
 		cbt->compare = -1;
 		cbt->slot = base - 1;
 
@@ -630,6 +639,7 @@ leaf_match:	cbt->compare = 0;
 	if (WT_SKIP_FIRST(ins_head) == NULL)
 		return (0);
 
+    printf("yang test          leaf match 2222222222222 base:%d page->entries:%d\r\n", base, page->entries);
 	/*
 	 * Test for an append first when inserting onto an insert list, try to
 	 * catch cursors repeatedly inserting at a single point.
@@ -640,6 +650,8 @@ leaf_match:	cbt->compare = 0;
 		if (done)
 			return (0);
 	}
+
+	//serch操作走这里
 	WT_ERR(__wt_search_insert(session, cbt, ins_head, srch_key));
 
 	return (0);

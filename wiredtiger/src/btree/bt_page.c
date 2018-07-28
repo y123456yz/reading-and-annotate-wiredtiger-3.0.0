@@ -67,6 +67,7 @@ __wt_page_alloc(WT_SESSION_IMPL *session,
 	/*设置一个初始化的read_gen值*/
 	page->read_gen = WT_READGEN_NOTSET;
 
+    printf("yang test ...__wt_page_alloc..............type:%d\r\n", type);
 	switch (type) {
 	case WT_PAGE_COL_FIX:
 		page->entries = alloc_entries;
@@ -575,7 +576,7 @@ __inmem_row_leaf_entries(
 /*
  * __inmem_row_leaf --
  *	Build in-memory index for row-store leaf pages.
- */
+ */ /*构建行存储leaf page的内存索引对象(row array)*/
 static int
 __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -591,7 +592,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page)
 	unpack = &_unpack;
 
 	/* Walk the page, building indices. */
-	rip = page->pg_row;
+	rip = page->pg_row;//从磁盘文件读取到leaf page中的数据都是放pg_row中的
 	WT_CELL_FOREACH(btree, dsk, cell, unpack, i) {
 		__wt_cell_unpack(cell, unpack);
 		switch (unpack->type) {

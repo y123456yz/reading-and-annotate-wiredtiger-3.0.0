@@ -150,7 +150,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		 */ /*分配一个insert head数组*/
 		 //分配page->entries + 1个WT_INSERT_HEAD，然后赋值给mod->mod_row_insert
 		WT_PAGE_ALLOC_AND_SWAP(session, page,
-		    mod->mod_row_insert, ins_headp, page->entries + 1);
+		    mod->mod_row_insert, ins_headp, page->entries + 1); 
 
 		ins_slot = F_ISSET(cbt, WT_CBT_SEARCH_SMALLEST) ?
 		    page->entries: cbt->slot; 
