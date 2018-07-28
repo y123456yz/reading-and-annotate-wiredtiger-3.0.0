@@ -65,7 +65,7 @@ access_example(void)
 	    session, "table:access", NULL, NULL, &cursor));
 	/*! [access example cursor open] */
 
-    printf("yang test 3333333333333333333333333333 __session_open_cursor end\r\n");
+   
 	/*! [access example cursor insert] */
 	//__wt_cursor_set_key
 	cursor->set_key(cursor, "key1");	/* Insert a record. */
@@ -74,6 +74,21 @@ access_example(void)
 	printf("yang test ....................__wt_cursor_set_valuev end\r\n");
 	//__curfile_insert
     error_check(cursor->insert(cursor));
+
+    cursor->set_key(cursor, "key2");	/* Insert a record. */
+	//__wt_cursor_set_value
+	cursor->set_value(cursor, "value2");
+	//__curfile_insert
+    error_check(cursor->insert(cursor));
+
+    cursor->reset(cursor);
+    cursor->set_key(cursor, "key1");
+    //__curfile_search
+    cursor->search(cursor);
+    cursor->get_value(cursor, &value);
+    printf("yang test value:%s\r\n",value);
+
+    return 1;
     
 	/*! [access example cursor list] */
 	//__curfile_reset

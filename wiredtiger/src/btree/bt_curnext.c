@@ -265,7 +265,7 @@ new_page:	/* Find the matching WT_COL slot. */
  * __cursor_row_next --
  *	Move to the next row-store item.
  */ 
-/*移向行存储的下一个行对象*/
+/*移向行存储的下一个行对象  获取对应的key和value填充到*/
 static inline int
 __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage)
 {
@@ -291,7 +291,7 @@ __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage)
 	 *
 	 * Initialize for each new page.
 	 */
-	if (newpage) {
+	if (newpage) {/*假如是newpage，定位到insert修改队列的头位置*/
 		cbt->ins_head = WT_ROW_INSERT_SMALLEST(page);
 		cbt->ins = WT_SKIP_FIRST(cbt->ins_head);
 		cbt->row_iteration_slot = 1;
@@ -300,12 +300,13 @@ __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage)
 	}
 
 	/* Move to the next entry and return the item. */
-	for (;;) {
+	for (;;) {  
 		/*
 		 * Continue traversing any insert list; maintain the insert list
 		 * head reference and entry count in case we switch to a cursor
 		 * previous movement.
 		 */
+		//先在ins中找，找不到才从后面的pg_row中找
 		if (cbt->ins != NULL)
 			cbt->ins = WT_SKIP_NEXT(cbt->ins);
 
@@ -317,6 +318,8 @@ new_insert:	if ((ins = cbt->ins) != NULL) {
 					++cbt->page_deleted_count;
 				continue;
 			}
+
+			//获取key和value填充到cursor.key和cursor.value
 			key->data = WT_INSERT_KEY(ins);
 			key->size = WT_INSERT_KEY_SIZE(ins);
 			return (__wt_value_return(session, cbt, upd));
@@ -490,7 +493,7 @@ __wt_cursor_key_order_reset(WT_CURSOR_BTREE *cbt)
 /*
  * __wt_btcur_iterate_setup --
  *	Initialize a cursor for iteration, usually based on a search.
- */
+ */ /*为一个检索操作初始化一个查询的cursor*/
 void
 __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
 {
@@ -522,6 +525,7 @@ __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
 	}
 
 	page = cbt->ref->page;
+	/*行存储叶子节点*/
 	if (page->type == WT_PAGE_ROW_LEAF) {
 		/*
 		 * For row-store pages, we need a single item that tells us the
@@ -532,7 +536,7 @@ __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
 		 * slot 2 is WT_ROW[0], slot 3 is WT_INSERT_HEAD[0], and so on.
 		 * This means WT_INSERT lists are odd-numbered slots, and WT_ROW
 		 * array slots are even-numbered slots.
-		 */
+		 */ /*指定iteration slot*/
 		cbt->row_iteration_slot = (cbt->slot + 1) * 2;
 		if (cbt->ins_head != NULL) {
 			if (cbt->ins_head == WT_ROW_INSERT_SMALLEST(page))
@@ -540,7 +544,7 @@ __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
 			else
 				cbt->row_iteration_slot += 1;
 		}
-	} else {
+	} else {  /*column store page, 计算这个page中最大的记录序号*/
 		/*
 		 * For column-store pages, calculate the largest record on the
 		 * page.
@@ -561,6 +565,8 @@ __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
  *	Move to the next record in the tree.
  */
 /*将btree cursor移动到下一个记录*/
+//遍历btree，然后填充key value到cursor.key cursor.value，返回
+//配合ex_access例子中的main查看，main会调用这里cursor->next
 int
 __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 {
@@ -584,7 +590,7 @@ __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 	/*
 	 * If we aren't already iterating in the right direction, there's
 	 * some setup to do.
-	 */
+	 *//*初始化cursor*/
 	if (!F_ISSET(cbt, WT_CBT_ITERATE_NEXT))
 		__wt_btcur_iterate_setup(cbt);
 
@@ -597,7 +603,7 @@ __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 	LF_SET(WT_READ_NO_SPLIT);			/* don't try to split */
 	if (truncating)
 		LF_SET(WT_READ_TRUNCATE);
-	for (newpage = false;; newpage = true) {
+	for (newpage = false;; newpage = true) { /*对btree的扫描*/
 		page = cbt->ref == NULL ? NULL : cbt->ref->page;
 
 		if (F_ISSET(cbt, WT_CBT_ITERATE_APPEND)) {
@@ -624,10 +630,13 @@ __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 				ret = __cursor_var_next(cbt, newpage);
 				break;
 			case WT_PAGE_ROW_LEAF:
+			    //获取对应key和value
 				ret = __cursor_row_next(cbt, newpage);
 				break;
 			WT_ILLEGAL_VALUE_ERR(session);
 			}
+
+			/*找到对应的记录了，直接返回*/
 			if (ret != WT_NOTFOUND)
 				break;
 
@@ -635,7 +644,8 @@ __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 			 * Column-store pages may have appended entries. Handle
 			 * it separately from the usual cursor code, it's in a
 			 * simple format.
-			 */
+			 */ 
+			/*假如是column store方式，检查是否要扫描insert header list*/
 			if (page->type != WT_PAGE_ROW_LEAF &&
 			    (cbt->ins_head = WT_COL_APPEND(page)) != NULL) {
 				F_SET(cbt, WT_CBT_ITERATE_APPEND);
@@ -650,13 +660,14 @@ __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 		 * deleting from the beginning of a tree can have quadratic
 		 * performance.  Take care not to force eviction of pages that
 		 * are genuinely empty, in new trees.
-		 */
+		 */ /*删除的记录太多，对page进行重组，增大page的填充因子*/
 		if (page != NULL &&
 		    (cbt->page_deleted_count > WT_BTREE_DELETE_THRESHOLD ||
 		    (newpage && cbt->page_deleted_count > 0)))
 			__wt_page_evict_soon(session, cbt->ref);
 		cbt->page_deleted_count = 0;
 
+        /*btree cursor跳转到下一个page上*/
 		WT_ERR(__wt_tree_walk(session, &cbt->ref, flags));
 		WT_ERR_TEST(cbt->ref == NULL, WT_NOTFOUND);
 	}

@@ -95,6 +95,7 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
 	 */
 	//在__wt_row_modify会插入tree中   __wt_row_search或者__wt_col_search中赋值
 	WT_REF	  *ref;			/* Current page */
+	//赋值见__wt_row_search  确定在pg_row中的数组位置，参考WT_ROW_SLOT
 	uint32_t   slot;		/* WT_COL/WT_ROW 0-based slot */
 
     //赋值见__search_insert_append  __wt_search_insert insert操作相关定位
@@ -157,7 +158,7 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
 	 * is the "smallest key insert list", slot 2 is WT_ROW[0], slot 3 is
 	 * WT_INSERT_HEAD[0], and so on.  This means WT_INSERT lists are
 	 * odd-numbered slots, and WT_ROW array slots are even-numbered slots.
-	 */
+	 */ //赋值见__wt_btcur_iterate_setup
 	uint32_t row_iteration_slot;	/* Row-store iteration slot */
 
 	/*

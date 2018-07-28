@@ -242,6 +242,7 @@ __wt_delete_page_skip(WT_SESSION_IMPL *session, WT_REF *ref, bool visible_all)
 	 * the page could switch to an in-memory state at any time.  Lock down
 	 * the structure, just to be safe.
 	 */
+	printf("yang test ......1....................... __wt_delete_page_skip ref->state\r\n");
 	if (ref->page_del == NULL)
 		return (true);
 
@@ -266,6 +267,7 @@ __wt_delete_page_skip(WT_SESSION_IMPL *session, WT_REF *ref, bool visible_all)
 		__wt_free(session, ref->page_del->update_list);
 		__wt_free(session, ref->page_del);
 	}
+	printf("yang test ......1.....c.................. __wt_delete_page_skip ref->state\r\n");
 
 	WT_PUBLISH(ref->state, WT_REF_DELETED);
 	return (skip);

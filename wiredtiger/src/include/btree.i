@@ -997,7 +997,7 @@ __wt_row_leaf_value_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK *unpack)
  * __wt_row_leaf_key --
  *	Set a buffer to reference a row-store leaf page key as cheaply as
  * possible.
- */
+ *//*获取row store的叶子节ref的KEY值*/
 static inline int
 __wt_row_leaf_key(WT_SESSION_IMPL *session,
     WT_PAGE *page, WT_ROW *rip, WT_ITEM *key, bool instantiate)
@@ -1100,7 +1100,7 @@ __wt_row_leaf_value(WT_PAGE *page, WT_ROW *rip, WT_ITEM *value)
 /*
  * __wt_ref_info --
  *	Return the addr/size and type triplet for a reference.
- */
+ */ /*通过ref信息，返回一个对应的的block的(addr/size/type)对，这个block地址对可以从磁盘上读取对应的信息*/
 static inline void
 __wt_ref_info(WT_REF *ref, const uint8_t **addrp, size_t *sizep, u_int *typep)
 {
@@ -1503,6 +1503,7 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
  * coupling up/down the tree.
  */
 /*交换held和want的page指针，相当于淘汰held,从磁盘中读取want来顶替held的位置*/
+//__wt_row_search中会调用
 static inline int
 __wt_page_swap_func(
     WT_SESSION_IMPL *session, WT_REF *held, WT_REF *want, uint32_t flags

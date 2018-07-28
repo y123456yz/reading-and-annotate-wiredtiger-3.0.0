@@ -374,6 +374,7 @@ __wt_cache_full(WT_SESSION_IMPL *session)
  * __wt_cache_eviction_check --
  *	Evict pages if the cache crosses its boundaries.
  */ 
+ ///*检查lru cache中的数据是否满，如果超过95%的占有率，先要进行lru淘汰，再进行当前引用page的读取*/
 static inline int
 __wt_cache_eviction_check(
     WT_SESSION_IMPL *session, bool busy, bool readonly, bool *didworkp)
