@@ -67,7 +67,6 @@ __wt_page_alloc(WT_SESSION_IMPL *session,
 	/*设置一个初始化的read_gen值*/
 	page->read_gen = WT_READGEN_NOTSET;
 
-    printf("yang test ...__wt_page_alloc..............type:%d\r\n", type);
 	switch (type) {
 	case WT_PAGE_COL_FIX:
 		page->entries = alloc_entries;
@@ -411,7 +410,8 @@ __inmem_col_var(
 /*
  * __inmem_row_int --
  *	Build in-memory index for row-store internal pages.
- */
+ */ /*为行存储的page构建内部索引的内存对象,非叶子节点*/
+ //构建row store internal page
 static int
 __inmem_row_int(WT_SESSION_IMPL *session, WT_PAGE *page, size_t *sizep)
 {
@@ -441,7 +441,9 @@ __inmem_row_int(WT_SESSION_IMPL *session, WT_PAGE *page, size_t *sizep)
 	refp = pindex->index;
 	overflow_keys = false;
 	hint = 0;
-	WT_CELL_FOREACH(btree, dsk, cell, unpack, i) {
+
+	//leaf page的
+	WT_CELL_FOREACH(btree, dsk, cell, unpack, i) { //确定internal page所指定的index[]个leaf page的磁盘addr
 		ref = *refp;
 		ref->home = page;
 		ref->pindex_hint = hint++;

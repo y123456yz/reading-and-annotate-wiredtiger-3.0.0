@@ -497,7 +497,7 @@ __wt_page_modify_init(WT_SESSION_IMPL *session, WT_PAGE *page)
  * __wt_page_only_modify_set --
  *	Mark the page (but only the page) dirty.
  */ 
-/*在page由未修改状态变为修改状态，标记此page为脏页*/
+/*page由未修改状态变为修改状态，标记此page为脏页*/
 static inline void
 __wt_page_only_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -921,7 +921,7 @@ __wt_row_leaf_key_info(WT_PAGE *page, void *copy,
 /*
  * __wt_row_leaf_key_set_cell --
  *	Set a WT_ROW to reference an on-page row-store leaf cell.
- */
+ */ /*设置行存储时叶子节点的reference cell的值*/
 static inline void
 __wt_row_leaf_key_set_cell(WT_PAGE *page, WT_ROW *rip, WT_CELL *cell)
 {
@@ -939,7 +939,7 @@ __wt_row_leaf_key_set_cell(WT_PAGE *page, WT_ROW *rip, WT_CELL *cell)
 /*
  * __wt_row_leaf_key_set --
  *	Set a WT_ROW to reference an on-page row-store leaf key.
- */
+ */ /*设置行存储时叶子节点的reference key的值*/
 static inline void
 __wt_row_leaf_key_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK *unpack)
 {
@@ -958,7 +958,7 @@ __wt_row_leaf_key_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK *unpack)
 /*
  * __wt_row_leaf_value_set --
  *	Set a WT_ROW to reference an on-page row-store leaf value.
- */
+ */ /*根据row K_FLAG和unpack信息设置成row KV_FLAG信息*/
 static inline void
 __wt_row_leaf_value_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK *unpack)
 {

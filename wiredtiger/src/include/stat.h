@@ -256,6 +256,7 @@ __wt_stats_clear(void *stats_arg, int slot)
  * Statistics entries for connections.
  */
 #define	WT_CONNECTION_STATS_BASE	1000
+//记录各种状态信息
 struct __wt_connection_stats {
 	int64_t lsm_work_queue_app;
 	int64_t lsm_work_queue_manager;
@@ -524,6 +525,7 @@ struct __wt_connection_stats {
 	int64_t txn_snapshots_created;
 	int64_t txn_snapshots_dropped;
 	int64_t txn_begin;
+	//__txn_checkpoint_wrapper中赋值
 	int64_t txn_checkpoint_running;
 	int64_t txn_checkpoint_generation;
 	int64_t txn_checkpoint_time_max;

@@ -111,7 +111,7 @@ __wt_compare(WT_SESSION_IMPL *session, WT_COLLATOR *collator,
  *
  * We use the names "user" and "tree" so it's clear in the btree code which
  * the application is looking at when we call its comparison function.
- */
+ */ /*跳过开始到matchp之间的数据比较，只比较后面的数据内容大小,比较过的内容长度会增加到matchp中*/
 static inline int
 __wt_lex_compare_skip(
     const WT_ITEM *user_item, const WT_ITEM *tree_item, size_t *matchp)
@@ -225,7 +225,7 @@ __wt_lex_compare_short(const WT_ITEM *user_item, const WT_ITEM *tree_item)
 	 * comments in macros.
 	 */
 
-	switch (len) {
+	switch (len) { //注意*userp == *treep
 	case 9:
 		if (*userp != *treep)
 			break;

@@ -176,7 +176,7 @@ __wt_block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block,
 /*
  * __wt_block_write_size --
  *	Return the buffer size required to write a block.
- */
+ */ /*计算写入block需要的buffer的长度,进行size对齐*/
 int
 __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
 {

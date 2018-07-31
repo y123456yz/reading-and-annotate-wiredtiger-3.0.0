@@ -60,9 +60,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 
 	ins = NULL;
 	
-	//同一个table操作，其page一样，打印地址看是一样的。除非page占用内存过多达到cache_size限制的内存大学，则会把page拆分
 	page = cbt->ref->page;
-	printf("__wt_row_modify....... page:%p\r\n", page);
 	upd = upd_arg;
 	logged = false;
 

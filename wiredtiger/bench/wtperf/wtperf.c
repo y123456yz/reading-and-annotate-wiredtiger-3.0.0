@@ -1057,7 +1057,6 @@ populate_thread(void *arg)
 	cursors = dcalloc(opts->table_count, sizeof(WT_CURSOR *));
 	//获取每个//table:table_name%d的curosr
 
-	printf("yang test xxxxxxxxxxxxxxxxxxxxxxxxxxxx 1\r\n");
 	for (i = 0; i < opts->table_count; i++) {
 	    //__session_open_cursor  获取uri表对应的cursor
 		if ((ret = session->open_cursor(
@@ -1069,7 +1068,7 @@ populate_thread(void *arg)
 			goto err;
 		}
 	}
-    printf("yang test xxxxxxxxxxxxxxxxxxxxxxxxxxxx 2\r\n");
+
 	/* Populate the databases. */
 	//表中填充KV数据
 	for (intxn = 0, opcount = 0;;) {
@@ -1316,7 +1315,7 @@ monitor(void *arg)
 	/* Open the logging file. */
 	len = strlen(wtperf->monitor_dir) + 100;
 	path = dmalloc(len);
-	testutil_check(__wt_snprintf(
+	testutil_check(__wt_snprintf( //记录到monitor文件
 	    path, len, "%s/monitor", wtperf->monitor_dir));
 	if ((fp = fopen(path, "w")) == NULL) {
 		lprintf(wtperf, errno, 0, "%s", path);
@@ -1324,7 +1323,7 @@ monitor(void *arg)
 	}
 	/* Set line buffering for monitor file. */
 	__wt_stream_set_line_buffer(fp);
-	fprintf(fp,
+	fprintf(fp, //记录read insert update的ops  最小最大平均时延
 	    "#time,"
 	    "totalsec,"
 	    "read ops per second,"
@@ -1511,6 +1510,7 @@ err:		wtperf->error = wtperf->stop = true;
 	return (WT_THREAD_RET_VALUE);
 }
 
+//填充表
 static int
 execute_populate(WTPERF *wtperf)
 {
@@ -1553,7 +1553,7 @@ execute_populate(WTPERF *wtperf)
 
 	__wt_epoch(NULL, &start);
 	for (elapsed = 0, interval = 0, last_ops = 0;
-	    wtperf->insert_key < opts->icount && !wtperf->error;) {
+	    wtperf->insert_key < opts->icount && !wtperf->error;) { //等到icount个数据都写入完成才会退出for循环
 		/*
 		 * Sleep for 100th of a second, report_interval is in second
 		 * granularity, each 100th increment of elapsed is a single
@@ -1563,10 +1563,13 @@ execute_populate(WTPERF *wtperf)
 		if (opts->report_interval == 0 || ++elapsed < 100)
 			continue;
 		elapsed = 0;
-		if (++interval < opts->report_interval)
+		if (++interval < opts->report_interval) //report_interval s打印一次
 			continue;
+			
 		interval = 0;
+		//已经运行的时间
 		wtperf->totalsec += opts->report_interval;
+		//populate_threads参数指定pop线程个数
 		wtperf->insert_ops = sum_pop_ops(wtperf);
 		lprintf(wtperf, 0, 1,
 		    "%" PRIu64 " populate inserts (%" PRIu64 " of %"
@@ -2275,7 +2278,6 @@ start_run(WTPERF *wtperf)
 	if ((ret = setup_log_file(wtperf)) != 0)
 		goto err;
 
-    printf("yang test .............. %s\r\n", opts->conn_config);
 	if ((ret = wiredtiger_open(	/* Open the real connection. */
 	    wtperf->home, NULL, opts->conn_config, &wtperf->conn)) != 0) {
 		lprintf(wtperf, ret, 0, "Error connecting to %s", wtperf->home);
@@ -2433,6 +2435,7 @@ usage(void)
 	config_opt_usage();
 }
 
+//默认配置文件为wtperf_opt.i
 int
 main(int argc, char *argv[])
 {
@@ -2719,6 +2722,7 @@ main(int argc, char *argv[])
 	if (opts->verbose > 1)
 		config_opt_print(wtperf);
 
+    //主要工作流程在这里面
 	if ((ret = start_all_runs(wtperf)) != 0)
 		goto err;
 

@@ -667,7 +667,7 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 		break;
 	case BTREE_ROW:
 		WT_ERR(__wt_page_alloc(
-		    session, WT_PAGE_ROW_INT, 1, true, &root));
+		    session, WT_PAGE_ROW_INT, 1, true, &root)); //·ÖÅäinternal page½á¹¹
 		root->pg_intl_parent_ref = &btree->root;
 
 		pindex = WT_INTL_INDEX_GET_SAFE(root);
