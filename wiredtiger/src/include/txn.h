@@ -194,9 +194,9 @@ struct __wt_txn_op {
  */
 //WT_SESSION_IMPL.txn成员为该类型
 struct __wt_txn {
-	uint64_t id;
+	uint64_t id; /*事务ID*/
 
-	WT_TXN_ISOLATION isolation;
+	WT_TXN_ISOLATION isolation; /*隔离级别*/
 
 	uint32_t forced_iso;	/* Isolation is currently forced. */
 
@@ -232,7 +232,7 @@ struct __wt_txn {
 	TAILQ_ENTRY(__wt_txn) read_timestampq;
 
 	/* Array of modifications by this transaction. */
-	WT_TXN_OP      *mod;
+	WT_TXN_OP      *mod;  /*事务进行的操作对象数组*/
 	size_t		mod_alloc;
 	u_int		mod_count;
 
@@ -252,11 +252,13 @@ struct __wt_txn {
 };
 
 //上面的__wt_txn.flags中用到
+/* txn flags的值类型 */
 #define	WT_TXN_AUTOCOMMIT	0x00001
 #define	WT_TXN_ERROR		0x00002
 #define	WT_TXN_HAS_ID		0x00004
 #define	WT_TXN_HAS_SNAPSHOT	0x00008
 #define	WT_TXN_HAS_TS_COMMIT	0x00010
+/* Are we using a read timestamp for this checkpoint transaction? */
 #define	WT_TXN_HAS_TS_READ	0x00020
 #define	WT_TXN_NAMED_SNAPSHOT	0x00040
 #define	WT_TXN_PUBLIC_TS_COMMIT	0x00080

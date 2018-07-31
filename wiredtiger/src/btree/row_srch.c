@@ -37,7 +37,6 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	key.data = WT_INSERT_KEY(ins);
 	key.size = WT_INSERT_KEY_SIZE(ins);
 
-    printf("yang test  insert append:%s\r\n", key.data);
 	WT_RET(__wt_compare(session, collator, srch_key, &key, &cmp));
 	if (cmp >= 0) {
 		/*
@@ -210,7 +209,9 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
 /*
  * __wt_row_search --
  *	Search a row-store tree for a specific key.
- */
+ 二叉树可以参考
+ https://image.baidu.com/search/detail?ct=503316480&z=0&ipn=d&word=btree%20%E5%9B%BE%E8%A7%A3&step_word=&hs=2&pn=7&spn=0&di=90414523681&pi=0&rn=1&tn=baiduimagedetail&is=0%2C0&istype=0&ie=utf-8&oe=utf-8&in=&cl=2&lm=-1&st=undefined&cs=3626138812%2C3985006186&os=2077054410%2C1536861763&simid=0%2C0&adpicid=0&lpn=0&ln=1281&fr=&fmq=1533022910474_R&fm=&ic=undefined&s=undefined&se=&sme=&tab=0&width=undefined&height=undefined&face=undefined&ist=&jit=&cg=&bdtype=11&oriquery=&objurl=http%3A%2F%2Fimage.bubuko.com%2Finfo%2F201807%2F20180730005024489733.png&fromurl=ippr_z2C%24qAzdH3FAzdH3Fooo_z%26e3Bk7k7h5_z%26e3Bv54AzdH3Ftgu51jpwts-d0acl0d_z%26e3Bip4s&gsm=0&rpstart=0&rpnum=0&islist=&querylist=
+ https://image.baidu.com/search/detail?ct=503316480&z=0&ipn=d&word=btree%20%E5%9B%BE%E8%A7%A3&step_word=&hs=2&pn=10&spn=0&di=199133070401&pi=0&rn=1&tn=baiduimagedetail&is=0%2C0&istype=0&ie=utf-8&oe=utf-8&in=&cl=2&lm=-1&st=undefined&cs=483906054%2C1404470189&os=3936313937%2C1070787049&simid=2643080156%2C2515390863&adpicid=0&lpn=0&ln=1281&fr=&fmq=1533022910474_R&fm=&ic=undefined&s=undefined&se=&sme=&tab=0&width=undefined&height=undefined&face=undefined&ist=&jit=&cg=&bdtype=0&oriquery=&objurl=http%3A%2F%2Fhi.csdn.net%2Fattachment%2F201006%2F3%2F0_1275560772aU6Q.gif&fromurl=ippr_z2C%24qAzdH3FAzdH3Fooo_z%26e3Bvgks52f_z%26e3Bv54AzdH3F1iz8dnAzdH3Fw6vitejAzdH3Fda8aAzdH3FamAzdH3FanAzdH3Fd8l9d09_z%26e3Bip4s&gsm=0&rpstart=0&rpnum=0&islist=&querylist=*/
 /* 用指定的key在ref对应的page进行查找定位，存储方式为row store方式 */
 int
 __wt_row_search(WT_SESSION_IMPL *session,
@@ -468,7 +469,7 @@ descend:	/*
 		 //这里面会调用__wt_page_alloc分配page leaf
 		if ((ret = __wt_page_swap( //current和descent交换，下次循环就从descent = pindex->index[base - 1]开始，也就是到子节点了
 		    session, current, descent, WT_READ_RESTART_OK)) == 0) {
-			current = descent;
+			current = descent; 
 			continue;
 		}
         
@@ -484,7 +485,7 @@ descend:	/*
 
 leaf_only:
 	page = current->page;
-	cbt->ref = current; //找到leaf对应的internal page
+	cbt->ref = current; //current指向了leaf page，每个leaf page多个KV，继续在leaf page查找
 
 	/*
 	 * Clear current now that we have moved the reference into the btree
@@ -523,7 +524,6 @@ leaf_only:
 
 			ins_head = WT_ROW_INSERT_SLOT(page, cbt->slot);
 		}
-        printf("yang test          leaf match 000000000000000000000 cbt->slot:%d  inshead:%p\r\n", cbt->slot, ins_head);
 		WT_ERR(__search_insert_append(
 		    session, cbt, ins_head, srch_key, &done));
 		if (done) //已经定位到srch_key要插入的位置，直接返回
@@ -596,7 +596,6 @@ leaf_only:
 	 */
 	if (0) {
 leaf_match:	cbt->compare = 0;
-        printf("yang test          leaf match 1111111111111111\r\n");
 		cbt->slot = WT_ROW_SLOT(page, rip); //找到了leaf中有该key
 		return (0);
 	}
@@ -639,7 +638,6 @@ leaf_match:	cbt->compare = 0;
 	if (WT_SKIP_FIRST(ins_head) == NULL)
 		return (0);
 
-    printf("yang test          leaf match 2222222222222 base:%d page->entries:%d\r\n", base, page->entries);
 	/*
 	 * Test for an append first when inserting onto an insert list, try to
 	 * catch cursors repeatedly inserting at a single point.

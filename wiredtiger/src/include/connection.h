@@ -294,7 +294,7 @@ struct __wt_connection_impl {
 	uint64_t  ckpt_time_total;
 
 	/* Checkpoint stats and verbosity timers */
-	//赋值见__txn_checkpoint
+	//赋值见__txn_checkpoint  赋值见__txn_checkpoint
 	struct timespec ckpt_timer_start;
 	struct timespec ckpt_timer_scrub_end;
 
@@ -306,7 +306,7 @@ struct __wt_connection_impl {
 	uint32_t stat_flags;		/* Options declared in flags.py */
 
 					/* Connection statistics */
-	//__wt_stat_connection_init中初始化
+	//__wt_stat_connection_init中初始化  //记录各种状态信息
 	WT_CONNECTION_STATS *stats[WT_COUNTER_SLOTS];
 	WT_CONNECTION_STATS *stat_array;
 

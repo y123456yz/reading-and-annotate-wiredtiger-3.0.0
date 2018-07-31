@@ -395,6 +395,7 @@ struct Transaction {
 struct WorkloadOptions {
     int max_latency;
     std::string report_file;
+    //report_interval (unsigned int, default=2) output throughput information every interval seconds, 0 to disable
     int report_interval;
     int run_time;
     int sample_interval;

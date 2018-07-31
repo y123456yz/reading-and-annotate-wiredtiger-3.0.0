@@ -20,7 +20,7 @@ struct __rec_kv;		typedef struct __rec_kv WT_KV;
  * WT_RECONCILE --
  *	Information tracking a single page reconciliation.
  */ 
-//创建空间和赋值见__rec_init  和checkpoint相关，可以参考__rec_row_leaf
+//创建空间和赋值见__rec_init   __rec_split_init  和checkpoint相关，可以参考__rec_row_leaf
 typedef struct {
 	WT_REF  *ref;			/* Page being reconciled */
 	WT_PAGE *page;
@@ -166,7 +166,7 @@ typedef struct {
 		 */
 		uint32_t entries;
 		uint64_t recno;
-		WT_ITEM  key;
+		WT_ITEM  key; //赋值见__rec_split_init
 
 		uint32_t min_entries;
 		uint64_t min_recno;
@@ -176,7 +176,8 @@ typedef struct {
 		size_t   min_offset;
 
 		WT_ITEM image;				/* disk-image */
-	} chunkA, chunkB, *cur_ptr, *prev_ptr;
+	} chunkA, //__rec_split_chunk_init
+	  chunkB, *cur_ptr, *prev_ptr;
 
 	/*
 	 * We track current information about the current record number, the
@@ -253,7 +254,7 @@ typedef struct {
 	 *	An on-page key/value item we're building.
 	 */
 	//v赋值见__rec_cell_build_addr   k赋值见__rec_cell_build_int_key
-	struct __rec_kv {
+	struct __rec_kv { 
 		WT_ITEM	 buf;		/* Data */
 		WT_CELL	 cell;		/* Cell and cell's length */
 		size_t cell_len;
@@ -457,7 +458,6 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref,
 	r = session->reconcile;
 
 	/* Reconcile the page. */
-	printf("yang test ...........page type:%d\r\n", page->type);
 	switch (page->type) {
 	case WT_PAGE_COL_FIX:
 		if (salvage != NULL)
@@ -1567,6 +1567,7 @@ check_original_value:
 
 typedef enum {
     WT_CHILD_IGNORE,				/* Ignored child */
+    //__rec_child_modify中赋值  child修改过
     WT_CHILD_MODIFIED,				/* Modified child */
     WT_CHILD_ORIGINAL,				/* Original child */
     WT_CHILD_PROXY				/* Deleted child: proxy */
@@ -1689,7 +1690,8 @@ __rec_child_deleted(WT_SESSION_IMPL *session,
 /*
  * __rec_child_modify --
  *	Return if the internal page's child references any modifications.
- */
+ */ 
+/*判断internal page中的modify state,如果有正常的修改，设置而对应page的hazard pointer和返回状态*/
 static int
 __rec_child_modify(WT_SESSION_IMPL *session,
     WT_RECONCILE *r, WT_REF *ref, bool *hazardp, WT_CHILD_STATE *statep)
@@ -2009,7 +2011,7 @@ __rec_dict_replace(
 /*
  * __rec_key_state_update --
  *	Update prefix and suffix compression based on the last key.
- */
+ */ /*更新last KEY前缀压缩和后缀压缩的配置状态*/
 static inline void
 __rec_key_state_update(WT_RECONCILE *r, bool ovfl_key)
 {
@@ -2064,6 +2066,7 @@ __rec_key_state_update(WT_RECONCILE *r, bool ovfl_key)
  * __rec_leaf_page_max --
  *	Figure out the maximum leaf page size for the reconciliation.
  */
+ //确定最大的leaf page的大小
 static inline uint32_t
 __rec_leaf_page_max(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 {
@@ -2257,7 +2260,8 @@ __rec_split_chunk_init(
 /*
  * __rec_split_init --
  *	Initialization for the reconciliation split functions.
- */
+ */ 
+/*初始化reconciliation的split操作*/
 static int
 __rec_split_init(WT_SESSION_IMPL *session,
     WT_RECONCILE *r, WT_PAGE *page, uint64_t recno, uint32_t max)
@@ -2278,7 +2282,7 @@ __rec_split_init(WT_SESSION_IMPL *session,
 	 * the caller's selection of a maximum page size, choosing a page size
 	 * that ensures we won't split.
 	 */
-	if (r->salvage != NULL)
+	if (r->salvage != NULL) //确定最大的leaf page的大小
 		max = __rec_leaf_page_max(session, r);
 
 	/*
@@ -2363,7 +2367,9 @@ __rec_split_init(WT_SESSION_IMPL *session,
 	 * for adjustments based on the compression), this buffer should be the
 	 * greater of split_size and page_size.
 	 */
+	/*按照page size分配一个disk image buffer*/
 	corrected_page_size = r->page_size;
+	//__bm_write_size
 	WT_RET(bm->write_size(bm, session, &corrected_page_size));
 	disk_img_buf_size = WT_MAX(corrected_page_size, r->split_size);
 
@@ -5057,7 +5063,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 			}
 		}
 
-        /*将孩子节点修改为脏page,并获取其hazard pointer防止被evict出内存*/
+        /* 获取state状态 */
 		WT_ERR(__rec_child_modify(session, r, ref, &hazard, &state));
 		addr = ref->addr;
 		child = ref->page;
@@ -5140,7 +5146,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 		 * a special cell type in the case of page deletion requiring
 		 * a proxy cell, otherwise use the information from the addr or
 		 * original cell.
-		 */ /*判断p的位置是否在page的内存连续空间数据上*/
+		 */ /*判断addr的位置是否在page的内存连续空间数据上*/
 		if (__wt_off_page(page, addr)) {
 			p = addr->addr;
 			size = addr->size;
@@ -5690,7 +5696,6 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 	key = &r->k;
 	val = &r->v;
 
-    printf("yang test ..................... __rec_row_leaf_insert  key:%s value:%s\r\n", key->buf.data, val->buf.data);
 	for (; ins != NULL; ins = WT_SKIP_NEXT(ins)) {
 		WT_RET(__rec_txn_read(
 		    session, r, ins, NULL, NULL, &upd_saved, &upd));

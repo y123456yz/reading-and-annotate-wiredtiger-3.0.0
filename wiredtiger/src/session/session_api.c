@@ -414,7 +414,6 @@ __session_open_cursor(WT_SESSION *wt_session,
 
 	cursor = *cursorp = NULL;
 
-    printf("yang test .... __session_open_cursor\r\n");
 	session = (WT_SESSION_IMPL *)wt_session;
 	SESSION_API_CALL(session, open_cursor, config, cfg);
 
@@ -1667,10 +1666,10 @@ __session_checkpoint(WT_SESSION *wt_session, const char *config)
 
 	session = (WT_SESSION_IMPL *)wt_session;
 
-    printf("yang test .............. __session_checkpoint\r\n");
 	WT_STAT_CONN_INCR(session, txn_checkpoint);
 	SESSION_API_CALL(session, checkpoint, config, cfg);
 
+    //
 	WT_ERR(__wt_inmem_unsupported_op(session, NULL));
 
 	/*

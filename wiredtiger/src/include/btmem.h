@@ -488,7 +488,8 @@ struct __wt_col_rle {
  * 参考https://weibo.com/ttarticle/p/show?id=2309403992797932856430
  */
 //内存中的 page 结构对象，page 的访问入口。  同一个table操作，起page是同一个
-//page都是挂载__wt_btree.root下面，组成tree树
+//page都是挂载__wt_btree.root下面，组成tree树   
+//leaf page在__page_read->__wt_btree_new_leaf_page中创建   internal page在__btree_tree_open_empty中创建
 struct __wt_page { 
 //创建空间和赋值见__wt_page_alloc
 	/* Per page-type information. */
@@ -531,13 +532,15 @@ struct __wt_page {
 				uint32_t deleted_entries;
 				WT_REF	**index;
 			} * volatile __index;	/* Collated children */
-		} intl;
+		} intl; //对应internal page
         
         /* Row-store leaf page. */
         //下面的pg_row进行了宏定义直接返回u.row  __wt_row_search中做二分查找
         //__wt_page_alloc中赋值 
         //在WT_ROW_FOREACH  WT_ROW_FOREACH_REVERSE中遍历，__rec_row_leaf中把leaf page写入磁盘  
-        WT_ROW *row;            /* Key/value pairs */
+        //如果从磁盘上读取到的key1数据放在了row[3]位置，则下次insert key3的时候，search会找到row的位置，
+        //判断为更新,构造的__wt_insert会插入到mod_row_insert[3]链头位置，这样row[]和mod_row_insert[]就对应上了
+        WT_ROW *row;            /* Key/value pairs */ //对应leaf page 从文件中读取到该row中，见__inmem_row_leaf
     
         /* Fixed-length column-store leaf page. */
         uint8_t *fix_bitf;      /* Values */
@@ -662,7 +665,7 @@ struct __wt_page {
 	size_t memory_footprint;	/* Memory attached to the page */
 
 	/* Page's on-disk representation: NULL for pages created in memory. */
-	const WT_PAGE_HEADER *dsk;
+	const WT_PAGE_HEADER *dsk; //赋值见__wt_page_inmem  __wt_page.row数组内容就是从dsk中得来的，见__inmem_row_leaf
 
 	/* If/when the page is modified, we need lots more information. */
 	//赋值见__wt_page_modify_alloc
@@ -847,7 +850,7 @@ struct __wt_ref {
 	 * Address: on-page cell if read from backing block, off-page WT_ADDR
 	 * if instantiated in-memory, or NULL if page created in-memory.
 	 */
-	 //该page已经写入磁盘，执行对应的地址
+	 // 赋值见__inmem_row_int
 	void	*addr;
 
 	/*
@@ -868,11 +871,13 @@ struct __wt_ref {
 		WT_PAGE_LOOKASIDE *page_las;	/* Lookaside information */
 	};
 
+    //默认WT_REF_DELETED，见__btree_tree_open_empty
 	volatile uint32_t state;	/* Page state */
 };
 
 //赋值见__evict_page_dirty_update
 #define	WT_REF_DISK	 0		/* Page is on disk */
+////默认WT_REF_DELETED，见__btree_tree_open_empty  __inmem_row_int
 #define	WT_REF_DELETED	 1		/* Page is on disk, but deleted */
 #define	WT_REF_LOCKED	 2		/* Page locked for exclusive access */
 #define	WT_REF_LOOKASIDE 3		/* Page is on disk with lookaside */
@@ -910,8 +915,9 @@ struct __wt_ref {
  * references to the field (so the code doesn't read it multiple times), all
  * to make sure we don't introduce this bug (again).
  */
+//__wt_page.row 每一个leaf page都有一个该结构，当从文件读取数据的时候构建，见，见__inmem_row_leaf
 struct __wt_row {	/* On-page key, on-page cell, or off-page WT_IKEY */
-	void * volatile __key;
+	void * volatile __key; //这个值是在page读入内存时根据KV存储在page_disk的位置确定的
 };
 #define	WT_ROW_KEY_COPY(rip)	((rip)->__key)
 #define	WT_ROW_KEY_SET(rip, v)	((rip)->__key) = (void *)(v)

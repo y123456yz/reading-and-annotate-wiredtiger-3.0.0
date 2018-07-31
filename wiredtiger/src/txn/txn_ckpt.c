@@ -752,6 +752,7 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, const char *cfg[])
  * __txn_checkpoint --
  *	Checkpoint a database or a list of objects in the database.
  */
+/*完成建立checkpoint的事务*/
 static int
 __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -875,9 +876,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 
 	__checkpoint_timing_stress(session);
 	
-    printf("yang test ............1111111111.............. __checkpoint_apply\r\n");
 	WT_ERR(__checkpoint_apply(session, cfg, __checkpoint_tree_helper));
-    printf("yang test ............222222222222.............. __checkpoint_apply\r\n");
 
 	/*
 	 * Clear the dhandle so the visibility check doesn't get confused about
@@ -1104,7 +1103,7 @@ __wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], bool waiting)
 #undef WT_CHECKPOINT_SESSION_FLAGS_OFF
 #define	WT_CHECKPOINT_SESSION_FLAGS_OFF \
 	(WT_SESSION_LOOKASIDE_CURSOR)
-	orig_flags = F_MASK(session, //后面欢迎
+	orig_flags = F_MASK(session,  
 	    WT_CHECKPOINT_SESSION_FLAGS | WT_CHECKPOINT_SESSION_FLAGS_OFF);
 	    
 	F_SET(session, WT_CHECKPOINT_SESSION_FLAGS);

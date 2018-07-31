@@ -30,7 +30,7 @@
 
 /*
  * Return total insert operations for the populate phase.
- */
+ */ //所有插入线程插入速度之和
 uint64_t
 sum_pop_ops(WTPERF *wtperf)
 {
@@ -42,6 +42,7 @@ sum_pop_ops(WTPERF *wtperf)
 	opts = wtperf->opts;
 	total = 0;
 
+    //populate_threads参数指定pop线程个数
 	for (i = 0, thread = wtperf->popthreads;
 	    thread != NULL && i < opts->populate_threads; ++i, ++thread)
 		total += thread->insert.ops;

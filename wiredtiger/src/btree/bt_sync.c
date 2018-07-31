@@ -246,7 +246,6 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 		/* Read pages with lookaside entries and evict them asap. */
 		LF_SET(WT_READ_LOOKASIDE | WT_READ_WONT_NEED);
 
-        printf("yang test sync file 1111111111111111111111111111111111\r\n");
         /*对脏页进行落盘*/
 		for (;;) {
 		    //将walk->page与hazard指针关联起来
@@ -274,7 +273,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 			 * Write dirty pages, if we can't skip them. If we skip
 			 * a page, mark the tree dirty. The checkpoint marked it
 			 * clean and we can't skip future checkpoints until this
-			 * page is written.
+			 * page is written. 跳过后于checkpoint事务提交的事务修改,因为是SNAPSHOT隔离
 			 */
 			if (__sync_checkpoint_can_skip(session, page)) {
 				__wt_tree_modify_set(session);
@@ -337,7 +336,6 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 					    session, false);
 			}
 		}
-		printf("yang test sync file 22222222222222222222222222222222222\r\n");
 		break;
 	case WT_SYNC_CLOSE:
 	case WT_SYNC_DISCARD:

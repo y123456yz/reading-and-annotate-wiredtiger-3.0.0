@@ -698,7 +698,7 @@ __wt_illegal_value_func(
  * __wt_inmem_unsupported_op --
  *	Print a standard error message for an operation that's not supported
  * for in-memory configurations.
- */
+ */ //配置为in-mem则提示不支持
 int
 __wt_inmem_unsupported_op(WT_SESSION_IMPL *session, const char *tag)
     WT_GCC_FUNC_ATTRIBUTE((cold))

@@ -535,7 +535,7 @@ __bm_write_readonly(WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf,
 /*
  * __bm_write_size --
  *	Return the buffer size required to write a block.
- */
+ */ /*计算写入block需要的buffer的长度,进行size对齐*/
 static int
 __bm_write_size(WT_BM *bm, WT_SESSION_IMPL *session, size_t *sizep)
 {

@@ -366,7 +366,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 	 * re-creation of the name space.
 	 */
 	__wt_ref_info(ref, &addr, &addr_size, NULL);
-	if (addr == NULL) { /*没找到block addr,直接新建一个page*/
+	if (addr == NULL) { /*没找到block addr,直接新建一个page来存放insert update的数据 */
 		WT_ASSERT(session, previous_state != WT_REF_DISK);
 
 		WT_ERR(__wt_btree_new_leaf_page(session, &page));
@@ -376,6 +376,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 		goto done;
 	}
 
+    /*从磁盘文件上将page数据读入内存*/
 	/*
 	 * There's an address, read or map the backing disk page and build an
 	 * in-memory version of the page.
@@ -383,7 +384,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 	timer = !F_ISSET(session, WT_SESSION_INTERNAL);
 	if (timer)
 		__wt_epoch(session, &start);
-	/*从磁盘文件上将page数据读入内存*/
+	/*从磁盘文件上addr指定位置读取addr_size字节到tmp*/
 	WT_ERR(__wt_bt_read(session, &tmp, addr, addr_size));
 	if (timer) {
 		__wt_epoch(session, &stop);
@@ -401,7 +402,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 	    WT_DATA_IN_ITEM(&tmp) ? WT_PAGE_DISK_ALLOC : WT_PAGE_DISK_MAPPED;
 	if (LF_ISSET(WT_READ_IGNORE_CACHE_SIZE))
 		FLD_SET(page_flags, WT_PAGE_READ_NO_EVICT);
-	/*构建page数据组织结构和对象*/
+	/*根据tmp数据，构建page数据组织结构和对象*/
 	WT_ERR(__wt_page_inmem(session, ref, tmp.data, page_flags, &page));
 	tmp.mem = NULL;
 
@@ -776,7 +777,6 @@ skip_evict:		/*
 		__wt_ref_state_yield_sleep(&wait_cnt, &sleep_cnt);
 		WT_STAT_CONN_INCRV(session, page_sleep, sleep_cnt);
 	}
-	printf("yang test ......1....2................... __wt_page_in_func\r\n");
 }
 
 /*
