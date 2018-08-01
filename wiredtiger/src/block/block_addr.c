@@ -49,7 +49,7 @@ __block_buffer_to_addr(uint32_t allocsize,
 /*
  * __wt_block_addr_to_buffer --
  *	Convert the filesystem components into its address cookie.
- */
+ */ /*将block的checksum/长度对齐个数/偏移位置写入pp中*/
 int
 __wt_block_addr_to_buffer(WT_BLOCK *block,
     uint8_t **pp, wt_off_t offset, uint32_t size, uint32_t checksum)

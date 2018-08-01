@@ -119,8 +119,8 @@
 /*
  * WT_CELL --
  *	Variable-length, on-page cell header.
- */
-struct __wt_cell {
+ */ //__rec_kv.cel
+struct __wt_cell { //填充见__wt_cell_pack_int_key
 	/*
 	 * Maximum of 16 bytes:
 	 * 1: cell descriptor byte
@@ -322,7 +322,7 @@ __wt_cell_pack_del(WT_CELL *cell, uint64_t rle)
 /*
  * __wt_cell_pack_int_key --
  *	Set a row-store internal page key's WT_CELL contents.
- */
+ */ /*设置一个行存储的key到cell中*/
 static inline size_t
 __wt_cell_pack_int_key(WT_CELL *cell, size_t size)
 {
@@ -542,6 +542,20 @@ __wt_cell_leaf_value_parse(WT_PAGE *page, WT_CELL *cell)
 }
 
 /*
+ * The verification code specifies start/end arguments, pointers to the
+ * start of the page and to 1 past the end-of-page. In which case, make
+ * sure all reads are inside the page image. If an error occurs, return
+ * an error code but don't output messages, our caller handles that.
+ */
+#define	WT_CELL_LEN_CHK(t, len) do {					\
+	if (start != NULL &&						\
+	    ((uint8_t *)(t) < (uint8_t *)start ||			\
+	    (((uint8_t *)(t)) + (len)) > (uint8_t *)end))		\
+		return (WT_ERROR);					\
+} while (0)
+
+
+/*
  * __wt_cell_unpack_safe --
  *	Unpack a WT_CELL into a structure during verification.
  */
@@ -558,19 +572,6 @@ __wt_cell_unpack_safe(
 
 	copy.len = 0;
 	copy.v = 0;			/* -Werror=maybe-uninitialized */
-
-	/*
-	 * The verification code specifies start/end arguments, pointers to the
-	 * start of the page and to 1 past the end-of-page. In which case, make
-	 * sure all reads are inside the page image. If an error occurs, return
-	 * an error code but don't output messages, our caller handles that.
-	 */
-#define	WT_CELL_LEN_CHK(t, len) do {					\
-	if (start != NULL &&						\
-	    ((uint8_t *)(t) < (uint8_t *)start ||			\
-	    (((uint8_t *)(t)) + (len)) > (uint8_t *)end))		\
-		return (WT_ERROR);					\
-} while (0)
 
 restart:
 	/*

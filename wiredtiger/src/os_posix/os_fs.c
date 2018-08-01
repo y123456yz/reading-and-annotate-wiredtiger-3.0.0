@@ -271,6 +271,12 @@ __posix_fs_size(WT_FILE_SYSTEM *file_system,
 /*
  * __posix_file_advise --
  *	POSIX fadvise.
+ 当我们需要对某段读写文件并进行处理的程序进行性能测试时，文件会被系统cache住从而影响I/O的效率，
+ 必须清理cache中的对应文件的才能正确的进行性能测试。通常清理内存可以采用下面的这条命令，但这条
+ 命令只有root才能使用，另外一方面这个会清理所有的cache，也许会影响其他程序的性能。
+ echo 3>/proc/sys/vm/drop_caches
+
+linux下有一个posix_fadvise函数可以用来对cache中的文件进行清理
  */
 static int
 __posix_file_advise(WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session,

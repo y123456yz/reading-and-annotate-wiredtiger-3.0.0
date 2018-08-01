@@ -87,6 +87,8 @@ __wt_block_discard(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t added_size)
 		return (0);
 
 	block->os_cache = 0;
+	//__posix_file_advise  linux下有一个posix_fadvise函数可以用来对cache中的文件进行清理
+	//相当于echo 3>/proc/sys/vm/drop_caches
 	ret = handle->fh_advise(handle, (WT_SESSION *)session,
 	    (wt_off_t)0, (wt_off_t)0, WT_FILE_HANDLE_DONTNEED);
 	return (ret == EBUSY || ret == ENOTSUP ? 0 : ret);
@@ -95,7 +97,7 @@ __wt_block_discard(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t added_size)
 /*
  * __wt_block_extend --
  *	Extend the file.
- */
+ */ //文件大小不够存入这offset
 static inline int
 __wt_block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block,
     WT_FH *fh, wt_off_t offset, size_t align_size, bool *release_lockp)
@@ -151,7 +153,7 @@ __wt_block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * it should err on the side of extend_size being smaller than the
 	 * actual file size, and that's OK, we simply may do another extension
 	 * sooner than otherwise.
-	 */
+	 */ /*调整extend_size为原来的offset + extend_len的两倍*/
 	block->extend_size = block->size + block->extend_len * 2;
 
 	/*
@@ -168,7 +170,7 @@ __wt_block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	/*
 	 * The extend might fail (for example, the file is mapped into memory),
 	 * or discover file extension isn't supported; both are OK.
-	 */
+	 */ /*扩大文件的占用空间*/
 	ret = __wt_fextend(session, fh, block->extend_size);
 	return (ret == EBUSY || ret == ENOTSUP ? 0 : ret);
 }
@@ -201,7 +203,7 @@ __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
 /*
  * __wt_block_write --
  *	Write a buffer into a block, returning the block's address cookie.
- */
+ */ /*将buffer的数据写入到block对应的文件中, 通过addr和addr_sizep返回block的checksum/长度对齐个数/偏移位置*/
 int
 __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf,
     uint8_t *addr, size_t *addr_sizep, bool data_checksum, bool checkpoint_io)
@@ -210,10 +212,12 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf,
 	uint32_t checksum, size;
 	uint8_t *endp;
 
+     //写buf数据到xx.wt表文件，返还在文件中的off位置，对齐后的数据长度，及数据校验值，并在内存中分配一个ext结构与数据在磁盘的位置对应
 	WT_RET(__wt_block_write_off(session, block, buf,
 	    &offset, &size, &checksum, data_checksum, checkpoint_io, false));
 
 	endp = addr;
+	/*将block的checksum/长度对齐个数/偏移位置写入addr中*/
 	WT_RET(__wt_block_addr_to_buffer(block, &endp, offset, size, checksum));
 	*addr_sizep = WT_PTRDIFF(endp, addr);
 
@@ -224,7 +228,8 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf,
  * __block_write_off --
  *	Write a buffer into a block, returning the block's offset, size and
  * checksum.
- */
+ */ /*判断文件是否需要进行扩大,如果不扩大就有可能存不下写入的block数据*/
+ //写buf数据到xx.wt表文件，返还在文件中的off位置，对齐后的数据长度，及数据校验值，并在内存中分配一个ext结构与数据在磁盘的位置对应
 static int
 __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block,
     WT_ITEM *buf, wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump,
@@ -328,8 +333,11 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block,
 		__wt_spin_lock(session, &block->live_lock);
 		local_locked = true;
 	}
+
+	//确认align_size字节数据应该放入block对应文件的offp位置开始的align_size空间中，内存中相应的ext结果和这align_size字节数据对应
 	ret = __wt_block_alloc(session, block, &offset, (wt_off_t)align_size);
 	if (ret == 0)
+	    //扩大文件大小用来存新的align_size数据
 		ret = __wt_block_extend(
 		    session, block, fh, offset, align_size, &local_locked);
 	if (local_locked)
@@ -337,10 +345,11 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	WT_RET(ret);
 
 	/* Write the block. */
-	if ((ret =
+	if ((ret = /*进行block的数据写入*/
 	    __wt_write(session, fh, offset, align_size, buf->mem)) != 0) {
 		if (!caller_locked)
 			__wt_spin_lock(session, &block->live_lock);
+		/*没写成功，将ext对应的数据返回给avail list*/
 		WT_TRET(__wt_block_off_free(
 		    session, block, offset, (wt_off_t)align_size));
 		if (!caller_locked)
@@ -352,6 +361,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	 * Optionally schedule writes for dirty pages in the system buffer
 	 * cache, but only if the current session can wait.
 	 */
+	/*需要进行fsync操作,脏页太多,进行一次异步刷盘*/
 	if (block->os_cache_dirty_max != 0 &&
 	    (block->os_cache_dirty += align_size) > block->os_cache_dirty_max &&
 	    __wt_session_can_wait(session)) {
@@ -367,6 +377,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block,
 	}
 
 	/* Optionally discard blocks from the buffer cache. */
+	//相当于echo 3>/proc/sys/vm/drop_caches
 	WT_RET(__wt_block_discard(session, block, align_size));
 
 	WT_STAT_CONN_INCR(session, block_write);
@@ -390,7 +401,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block,
  * __wt_block_write_off --
  *	Write a buffer into a block, returning the block's offset, size and
  * checksum.
- */
+ */  //写buf数据到xx.wt表文件，返还在文件中的off位置，对齐后的数据长度，及数据校验值，并在内存中分配一个ext结构与数据在磁盘的位置对应
 int
 __wt_block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block,
     WT_ITEM *buf, wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump,

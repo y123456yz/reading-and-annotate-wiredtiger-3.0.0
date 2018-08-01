@@ -29,10 +29,10 @@ __wt_fsync(WT_SESSION_IMPL *session, WT_FH *fh, bool block)
 	 */
 	WT_STAT_CONN_INCR_ATOMIC(session, thread_fsync_active);
 	WT_STAT_CONN_INCR(session, fsync_io);
-	if (block)
+	if (block) //__posix_file_sync
 		ret = (handle->fh_sync == NULL ? 0 :
 		    handle->fh_sync(handle, (WT_SESSION *)session));
-	else
+	else    //__posix_file_sync_nowait
 		ret = (handle->fh_sync_nowait == NULL ? 0 :
 		    handle->fh_sync_nowait(handle, (WT_SESSION *)session));
 	WT_STAT_CONN_DECR_ATOMIC(session, thread_fsync_active);
@@ -42,7 +42,7 @@ __wt_fsync(WT_SESSION_IMPL *session, WT_FH *fh, bool block)
 /*
  * __wt_fextend --
  *	Extend a file.  将fh指定的文件大小调整成len大小
- */
+ */ 
 static inline int
 __wt_fextend(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset)
 {

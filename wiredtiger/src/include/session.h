@@ -142,7 +142,9 @@ struct __wt_session_impl {
 	//该session对应的有效cursor数
 	u_int	ncursors;		/* Count of active file cursors. */
 
+    //赋值见__wt_block_ext_prealloc
 	void	*block_manager;		/* Block-manager support */
+	//赋值见__wt_block_ext_prealloc
 	int	(*block_manager_cleanup)(WT_SESSION_IMPL *);
 
 					/* Checkpoint handles */

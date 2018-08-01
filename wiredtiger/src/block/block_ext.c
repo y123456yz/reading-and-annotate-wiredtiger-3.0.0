@@ -32,6 +32,7 @@ static int __block_merge(WT_SESSION_IMPL *,
  * __block_off_srch_last --
  *	Return the last element in the list, along with a stack for appending.
  */
+/*获得跳表每一层的最后一个单元，并存入stack中.返回值是第0层底层的最后一个单元，也就是跳表的最后一个单元*/
 static inline WT_EXT *
 __block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
 {
@@ -393,6 +394,12 @@ corrupt:
  *	Remove a range from an extent list, where the range may be part of a
  * overlapping entry.
  */
+/*将off对应的WT_EXT进行范围分裂，分裂成两个WT_EXT,并重新插入skip list中,中间会删除off后面对应的size个数据
+*   ext     |---------|--------remove range------|------------------|
+*       ext->off    off                     off + size
+* 删除  ext1|---------|             ext2         |------------------|
+*          a_off                                b_off
+*/
 int
 __wt_block_off_remove_overlap(WT_SESSION_IMPL *session, WT_BLOCK *block,
     WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -483,6 +490,7 @@ __block_extend(
 		WT_RET_MSG(session, WT_ERROR,
 		    "block allocation failed, file cannot grow further");
 
+    //记录本次extent扩展前的off位置
 	*offp = block->size;
 	block->size += size;
 
@@ -497,8 +505,8 @@ __block_extend(
 /*
  * __wt_block_alloc --
  *	Alloc a chunk of space from the underlying file.
- */ /*在一个block对应的文件中分配一个数据空间(chunk)*/
-int
+ */ /*在一个block对应的文件中分配一个数据空间(ext)，数据存放在block的offp位置开始写*/
+int //确认size字节数据应该放入block对应文件的offp位置开始的size空间中，内存中相应的ext结果和这size字节数据对应
 __wt_block_alloc(
     WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off_t size)
 {
@@ -538,6 +546,7 @@ __wt_block_alloc(
 	    /*在WT_SIZE的跳表中找能存下size长度的ext对象*/
 		__block_size_srch(block->live.avail.sz, size, sstack);
 		if ((szp = *sstack[0]) == NULL) {
+		//从block->live.alloc中获取一个存放size长度数据的ext，先把扩展前的block->size位置记录到offp中
 append:			WT_RET(__block_extend(session, block, offp, size));
 			WT_RET(__block_append(session, block,
 			    &block->live.alloc, *offp, (wt_off_t)size));
@@ -620,7 +629,7 @@ __wt_block_free(WT_SESSION_IMPL *session,
 /*
  * __wt_block_off_free --
  *	Free a file range to the underlying file.
- */
+ */ /*在block对应的文件中释放掉(off, size)位置的数据空间(chunk)*/
 int
 __wt_block_off_free(
     WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t offset, wt_off_t size)
@@ -636,12 +645,12 @@ __wt_block_off_free(
 	 * workloads including repeated overflow record modification).  If this
 	 * extent is referenced in a previous checkpoint, merge into the discard
 	 * list.
-	 */
+	 */ /*进行范围释放，有可能是在某个WT_EXT范围之内*/
 	if ((ret = __wt_block_off_remove_overlap(
 	    session, block, &block->live.alloc, offset, size)) == 0)
-		ret = __block_merge(
+		ret = __block_merge( /*在alloc中有存在，表示是从avail中分配的，先合并到avail中，重复使用*/
 		    session, block, &block->live.avail, offset, size);
-	else if (ret == WT_NOTFOUND)
+	else if (ret == WT_NOTFOUND)  /*在alloc中没有找到，直接合并到废弃的空间跳表中*/
 		ret = __block_merge(
 		    session, block, &block->live.discard, offset, size);
 	return (ret);
@@ -961,7 +970,8 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block,
 /*
  * __block_append --
  *	Append a new entry to the allocation list.
- */
+ */ 
+/*在block的alloclist后面append一个数据空间长度(off,size)*/
 static int
 __block_append(WT_SESSION_IMPL *session, WT_BLOCK *block,
     WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -987,13 +997,13 @@ __block_append(WT_SESSION_IMPL *session, WT_BLOCK *block,
 		ext = __block_off_srch_last(el->off, astack);
 		if (ext != NULL && ext->off + ext->size == off)
 			ext->size += size;
-		else {
+		else { //获取一个新的ext
 			WT_RET(__wt_block_ext_alloc(session, &ext));
-			ext->off = off;
+			ext->off = off; //指向off位置，也就是新的size数据从off位置写入
 			ext->size = size;
 
 			for (i = 0; i < ext->depth; ++i)
-				 *astack[i] = ext;
+				 *astack[i] = ext; //新ext节点放入到el->off跳跃表
 			++el->entries;
 		}
 

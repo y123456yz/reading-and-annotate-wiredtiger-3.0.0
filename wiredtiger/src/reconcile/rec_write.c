@@ -176,8 +176,10 @@ typedef struct {
 		size_t   min_offset;
 
 		WT_ITEM image;				/* disk-image */
-	} chunkA, //__rec_split_chunk_init
-	  chunkB, *cur_ptr, *prev_ptr;
+	} chunkA, //赋值见__rec_split_chunk_init
+	  chunkB, 
+	  *cur_ptr,  //指向chunkA，见__rec_split_init
+	  *prev_ptr;
 
 	/*
 	 * We track current information about the current record number, the
@@ -187,7 +189,9 @@ typedef struct {
 	 * around the code.
 	 */
 	uint64_t recno;			/* Current record number */
+	//赋值见__rec_incr
 	uint32_t entries;		/* Current number of entries */
+	//赋值见__rec_copy_incr拷贝数据实际上是填充r->cur_ptr->image  __rec_incr，指向的是r->cur_ptr->image，见__rec_split_init
 	uint8_t *first_free;		/* Current first free byte */
 	size_t	 space_avail;		/* Remaining space in this chunk */
 	/* Remaining space in this chunk to put a minimum size boundary */
@@ -205,7 +209,7 @@ typedef struct {
 	size_t       supd_memsize;	/* Size of saved update structures */
 
 	/* List of pages we've written so far. */
-	WT_MULTI *multi;
+	WT_MULTI *multi; //赋值见__rec_split_write
 	uint32_t  multi_next;
 	size_t	  multi_allocated;
 
@@ -254,14 +258,15 @@ typedef struct {
 	 *	An on-page key/value item we're building.
 	 */
 	//v赋值见__rec_cell_build_addr   k赋值见__rec_cell_build_int_key
-	struct __rec_kv { 
+	struct __rec_kv {  //__rec_cell_build_int_key
 		WT_ITEM	 buf;		/* Data */
 		WT_CELL	 cell;		/* Cell and cell's length */
 		size_t cell_len;
 		size_t len;		/* Total length of cell + data */
 	} k, v;				/* Key/Value being built */
 
-	WT_ITEM *cur, _cur;		/* Key/Value being built */
+	WT_ITEM *cur,  //赋值见__rec_cell_build_int_key
+	        _cur;		/* Key/Value being built */
 	WT_ITEM *last, _last;		/* Last key/value built */
 
 	bool key_pfx_compress;		/* If can prefix-compress next key */
@@ -1921,7 +1926,7 @@ __rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size)
 /*
  * __rec_copy_incr --
  *	Copy a key/value cell and buffer pair into the new image.
- */ /*将kv的值拷贝到r中buff中*/
+ */ /*将kv的值拷贝到r中buff r->first_free中， 实际上是填充r->cur_ptr->image*/
 static inline void
 __rec_copy_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_KV *kv)
 {
@@ -1949,7 +1954,7 @@ __rec_copy_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_KV *kv)
 		memcpy(p, kv->buf.data, kv->buf.size);
 
 	WT_ASSERT(session, kv->len == kv->cell_len + kv->buf.size);
-	__rec_incr(session, r, 1, kv->len);
+	__rec_incr(session, r, 1, kv->len); //移动first_free位置
 }
 
 /*
@@ -3602,7 +3607,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r,
 	multi->size = WT_STORE_SIZE(chunk->image.size);
 	multi->checksum = 0;
 
-	/* Set the key. */
+	/* Set the key. 填充key到multi->key.ikey*/
 	if (btree->type == BTREE_ROW)
 		WT_RET(__wt_row_ikey_alloc(session, 0,
 		    chunk->key.data, chunk->key.size, &multi->key.ikey));
@@ -3705,6 +3710,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r,
 #ifdef HAVE_DIAGNOSTIC
 	verify_image = false;
 #endif
+//拷贝offset 数据长度  校验值这几个值内容写入multi->addr.addr
 	WT_RET(__wt_memdup(session, addr, addr_size, &multi->addr.addr));
 	multi->addr.size = (uint8_t)addr_size;
 
@@ -5119,6 +5125,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 					WT_ERR(__wt_ovfl_discard_add(
 					    session, page, kpack->cell));
 
+                //把child page的所有KV合并到一起放入r->first_free空间
 				WT_ERR(__rec_row_merge(session, r, child));
 				WT_CHILD_RELEASE_ERR(session, hazard, ref);
 				continue;
@@ -5159,6 +5166,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 			vtype = state == WT_CHILD_PROXY ?
 			    WT_CELL_ADDR_DEL : (u_int)vpack->raw;
 		}
+		printf("yang test ..................addr:%p  stat:%d\r\n", addr, state);
 		//构建value
 		__rec_cell_build_addr(session, r, p, size, vtype, WT_RECNO_OOB);
 		WT_CHILD_RELEASE_ERR(session, hazard, ref);
@@ -5166,7 +5174,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 		/*
 		 * Build key cell.
 		 * Truncate any 0th key, internal pages don't need 0th keys.
-		 */
+		 */ //构建key cel
 		if (key_onpage_ovfl) {
 			key->buf.data = cell;
 			key->buf.size = __wt_cell_total_len(kpack);
@@ -5206,7 +5214,7 @@ __rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 		}
 
 		/* Copy the key and value onto the page. */
-		/*将kv的值拷贝到r中buff中*/
+		/*将kv的值拷贝到r->first_free中， 实际上是填充r->cur_ptr->image*/
 		__rec_copy_incr(session, r, key);
 		__rec_copy_incr(session, r, val);
 
@@ -5224,7 +5232,9 @@ err:	WT_CHILD_RELEASE(session, hazard, ref);
 /*
  * __rec_row_merge --
  *	Merge in a split page.
- */
+ */ 
+/*合并内存中split page 的修改合并到reconcile buf中*/
+//把mod->mod_multi中的KV数据合并到r->first_free空间中
 static int
 __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 {
@@ -5241,15 +5251,18 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 	val = &r->v;
 
 	/* For each entry in the split array... */
+	/*将孩子page分裂后的key和block addr作为k/v reconcile到internal page block当中*/
 	for (multi = mod->mod_multi,
 	    i = 0; i < mod->mod_multi_entries; ++multi, ++i) {
 		/* Build the key and value cells. */
+		//构建r.key
 		WT_RET(__rec_cell_build_int_key(session, r,
 		    WT_IKEY_DATA(multi->key.ikey),
 		    r->cell_zero ? 1 : multi->key.ikey->size, &ovfl_key));
 		r->cell_zero = false;
 
 		addr = &multi->addr;
+		//构建r.v
 		__rec_cell_build_addr(session, r,
 		    addr->addr, addr->size, __rec_vtype(addr), WT_RECNO_OOB);
 
@@ -5264,6 +5277,7 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 		}
 
 		/* Copy the key and value onto the page. */
+		//拷贝r.k和r.v到r->first_free
 		__rec_copy_incr(session, r, key);
 		__rec_copy_incr(session, r, val);
 
