@@ -145,7 +145,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 	timer = WT_VERBOSE_ISSET(session, WT_VERB_CHECKPOINT);
 	if (timer)
 		__wt_epoch(session, &start);
-
+    
 	switch (syncop) {
 	case WT_SYNC_WRITE_LEAVES:
 		/*
@@ -246,6 +246,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 		/* Read pages with lookaside entries and evict them asap. */
 		LF_SET(WT_READ_LOOKASIDE | WT_READ_WONT_NEED);
 
+        printf("yang test ...............................sync file\r\n");
         /*对脏页进行落盘*/
 		for (;;) {
 		    //将walk->page与hazard指针关联起来
@@ -253,8 +254,10 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 			//获取refp的前一个(flags带WT_READ_PREV)或者后一个节点(flags不带WT_READ_PREV) 默认后一个节点
 			WT_ERR(__wt_tree_walk(session, &walk, flags)); //walk为NULL则第一个获取到的walk为root
 
+            printf("yang test .............................walk:%p\r\n", walk);
 			if (walk == NULL)
 				break;
+            printf("yang test .........walk......... page:%p   page type:%p\r\n", walk->page, walk->page->type);
 
 			/* Skip clean pages. */
 			if (!__wt_page_is_modified(walk->page))
@@ -268,6 +271,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 			 * reference and checking modified.
 			 */
 			page = walk->page;
+			
 
 			/*
 			 * Write dirty pages, if we can't skip them. If we skip
@@ -393,6 +397,7 @@ __wt_cache_op(WT_SESSION_IMPL *session, WT_CACHE_OP op)
 {
 	WT_DECL_RET;
 
+    printf("yang test ...................__wt_cache_op\r\n");
 	switch (op) {
 	case WT_SYNC_CHECKPOINT:
 	case WT_SYNC_CLOSE:

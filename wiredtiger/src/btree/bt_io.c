@@ -172,6 +172,8 @@ err:	__wt_scr_free(session, &tmp);
  *	Write a buffer into a block, returning the block's addr/size and
  * checksum.
  */
+//写buf数据到xx.wt表文件，返还在文件中的off位置，对齐后的数据长度，及数据校验值，并在内存中分配一个ext结构与数据在磁盘的位置对应
+//offset 数据长度  校验值写入到addr位置，并返回这几个值的长度，也就是addr和addr_sizep中存储的是这几个参数的内容，及总长度
 int
 __wt_bt_write(WT_SESSION_IMPL *session, WT_ITEM *buf,
     uint8_t *addr, size_t *addr_sizep,
@@ -375,6 +377,9 @@ __wt_bt_write(WT_SESSION_IMPL *session, WT_ITEM *buf,
 	/* Call the block manager to write the block. */
 	WT_ERR(checkpoint ?
 	    bm->checkpoint(bm, session, ip, btree->ckpt, data_checksum) :
+        //写buf数据到xx.wt表文件，返还在文件中的off位置，对齐后的数据长度，及数据校验值，并在内存中分配一个ext结构与数据在磁盘的位置对应
+        //offset 数据长度  校验值写入到addr位置，并返回这几个值的长度，也就是addr和addr_sizep中存储的是这几个参数的内容，及总长度
+	    //__bm_write
 	    bm->write(
 	    bm, session, ip, addr, addr_sizep, data_checksum, checkpoint_io));
 

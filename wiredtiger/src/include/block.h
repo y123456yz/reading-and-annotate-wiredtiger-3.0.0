@@ -47,7 +47,7 @@
  */
 struct __wt_extlist {
 	char *name;				/* Name */
-
+    //__block_ext_insert  __block_append中赋值   ext中存放数据的总长度
 	uint64_t bytes;				/* Byte count */
 	uint32_t entries;			/* Entry count */
 
@@ -57,6 +57,7 @@ struct __wt_extlist {
 
 	bool	 track_size;			/* Maintain per-size skiplist */
 
+    //指向最新的ext,见__block_append
 	WT_EXT	*last;				/* Cached last element */
 
 	WT_EXT	*off[WT_SKIP_MAXDEPTH];		/* Size/offset skiplists */
@@ -67,9 +68,11 @@ struct __wt_extlist {
  * WT_EXT --
  *	Encapsulation of an extent, either allocated or freed within the
  * checkpoint.
- */
-struct __wt_ext {
+ */ //__block_ext_alloc中分配空间  
+struct __wt_ext { //每个ext对应磁盘上对应表文件从off开始的size字节数据
+    //也就是新的size数据从off位置写入
 	wt_off_t  off;				/* Extent's file offset */
+	//该ext中需要写的数据长度，见__block_append
 	wt_off_t  size;				/* Extent's Size */
 
 	uint8_t	 depth;				/* Skip list depth */
@@ -126,6 +129,7 @@ struct __wt_size {
 #define	WT_BM_CHECKPOINT_VERSION	1	/* Checkpoint format version */
 #define	WT_BLOCK_EXTLIST_MAGIC		71002	/* Identify a list */
 //读取checkpoint文件赋值见__wt_block_checkpoint_load  __block_buffer_to_ckpt
+//__wt_block.live成员
 struct __wt_block_ckpt { //__block_buffer_to_ckpt
 	uint8_t	 version;			/* Version */
 
@@ -156,7 +160,7 @@ struct __wt_block_ckpt { //__block_buffer_to_ckpt
  *	Block manager handle, references a single checkpoint in a file.
  */
 //赋值见__bm_method_set  __wt_block_manager_open
-struct __wt_bm {
+struct __wt_bm {//bm代表block manage
 						/* Methods */
 	int (*addr_invalid)
 	    (WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
@@ -220,8 +224,9 @@ struct __wt_bm {
  */
 //block创建见__wt_block_open  
 //__bm_checkpoint_load中做mmap操作  
-//见__wt_block_alloc
-struct __wt_block {
+//见__wt_block_alloc   
+struct __wt_block {//一个xx.wt表文件对应一个block
+    //一个文件对应一个block,见__wt_block_open
 	const char *name;		/* Name */
 	uint64_t name_hash;		/* Hash of name */
 
@@ -237,7 +242,7 @@ struct __wt_block {
 	uint32_t allocsize;		/* Allocation size */
 	/*当前block中在os page cache中的数据字节数*/
 	size_t	 os_cache;		/* System buffer cache flush max */
-	/*操作系统对文件最大的page cache的字节数*/
+	/*操作系统对文件最大的page cache的字节数  os_cache_max配置 */
 	size_t	 os_cache_max;
 	/*当前脏数据的字节数*/
 	size_t	 os_cache_dirty;	/* System buffer cache write max */
@@ -340,7 +345,7 @@ __wt_block_desc_byteswap(WT_BLOCK_DESC *desc)
  * WT_BLOCK_HEADER --
  *	Blocks have a common header, a WT_PAGE_HEADER structure followed by a
  * block-manager specific structure: WT_BLOCK_HEADER is WiredTiger's default.
- */
+ */ //赋值见__block_write_off
 struct __wt_block_header {
 	/*
 	 * We write the page size in the on-disk page header because it makes

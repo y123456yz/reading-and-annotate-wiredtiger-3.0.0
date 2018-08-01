@@ -505,7 +505,7 @@ __bm_verify_start(WT_BM *bm,
 /*
  * __bm_write --
  *	Write a buffer into a block, returning the block's address cookie.
- */
+ */ //__wt_bt_writeÖÐµ÷ÓÃ
 static int
 __bm_write(WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf,
     uint8_t *addr, size_t *addr_sizep, bool data_checksum, bool checkpoint_io)

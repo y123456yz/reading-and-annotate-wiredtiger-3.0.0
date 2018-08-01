@@ -10,11 +10,13 @@
 
 /*
  * Per session handle cached block manager information.
- */
+ */ 
 typedef struct {
+    //赋值见__block_ext_prealloc  
 	WT_EXT  *ext_cache;			/* List of WT_EXT handles */
 	u_int    ext_cache_cnt;			/* Count */
 
+    //赋值见__block_size_prealloc
 	WT_SIZE *sz_cache;			/* List of WT_SIZE handles */
 	u_int    sz_cache_cnt;			/* Count */
 } WT_BLOCK_MGR_SESSION;
@@ -51,6 +53,7 @@ __wt_block_ext_alloc(WT_SESSION_IMPL *session, WT_EXT **extp)
 	u_int i;
 
 	bms = session->block_manager;
+    /*尝试从cache list获取一个可以重复利用的WT_EXT*/
 
 	/* Return a WT_EXT structure for use from a cached list. */
 	if (bms != NULL && bms->ext_cache != NULL) {
@@ -58,6 +61,7 @@ __wt_block_ext_alloc(WT_SESSION_IMPL *session, WT_EXT **extp)
 		bms->ext_cache = ext->next[0];
 
 		/* Clear any left-over references. */
+		/*清空掉原来WT_EXT的调表关系*/
 		for (i = 0; i < ext->depth; ++i)
 			ext->next[i] = ext->next[i + ext->depth] = NULL;
 
@@ -71,14 +75,15 @@ __wt_block_ext_alloc(WT_SESSION_IMPL *session, WT_EXT **extp)
 		*extp = ext;
 		return (0);
 	}
-
+	
+    /*如果是session中没有可重用的WT_EXT,直接从内存中分配一个*/
 	return (__block_ext_alloc(session, extp));
 }
 
 /*
  * __block_ext_prealloc --
  *	Pre-allocate WT_EXT structures.
- */
+ */ /*为一个session预分配一些WT_EXT对象到cache中*/
 static int
 __block_ext_prealloc(WT_SESSION_IMPL *session, u_int max)
 {

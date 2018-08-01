@@ -13,7 +13,7 @@
  *	Blocks have a common header, a WT_PAGE_HEADER structure followed by a
  * block-manager specific structure.
  */
-struct __wt_page_header {
+struct __wt_page_header { //赋值见__rec_split_write_header
 	/*
 	 * The record number of the first record of the page is stored on disk
 	 * so we can figure out where the column-store leaf page fits into the
@@ -98,7 +98,7 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
 /*
  * WT_ADDR --
  *	An in-memory structure to hold a block's location.
- */
+ */ //赋值见__rec_split_write
 struct __wt_addr {
 	uint8_t *addr;			/* Block-manager's cookie */
 	uint8_t  size;			/* Block-manager's cookie length */
@@ -258,7 +258,7 @@ struct __wt_page_modify {
 #define	mod_page_las	u1.r.page_las
 
 	struct {			/* Multiple replacement blocks */
-	struct __wt_multi {
+	struct __wt_multi { //使用见__rec_row_merge
 		/*
 		 * Block's key: either a column-store record number or a
 		 * row-store variable length byte string.
@@ -297,6 +297,7 @@ struct __wt_page_modify {
 		 * the reuse flag is set when the block is unchanged and we're
 		 * reusing a previous address.
 		 */
+		//赋值见__rec_split_write
 		WT_ADDR	 addr;
 		uint32_t size;
 		uint32_t checksum;
