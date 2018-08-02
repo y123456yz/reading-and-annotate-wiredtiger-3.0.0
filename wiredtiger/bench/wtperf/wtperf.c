@@ -1243,10 +1243,12 @@ populate_async(void *arg)
 		asyncop->app_private = thread;
 		//把op转换为字符串填充到key_buf
 		generate_key(opts, key_buf, op);
+		//__async_set_key
 		asyncop->set_key(asyncop, key_buf);
 		if (opts->random_value)
 			randomize_value(thread, value_buf);
 		asyncop->set_value(asyncop, value_buf);
+		//__async_insert
 		if ((ret = asyncop->insert(asyncop)) != 0) {
 			lprintf(wtperf, ret, 0, "Failed inserting");
 			goto err;
@@ -1541,6 +1543,7 @@ execute_populate(WTPERF *wtperf)
 
 	wtperf->popthreads =
 	    dcalloc(opts->populate_threads, sizeof(WTPERF_THREAD));
+	//异步操作和同步操作的区别在用，同步是每个kv都insert后才进行下一次的insert，而异步是，先把所有KV放入一个队里，然后worker线程从队列中取出一次性多条写入磁盘
 	if (wtperf->use_asyncops) {
 		lprintf(wtperf, 0, 1, "Starting %" PRIu32 " async thread(s)",
 		    opts->async_threads);
@@ -2448,7 +2451,6 @@ main(int argc, char *argv[])
 	const char *append_comma, *config_opts;
 	char *cc_buf, *path, *sess_cfg, *tc_buf, *user_cconfig, *user_tconfig;
 
-    printf("yang test ...................wtperf\r\n");
 	/* The first WTPERF structure (from which all others are derived). */
 	wtperf = &_wtperf;
 	memset(wtperf, 0, sizeof(*wtperf));

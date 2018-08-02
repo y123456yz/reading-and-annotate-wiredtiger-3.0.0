@@ -1521,7 +1521,6 @@ __checkpoint_tree(
 	 * overwrite this.
 	 */
 	WT_MAX_LSN(&ckptlsn);
-    printf("yang test ...................__checkpoint_tree\r\n");
 
 	/*
 	 * If an object has never been used (in other words, if it could become
@@ -1697,7 +1696,6 @@ __checkpoint_tree_helper(WT_SESSION_IMPL *session, const char *cfg[])
 
 	btree = S2BT(session);
 	txn = &session->txn;
-    printf("yang test ..........    .........__checkpoint_tree_helper\r\n");
 	/* Are we using a read timestamp for this checkpoint transaction? */
 	with_timestamp = F_ISSET(txn, WT_TXN_HAS_TS_READ);
 
@@ -1709,7 +1707,6 @@ __checkpoint_tree_helper(WT_SESSION_IMPL *session, const char *cfg[])
 		F_CLR(txn, WT_TXN_HAS_TS_READ); //ºöÂÔread timestamp configured
 
 	ret = __checkpoint_tree(session, true, cfg);
-    printf("yang test ..........w.........__checkpoint_tree_helper\r\n");
 
 	/* Restore the use of the timestamp for other tables. */
 	if (with_timestamp)

@@ -487,6 +487,7 @@ struct __wt_col_rle {
  * WT_PAGE --
  * The WT_PAGE structure describes the in-memory page information.
  * 参考https://weibo.com/ttarticle/p/show?id=2309403992797932856430
+ BTREE简单代码例子:https://blog.csdn.net/cyongxue/article/details/16971337
  */
 //内存中的 page 结构对象，page 的访问入口。  同一个table操作，起page是同一个
 //page都是挂载__wt_btree.root下面，组成tree树   
