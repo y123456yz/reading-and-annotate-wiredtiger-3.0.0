@@ -12,13 +12,14 @@ create=false
 table_count=2
 # close_conn as false allows this test to close/finish faster, but if running
 # as the set, the next test will need to run recovery.
+icount=50000000
 close_conn=false
 key_sz=40
 value_sz=120
 max_latency=2000
 pareto=20
 report_interval=10
-run_time=7200
+run_time=60
 sample_interval=10
 sample_rate=1
 threads=((count=10,reads=1),(count=10,updates=1))

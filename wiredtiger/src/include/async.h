@@ -30,6 +30,7 @@ struct __wt_async_format {
  * WT_ASYNC_OP_IMPL --
  *	Implementation of the WT_ASYNC_OP.
  */
+//__wt_async_new_op÷–∏≥÷µ
 struct __wt_async_op_impl {
 	WT_ASYNC_OP	iface;
 
