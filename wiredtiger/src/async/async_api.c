@@ -11,7 +11,7 @@
 /*
  * __async_get_format --
  *	Find or allocate the uri/config/format structure.
- */
+ */ /* 通过uri和config信息在async format queue中查找k/v format,并设置到op中 */
 static int
 __async_get_format(WT_CONNECTION_IMPL *conn, const char *uri,
     const char *config, WT_ASYNC_OP_IMPL *op)
@@ -101,7 +101,7 @@ err:
 /*
  * __async_new_op_alloc --
  *	Find and allocate the next available async op handle.
- */
+ */ /*在async_ops池中获得一个op对象*/
 static int
 __async_new_op_alloc(WT_SESSION_IMPL *session, const char *uri,
     const char *config, WT_ASYNC_OP_IMPL **opp)
@@ -119,11 +119,11 @@ __async_new_op_alloc(WT_SESSION_IMPL *session, const char *uri,
 
 retry:
 	op = NULL;
-	WT_ORDERED_READ(save_i, async->ops_index);
+	WT_ORDERED_READ(save_i, async->ops_index); //从ops_index位置开始从async_ops[ops_index]查找可用op
 	/*
 	 * Look after the last one allocated for a free one.  We'd expect
 	 * ops to be freed mostly FIFO so we should quickly find one.
-	 */
+	 */ /*在async_ops中查找一个free状态下的op对象*/
 	for (view = 1, i = save_i; i < conn->async_size; i++, view++) {
 		op = &async->async_ops[i];
 		if (op->state == WT_ASYNCOP_FREE)
@@ -142,7 +142,7 @@ retry:
 
 	/*
 	 * We still haven't found one.  Return an error.
-	 */
+	 */ //没有free的op对象，返回EBUSY
 	if (op == NULL || op->state != WT_ASYNCOP_FREE) {
 		WT_STAT_CONN_INCR(session, async_full);
 		return (EBUSY);
@@ -151,7 +151,7 @@ retry:
 	 * Set the state of this op handle as READY for the user to use.
 	 * If we can set the state then the op entry is ours.
 	 * Start the next search at the next entry after this one.
-	 */
+	 */ /*设置op的状态为WT_ASYNCOP_READY，表示已经占用状态*/
 	if (!__wt_atomic_cas32(&op->state, WT_ASYNCOP_FREE, WT_ASYNCOP_READY)) {
 		WT_STAT_CONN_INCR(session, async_alloc_race);
 		goto retry;
@@ -160,6 +160,7 @@ retry:
 	WT_RET(__async_get_format(conn, uri, config, op));
 	op->unique_id = __wt_atomic_add64(&async->op_id, 1);
 	op->optype = WT_AOP_NONE;
+	//记录下次从async_ops[]数组中查找可用op的位置
 	(void)__wt_atomic_store32(
 	    &async->ops_index, (i + 1) % conn->async_size);
 	*opp = op;
@@ -255,6 +256,7 @@ __async_start(WT_SESSION_IMPL *session)
 		 * workers and we may want to selectively stop some workers
 		 * while leaving the rest running.
 		 */
+		//为每个worker创建一个session
 		session_flags = WT_SESSION_SERVER_ASYNC;
 		WT_RET(__wt_open_internal_session(conn, "async-worker",
 		    true, session_flags, &async->worker_sessions[i]));
@@ -543,7 +545,14 @@ retry:
 /*
  * __async_runtime_config --
  *	Configure runtime fields at allocation.
- */
+ */ 
+/*
+{ "WT_CONNECTION.async_new_op",
+  "append=false,overwrite=true,raw=false,timeout=1200",
+  confchk_WT_CONNECTION_async_new_op, 4
+},
+*/
+ //"append=false,overwrite=true,raw=false,timeout=1200",
 static int
 __async_runtime_config(WT_ASYNC_OP_IMPL *op, const char *cfg[])
 {
@@ -593,6 +602,7 @@ __wt_async_new_op(WT_SESSION_IMPL *session, const char *uri,
 		    session, ENOTSUP, "Asynchronous operations not configured");
 
 	op = NULL;
+	//从async->async_ops[]数组获取一个free的op
 	WT_ERR(__async_new_op_alloc(session, uri, config, &op));
 	WT_ERR(__async_runtime_config(op, cfg));
 	op->cb = cb;

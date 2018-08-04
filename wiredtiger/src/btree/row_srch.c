@@ -140,6 +140,7 @@ __wt_search_insert(WT_SESSION_IMPL *session,
  * __check_leaf_key_range --
  *	Check the search key is in the leaf page's key range.
  */
+//
 static inline int
 __check_leaf_key_range(WT_SESSION_IMPL *session,
     WT_ITEM *srch_key, WT_REF *leaf, WT_CURSOR_BTREE *cbt)
@@ -366,8 +367,8 @@ restart:	/*
 				    page, descent, &item->data, &item->size);
 
 				cmp = __wt_lex_compare_short(srch_key, item);
-				if (cmp > 0) {
-					base = indx + 1;
+				if (cmp > 0) { //srch_key > item对应的key，说明srch_key需要从indx对应下一个leaf page中查找
+					base = indx + 1; //
 					--limit;
 				} else if (cmp == 0)
 					goto descend;

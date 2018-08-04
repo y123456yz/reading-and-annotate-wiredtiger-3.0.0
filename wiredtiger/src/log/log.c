@@ -1755,7 +1755,7 @@ err:	__wt_free(session, buf);
 /*
  * __wt_log_release --
  *	Release a log slot.
- */
+ */ //这里面写数据到日志文件WiredTigerLog
 int
 __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 {
@@ -1790,7 +1790,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 	}
 
 	/* Write the buffered records */
-	if (release_buffered != 0)
+	if (release_buffered != 0) //写数据到日志文件WiredTigerLog
 		WT_ERR(__log_fs_write(session, slot, slot->slot_start_offset,
 		    (size_t)release_buffered, slot->slot_buf.mem));
 
@@ -2470,6 +2470,13 @@ err:	__wt_scr_free(session, &citem);
  * __log_write_internal --
  *	Write a record into the log.
  */
+/*
+[1533381451:124084][7315:0x7f2b8a5de740][__wt_write, 171], file:WiredTiger.wt, WT_SESSION.create: WT_HOME/./WiredTigerLog.0000000001: handle-write: 1280 at 1408
+[1533381451:124095][7315:0x7f2b8a5de740][__wt_cond_signal, 153], file:WiredTiger.wt, WT_SESSION.create: signal log write
+[1533381451:124100][7315:0x7f2b8a5de740][__wt_log_release, 1898], file:WiredTiger.wt, WT_SESSION.create: log_release: sync log ./WiredTigerLog.0000000001 to LSN 1/2688
+[1533381451:124107][7315:0x7f2b8a5de740][__wt_fsync, 23], file:WiredTiger.wt, WT_SESSION.create: WT_HOME/./WiredTigerLog.0000000001: handle-sync
+[1533381451:124363][7315:0x7f2b8a5de740][__wt_cond_signal, 153], file:WiredTiger.wt, WT_SESSION.create: signal log sync
+*/
 static int
 __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
     uint32_t flags)
@@ -2486,6 +2493,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 
 	conn = S2C(session);
 	log = conn->log;
+
 	if (record->size > UINT32_MAX)
 		WT_RET_MSG(session, EFBIG,
 		    "Log record size of %" WT_SIZET_FMT " exceeds the maximum "
@@ -2504,6 +2512,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	 * direct_io is in use because it makes the reading code cleaner.
 	 */
 	WT_STAT_CONN_INCRV(session, log_bytes_payload, record->size);
+	/*确定logrec对齐的长度,并分配对齐长度的buf*/
 	rdup_len = __wt_rduppo2((uint32_t)record->size, log->allocsize);
 	WT_ERR(__wt_buf_grow(session, record, rdup_len));
 	WT_ASSERT(session, record->data == record->mem);
@@ -2558,6 +2567,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 		myslot.slot->slot_error = ret;
 	WT_ASSERT(session, ret == 0);
 	if (WT_LOG_SLOT_DONE(release_size)) {
+	    ////这里面写数据到日志文件WiredTigerLog
 		WT_ERR(__wt_log_release(session, myslot.slot, &free_slot));
 		if (free_slot)
 			__wt_log_slot_free(session, myslot.slot);
@@ -2669,6 +2679,7 @@ __wt_log_vprintf(WT_SESSION_IMPL *session, const char *fmt, va_list ap)
 	    "log_printf: %s", (char *)logrec->data + logrec->size);
 
 	logrec->size += len;
+	printf("yang test 11111111111111111111111111111111111111\r\n");
 	WT_ERR(__wt_log_write(session, logrec, NULL, 0));
 err:	__wt_scr_free(session, &logrec);
 	return (ret);

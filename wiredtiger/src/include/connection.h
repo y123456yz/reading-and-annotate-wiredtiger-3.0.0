@@ -310,9 +310,13 @@ struct __wt_connection_impl {
 	WT_CONNECTION_STATS *stats[WT_COUNTER_SLOTS];
 	WT_CONNECTION_STATS *stat_array;
 
+    //分配空间及赋值见__async_start
 	WT_ASYNC	*async;		/* Async structure */
+	//赋值见__async_start
 	bool		 async_cfg;	/* Global async configuration */
+	//async.ops_max配置
 	uint32_t	 async_size;	/* Async op array size */
+	//async.threads中配置
 	uint32_t	 async_workers;	/* Number of async workers */
 
 	WT_LSM_MANAGER	lsm_manager;	/* LSM worker thread information */

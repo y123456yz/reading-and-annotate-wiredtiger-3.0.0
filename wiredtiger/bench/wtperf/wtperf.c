@@ -115,7 +115,7 @@ randomize_value(WTPERF_THREAD *thread, char *value_buf)
 
 /*
  * Partition data by key ranges.
- */
+ */ //该key应该罗到那个table
 static uint32_t
 map_key_to_table(CONFIG_OPTS *opts, uint64_t k)
 {
@@ -1014,6 +1014,8 @@ run_mix_schedule(WTPERF *wtperf, WORKLOAD *workp)
 	return (0);
 }
 
+//populate_thread同步写  populate_async异步写
+
 static WT_THREAD_RET
 populate_thread(void *arg)
 {
@@ -1077,6 +1079,7 @@ populate_thread(void *arg)
 			break;
 
 		if (opts->populate_ops_per_txn != 0 && !intxn) {
+		    //printf("yang test 11111111111  %d  %d  %d\r\n", opts->populate_ops_per_txn, intxn, op);
 			if ((ret = session->begin_transaction(
 			    session, opts->transaction_config)) != 0) {
 				lprintf(wtperf, ret, 0,
@@ -1147,7 +1150,7 @@ populate_thread(void *arg)
 			if (++opcount < opts->populate_ops_per_txn)
 				continue;
 			opcount = 0;
-
+            //printf("yang test 2222222222  %d  %d  %d\r\n", opts->populate_ops_per_txn, intxn, op);
 			if ((ret = session->commit_transaction(
 			    session, NULL)) != 0)
 				lprintf(wtperf, ret, 0,
@@ -1181,6 +1184,8 @@ err:		wtperf->error = wtperf->stop = true;
 
 	return (WT_THREAD_RET_VALUE);
 }
+
+//populate_thread同步写  populate_async异步写
 
 static WT_THREAD_RET
 populate_async(void *arg)
@@ -1232,15 +1237,19 @@ populate_async(void *arg)
 			break;
 		/*
 		 * Allocate an async op for whichever table.
-		 */
+		 */ //__conn_async_new_op
 		while ((ret = conn->async_new_op(
 		    conn, wtperf->uris[map_key_to_table(wtperf->opts, op)],
-		    NULL, &cb, &asyncop)) == EBUSY)
-			(void)usleep(10000);
+		    NULL, &cb, &asyncop)) == EBUSY) {
+			//(void)usleep(10000);
+			(void)usleep(5);
+			//printf("yang test .................. sleep\r\n");
+		}
 		if (ret != 0)
 			goto err;
 
 		asyncop->app_private = thread;
+		//见wtperf.h
 		//把op转换为字符串填充到key_buf
 		generate_key(opts, key_buf, op);
 		//__async_set_key
@@ -1549,7 +1558,7 @@ execute_populate(WTPERF *wtperf)
 		    opts->async_threads);
 		pfunc = populate_async;
 	} else
-		pfunc = populate_thread;
+		pfunc = populate_thread; 
 		
 	start_threads(wtperf, NULL,
 	    wtperf->popthreads, opts->populate_threads, pfunc);
@@ -2560,7 +2569,8 @@ main(int argc, char *argv[])
 		 * of 1024 for the max ops.  Although we could bump that up
 		 * to 4096 if needed.
 		 */
-		req_len = strlen(",async=(enabled=true,threads=)") + 4;
+		//见__async_config
+		req_len = strlen(",async=(enabled=true,threads=,async.ops_max=10240)") + 4;
 		wtperf->async_config = dmalloc(req_len);
 		testutil_check(__wt_snprintf(wtperf->async_config, req_len,
 		    ",async=(enabled=true,threads=%" PRIu32 ")",

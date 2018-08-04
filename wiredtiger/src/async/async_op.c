@@ -250,7 +250,9 @@ __async_op_init(WT_CONNECTION_IMPL *conn, WT_ASYNC_OP_IMPL *op, uint32_t id)
 /*
  * __wt_async_op_enqueue --
  *	Enqueue an operation onto the work queue.
- */
+ */ 
+//__wt_async_op_enqueue和__async_op_dequeue对应
+//注意不同的写入线程有不同的session,见，每个op有各自的session, 但conn是同一个，见__async_start
 int
 __wt_async_op_enqueue(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op)
 {
@@ -264,6 +266,7 @@ __wt_async_op_enqueue(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op)
 	conn = S2C(session);
 	async = conn->async;
 
+    printf("yang test ..... %p\r\n", async);
 	/*
 	 * If an application re-uses a WT_ASYNC_OP, we end up here with an
 	 * invalid object.
@@ -275,7 +278,7 @@ __wt_async_op_enqueue(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op)
 	/*
 	 * Enqueue op at the tail of the work queue.
 	 * We get our slot in the ring buffer to use.
-	 */
+	 */ /*确定排队操作在队列中的位置，async_queue是一个ring buffer*/
 	my_alloc = __wt_atomic_add64(&async->alloc_head, 1);
 	my_slot = my_alloc % async->async_qsize;
 
@@ -294,17 +297,22 @@ __wt_async_op_enqueue(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op)
 	if (my_op != NULL)
 		return (__wt_panic(session));
 #endif
+    /*将操作插入到队列当中,并修改当前队列的op数量*/
 	WT_PUBLISH(async->async_queue[my_slot], op);
 	op->state = WT_ASYNCOP_ENQUEUED;
+	//cur_queue在deque的时候-1
 	if (__wt_atomic_add32(&async->cur_queue, 1) > async->max_queue)
 		WT_PUBLISH(async->max_queue, async->cur_queue);
 	/*
 	 * Multiple threads may be adding ops to the queue.  We need to wait
 	 * our turn to make our slot visible to workers.
 	 */
+	/*等待自己的op的排队确认*/
 	WT_ORDERED_READ(cur_head, async->head);
 	while (cur_head != (my_alloc - 1)) {
+	    
 		__wt_yield();
+		printf("yang tst 222222222222222222222 yield   %d   %d\r\n", cur_head, my_alloc - 1);
 		WT_ORDERED_READ(cur_head, async->head);
 	}
 	WT_PUBLISH(async->head, my_alloc);

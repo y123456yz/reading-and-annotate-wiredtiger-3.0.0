@@ -677,6 +677,12 @@ __wt_ref_addr_free(WT_SESSION_IMPL *session, WT_REF *ref)
 	ref->addr = NULL;
 }
 
+#define	WT_IK_FLAG			0x01
+#define	WT_IK_ENCODE_KEY_LEN(v)		((uintptr_t)(v) << 32)
+#define	WT_IK_DECODE_KEY_LEN(v)		((v) >> 32)
+#define	WT_IK_ENCODE_KEY_OFFSET(v)	((uintptr_t)(v) << 1)
+#define	WT_IK_DECODE_KEY_OFFSET(v)	(((v) & 0xFFFFFFFF) >> 1)
+
 /*
  * __wt_ref_key --
  *	Return a reference to a row-store internal page key as cheaply as
@@ -709,18 +715,13 @@ __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
 	 *	31 bits		page offset of the key's bytes,
 	 *	 1 bits		flags
 	 */
-#define	WT_IK_FLAG			0x01
-#define	WT_IK_ENCODE_KEY_LEN(v)		((uintptr_t)(v) << 32)
-#define	WT_IK_DECODE_KEY_LEN(v)		((v) >> 32)
-#define	WT_IK_ENCODE_KEY_OFFSET(v)	((uintptr_t)(v) << 1)
-#define	WT_IK_DECODE_KEY_OFFSET(v)	(((v) & 0xFFFFFFFF) >> 1)
 	v = (uintptr_t)ref->ref_ikey;
 	/*key的值与key.ikey内存关系是不连续的，keyp指向key值开始位置,通过v的值计算偏移*/
-	if (v & WT_IK_FLAG) {
+	if (v & WT_IK_FLAG) { //和__wt_ref_key_onpage_set对应
 		*(void **)keyp =
 		    WT_PAGE_REF_OFFSET(page, WT_IK_DECODE_KEY_OFFSET(v));
 		*sizep = WT_IK_DECODE_KEY_LEN(v);
-	} else {
+	} else { //和__wt_ref_key_instantiated对应
 		*(void **)keyp = WT_IKEY_DATA(ref->ref_ikey);
 		*sizep = ((WT_IKEY *)ref->ref_ikey)->size;
 	}
@@ -730,6 +731,7 @@ __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
  * __wt_ref_key_onpage_set --
  *	Set a WT_REF to reference an on-page key.
  */
+//__wt_ref_key_onpage_set和__wt_ref_key对应
 static inline void
 __wt_ref_key_onpage_set(WT_PAGE *page, WT_REF *ref, WT_CELL_UNPACK *unpack)
 {
@@ -748,6 +750,7 @@ __wt_ref_key_onpage_set(WT_PAGE *page, WT_REF *ref, WT_CELL_UNPACK *unpack)
  * __wt_ref_key_instantiated --
  *	Return if a WT_REF key is instantiated.
  */
+//__wt_ref_key_instantiated和__wt_ref_key对应
 static inline WT_IKEY *
 __wt_ref_key_instantiated(WT_REF *ref)
 {

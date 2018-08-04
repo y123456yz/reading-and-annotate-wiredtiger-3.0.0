@@ -1266,6 +1266,7 @@ err:	__wt_scr_free(session, &tmp);
  *	Return the update in a list that should be written (or NULL if none can
  *	be written).
  */
+//根据ins或者ripcip获取对应的update链表
 static int
 __rec_txn_read(WT_SESSION_IMPL *session, WT_RECONCILE *r,
     WT_INSERT *ins, void *ripcip, WT_CELL_UNPACK *vpack,

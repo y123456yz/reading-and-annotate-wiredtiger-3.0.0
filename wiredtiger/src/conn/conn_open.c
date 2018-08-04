@@ -247,6 +247,7 @@ __wt_connection_workers(WT_SESSION_IMPL *session, const char *cfg[])
 	WT_RET(__wt_sweep_create(session));
 
 	/* Start the optional async threads. */
+	//“Ï≤Ω–¥œﬂ≥Ã
 	WT_RET(__wt_async_create(session, cfg));
 
 	/* Start the optional checkpoint thread. */

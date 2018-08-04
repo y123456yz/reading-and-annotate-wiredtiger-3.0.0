@@ -713,7 +713,7 @@ err:	API_END_RET_NOTFOUND_MAP(session, ret);
 /*
  * __conn_async_new_op --
  *	WT_CONNECTION.async_new_op method.
- */
+ */ //用法可以参考populate_async
 static int
 __conn_async_new_op(WT_CONNECTION *wt_conn, const char *uri, const char *config,
     WT_ASYNC_CALLBACK *callback, WT_ASYNC_OP **asyncopp)
@@ -724,6 +724,7 @@ __conn_async_new_op(WT_CONNECTION *wt_conn, const char *uri, const char *config,
 	WT_SESSION_IMPL *session;
 
 	conn = (WT_CONNECTION_IMPL *)wt_conn;
+	//"append=false,overwrite=true,raw=false,timeout=1200"
 	CONNECTION_API_CALL(conn, session, async_new_op, config, cfg);
 	WT_ERR(__wt_async_new_op(session, uri, config, cfg, callback, &op));
 

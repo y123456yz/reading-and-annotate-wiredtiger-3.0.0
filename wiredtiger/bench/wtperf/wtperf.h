@@ -293,6 +293,7 @@ __attribute__((format (printf, 4, 5)))
 #endif
 ;
 
+//°Ñ
 static inline void
 generate_key(CONFIG_OPTS *opts, char *key_buf, uint64_t keyno)
 {

@@ -615,7 +615,7 @@ struct __wt_page {
 	 *
 	 * The entries field only applies to leaf pages, internal pages use the
 	 * page-index entries instead.
-	 */
+	 */ //赋值在__wt_page_alloc
 	uint32_t entries;		/* Leaf page entries */
 
 #define	WT_PAGE_IS_INTERNAL(page)					\
@@ -846,6 +846,7 @@ struct __wt_ref {
 	 */
 	//指向父节点
 	WT_PAGE * volatile home;	/* Reference page */
+	//标记在父节点index[]的位置，赋值见__inmem_row_int
 	volatile uint32_t pindex_hint;	/* Reference page index hint */
 
 	/*
@@ -860,8 +861,10 @@ struct __wt_ref {
 	 * __wt_ref_key.
 	 */
 	union {
+	    //列存储用这个，见__check_leaf_key_range
 		uint64_t recno;		/* Column-store: starting recno */
-		void	*ikey;		/* Row-store: key */
+		//行存储用这个，见__check_leaf_key_range
+		void	*ikey;		/* Row-store: key */ //赋值见__wt_row_ikey
 	} key;
 #undef	ref_recno
 #define	ref_recno	key.recno

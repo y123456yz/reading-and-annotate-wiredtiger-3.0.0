@@ -12,7 +12,9 @@
  * __async_op_dequeue --
  *	Wait for work to be available.  Then atomically take it off
  *	the work queue.
- */
+ */  //__wt_async_op_enqueue和__async_op_dequeue对应
+/*等待op 排队队列就绪，可以进行对象消费，需要消费的队列为*op = async->async_queue[my_slot]*/
+
 static int
 __async_op_dequeue(WT_CONNECTION_IMPL *conn, WT_SESSION_IMPL *session,
     WT_ASYNC_OP_IMPL **op)
@@ -35,17 +37,19 @@ retry:
 	WT_ORDERED_READ(last_consume, async->alloc_tail);
 	/*
 	 * We stay in this loop until there is work to do.
-	 */
-	while (last_consume == async->head &&
+	 */ /*进行spin wait, 检查async是否可以进入工作状态*/
+	while (last_consume == async->head &&  //说明没有需要消费的op
 	    async->flush_state != WT_ASYNC_FLUSHING) {
 		WT_STAT_CONN_INCR(session, async_nowork);
-		if (++tries < MAX_ASYNC_YIELD)
+		//暂停一会儿
+		if (++tries < MAX_ASYNC_YIELD) {
 			/*
 			 * Initially when we find no work, allow other
 			 * threads to run.
 			 */
+			 printf("yang tst 333333333333333333333 yield\r\n");
 			__wt_yield();
-		else {
+		} else {
 			/*
 			 * If we haven't found work in a while, start sleeping
 			 * to wait for work to arrive instead of spinning.
@@ -75,6 +79,7 @@ retry:
 	 */
 	my_slot = my_consume % async->async_qsize;
 	prev_slot = last_consume % async->async_qsize;
+	//把这个队列上的取出来存入op
 	*op = async->async_queue[my_slot];
 	async->async_queue[my_slot] = NULL;
 
@@ -92,9 +97,10 @@ retry:
 	WT_ORDERED_READ(cur_tail, async->tail_slot);
 	while (cur_tail != prev_slot) {
 		__wt_yield();
+		printf("yang tst 44444444444444 yield\r\n");
 		WT_ORDERED_READ(cur_tail, async->tail_slot);
 	}
-	WT_PUBLISH(async->tail_slot, my_slot);
+	WT_PUBLISH(async->tail_slot, my_slot); 
 	return (0);
 }
 
@@ -168,7 +174,7 @@ err:	__wt_free(session, ac);
 /*
  * __async_worker_execop --
  *	A worker thread executes an individual op with a cursor.
- */
+ */ /*async worker执行一个op操作*/
 static int
 __async_worker_execop(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op,
     WT_CURSOR *cursor)
@@ -225,7 +231,7 @@ __async_worker_execop(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op,
 /*
  * __async_worker_op --
  *	A worker thread handles an individual op.
- */
+ */ /*执行async op操作*/
 static int
 __async_worker_op(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op,
     WT_ASYNC_WORKER_STATE *worker)
@@ -241,13 +247,16 @@ __async_worker_op(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op,
 	cb_ret = 0;
 
 	wt_session = &session->iface;
+	/*如果是增删查改，启动一个事务*/
 	if (op->optype != WT_AOP_COMPACT)
 		WT_RET(wt_session->begin_transaction(wt_session, NULL));
+
+		/*确定执行操作的cursor*/
 	WT_ASSERT(session, op->state == WT_ASYNCOP_WORKING);
 	WT_RET(__async_worker_cursor(session, op, worker, &cursor));
 	/*
 	 * Perform op and invoke the callback.
-	 */
+	 */ 
 	ret = __async_worker_execop(session, op, cursor);
 	if (op->cb != NULL && op->cb->notify != NULL)
 		cb_ret = op->cb->notify(op->cb, asyncop, ret, 0);
@@ -255,7 +264,7 @@ __async_worker_op(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op,
 	/*
 	 * If the operation succeeded and the user callback returned
 	 * zero then commit.  Otherwise rollback.
-	 */
+	 */ /*事务执行成功，则提交，事务执行失败则回滚*/
 	if (op->optype != WT_AOP_COMPACT) {
 		if ((ret == 0 || ret == WT_NOTFOUND) && cb_ret == 0)
 			WT_TRET(wt_session->commit_transaction(
@@ -270,7 +279,7 @@ __async_worker_op(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op,
 	 * After the callback returns, and the transaction resolved release
 	 * the op back to the free pool.  We do this regardless of
 	 * success or failure.
-	 */
+	 */ /*释放op slot,以便async op对象池进行重复利用这个对象*/
 	WT_PUBLISH(op->state, WT_ASYNCOP_FREE);
 	return (ret);
 }
@@ -278,7 +287,8 @@ __async_worker_op(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op,
 /*
  * __wt_async_worker --
  *	The async worker threads.
- */
+ */ 
+/*async workers线程执行体函数*/
 WT_THREAD_RET
 __wt_async_worker(void *arg)
 {
@@ -299,12 +309,13 @@ __wt_async_worker(void *arg)
 	TAILQ_INIT(&worker.cursorqh);
 	while (F_ISSET(conn, WT_CONN_SERVER_ASYNC) &&
 	    F_ISSET(session, WT_SESSION_SERVER_ASYNC)) {
+	    //获取需要消费的async_queue[my_slot]队列，通过op返回
 		WT_ERR(__async_op_dequeue(conn, session, &op));
 		if (op != NULL && op != &async->flush_op) {
 			/*
 			 * Operation failure doesn't cause the worker thread to
 			 * exit.
-			 */
+			 */ /*执行async op操作*/
 			(void)__async_worker_op(session, op, &worker);
 		} else if (async->flush_state == WT_ASYNC_FLUSHING) {
 			/*
@@ -314,6 +325,7 @@ __wt_async_worker(void *arg)
 			 * the queue.
 			 */
 			WT_ORDERED_READ(flush_gen, async->flush_gen);
+			/*worker线程全部激活了，但是有些线程在等待，通知其他线程结束等待，进行执行*/
 			if (__wt_atomic_add32(&async->flush_count, 1) ==
 			    conn->async_workers) {
 				/*
