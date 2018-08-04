@@ -81,13 +81,6 @@ access_example(void)
 	//__curfile_insert
     error_check(cursor->insert(cursor));
 
-    cursor->reset(cursor);
-    cursor->set_key(cursor, "key1");
-    //__curfile_search
-    cursor->search(cursor);
-    cursor->get_value(cursor, &value);
-    printf("yang test value:%s\r\n",value);
-
     return 1;
     
 	/*! [access example cursor list] */

@@ -11,7 +11,7 @@
 /*
  * __wt_yield --
  *	Yield the thread of control.
- */
+ */ //调用了系统调用sched_yield 自愿让出CPU 
 void
 __wt_yield(void)
 {

@@ -659,7 +659,7 @@ err:		WT_PANIC_MSG(session, ret, "statistics log server error");
 /*
  * __statlog_start --
  *	Start the statistics server thread.
- */
+ */ //statistics_logœ‡πÿ≈‰÷√
 static int
 __statlog_start(WT_CONNECTION_IMPL *conn)
 {

@@ -203,6 +203,7 @@ __wt_compare_skip(WT_SESSION_IMPL *session, WT_COLLATOR *collator,
  */
 #define	WT_COMPARE_SHORT_MAXLEN 9
 
+//user_item > tree_item内容，返回1，判断user_item是否大于tree_item
 static inline int
 __wt_lex_compare_short(const WT_ITEM *user_item, const WT_ITEM *tree_item)
 {

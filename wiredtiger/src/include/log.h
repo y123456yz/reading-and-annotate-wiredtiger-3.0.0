@@ -217,6 +217,7 @@ struct __wt_myslot {
 
 #define	WT_LOG_END_HEADER	log->allocsize
 
+//¸³Öµ¼û__log_newfile
 struct __wt_log {
 	uint32_t	allocsize;	/* Allocation alignment size */
 	uint32_t	first_record;	/* Offset of first record in file */

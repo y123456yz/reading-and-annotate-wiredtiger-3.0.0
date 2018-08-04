@@ -317,6 +317,7 @@ __txn_log_file_sync(WT_SESSION_IMPL *session, uint32_t flags, WT_LSN *lsnp)
 	    (uint8_t *)logrec->data + logrec->size, header_size,
 	    fmt, rectype, btree->id, start));
 	logrec->size += (uint32_t)header_size;
+    printf("yang test 3333333333333333333333333333333\r\n");
 
 	WT_ERR(__wt_log_write(
 	    session, logrec, lsnp, need_sync ? WT_LOG_FSYNC : 0));
@@ -478,6 +479,7 @@ __wt_txn_checkpoint_log(
 		    fmt, rectype, ckpt_lsn->l.file, ckpt_lsn->l.offset,
 		    txn->ckpt_nsnapshot, ckpt_snapshot));
 		logrec->size += (uint32_t)recsize;
+		printf("yang test 44444444444444444444444444444444444444\r\n");
 		WT_ERR(__wt_log_write(session, logrec, lsnp,
 		    F_ISSET(conn, WT_CONN_CKPT_SYNC) ?
 		    WT_LOG_FSYNC : 0));
