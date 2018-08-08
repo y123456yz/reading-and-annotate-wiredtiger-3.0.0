@@ -1060,7 +1060,7 @@ err:	/*
 	 * We do this as a separate pass because an active transaction in one
 	 * session could cause trouble when closing a file, even if that
 	 * session never referenced that file.
-	 */
+	 */ /*关闭connection之前，先回滚所有正在connection运行的事务*/
 	for (s = conn->sessions, i = 0; i < conn->session_cnt; ++s, ++i)
 		if (s->active && !F_ISSET(s, WT_SESSION_INTERNAL) &&
 		    F_ISSET(&s->txn, WT_TXN_RUNNING)) {
@@ -1073,6 +1073,7 @@ err:	/*
 	__wt_txn_named_snapshot_destroy(session);
 
 	/* Close open, external sessions. */
+	/*关闭所有外部创建的session*/
 	for (s = conn->sessions, i = 0; i < conn->session_cnt; ++s, ++i)
 		if (s->active && !F_ISSET(s, WT_SESSION_INTERNAL)) {
 			wt_session = &s->iface;
@@ -1083,6 +1084,7 @@ err:	/*
 			if (s->event_handler->handle_close != NULL)
 				WT_TRET(s->event_handler->handle_close(
 				    s->event_handler, wt_session, NULL));
+		    //__session_close
 			WT_TRET(wt_session->close(wt_session, config));
 		}
 
@@ -1102,7 +1104,7 @@ err:	/*
 	 * timestamps to make sure all data gets to disk.  Do this before
 	 * shutting down all the subsystems.  We have shut down all user
 	 * sessions, but send in true for waiting for internal races.
-	 */
+	 */ 
 	if (!F_ISSET(conn, WT_CONN_IN_MEMORY | WT_CONN_READONLY)) {
 		s = NULL;
 		WT_TRET(__wt_open_internal_session(
@@ -1126,7 +1128,8 @@ err:	/*
 			WT_TRET(wt_session->close(wt_session, config));
 		}
 	}
-
+    
+    printf("yang test ..............conn close 33\r\n");
 	if (ret != 0) {
 		__wt_err(session, ret,
 		    "failure during close, disabling further writes");
@@ -1885,7 +1888,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[])
 		if ((ret = __wt_config_subgets(
 		    session, &cval, ft->name, &sval)) == 0 && sval.val != 0) {
 #ifdef HAVE_VERBOSE  //需要使能HAVE_VERBOSE才有效
-			//LF_SET(ft->flag); //flag赋值在这里面
+			LF_SET(ft->flag); //flag赋值在这里面
 #else
 			WT_RET_MSG(session, EINVAL,
 			    "Verbose option specified when WiredTiger built "

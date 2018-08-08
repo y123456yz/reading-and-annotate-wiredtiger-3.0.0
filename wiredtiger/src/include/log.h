@@ -235,6 +235,7 @@ struct __wt_log {
 	WT_FH           *log_close_fh;	/* Logging file handle to close */
 	WT_LSN		 log_close_lsn;	/* LSN needed to close */
 
+    //¼û__log_set_version
 	uint16_t	 log_version;	/* Version of log file */
 
 	/*

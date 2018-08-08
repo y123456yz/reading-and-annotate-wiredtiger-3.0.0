@@ -234,6 +234,7 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
 	uint8_t flags;
 };
 
+//创建空间和赋值见__curfile_create   bulk数据在__curfile_close中罗盘
 struct __wt_cursor_bulk {
 	WT_CURSOR_BTREE cbt;
 
@@ -260,6 +261,7 @@ struct __wt_cursor_bulk {
 	uint32_t entry;			/* Entry count */
 	uint32_t nrecs;			/* Max records per chunk */
 
+    //见__wt_bulk_insert_row
 	void	*reconcile;		/* Reconciliation support */
 	WT_REF	*ref;			/* The leaf page */
 	WT_PAGE *leaf;

@@ -220,7 +220,7 @@ err:	__wt_scr_free(session, &a);
 /*
  * __curbulk_insert_row --
  *	Row-store bulk cursor insert, with key-sort checks.
- */
+ */ //__curbulk_insert_row_skip_check : __curbulk_insert_row;
 static int
 __curbulk_insert_row(WT_CURSOR *cursor)
 {
@@ -248,7 +248,7 @@ __curbulk_insert_row(WT_CURSOR *cursor)
 	 * If this isn't the first key inserted, compare it against the last key
 	 * to ensure the application doesn't accidentally corrupt the table.
 	 */
-	if (!cbulk->first_insert) {
+	if (!cbulk->first_insert) { //后面插入的KV需要和上一次的做比较
 		WT_ERR(__wt_compare(session,
 		    btree->collator, &cursor->key, &cbulk->last, &cmp));
 		if (cmp <= 0)
@@ -257,7 +257,7 @@ __curbulk_insert_row(WT_CURSOR *cursor)
 		cbulk->first_insert = false;
 
 	/* Save a copy of the key for the next comparison. */
-	WT_ERR(__wt_buf_set(session,
+	WT_ERR(__wt_buf_set(session, //记录下来，下次新的KV来的时候做比较
 	    &cbulk->last, cursor->key.data, cursor->key.size));
 
 	ret = __wt_bulk_insert_row(session, cbulk);
@@ -268,7 +268,7 @@ err:	API_END_RET(session, ret);
 /*
  * __curbulk_insert_row_skip_check --
  *	Row-store bulk cursor insert, without key-sort checks.
- */
+ */ //__curbulk_insert_row_skip_check : __curbulk_insert_row;
 static int
 __curbulk_insert_row_skip_check(WT_CURSOR *cursor)
 {

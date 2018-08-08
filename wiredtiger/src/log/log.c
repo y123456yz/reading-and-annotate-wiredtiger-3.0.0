@@ -179,6 +179,8 @@ __log_fs_write(WT_SESSION_IMPL *session,
 	if (S2C(session)->log->log_version != WT_LOG_VERSION &&
 	    slot->slot_release_lsn.l.file < slot->slot_start_lsn.l.file) {
 		__log_wait_for_earlier_slot(session, slot);
+		
+		printf("yang test ...........................__log_fs_write\r\n");
 		WT_RET(__wt_log_force_sync(session, &slot->slot_release_lsn));
 	}
 	if ((ret = __wt_write(session, slot->slot_fh, offset, len, buf)) != 0)
@@ -883,6 +885,7 @@ err:	__wt_scr_free(session, &buf);
  * __log_openfile --
  *	Open a log file with the given log file number and return the WT_FH.
  */ //WT_LOG_FILENAME等日志文件相关
+//当conn close的时候会通过__wt_txn_checkpoint_log->__wt_log_force_sync走到这里
 static int
 __log_openfile(
     WT_SESSION_IMPL *session, uint32_t id, uint32_t flags, WT_FH **fhp)
@@ -935,6 +938,7 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp,
 	WT_LOG_RECORD *logrec;
 	uint32_t allocsize, rectype;
 	const uint8_t *end, *p;
+    printf("yang test ................ __log_open_verify\r\n");
 
 	conn = S2C(session);
 	log = conn->log;
@@ -1495,6 +1499,7 @@ __wt_log_allocfile(
 	/*
 	 * Set up the temporary file.
 	 */
+	printf("yang test ................ __wt_log_allocfile\r\n");
 	WT_ERR(__log_openfile(session, tmp_id, WT_LOG_OPEN_CREATE_OK, &log_fh));
 	WT_ERR(__log_file_header(session, log_fh, NULL, true));
 	/*对fh对应的log文件进行空间设定（size = log_file_max），一般是新建log文件时做的*/
@@ -2689,7 +2694,7 @@ err:	__wt_scr_free(session, &logrec);
  * __wt_log_flush --
  *	Forcibly flush the log to the synchronization level specified.
  *	Wait until it has been completed.
- */
+ */ //__session_log_flush调用
 int
 __wt_log_flush(WT_SESSION_IMPL *session, uint32_t flags)
 {
@@ -2735,7 +2740,8 @@ __wt_log_flush(WT_SESSION_IMPL *session, uint32_t flags)
 	 */
 	if (LF_ISSET(WT_LOG_BACKGROUND))
 		__wt_log_background(session, &lsn);
-	else if (LF_ISSET(WT_LOG_FSYNC))
+	else if (LF_ISSET(WT_LOG_FSYNC)) {
+        printf("yang test ...........................__wt_log_flush\r\n");
 		WT_RET(__wt_log_force_sync(session, &lsn));
-	return (0);
+	}return (0);
 }
