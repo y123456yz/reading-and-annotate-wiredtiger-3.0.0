@@ -3782,7 +3782,7 @@ __wt_bulk_init(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
 /*
  * __wt_bulk_wrapup --
  *	Bulk insert cleanup.
- */
+ */ //配合__wt_bulk_insert_row
 int
 __wt_bulk_wrapup(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
 {
@@ -3827,7 +3827,7 @@ __wt_bulk_wrapup(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
 /*
  * __wt_bulk_insert_row --
  *	Row-store bulk insert.
- */
+ */ /*bulk 方式的row插入操作*/  //在__wt_bulk_wrapup中罗盘
 int
 __wt_bulk_insert_row(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
 {
@@ -3854,6 +3854,7 @@ __wt_bulk_insert_row(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
 			WT_RET(__rec_split_raw(
 			    session, r, key->len + val->len, false));
 	} else
+	    /*确定boundary范围,reconile 的剩余的空间无法存下k/v*/
 		if (WT_CROSSING_SPLIT_BND(r, key->len + val->len)) {
 			/*
 			 * Turn off prefix compression until a full key written

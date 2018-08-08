@@ -1071,6 +1071,7 @@ populate_thread(void *arg)
 		}
 	}
 
+
 	/* Populate the databases. */
 	//表中填充KV数据
 	for (intxn = 0, opcount = 0;;) {
@@ -1105,13 +1106,16 @@ populate_thread(void *arg)
 			__wt_epoch(NULL, &start); 
 
 		//__wt_cursor_set_key
+		printf("yang test .....cccccccccccc..........set key... \r\n");
 		cursor->set_key(cursor, key_buf);
 		if (opts->random_value)
 			randomize_value(thread, value_buf);
 		//__wt_cursor_set_value
+		printf("yang test .....cccccccccccc..........set value... \r\n");
 		cursor->set_value(cursor, value_buf);
 
 		//__curtable_insert
+		printf("yang test .....cccccccccccc.............insert... \r\n");
 		if ((ret = cursor->insert(cursor)) == WT_ROLLBACK) {
 			lprintf(wtperf, ret, 0, "insert retrying");
 			if ((ret = session->rollback_transaction(
@@ -1251,13 +1255,16 @@ populate_async(void *arg)
 		asyncop->app_private = thread;
 		//见wtperf.h
 		//把op转换为字符串填充到key_buf
+		printf("yang test .....cccccccccccc..........set key... \r\n");
 		generate_key(opts, key_buf, op);
 		//__async_set_key
 		asyncop->set_key(asyncop, key_buf);
 		if (opts->random_value)
 			randomize_value(thread, value_buf);
+	    printf("yang test .....cccccccccccc..........set value... \r\n");
 		asyncop->set_value(asyncop, value_buf);
 		//__async_insert
+		printf("yang test .....cccccccccccc..........insert... \r\n");
 		if ((ret = asyncop->insert(asyncop)) != 0) {
 			lprintf(wtperf, ret, 0, "Failed inserting");
 			goto err;

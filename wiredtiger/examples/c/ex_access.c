@@ -31,6 +31,8 @@
 #include <test_util.h>
 
 static const char *home;
+#define	CONN_CONFIG \
+    "create,cache_size=1M,log=(archive=false,enabled=true,file_max=100K)"
 
 static void
 access_example(void)
@@ -43,7 +45,8 @@ access_example(void)
 	int ret;
 
 	/* Open a connection to the database, creating it if necessary. */
-	error_check(wiredtiger_open(home, NULL, "create", &conn));
+	//error_check(wiredtiger_open(home, NULL, "create", &conn));
+	error_check(wiredtiger_open(home, NULL, CONN_CONFIG, &conn));
     printf("yang test 11111111111111111111111111 wiredtiger_open end\r\n");
     
 	/* Open a session handle for the database. */
@@ -80,6 +83,10 @@ access_example(void)
 	cursor->set_value(cursor, "value2");
 	//__curfile_insert
     error_check(cursor->insert(cursor));
+
+    /*! [access example close] */
+	error_check(conn->close(conn, NULL));	/* Close all handles. */
+	/*! [access example close] */
 
     return 1;
     

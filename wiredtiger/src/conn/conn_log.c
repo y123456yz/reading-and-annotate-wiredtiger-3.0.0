@@ -490,6 +490,7 @@ __wt_log_truncate_files(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool force)
  *	log file operations such as closing and syncing.
  */
 /*对close_fh对应的文件进行fsync和关闭操作,一般只有等到log_close_cond信号触发才会进行一次close操作检查,是一个线程体函数*/
+//__log_file_server  __log_wrlsn_server  __log_server三个线程对应的func关联配合
 static WT_THREAD_RET
 __log_file_server(void *arg)
 {
@@ -829,7 +830,7 @@ restart:
 /*
  * __log_wrlsn_server --
  *	The log wrlsn server thread.
- */
+ */ //__log_file_server  __log_wrlsn_server  __log_server三个线程对应的func关联配合
 static WT_THREAD_RET
 __log_wrlsn_server(void *arg)
 {
@@ -888,6 +889,7 @@ err:		WT_PANIC_MSG(session, ret, "log wrlsn server error");
  * __log_server --
  *	The log server thread.
  */ /*一个专门删除已经建立checkpoint的日志文件，一般1000触发一次*/
+ //__log_file_server  __log_wrlsn_server  __log_server三个线程对应的func关联配合
 static WT_THREAD_RET
 __log_server(void *arg)
 {
@@ -1100,7 +1102,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
 	    false, session_flags, &conn->log_wrlsn_session));
 	WT_RET(__wt_cond_auto_alloc(conn->log_wrlsn_session,
 	    "log write lsn server", 10000, WT_MILLION, &conn->log_wrlsn_cond));
-	WT_RET(__wt_thread_create(conn->log_wrlsn_session,
+	WT_RET(__wt_thread_create(conn->log_wrlsn_session, 
 	    &conn->log_wrlsn_tid, __log_wrlsn_server, conn->log_wrlsn_session));
 	conn->log_wrlsn_tid_set = true;
 

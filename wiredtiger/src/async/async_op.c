@@ -266,7 +266,6 @@ __wt_async_op_enqueue(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op)
 	conn = S2C(session);
 	async = conn->async;
 
-    printf("yang test ..... %p\r\n", async);
 	/*
 	 * If an application re-uses a WT_ASYNC_OP, we end up here with an
 	 * invalid object.
@@ -286,6 +285,9 @@ __wt_async_op_enqueue(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op)
 	 * Make sure we haven't wrapped around the queue.
 	 * If so, wait for the tail to advance off this slot.
 	 */
+	/*
+    保证投入到的队列位置不要在刚刚消费线程消费的位置，
+	*/
 	WT_ORDERED_READ(cur_tail, async->tail_slot);
 	while (cur_tail == my_slot) {
 		__wt_yield();
@@ -312,7 +314,6 @@ __wt_async_op_enqueue(WT_SESSION_IMPL *session, WT_ASYNC_OP_IMPL *op)
 	while (cur_head != (my_alloc - 1)) {
 	    
 		__wt_yield();
-		printf("yang tst 222222222222222222222 yield   %d   %d\r\n", cur_head, my_alloc - 1);
 		WT_ORDERED_READ(cur_head, async->head);
 	}
 	WT_PUBLISH(async->head, my_alloc);

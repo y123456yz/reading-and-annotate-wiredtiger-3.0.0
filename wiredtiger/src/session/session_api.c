@@ -140,7 +140,7 @@ __session_clear(WT_SESSION_IMPL *session)
 /*
  * __session_close --
  *	WT_SESSION->close method.
- */
+ */ //__conn_close调用
 static int
 __session_close(WT_SESSION *wt_session, const char *config)
 {
@@ -156,7 +156,7 @@ __session_close(WT_SESSION *wt_session, const char *config)
 	WT_UNUSED(cfg);
 
 	/* Rollback any active transaction. */
-	if (F_ISSET(&session->txn, WT_TXN_RUNNING))
+	if (F_ISSET(&session->txn, WT_TXN_RUNNING)) /*回滚当前正在执行的事务*/
 		WT_TRET(__session_rollback_transaction(wt_session, NULL));
 
 	/*
@@ -166,7 +166,9 @@ __session_close(WT_SESSION *wt_session, const char *config)
 	if (conn->txn_global.states != NULL)
 		__wt_txn_release_snapshot(session);
 
-	/* Close all open cursors. */
+    //[1533728710:34473][18717:0x7f93e5f73740][__curfile_close, 432], file:access.wt, WT_CURSOR.close: CALL: WT_CURSOR:close
+    //[1533728710:34478][18717:0x7f93e5f73740][__curfile_close, 432], file:WiredTiger.wt, WT_CURSOR.close: CALL: WT_CURSOR:close
+	/* Close all open cursors. */ /*关闭session所有关联的cursor*/
 	WT_TAILQ_SAFE_REMOVE_BEGIN(cursor, &session->cursors, q, cursor_tmp) {
 		/*
 		 * Notify the user that we are closing the cursor handle
@@ -176,11 +178,11 @@ __session_close(WT_SESSION *wt_session, const char *config)
 		    !WT_STREQ(cursor->internal_uri, WT_LAS_URI))
 			WT_TRET(session->event_handler->handle_close(
 			    session->event_handler, wt_session, cursor));
-		WT_TRET(cursor->close(cursor));
+		WT_TRET(cursor->close(cursor)); //__curfile_close
 	} WT_TAILQ_SAFE_REMOVE_END
 
 	WT_ASSERT(session, session->ncursors == 0);
-
+    
 	/* Discard cached handles. */
 	__wt_session_close_cache(session);
 

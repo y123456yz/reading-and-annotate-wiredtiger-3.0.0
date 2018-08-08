@@ -396,7 +396,7 @@ __wt_cursor_set_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 	cursor->saved_err = 0;
 	buf->size = sz;
 
-    //__wt_verbose(session, WT_VERB_API, "__wt_cursor_set_keyv:%s", buf->data);
+    __wt_verbose(session, WT_VERB_API, "__wt_cursor_set_keyv:%s", buf->data);
 
 	F_SET(cursor, WT_CURSTD_KEY_EXT);
 	if (0) {
@@ -537,7 +537,7 @@ __wt_cursor_set_valuev(WT_CURSOR *cursor, va_list ap)
 	}
 	F_SET(cursor, WT_CURSTD_VALUE_EXT);
 	buf->size = sz;
-    //__wt_verbose(session, WT_VERB_API, "__wt_cursor_set_valuev:%s", buf->data);
+    __wt_verbose(session, WT_VERB_API, "__wt_cursor_set_valuev:%s", buf->data);
 
 	if (0) {
 err:		cursor->saved_err = ret;

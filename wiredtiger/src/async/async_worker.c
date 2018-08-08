@@ -47,7 +47,6 @@ retry:
 			 * Initially when we find no work, allow other
 			 * threads to run.
 			 */
-			 printf("yang tst 333333333333333333333 yield\r\n");
 			__wt_yield();
 		} else {
 			/*
@@ -97,7 +96,6 @@ retry:
 	WT_ORDERED_READ(cur_tail, async->tail_slot);
 	while (cur_tail != prev_slot) {
 		__wt_yield();
-		printf("yang tst 44444444444444 yield\r\n");
 		WT_ORDERED_READ(cur_tail, async->tail_slot);
 	}
 	WT_PUBLISH(async->tail_slot, my_slot); 

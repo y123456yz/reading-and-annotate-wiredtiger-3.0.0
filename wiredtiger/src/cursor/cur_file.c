@@ -430,10 +430,10 @@ __curfile_close(WT_CURSOR *cursor)
 
 	cbt = (WT_CURSOR_BTREE *)cursor;
 	CURSOR_API_CALL(cursor, session, close, cbt->btree);
-	if (F_ISSET(cursor, WT_CURSTD_BULK)) {
+	if (F_ISSET(cursor, WT_CURSTD_BULK)) { 
 		/* Free the bulk-specific resources. */
 		cbulk = (WT_CURSOR_BULK *)cbt;
-		WT_TRET(__wt_bulk_wrapup(session, cbulk));
+		WT_TRET(__wt_bulk_wrapup(session, cbulk)); 
 		__wt_buf_free(session, &cbulk->last);
 	}
 
@@ -611,7 +611,7 @@ __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri,
 	 */
 	if (!F_ISSET(S2C(session), WT_CONN_IN_MEMORY)) {
 		WT_RET(__wt_config_gets_def(session, cfg, "bulk", 0, &cval));
-		if (cval.type == WT_CONFIG_ITEM_BOOL ||
+		if (cval.type == WT_CONFIG_ITEM_BOOL || //配置中带有bulk就会走到这里
 		    (cval.type == WT_CONFIG_ITEM_NUM &&
 		    (cval.val == 0 || cval.val == 1))) {
 			bitmap = false;
