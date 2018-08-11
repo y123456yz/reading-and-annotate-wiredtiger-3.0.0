@@ -58,7 +58,7 @@ struct __wt_session_impl {
     //是否已经已使用
 	u_int active;			/* Non-zero if the session is in-use */
 
-    //session->name会打印出来，见__wt_verbose
+    //session->name会打印出来，见__wt_verbose  赋值见__wt_open_internal_session
 	const char *name;		/* Name */ //可以参考__wt_open_internal_session
 	const char *lastop;		/* Last operation */
 	//在__wt_connection_impl.sessions数组中的游标 

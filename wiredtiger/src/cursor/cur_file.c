@@ -251,6 +251,7 @@ __curfile_insert(WT_CURSOR *cursor)
 	    (!F_ISSET(cursor, WT_CURSTD_APPEND) &&
 	    F_MASK(cursor, WT_CURSTD_KEY_SET) == 0));
 
+//这里记录到日志中
 err:	CURSOR_UPDATE_API_END(session, ret);
 	return (ret);
 }

@@ -158,7 +158,7 @@ __wt_timestamp_set_zero(wt_timestamp_t *ts)
 /*
  * __txn_next_op --
  *	Mark a WT_UPDATE object modified by the current transaction.
- */
+ */ /*从txn对象中获得一个操作存放__wt_txn_op对象*/
 static inline int
 __txn_next_op(WT_SESSION_IMPL *session, WT_TXN_OP **opp)
 {
@@ -210,7 +210,7 @@ __wt_txn_unmodify(WT_SESSION_IMPL *session)
 static inline int
 __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
-	WT_TXN *txn;
+	WT_TXN *txn; //WT_TXN和WT_TXN_OP通过__wt_txn_modify->__wt_txn_modify关联起来
 	WT_TXN_OP *op;
 
 	txn = &session->txn;
@@ -219,6 +219,7 @@ __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 		WT_RET_MSG(session, WT_ROLLBACK,
 		    "Attempt to update in a read-only transaction");
 
+    //获取一个op记录到txn中
 	WT_RET(__txn_next_op(session, &op));
 	op->type = F_ISSET(session, WT_SESSION_LOGGING_INMEM) ?
 	    WT_TXN_OP_INMEM : WT_TXN_OP_BASIC;

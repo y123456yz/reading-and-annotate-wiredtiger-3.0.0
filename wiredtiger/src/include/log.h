@@ -16,8 +16,8 @@
 union __wt_lsn {
 	struct {
 #ifdef	WORDS_BIGENDIAN
-		uint32_t file;
-		uint32_t offset;
+		uint32_t file;  /*日志文件序号*/
+		uint32_t offset; /*日志文件偏移位置*/
 #else
 		uint32_t offset;
 		uint32_t file;
@@ -103,6 +103,7 @@ union __wt_lsn {
  * The high bit is reserved for the special states.  If the high bit is
  * set (WT_LOG_SLOT_RESERVED) then we are guaranteed to be in a special state.
  */
+//表示该slot可重用__log_slot_new
 #define	WT_LOG_SLOT_FREE	(-1)	/* Not in use */
 #define	WT_LOG_SLOT_WRITTEN	(-2)	/* Slot data written, not processed */
 
@@ -128,6 +129,7 @@ union __wt_lsn {
 #define	WT_LOG_SLOT_BITS	2
 #define	WT_LOG_SLOT_MAXBITS	(32 - WT_LOG_SLOT_BITS)
 #define	WT_LOG_SLOT_CLOSE	0x4000000000000000LL	/* Force slot close */
+//第一位置1
 #define	WT_LOG_SLOT_RESERVED	0x8000000000000000LL	/* Reserved states */
 
 /*
@@ -137,14 +139,26 @@ union __wt_lsn {
 #define	WT_LOG_SLOT_UNBUFFERED_ISSET(state)				\
     ((state) & ((int64_t)WT_LOG_SLOT_UNBUFFERED << 32))
 
+//
+//0x3fffffff ffffffff 
 #define	WT_LOG_SLOT_MASK_OFF	0x3fffffffffffffffLL
 #define	WT_LOG_SLOT_MASK_ON	~(WT_LOG_SLOT_MASK_OFF)
+//state为该状态表示slot处于空闲，可用
 #define	WT_LOG_SLOT_JOIN_MASK	(WT_LOG_SLOT_MASK_OFF >> 32)
 
 /*
  * These macros manipulate the slot state and its component parts.
  */
+//参考__wt_log_slot_join
+/*
+63          62                31                0
+|------------|----------------|-------------------|
+  flag_state     join_offset            released
+*/
+
+//state最前面两位
 #define	WT_LOG_SLOT_FLAGS(state)	((state) & WT_LOG_SLOT_MASK_ON)
+//state第2-31位
 #define	WT_LOG_SLOT_JOINED(state)	(((state) & WT_LOG_SLOT_MASK_OFF) >> 32)
 #define	WT_LOG_SLOT_JOINED_BUFFERED(state)				\
     (WT_LOG_SLOT_JOINED(state) &					\
@@ -166,6 +180,7 @@ union __wt_lsn {
 /* Slot is in use, all data copied into buffer */
 #define	WT_LOG_SLOT_INPROGRESS(state)					\
     (WT_LOG_SLOT_RELEASED(state) != WT_LOG_SLOT_JOINED(state))
+    
 #define	WT_LOG_SLOT_DONE(state)						\
     (WT_LOG_SLOT_CLOSED(state) &&					\
     !WT_LOG_SLOT_INPROGRESS(state))
@@ -178,9 +193,11 @@ union __wt_lsn {
 
 struct __wt_logslot {
 	WT_CACHE_LINE_PAD_BEGIN
+	//赋值见__wt_log_slot_join   要写的log数据长度都会在__wt_log_slot_release中添加到该字段中
 	volatile int64_t slot_state;	/* Slot state */
 	int64_t	 slot_unbuffered;	/* Unbuffered data in this slot */
 	int	 slot_error;		/* Error value */
+	//合并的logrec存入log file中的偏移位置
 	wt_off_t slot_start_offset;	/* Starting file offset */
 	wt_off_t slot_last_offset;	/* Last record offset */
 	WT_LSN	 slot_release_lsn;	/* Slot release LSN */
@@ -205,21 +222,26 @@ struct __wt_logslot {
 	    &(log)->log_slot_lock, WT_SESSION_LOCKED_SLOT, op);		\
 } while (0)
 
+//赋值见__wt_log_slot_join
 struct __wt_myslot {
 	WT_LOGSLOT	*slot;		/* Slot I'm using */
 	wt_off_t	 end_offset;	/* My end offset in buffer */
 	wt_off_t	 offset;	/* Slot buffer offset */
+
+    //WT_MYSLOT_CLOSE等
+	uint32_t flags;			/* Flags */
+};
+
 #define	WT_MYSLOT_CLOSE		0x01	/* This thread is closing the slot */
 #define	WT_MYSLOT_NEEDS_RELEASE	0x02	/* This thread is releasing the slot */
 #define	WT_MYSLOT_UNBUFFERED	0x04	/* Write directly */
-	uint32_t flags;			/* Flags */
-};
+
 
 #define	WT_LOG_END_HEADER	log->allocsize
 
 //赋值见__log_newfile
 struct __wt_log {
-	uint32_t	allocsize;	/* Allocation alignment size */
+	uint32_t	allocsize;	/* Allocation alignment size */  /*logrec最小对齐单元长度*/
 	uint32_t	first_record;	/* Offset of first record in file */
 	wt_off_t	log_written;	/* Amount of log written this period */
 	/*
@@ -230,9 +252,9 @@ struct __wt_log {
 	uint32_t	 prep_fileid;	/* Pre-allocated file number */
 	uint32_t	 tmp_fileid;	/* Temporary file number */
 	uint32_t	 prep_missed;	/* Pre-allocated file misses */
-	WT_FH           *log_fh;	/* Logging file handle */
-	WT_FH           *log_dir_fh;	/* Log directory file handle */
-	WT_FH           *log_close_fh;	/* Logging file handle to close */
+	WT_FH           *log_fh;	/* Logging file handle */ /*正在使用的log文件handler*/
+	WT_FH           *log_dir_fh;	/* Log directory file handle */  /*log目录索引文件的handler*/
+	WT_FH           *log_close_fh;	/* Logging file handle to close */ /*上一个被关闭的log文件handler*/
 	WT_LSN		 log_close_lsn;	/* LSN needed to close */
 
     //见__log_set_version
@@ -243,18 +265,21 @@ struct __wt_log {
 	 */
 	WT_LSN		alloc_lsn;	/* Next LSN for allocation */
 	WT_LSN		bg_sync_lsn;	/* Latest background sync LSN */
-	WT_LSN		ckpt_lsn;	/* Last checkpoint LSN */
+	WT_LSN		ckpt_lsn;	/* Last checkpoint LSN */ /* 最后一次建立ckeckpoint的LSN位置 */
 	//赋值见__wt_log_open，对应最小的WiredTigerLog.xx中的xx
-	WT_LSN		first_lsn;	/* First LSN */
-	WT_LSN		sync_dir_lsn;	/* LSN of the last directory sync */
-	WT_LSN		sync_lsn;	/* LSN of the last sync */
+	WT_LSN		first_lsn;	/* First LSN */ /* 日志起始的LSN */
+	WT_LSN		sync_dir_lsn;	/* LSN of the last directory sync */ /* 最后一次sync dir的LSN位置 */
+	WT_LSN		sync_lsn;	/* LSN of the last sync */ /* 日志文件最后一次sync LSN位置*/
+	/* 在恢复过程中，如果有日志数据损坏，那么需要截掉这个位置后的所有日志文件，表示开始截掉数据的LSN*/
 	WT_LSN		trunc_lsn;	/* End LSN for recovery truncation */
+	
+    /* 最后一次写日志的LSN位置 */
 	WT_LSN		write_lsn;	/* End of last LSN written */
 	WT_LSN		write_start_lsn;/* Beginning of last LSN written */
 
 	/*
 	 * Synchronization resources
-	 */
+	 */ /*log对象的线程同步latch*/
 	WT_SPINLOCK      log_lock;      /* Locked: Logging fields */
 	WT_SPINLOCK      log_fs_lock;   /* Locked: tmp, prep and log files */
 	WT_SPINLOCK      log_slot_lock; /* Locked: Consolidation array */
@@ -278,8 +303,13 @@ struct __wt_log {
 	 * gcc doesn't support that for arrays.
 	 */
 #define	WT_SLOT_POOL	128
+//https://blog.csdn.net/yuanrxdu/article/details/78339295
+    // 准备就绪且可以作为合并logrec的slotbuffer对象
+    //赋值见__log_slot_new  __wt_log_slot_init
 	WT_LOGSLOT	*active_slot;			/* Active slot */
+	//系统所有slot buffer对象数组，包括：正在合并的、准备合并和闲置的slot buffer。
 	WT_LOGSLOT	 slot_pool[WT_SLOT_POOL];	/* Pool of all slots */
+	//赋值见__log_slot_new  __wt_log_slot_init
 	int32_t		 pool_index;		/* Index into slot pool */
 	size_t		 slot_buf_size;		/* Buffer size for slots */
 #ifdef HAVE_DIAGNOSTIC
@@ -293,6 +323,7 @@ struct __wt_log {
 };
 
 //赋值见__log_file_header
+//https://blog.csdn.net/yuanrxdu/article/details/78339295
 struct __wt_log_record {
 	uint32_t	len;		/* 00-03: Record length including hdr */
 	uint32_t	checksum;	/* 04-07: Checksum of the record */
@@ -301,6 +332,7 @@ struct __wt_log_record {
 #define	WT_LOG_RECORD_ENCRYPTED		0x02	/* Encrypted except hdr */
 	uint16_t	flags;		/* 08-09: Flags */
 	uint8_t		unused[2];	/* 10-11: Padding */
+	//len和mem_len区别:logrec磁盘上的空间长度和在内存中的长度，因为logrec在刷入磁盘之前会进行空间压缩，那么磁盘上的长度和内存中的长度就不一样了
 	uint32_t	mem_len;	/* 12-15: Uncompressed len if needed */
 	//对应WT_LOG_DESC
 	uint8_t		record[0];	/* Beginning of actual data */

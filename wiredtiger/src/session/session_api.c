@@ -1458,6 +1458,7 @@ __session_commit_transaction(WT_SESSION *wt_session, const char *config)
 	if (F_ISSET(txn, WT_TXN_ERROR) && txn->mod_count != 0)
 		WT_ERR_MSG(session, EINVAL,
 		    "failed transaction requires rollback");
+    printf("yang test .......33.........__log_slot_switch_internal\r\n");
 
 	if (ret == 0)
 		ret = __wt_txn_commit(session, cfg);

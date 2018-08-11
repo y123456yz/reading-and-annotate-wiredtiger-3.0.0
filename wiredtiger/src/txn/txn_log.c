@@ -60,7 +60,7 @@ __txn_op_log_row_key_check(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 /*
  * __txn_op_log --
  *	Log an operation for the current transaction.
- */
+ */ //把这个op操作格式化为指定格式存入到logreq中
 static int
 __txn_op_log(WT_SESSION_IMPL *session,
     WT_ITEM *logrec, WT_TXN_OP *op, WT_CURSOR_BTREE *cbt)
@@ -180,6 +180,7 @@ __wt_txn_op_free(WT_SESSION_IMPL *session, WT_TXN_OP *op)
  * __txn_logrec_init --
  *	Allocate and initialize a buffer for a transaction's log records.
  */
+/*为事务分配一个log buffer,并初始化这个buffer,将事务的一些固定信息设置到buffer中*/
 static int
 __txn_logrec_init(WT_SESSION_IMPL *session)
 {
@@ -201,6 +202,7 @@ __txn_logrec_init(WT_SESSION_IMPL *session)
 	WT_RET(__wt_struct_size(session, &header_size, fmt, rectype, txn->id));
 	WT_RET(__wt_logrec_alloc(session, header_size, &logrec));
 
+    /*格式一个txn log header到logrec中*/
 	WT_ERR(__wt_struct_pack(session,
 	    (uint8_t *)logrec->data + logrec->size, header_size,
 	    fmt, rectype, txn->id));
@@ -216,7 +218,7 @@ err:		__wt_logrec_free(session, &logrec);
 /*
  * __wt_txn_log_op --
  *	Write the last logged operation into the in-memory buffer.
- */
+ */ //记录这个操作  各种KV操作都会调用该函数
 int
 __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 {
@@ -269,7 +271,8 @@ __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 /*
  * __wt_txn_log_commit --
  *	Write the operations of a transaction to the log at commit time.
- */
+ */ 
+//TXN_API_END_RETRY->__wt_txn_commit->__wt_txn_log_commit->__wt_log_write每次插入 更新 删除等操作都会通过 TXN_API_END_RETRY 走到这里
 /*将session执行事务的log内容进行落盘,事务commit的时候调用--force log at commit*/
 int
 __wt_txn_log_commit(WT_SESSION_IMPL *session, const char *cfg[])
@@ -317,6 +320,7 @@ __txn_log_file_sync(WT_SESSION_IMPL *session, uint32_t flags, WT_LSN *lsnp)
 	    (uint8_t *)logrec->data + logrec->size, header_size,
 	    fmt, rectype, btree->id, start));
 	logrec->size += (uint32_t)header_size;
+
 
 	WT_ERR(__wt_log_write(
 	    session, logrec, lsnp, need_sync ? WT_LOG_FSYNC : 0));
@@ -416,6 +420,7 @@ __wt_txn_checkpoint_log(
 			logrec->size += (uint32_t)recsize;
 			WT_ERR(__wt_logop_checkpoint_start_pack(
 			    session, logrec));
+	
 			WT_ERR(__wt_log_write(session, logrec, ckpt_lsn, 0));
 		} else {
 			WT_ERR(__wt_log_printf(session,
@@ -478,7 +483,6 @@ __wt_txn_checkpoint_log(
 		    fmt, rectype, ckpt_lsn->l.file, ckpt_lsn->l.offset,
 		    txn->ckpt_nsnapshot, ckpt_snapshot));
 		logrec->size += (uint32_t)recsize;
-		printf("yang test 44444444444444444444444444444444444444\r\n");
 		WT_ERR(__wt_log_write(session, logrec, lsnp,
 		    F_ISSET(conn, WT_CONN_CKPT_SYNC) ?
 		    WT_LOG_FSYNC : 0));

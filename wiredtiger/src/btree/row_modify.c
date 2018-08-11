@@ -216,6 +216,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		    &ins, ins_size, skipdepth, exclusive));
 	}
 
+    //日志记录,在该函数外层的 (__curtable_insert __curtable_update等)->CURSOR_UPDATE_API_END(session, ret);中写入日志文件
 	if (logged && modify_type != WT_UPDATE_RESERVED)
 		WT_ERR(__wt_txn_log_op(session, cbt));
 

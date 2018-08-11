@@ -84,10 +84,13 @@ access_example(void)
 	//__curfile_insert
     error_check(cursor->insert(cursor));
 
+    sleep(600);
+
     /*! [access example close] */
 	error_check(conn->close(conn, NULL));	/* Close all handles. */
 	/*! [access example close] */
-
+    
+    
     return 1;
     
 	/*! [access example cursor list] */
