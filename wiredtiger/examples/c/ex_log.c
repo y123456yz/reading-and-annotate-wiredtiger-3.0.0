@@ -313,7 +313,7 @@ main(int argc, char *argv[])
 		printf("Got record: %s : %s\n", key, value);
 	}
 
-	sleep(100);
+	sleep(60);
 	error_check(session->begin_transaction(session, NULL));
 	/*
 	 * Perform some operations within a single transaction.
@@ -326,6 +326,8 @@ main(int argc, char *argv[])
 		error_check(cursor->insert(cursor));
 	}
 	error_check(session->commit_transaction(session, NULL));
+
+	sleep(60);
 	count_min++;
 	error_check(cursor->close(cursor));
 
@@ -346,6 +348,7 @@ main(int argc, char *argv[])
 	error_check(wt_conn->open_session(wt_conn, NULL, NULL, &session));
 	simple_walk_log(session, count_min);
 	walk_log(session);
+	sleep(60);
 	error_check(wt_conn->close(wt_conn, NULL));
 
 	return (EXIT_SUCCESS);

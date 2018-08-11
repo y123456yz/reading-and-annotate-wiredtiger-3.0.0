@@ -155,7 +155,8 @@ typedef enum __wt_txn_isolation {
  *	A transactional operation.  Each transaction builds an in-memory array
  *	of these operations as it runs, then uses the array to either write log
  *	records during commit or undo the operations during rollback.
- */
+ */ //赋值见__wt_txn_modify  用于记录各种操作
+ //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
 struct __wt_txn_op {
 	uint32_t fileid;
 	enum {
@@ -165,8 +166,8 @@ struct __wt_txn_op {
 		WT_TXN_OP_REF,
 		WT_TXN_OP_TRUNCATE_COL,
 		WT_TXN_OP_TRUNCATE_ROW
-	} type;
-	union {
+	} type; //赋值见__wt_txn_modify
+	union { 
 		/* WT_TXN_OP_BASIC, WT_TXN_OP_INMEM */
 		WT_UPDATE *upd;
 		/* WT_TXN_OP_REF */
@@ -193,6 +194,7 @@ struct __wt_txn_op {
  *	Per-session transaction context.
  */
 //WT_SESSION_IMPL.txn成员为该类型
+//WT_TXN和__wt_txn_op在__txn_next_op中关联起来
 struct __wt_txn {
 	uint64_t id; /*事务ID*/
 
@@ -232,11 +234,16 @@ struct __wt_txn {
 	TAILQ_ENTRY(__wt_txn) read_timestampq;
 
 	/* Array of modifications by this transaction. */
+	//见__wt_txn_log_op   赋值见__txn_next_op
+	 //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
 	WT_TXN_OP      *mod;  /*事务进行的操作对象数组*/
 	size_t		mod_alloc;
 	u_int		mod_count;
 
 	/* Scratch buffer for in-memory log records. */
+	//赋值见__txn_logrec_init    https://blog.csdn.net/yuanrxdu/article/details/78339295
+	//KV的各种插入  更新 删除操作都会获取一个op，然后在__txn_op_log中把op格式化为指定格式数据后
+	//存入logrec中，然后通过__wt_txn_log_commit把这里面的内容写入日志文件
 	WT_ITEM	       *logrec;
 
 	/* Requested notification when transactions are resolved. */

@@ -59,7 +59,7 @@ __wt_cond_auto_wait_signal(WT_SESSION_IMPL *session, WT_CONDVAR *cond,
 		    cond->max_wait, cond->prev_wait + delta);
 	}
 
-	__wt_cond_wait_signal(
+    __wt_cond_wait_signal(
 	    session, cond, cond->prev_wait, run_func, signalled);
 
 	if (progress || *signalled)

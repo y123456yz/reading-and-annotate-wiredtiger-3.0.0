@@ -603,7 +603,7 @@ __wt_txn_release(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_commit --
  *	Commit the current transaction.
- */
+ */ //每次插入 更新 删除等操作都会通过 TXN_API_END_RETRY 走到这里
 int
 __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -719,6 +719,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 	}
 
 	/* If we are logging, write a commit log record. */
+	//记录日志 /*进行事务日志落盘提交，force log at commit*/
 	if (txn->logrec != NULL &&
 	    FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED) &&
 	    !F_ISSET(session, WT_SESSION_NO_LOGGING)) {

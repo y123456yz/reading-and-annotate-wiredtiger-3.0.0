@@ -90,14 +90,15 @@
 		F_SET(&(s)->txn, WT_TXN_AUTOCOMMIT)
 
 /* End a transactional API call, optional retry on deadlock. */
+//每次KV操作都会走到这里   包括回滚 记录日志分支
 #define	TXN_API_END_RETRY(s, ret, retry)				\
 	API_END(s, ret);						\
 	if (__autotxn) {						\
 		if (F_ISSET(&(s)->txn, WT_TXN_AUTOCOMMIT))		\
 			F_CLR(&(s)->txn, WT_TXN_AUTOCOMMIT);		\
 		else if ((ret) == 0 &&					\
-		    !F_ISSET(&(s)->txn, WT_TXN_ERROR))			\
-			(ret) = __wt_txn_commit((s), NULL);		\
+		    !F_ISSET(&(s)->txn, WT_TXN_ERROR))			\		    
+			(ret) = __wt_txn_commit((s), NULL);		\   
 		else {							\
 			if (retry)					\
 				WT_TRET(__wt_session_copy_values(s));	\
@@ -196,6 +197,7 @@
 	CURSOR_UPDATE_API_CALL(cur, s, n);				\
 	JOINABLE_CURSOR_CALL_CHECK(cur)
 
+//记录到日志中
 #define	CURSOR_UPDATE_API_END(s, ret)					\
 	TXN_API_END(s, ret)
 

@@ -91,7 +91,7 @@ __wt_log_slot_activate(WT_SESSION_IMPL *session, WT_LOGSLOT *slot)
  * __log_slot_close --
  *	Close out the slot the caller is using.  The slot may already be
  *	closed or freed by another thread.
- */
+ */ /*close一个slot，禁止其他线程再对其join, 这个函数会先将其从ready array中删除，并选取一个新的slot顶替它的工作*/
 static int
 __log_slot_close(
     WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *releasep, bool forced)
@@ -137,6 +137,7 @@ retry:
 		WT_STAT_CONN_INCR(session, log_slot_close_race);
 		return (WT_NOTFOUND);
 	}
+	
 	new_state = (old_state | WT_LOG_SLOT_CLOSE);
 	/*
 	 * Close this slot.  If we lose the race retry.
@@ -301,6 +302,7 @@ __log_slot_switch_internal(
 	release = false;
 	slot = myslot->slot;
 
+    
 	WT_ASSERT(session, F_ISSET(session, WT_SESSION_LOCKED_SLOT));
 
 	/*
@@ -353,7 +355,10 @@ __log_slot_switch_internal(
 	 */
 	WT_RET(__log_slot_new(session));
 	F_CLR(myslot, WT_MYSLOT_CLOSE);
+	//日志是否需要马上写入磁盘，并释放出该slot
 	if (F_ISSET(myslot, WT_MYSLOT_NEEDS_RELEASE)) {
+	    printf("yang test ....................222222222222\r\n");
+	    //这里面写数据到日志文件WiredTigerLog
 		WT_RET(__wt_log_release(session, slot, &free_slot));
 		F_CLR(myslot, WT_MYSLOT_NEEDS_RELEASE);
 		if (free_slot)
@@ -390,6 +395,8 @@ __wt_log_slot_switch(WT_SESSION_IMPL *session,
 		WT_WITH_SLOT_LOCK(session, log,
 		    ret = __log_slot_switch_internal(
 		    session, myslot, forced, did_work));
+
+		    
 		if (ret == EBUSY) {
 			WT_STAT_CONN_INCR(session, log_slot_switch_busy);
 			__wt_yield();
@@ -498,7 +505,8 @@ __wt_log_slot_destroy(WT_SESSION_IMPL *session)
 /*
  * __wt_log_slot_join --
  *	Join a consolidated logging slot.
- */
+ */ 
+/*选取一个ready slot来进行log write，在这个函数中会确定写入的slot以及写入的位置*/
 void
 __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
     uint32_t flags, WT_MYSLOT *myslot)
@@ -524,14 +532,15 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 	unbuffered = yielded = false;
 	closed = raced = slept = false;
 	wait_cnt = 0;
-#ifdef	HAVE_DIAGNOSTIC
-	diag_yield = (++log->write_calls % 7) == 0;
-	if ((log->write_calls % WT_THOUSAND) == 0 ||
-	    mysize > WT_LOG_SLOT_BUF_MAX) {
-#else
+//#ifdef	HAVE_DIAGNOSTIC // YANG CHANGE
+//	diag_yield = (++log->write_calls % 7) == 0;
+//	if ((log->write_calls % WT_THOUSAND) == 0 ||
+//	    mysize > WT_LOG_SLOT_BUF_MAX) {
+//#else
 	diag_yield = false;
 	if (mysize > WT_LOG_SLOT_BUF_MAX) {
-#endif
+//#endif
+        printf("yang test xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
 		unbuffered = true;
 		F_SET(myslot, WT_MYSLOT_UNBUFFERED);
 	}
@@ -539,21 +548,32 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 		WT_BARRIER();
 		slot = log->active_slot;
 		old_state = slot->slot_state;
-		if (WT_LOG_SLOT_OPEN(old_state)) {
+		if (WT_LOG_SLOT_OPEN(old_state)) { //
 			/*
 			 * Try to join our size into the existing size and
 			 * atomically write it back into the state.
 			 */
+			/*
+			63          62                31                0
+            |------------|----------------|-------------------|
+              flag_state     join_offset            released
+			*/ //最终的结果是join_offset为新的KV加进来后的总数据长度，released为不加本次KV数据的长度，也就是上一次的长度
 			flag_state = WT_LOG_SLOT_FLAGS(old_state);
 			released = WT_LOG_SLOT_RELEASED(old_state);
 			join_offset = WT_LOG_SLOT_JOINED(old_state);
+			
 			if (unbuffered)
 				new_join = join_offset + WT_LOG_SLOT_UNBUFFERED;
 			else
 				new_join = join_offset + (int32_t)mysize;
+				
 			new_state = (int64_t)WT_LOG_SLOT_JOIN_REL(
 			    (int64_t)new_join, (int64_t)released,
 			    (int64_t)flag_state);
+
+            //第一次:  .....0...8000000000..  0   0  80
+            //第二次: .....8000000080...10000000080..  80   80  100
+			printf("  .....%llx...%llx..  %x   %x  %x\r\n",  old_state, new_state, join_offset, released, new_join);
 
 			/*
 			 * Braces used due to potential empty body warning.
@@ -617,6 +637,8 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 		WT_STAT_CONN_INCR(session, log_slot_unbuffered);
 		slot->slot_unbuffered = (int64_t)mysize;
 	}
+
+	//
 	myslot->slot = slot;
 	myslot->offset = join_offset;
 	myslot->end_offset = (wt_off_t)((uint64_t)join_offset + mysize);

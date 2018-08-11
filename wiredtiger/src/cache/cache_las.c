@@ -539,6 +539,8 @@ __wt_las_insert_block(WT_SESSION_IMPL *session, WT_CURSOR *cursor,
 	}
 
 err:	/* Resolve the transaction. */
+    printf("yang test .........11.......__log_slot_switch_internal\r\n");
+
 	if (ret == 0)
 		ret = __wt_txn_commit(las_session, NULL);
 	else
@@ -665,6 +667,8 @@ __wt_las_remove_block(WT_SESSION_IMPL *session,
 	WT_ERR_NOTFOUND_OK(ret);
 
 err:	if (local_txn) {
+    printf("yang test ....22............__log_slot_switch_internal\r\n");
+
 		if (ret == 0)
 			ret = __wt_txn_commit(las_session, NULL);
 		else

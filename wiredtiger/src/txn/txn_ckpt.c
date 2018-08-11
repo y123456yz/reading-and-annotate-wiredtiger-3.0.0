@@ -913,7 +913,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 	 * checkpoint have been flushed to disk. It's OK to commit before
 	 * checkpointing the metadata since we know that all files in the
 	 * checkpoint are now in a consistent state.
-	 */
+	 */printf("yang test ......rr..........__log_slot_switch_internal\r\n");
 	WT_ERR(__wt_txn_commit(session, NULL));
 
 	/*

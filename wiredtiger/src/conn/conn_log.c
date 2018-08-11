@@ -922,6 +922,10 @@ __log_server(void *arg)
 	 * That thread does fsync calls which can take a long time and we
 	 * don't want log records sitting in the buffer over the time it
 	 * takes to sync out an earlier file.
+	 日志服务器线程执行各种工作。它强制删除任何缓冲日志写入。它预先分配日志文件，并执行日志归档。
+	 wrlsn线程不强制执行缓冲写操作的原因是，我们希望尽可能快地处理和移动write_lsn。同样的原因也适
+	 用于日志文件服务器线程不强制执行写入操作。该线程执行fsync调用，这可能会花费很长时间，我们不
+	 希望日志记录在缓冲区中超过同步之前文件的时间。
 	 */
 	did_work = true;
 	while (F_ISSET(conn, WT_CONN_SERVER_LOG)) {
@@ -979,8 +983,11 @@ __log_server(void *arg)
 
 		/* Wait until the next event. */
 		__wt_epoch(session, &start);
+		//默认5000us 5ms
+		//WT_RET(__wt_cond_auto_alloc(conn->log_wrlsn_session,"log write lsn server", 10000, WT_MILLION, &conn->log_wrlsn_cond));
+	
 		__wt_cond_auto_wait_signal(
-		    session, conn->log_cond, did_work, NULL, &signalled); /*1000秒*/
+		    session, conn->log_cond, did_work, NULL, &signalled);  
 		__wt_epoch(session, &now);
 		timediff = WT_TIMEDIFF_MS(now, start);
 	}

@@ -193,7 +193,7 @@ __log_fs_write(WT_SESSION_IMPL *session,
  * __wt_log_ckpt --
  *	Record the given LSN as the checkpoint LSN and signal the archive
  *	thread as needed.
- */
+ */ /*触发log建立一个checkpoint，向archive thread触发一个checkpoint信号*/
 void
 __wt_log_ckpt(WT_SESSION_IMPL *session, WT_LSN *ckp_lsn)
 {
@@ -342,7 +342,7 @@ err:
  * __wt_log_needs_recovery --
  *	Return 0 if we encounter a clean shutdown and 1 if recovery
  *	must be run in the given variable.
- */
+ */ /*检查redo log是否需要进行重演，如果返回0表示重启后无需重演，1表示需要进行log重演*/
 int
 __wt_log_needs_recovery(WT_SESSION_IMPL *session, WT_LSN *ckp_lsn, bool *recp)
 {
@@ -411,6 +411,8 @@ err:	WT_TRET(c->close(c));
  *	Interface to reset the amount of log written during this
  *	checkpoint period.  Called from the checkpoint code.
  */
+/*在checkpoint后重新设置log为可以写状态,并将log_written的值置为0，
+ *因为log中的数据都同步到page的磁盘上了*/
 void
 __wt_log_written_reset(WT_SESSION_IMPL *session)
 {
@@ -757,11 +759,13 @@ __log_decrypt(WT_SESSION_IMPL *session, WT_ITEM *in, WT_ITEM *out)
  */
 //拷贝recored中的mem内容到myslot中
 /*logrec数据写入，有direct标识确定写入到slot buffer也有可能直接写入file page cache中*/
+//每插入一条KV都会通过__log_write_internal走到这里  拷贝record内容到slot_buf
 int
 __wt_log_fill(WT_SESSION_IMPL *session,
     WT_MYSLOT *myslot, bool force, WT_ITEM *record, WT_LSN *lsnp)
 {
 	WT_DECL_RET;
+
 
 	/*
 	 * Call write or copy into the buffer.  For now the offset is the
@@ -1790,6 +1794,8 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 	 * condition.
 	 */
 	if (WT_CKPT_LOGSIZE(conn)) {
+	/*checkpoint的时机是由log->written决定的，所以这里必须更新对应的统计,并触发checkpoint操作*/
+	//例如日志文件增大到一定值，需要做checkpoint
 		log->log_written += (wt_off_t)release_bytes;
 		__wt_checkpoint_signal(session, log->log_written);
 	}
@@ -2337,6 +2343,7 @@ __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
 	WT_STAT_CONN_INCR(session, log_force_write);
 	if (did_work != NULL)
 		*did_work = true;
+		
 	myslot.slot = log->active_slot;
 	return (__wt_log_slot_switch(session, &myslot, retry, true, did_work));
 }
@@ -2345,6 +2352,7 @@ __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
  * __wt_log_write --
  *	Write a record into the log, compressing as necessary.
  */ 
+//TXN_API_END_RETRY->__wt_txn_commit->__wt_txn_log_commit->__wt_log_write每次插入 更新 删除等操作都会通过 TXN_API_END_RETRY 走到这里
 /*将一个logrec写入日志文件中,在这个过程如果设置了日志压缩，会对logrec body做压缩*/
 int
 __wt_log_write(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
@@ -2377,7 +2385,7 @@ __wt_log_write(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	if ((compressor = conn->log_compressor) != NULL &&
 	    record->size < log->allocsize) {
 		WT_STAT_CONN_INCR(session, log_compress_small);
-	} else if (compressor != NULL) {
+	} else if (compressor != NULL) { //压缩
 		/* Skip the log header */
 		src = (uint8_t *)record->mem + WT_LOG_COMPRESS_SKIP;
 		src_len = record->size - WT_LOG_COMPRESS_SKIP;
@@ -2464,6 +2472,7 @@ __wt_log_write(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 		WT_ASSERT(session, new_size < UINT32_MAX &&
 		    ip->size < UINT32_MAX);
 	}
+	/*日志写入*/
 	ret = __log_write_internal(session, ip, lsnp, flags);
 
 err:	__wt_scr_free(session, &citem);
@@ -2481,7 +2490,9 @@ err:	__wt_scr_free(session, &citem);
 [1533381451:124100][7315:0x7f2b8a5de740][__wt_log_release, 1898], file:WiredTiger.wt, WT_SESSION.create: log_release: sync log ./WiredTigerLog.0000000001 to LSN 1/2688
 [1533381451:124107][7315:0x7f2b8a5de740][__wt_fsync, 23], file:WiredTiger.wt, WT_SESSION.create: WT_HOME/./WiredTigerLog.0000000001: handle-sync
 [1533381451:124363][7315:0x7f2b8a5de740][__wt_cond_signal, 153], file:WiredTiger.wt, WT_SESSION.create: signal log sync
-*/
+*/ 
+//TXN_API_END_RETRY->__wt_txn_commit->__wt_txn_log_commit->__wt_log_write->__log_write_internal
+//每次插入 更新 删除等操作都会通过 TXN_API_END_RETRY 走到这里
 static int
 __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
     uint32_t flags)
@@ -2535,6 +2546,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	 * in little-endian format. The checksum is (potentially) returned in a
 	 * big-endian format, swap it into place in a separate step.
 	 */
+	 //填充record->mem的头部
 	logrec = (WT_LOG_RECORD *)record->mem;
 	logrec->len = (uint32_t)record->size;
 	logrec->checksum = 0;
@@ -2549,19 +2561,24 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	/*
 	 * The only time joining a slot should ever return an error is if it
 	 * detects a panic.
-	 */
+	 */ /*选取一个ready slot来进行log write，在这个函数中会确定写入的slot以及写入的位置*/
 	__wt_log_slot_join(session, rdup_len, flags, &myslot);
 	/*
 	 * If the addition of this record crosses the buffer boundary,
 	 * switch in a new slot.
 	 */
+	//需要强制写入磁盘  来一次kv操作就写日志
 	force = LF_ISSET(WT_LOG_FLUSH | WT_LOG_FSYNC);
 	ret = 0;
+
 	if (myslot.end_offset >= WT_LOG_SLOT_BUF_MAX ||
 	    F_ISSET(&myslot, WT_MYSLOT_UNBUFFERED) || force)
 		ret = __wt_log_slot_switch(session, &myslot, true, false, NULL);
+
+	//拷贝record内容到slot_buf
 	if (ret == 0)
 		ret = __wt_log_fill(session, &myslot, false, record, &lsn);
+
 	release_size = __wt_log_slot_release(&myslot, (int64_t)rdup_len);
 	/*
 	 * If we get an error we still need to do proper accounting in
@@ -2571,24 +2588,28 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	if (ret != 0)
 		myslot.slot->slot_error = ret;
 	WT_ASSERT(session, ret == 0);
-	if (WT_LOG_SLOT_DONE(release_size)) {
+	if (WT_LOG_SLOT_DONE(release_size)) {//只有在WT_LOG_SLOT_UNBUFFERED的时候走到这里
+	    printf("yang test 1111111111111111111111111\r\n");
 	    ////这里面写数据到日志文件WiredTigerLog
 		WT_ERR(__wt_log_release(session, myslot.slot, &free_slot));
 		if (free_slot)
 			__wt_log_slot_free(session, myslot.slot);
 	} else if (force) {
+	    printf("yang test 2222222222222222222222222222222222222\r\n");
 		/*
 		 * If we are going to wait for this slot to get written,
 		 * signal the wrlsn thread.
 		 *
 		 * XXX I've seen times when conditions are NULL.
 		 */
-		if (conn->log_cond != NULL) {
+		if (conn->log_cond != NULL) { //通知__log_server线程写日志
 			__wt_cond_signal(session, conn->log_cond);
 			__wt_yield();
-		} else
+		} else //否则笨线程自己写日志
 			WT_ERR(__wt_log_force_write(session, 1, NULL));
 	}
+
+	//如果是要求每个KV立马罗盘，则笨线程要保证确实罗盘后才能返回
 	if (LF_ISSET(WT_LOG_FLUSH)) {
 		/* Wait for our writes to reach the OS */
 		while (__wt_log_cmp(&log->write_lsn, &lsn) <= 0 &&
@@ -2684,7 +2705,7 @@ __wt_log_vprintf(WT_SESSION_IMPL *session, const char *fmt, va_list ap)
 	    "log_printf: %s", (char *)logrec->data + logrec->size);
 
 	logrec->size += len;
-	printf("yang test 11111111111111111111111111111111111111\r\n");
+
 	WT_ERR(__wt_log_write(session, logrec, NULL, 0));
 err:	__wt_scr_free(session, &logrec);
 	return (ret);

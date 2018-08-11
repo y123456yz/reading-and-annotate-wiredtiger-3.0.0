@@ -1,7 +1,7 @@
 /* DO NOT EDIT: automatically built by dist/log.py. */
 
 #include "wt_internal.h"
-
+/*在session->scratch中分配一个存储log记录logrec的缓冲区*/
 int
 __wt_logrec_alloc(WT_SESSION_IMPL *session, size_t size, WT_ITEM **logrecp)
 {

@@ -452,7 +452,9 @@ __recovery_file_scan(WT_RECOVERY *r)
  * __wt_txn_recover --
  *	Run recovery.
  */
-/*redo log恢复
+/*redo log恢复 
+http://www.mongoing.com/archives/3988
+Mongodb在1.8版本之后开始支持journal，就是我们常说的redo log，用于故障恢复和持久化。 
 red log将所有对页面的修改操作写入一个专门的文件，并在数据库启动时从此文件进行恢复操作，这个文件就是redo log file
 */ /*redo log推演*/
 int
