@@ -243,7 +243,9 @@ struct __wt_txn {
 	/* Scratch buffer for in-memory log records. */
 	//赋值见__txn_logrec_init    https://blog.csdn.net/yuanrxdu/article/details/78339295
 	//KV的各种插入  更新 删除操作都会获取一个op，然后在__txn_op_log中把op格式化为指定格式数据后
-	//存入logrec中，然后通过__wt_txn_log_commit把这里面的内容写入日志文件
+	//存入logrec中，然后通过__wt_txn_log_commit....__wt_log_fill把op这里面的内容拷贝到slot buffer,
+	//然后在__wt_txn_commit->__wt_txn_release->__wt_logrec_free中释放掉该空间(用于重用)，下次新的OP操作
+	//会为logrec获取一个新的item，重复该过程。
 	WT_ITEM	       *logrec;
 
 	/* Requested notification when transactions are resolved. */

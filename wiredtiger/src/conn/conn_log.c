@@ -935,7 +935,7 @@ __log_server(void *arg)
 		 * wrlsn thread because of interaction advancing the write_lsn
 		 * and a buffer may need to wait for the write_lsn to advance
 		 * in the case of a synchronous buffer.  We end up with a hang.
-		 */
+		 */ 
 		WT_ERR_BUSY_OK(__wt_log_force_write(session, 0, &did_work));
 
 		/*

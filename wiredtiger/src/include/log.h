@@ -158,7 +158,7 @@ union __wt_lsn {
 
 //state最前面两位
 #define	WT_LOG_SLOT_FLAGS(state)	((state) & WT_LOG_SLOT_MASK_ON)
-//state第2-31位
+//state最左边第2-31位
 #define	WT_LOG_SLOT_JOINED(state)	(((state) & WT_LOG_SLOT_MASK_OFF) >> 32)
 #define	WT_LOG_SLOT_JOINED_BUFFERED(state)				\
     (WT_LOG_SLOT_JOINED(state) &					\
@@ -197,13 +197,14 @@ struct __wt_logslot {
 	volatile int64_t slot_state;	/* Slot state */
 	int64_t	 slot_unbuffered;	/* Unbuffered data in this slot */
 	int	 slot_error;		/* Error value */
-	//合并的logrec存入log file中的偏移位置
+	//合并的logrec存入log file中的偏移位置  本次slot对应的slot_buf内容应该从文件那个位置写入，见__wt_log_release
 	wt_off_t slot_start_offset;	/* Starting file offset */
 	wt_off_t slot_last_offset;	/* Last record offset */
 	WT_LSN	 slot_release_lsn;	/* Slot release LSN */
 	WT_LSN	 slot_start_lsn;	/* Slot starting LSN */
 	WT_LSN	 slot_end_lsn;		/* Slot ending LSN */
 	WT_FH	*slot_fh;		/* File handle for this group */
+	//kv log在__wt_log_fill记录到该buf中
 	WT_ITEM  slot_buf;		/* Buffer for grouped writes */
 
 #define	WT_SLOT_CLOSEFH		0x01		/* Close old fh on release */

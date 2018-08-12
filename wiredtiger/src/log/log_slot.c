@@ -330,11 +330,14 @@ __log_slot_switch_internal(
 	 * don't try to do it again but still set up the new slot.
 	 */
 	if (!F_ISSET(myslot, WT_MYSLOT_CLOSE)) {
+	    
 		ret = __log_slot_close(session, slot, &release, forced);
 		/*
 		 * If close returns WT_NOTFOUND it means that someone else
 		 * is processing the slot change.
 		 */
+
+		printf("yang test ..........__log_slot_switch_internal..........1 ret:%d\r\n", ret);
 		if (ret == WT_NOTFOUND)
 			return (0);
 		WT_RET(ret);
@@ -353,24 +356,29 @@ __log_slot_switch_internal(
 	 * threads don't have to wait on writing the previous slot if we
 	 * release it.  Release after setting a new one.
 	 */
+
 	WT_RET(__log_slot_new(session));
 	F_CLR(myslot, WT_MYSLOT_CLOSE);
 	//日志是否需要马上写入磁盘，并释放出该slot
 	if (F_ISSET(myslot, WT_MYSLOT_NEEDS_RELEASE)) {
-	    printf("yang test ....................222222222222\r\n");
+	    
 	    //这里面写数据到日志文件WiredTigerLog
 		WT_RET(__wt_log_release(session, slot, &free_slot));
 		F_CLR(myslot, WT_MYSLOT_NEEDS_RELEASE);
 		if (free_slot)
 			__wt_log_slot_free(session, slot);
+
+		printf("yang test ..........__log_slot_switch_internal..........2\r\n");
 	}
+
+	printf("yang test ..........__log_slot_switch_internal..........3  ret:%d\r\n\r\n");
 	return (ret);
 }
 
 /*
  * __wt_log_slot_switch --
  *	Switch out the current slot and set up a new one.
- */
+ */ //注意，如果当前slot buf满了或者log server线程每隔5ms都会调用一次该函数，进行新的slot选择
 int
 __wt_log_slot_switch(WT_SESSION_IMPL *session,
     WT_MYSLOT *myslot, bool retry, bool forced, bool *did_work)
@@ -405,6 +413,8 @@ __wt_log_slot_switch(WT_SESSION_IMPL *session,
 		if (F_ISSET(S2C(session), WT_CONN_CLOSING))
 			break;
 	} while (F_ISSET(myslot, WT_MYSLOT_CLOSE) || (retry && ret == EBUSY));
+
+	printf("yang test ................... slot switch ret:%d\r\n", ret);
 	return (ret);
 }
 
