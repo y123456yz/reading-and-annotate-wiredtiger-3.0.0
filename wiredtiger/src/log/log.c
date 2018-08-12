@@ -2571,14 +2571,18 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	force = LF_ISSET(WT_LOG_FLUSH | WT_LOG_FSYNC);
 	ret = 0;
 
-	if (myslot.end_offset >= WT_LOG_SLOT_BUF_MAX ||
+    printf("yang test ............... __log_write_internal  %x  %x  %x  %x\r\n", myslot.end_offset, 
+        WT_LOG_SLOT_BUF_MAX, myslot.flags, force);
+	if (myslot.end_offset >= WT_LOG_SLOT_BUF_MAX || //该slot填满了，这需要一个新的slot来填充数据
 	    F_ISSET(&myslot, WT_MYSLOT_UNBUFFERED) || force)
 		ret = __wt_log_slot_switch(session, &myslot, true, false, NULL);
 
 	//拷贝record内容到slot_buf
-	if (ret == 0)
+	if (ret == 0) {
+	    printf("yang test ............... wt log fill \r\n");
+        //并不是每次KV操作里面拷贝record数据到slot buf，而是要满足ret=0的条件，即
 		ret = __wt_log_fill(session, &myslot, false, record, &lsn);
-
+    }
 	release_size = __wt_log_slot_release(&myslot, (int64_t)rdup_len);
 	/*
 	 * If we get an error we still need to do proper accounting in
@@ -2602,7 +2606,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 		 *
 		 * XXX I've seen times when conditions are NULL.
 		 */
-		if (conn->log_cond != NULL) { //通知__log_server线程写日志
+		if (conn->log_cond != NULL) { //通知__log_server线程写日志  //__log_server->__wt_log_force_write
 			__wt_cond_signal(session, conn->log_cond);
 			__wt_yield();
 		} else //否则笨线程自己写日志
