@@ -1065,8 +1065,8 @@ struct __wt_update {
 #define	WT_UPDATE_INVALID	0	/* diagnostic check */
 #define	WT_UPDATE_DELETED	1	/* deleted */
 #define	WT_UPDATE_MODIFIED	2	/* partial-update modify value */
-#define	WT_UPDATE_RESERVED	3	/* reserved */
-#define	WT_UPDATE_STANDARD	4	/* complete value */
+#define	WT_UPDATE_RESERVED	3	/* reserved */ 
+#define	WT_UPDATE_STANDARD	4	/* complete value */ //insert
 
 
 /*

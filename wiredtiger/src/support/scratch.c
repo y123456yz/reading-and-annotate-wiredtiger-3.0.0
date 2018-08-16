@@ -229,7 +229,6 @@ __wt_scr_alloc_func(WT_SESSION_IMPL *session, size_t size, WT_ITEM **scratchp
 	 *
 	 * Walk the array, looking for a buffer we can use.
 	 */
-	//printf("yang test .....session->scratch_alloc..... %d  %d\r\n", session->scratch_alloc, session->scratch_cached);
 	for (i = 0, best = slot = NULL,
 	    p = session->scratch; i < session->scratch_alloc; ++i, ++p) {
 		/* If we find an empty slot, remember it. */

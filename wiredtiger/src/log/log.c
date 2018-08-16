@@ -180,7 +180,6 @@ __log_fs_write(WT_SESSION_IMPL *session,
 	    slot->slot_release_lsn.l.file < slot->slot_start_lsn.l.file) {
 		__log_wait_for_earlier_slot(session, slot);
 		
-		printf("yang test ...........................__log_fs_write\r\n");
 		WT_RET(__wt_log_force_sync(session, &slot->slot_release_lsn));
 	}
 	if ((ret = __wt_write(session, slot->slot_fh, offset, len, buf)) != 0)
@@ -942,7 +941,6 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp,
 	WT_LOG_RECORD *logrec;
 	uint32_t allocsize, rectype;
 	const uint8_t *end, *p;
-    printf("yang test ................ __log_open_verify\r\n");
 
 	conn = S2C(session);
 	log = conn->log;
@@ -1503,7 +1501,6 @@ __wt_log_allocfile(
 	/*
 	 * Set up the temporary file.
 	 */
-	printf("yang test ................ __wt_log_allocfile\r\n");
 	WT_ERR(__log_openfile(session, tmp_id, WT_LOG_OPEN_CREATE_OK, &log_fh));
 	WT_ERR(__log_file_header(session, log_fh, NULL, true));
 	/*对fh对应的log文件进行空间设定（size = log_file_max），一般是新建log文件时做的*/
@@ -1587,7 +1584,6 @@ __wt_log_open(WT_SESSION_IMPL *session)
 		WT_RET(__wt_open(session, conn->log_path,
 		    WT_FS_OPEN_FILE_TYPE_DIRECTORY, 0, &log->log_dir_fh));
 	}
-	//printf("yang test ... log path:%s, name:%s\r\n", conn->log_path, &log->log_dir_fh->name);
 
 	if (!F_ISSET(conn, WT_CONN_READONLY))
 		WT_ERR(__log_prealloc_remove(session));
@@ -1810,7 +1806,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 	 * handling of this slot off to the worker thread.  The caller is
 	 * responsible for freeing the slot in that case.  Otherwise the
 	 * worker thread will free it.
-	 */
+	 */ //不需要flush或者sync
 	if (!F_ISSET(slot, WT_SLOT_FLUSH | WT_SLOT_SYNC | WT_SLOT_SYNC_DIR)) {
 		if (freep != NULL)
 			*freep = 0;
@@ -1839,6 +1835,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 	log->write_lsn = slot->slot_end_lsn;
 
 	WT_ASSERT(session, slot != log->active_slot);
+	//触发__log_write_internal中的wait
 	__wt_cond_signal(session, log->log_write_cond);
 	F_CLR(slot, WT_SLOT_FLUSH);
 
@@ -1852,16 +1849,17 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 	 * Try to consolidate calls to fsync to wait less.  Acquire a spin lock
 	 * so that threads finishing writing to the log will wait while the
 	 * current fsync completes and advance log->sync_lsn.
-	 */
-	while (F_ISSET(slot, WT_SLOT_SYNC | WT_SLOT_SYNC_DIR)) {
+	 */ //尝试合并对fsync的调用以减少等待时间。
+	
+	while (F_ISSET(slot, WT_SLOT_SYNC | WT_SLOT_SYNC_DIR)) { //只有sync才会触发fsync刷盘
 		/*
 		 * We have to wait until earlier log files have finished their
 		 * sync operations.  The most recent one will set the LSN to the
 		 * beginning of our file.
-		 */
+		 */ //我们必须等到以前的日志文件完成同步操作。 由__log_file_server线程保证
 		if (log->sync_lsn.l.file < slot->slot_end_lsn.l.file ||
 		    __wt_spin_trylock(session, &log->log_sync_lock) != 0) {
-			__wt_cond_wait(
+			__wt_cond_wait( //需要等待__log_file_server线程sync完小的LSN文件后才能继续sync打的LSN文件
 			    session, log->log_sync_cond, 10000, NULL);
 			continue;
 		}
@@ -1878,6 +1876,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 		 * not yet stable in its parent directory.  Do that
 		 * now if needed.
 		 */
+		//dir sync
 		if (F_ISSET(slot, WT_SLOT_SYNC_DIR) &&
 		    (log->sync_dir_lsn.l.file < sync_lsn.l.file)) {
 			WT_ASSERT(session, log->log_dir_fh != NULL);
@@ -1898,8 +1897,9 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 		}
 
 		/*
-		 * Sync the log file if needed.
+		 * Sync the log file if needed.  sync操作
 		 */
+		//sync
 		if (F_ISSET(slot, WT_SLOT_SYNC) &&
 		    __wt_log_cmp(&log->sync_lsn, &slot->slot_end_lsn) < 0) {
 			__wt_verbose(session, WT_VERB_LOG,
@@ -1909,13 +1909,16 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 			    sync_lsn.l.file, sync_lsn.l.offset);
 			WT_STAT_CONN_INCR(session, log_sync);
 			__wt_epoch(session, &fsync_start);
+			//fysnc操作
 			WT_ERR(__wt_fsync(session, log->log_fh, true));
 			__wt_epoch(session, &fsync_stop);
 			fsync_duration_usecs =
 			    WT_TIMEDIFF_US(fsync_stop, fsync_start);
 			WT_STAT_CONN_INCRV(session,
 			    log_sync_duration, fsync_duration_usecs);
+			
 			log->sync_lsn = sync_lsn;
+			//触发__log_write_internal中的wait
 			__wt_cond_signal(session, log->log_sync_cond);
 		}
 		/*
@@ -2571,15 +2574,13 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	force = LF_ISSET(WT_LOG_FLUSH | WT_LOG_FSYNC);
 	ret = 0;
 
-    printf("yang test ............... __log_write_internal  %x  %x  %x  %x\r\n", myslot.end_offset, 
-        WT_LOG_SLOT_BUF_MAX, myslot.flags, force);
+   // printf("yang test ............... __log_write_internal  %x  %x  %x  %x\r\n", myslot.end_offset,  WT_LOG_SLOT_BUF_MAX, myslot.flags, force);
 	if (myslot.end_offset >= WT_LOG_SLOT_BUF_MAX || //该slot填满了，这需要一个新的slot来填充数据
 	    F_ISSET(&myslot, WT_MYSLOT_UNBUFFERED) || force)
 		ret = __wt_log_slot_switch(session, &myslot, true, false, NULL);
 
 	//拷贝record内容到slot_buf
 	if (ret == 0) {
-	    printf("yang test ............... wt log fill \r\n");
         //并不是每次KV操作里面拷贝record数据到slot buf，而是要满足ret=0的条件，即
 		ret = __wt_log_fill(session, &myslot, false, record, &lsn);
     }
@@ -2592,14 +2593,15 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	if (ret != 0)
 		myslot.slot->slot_error = ret;
 	WT_ASSERT(session, ret == 0);
-	if (WT_LOG_SLOT_DONE(release_size)) {//只有在WT_LOG_SLOT_UNBUFFERED的时候走到这里
-	    printf("yang test 1111111111111111111111111\r\n");
+	if (WT_LOG_SLOT_DONE(release_size)) {
+	//只有在WT_LOG_SLOT_UNBUFFERED的时候走到这里 例如slot空间不够了，前面从新获取了一个slot，则新slot前面的slot需要罗盘
+	
 	    ////这里面写数据到日志文件WiredTigerLog
 		WT_ERR(__wt_log_release(session, myslot.slot, &free_slot));
 		if (free_slot)
 			__wt_log_slot_free(session, myslot.slot);
 	} else if (force) {
-	    printf("yang test 2222222222222222222222222222222222222\r\n");
+
 		/*
 		 * If we are going to wait for this slot to get written,
 		 * signal the wrlsn thread.
@@ -2614,13 +2616,13 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
 	}
 
 	//如果是要求每个KV立马罗盘，则笨线程要保证确实罗盘后才能返回
-	if (LF_ISSET(WT_LOG_FLUSH)) {
+	if (LF_ISSET(WT_LOG_FLUSH)) { //如果配置了是flush,只要write了(但是还没有sync)则wait等待后返回，见__wt_log_release
 		/* Wait for our writes to reach the OS */
 		while (__wt_log_cmp(&log->write_lsn, &lsn) <= 0 &&
 		    myslot.slot->slot_error == 0)
 			__wt_cond_wait(
 			    session, log->log_write_cond, 10000, NULL);
-	} else if (LF_ISSET(WT_LOG_FSYNC)) {
+	} else if (LF_ISSET(WT_LOG_FSYNC)) {//如果配置了是WT_LOG_FSYNC,只要write并fsync了则wait等待后返回，见__wt_log_release
 		/* Wait for our writes to reach disk */
 		while (__wt_log_cmp(&log->sync_lsn, &lsn) <= 0 &&
 		    myslot.slot->slot_error == 0)
@@ -2766,7 +2768,6 @@ __wt_log_flush(WT_SESSION_IMPL *session, uint32_t flags)
 	if (LF_ISSET(WT_LOG_BACKGROUND))
 		__wt_log_background(session, &lsn);
 	else if (LF_ISSET(WT_LOG_FSYNC)) {
-        printf("yang test ...........................__wt_log_flush\r\n");
 		WT_RET(__wt_log_force_sync(session, &lsn));
 	}return (0);
 }

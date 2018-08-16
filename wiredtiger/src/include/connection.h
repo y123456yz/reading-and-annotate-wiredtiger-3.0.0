@@ -349,16 +349,7 @@ struct __wt_connection_impl {
 	const char	*stat_stamp;	/* Statistics log entry timestamp */
 	uint64_t	 stat_usecs;	/* Statistics log period */
 
-#define	WT_CONN_LOG_ARCHIVE		0x001	/* Archive is enabled */
-#define	WT_CONN_LOG_DOWNGRADED		0x002	/* Running older version */
-//log.enabled是否使能
-#define	WT_CONN_LOG_ENABLED		0x004	/* Logging is enabled */  //启用日志功能，赋值见__wt_logmgr_create
-#define	WT_CONN_LOG_EXISTED		0x008	/* Log files found */
-#define	WT_CONN_LOG_FORCE_DOWNGRADE	0x010	/* Force downgrade */
-#define	WT_CONN_LOG_RECOVER_DIRTY	0x020	/* Recovering unclean */
-#define	WT_CONN_LOG_RECOVER_DONE	0x040	/* Recovery completed */
-#define	WT_CONN_LOG_RECOVER_ERR		0x080	/* Error if recovery required */
-#define	WT_CONN_LOG_ZERO_FILL		0x100	/* Manually zero files */
+    //WT_CONN_LOG_ARCHIVE等
 	uint32_t	 log_flags;	/* Global logging configuration */
 	WT_CONDVAR	*log_cond;	/* Log server wait mutex */
 	WT_SESSION_IMPL *log_session;	/* Log server session */
@@ -381,6 +372,7 @@ struct __wt_connection_impl {
 	/* 日志文件存放的路径，__wt_log_open中打开 */
 	const char	*log_path;	/* Logging path format */
 	uint32_t	 log_prealloc;	/* Log file pre-allocation */
+	//__logmgr_sync_cfg中配置解析  会赋值给__wt_txn.txn_logsync
 	uint32_t	 txn_logsync;	/* Log sync configuration */
 
 	WT_SESSION_IMPL *meta_ckpt_session;/* Metadata checkpoint session */
@@ -473,3 +465,16 @@ struct __wt_connection_impl {
     //例如F_SET(conn, WT_CONN_IN_MEMORY);设置，都是根据配置来设置的
 	uint32_t flags;
 };
+
+#define	WT_CONN_LOG_ARCHIVE		0x001	/* Archive is enabled */
+#define	WT_CONN_LOG_DOWNGRADED		0x002	/* Running older version */
+//log.enabled是否使能
+#define	WT_CONN_LOG_ENABLED		0x004	/* Logging is enabled */  //启用日志功能，赋值见__wt_logmgr_create
+#define	WT_CONN_LOG_EXISTED		0x008	/* Log files found */
+#define	WT_CONN_LOG_FORCE_DOWNGRADE	0x010	/* Force downgrade */
+#define	WT_CONN_LOG_RECOVER_DIRTY	0x020	/* Recovering unclean */
+#define	WT_CONN_LOG_RECOVER_DONE	0x040	/* Recovery completed */
+#define	WT_CONN_LOG_RECOVER_ERR		0x080	/* Error if recovery required */
+#define	WT_CONN_LOG_ZERO_FILL		0x100	/* Manually zero files */
+
+

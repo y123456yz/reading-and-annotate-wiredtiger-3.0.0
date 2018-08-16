@@ -32,9 +32,11 @@
 #define	WT_LOGSCAN_RECOVER				0x00000008
 #define	WT_LOG_BACKGROUND				0x00000001
 #define	WT_LOG_DSYNC					0x00000002
-//来一次kv操作就写日志  生效见__log_write_internal
+//来一次kv操作就写日志  生效见__log_write_internal  transaction_sync.method配置 
+//只需要write到内核文件buf,不需要sync  配置none
 #define	WT_LOG_FLUSH					0x00000004
-//来一次kv操作就写日志   生效见__log_write_internal
+//来一次kv操作就写日志   生效见__log_write_internal  transaction_sync.method配置  
+//需要write到内核buf同时需要sync 配置fsync
 #define	WT_LOG_FSYNC					0x00000008
 #define	WT_LOG_SYNC_ENABLED				0x00000010
 #define	WT_READ_CACHE					0x00000001

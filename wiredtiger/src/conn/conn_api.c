@@ -1129,7 +1129,6 @@ err:	/*
 		}
 	}
     
-    printf("yang test ..............conn close 33\r\n");
 	if (ret != 0) {
 		__wt_err(session, ret,
 		    "failure during close, disabling further writes");
@@ -1888,7 +1887,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[])
 		if ((ret = __wt_config_subgets(
 		    session, &cval, ft->name, &sval)) == 0 && sval.val != 0) {
 #ifdef HAVE_VERBOSE  //需要使能HAVE_VERBOSE才有效
-			LF_SET(ft->flag); //flag赋值在这里面
+			//LF_SET(ft->flag); //flag赋值在这里面
 #else
 			WT_RET_MSG(session, EINVAL,
 			    "Verbose option specified when WiredTiger built "

@@ -21,6 +21,17 @@ __logmgr_sync_cfg(WT_SESSION_IMPL *session, const char **cfg)
 
 	conn = S2C(session);
 
+
+    /*  __wt_verbose_dump_log
+	WT_RET(__wt_msg(session, "Log sync setting: %s",
+	    !FLD_ISSET(conn->txn_logsync, WT_LOG_SYNC_ENABLED) ? "none" :
+	    FLD_ISSET(conn->txn_logsync, WT_LOG_DSYNC) ? "dsync" :
+	    FLD_ISSET(conn->txn_logsync, WT_LOG_FLUSH) ? "write to OS" :
+	    FLD_ISSET(conn->txn_logsync, WT_LOG_FSYNC) ?
+	    "fsync to disk": "unknown sync setting"));
+
+    */
+
 	WT_RET(
 	    __wt_config_gets(session, cfg, "transaction_sync.enabled", &cval));
 	if (cval.val)
@@ -31,12 +42,15 @@ __logmgr_sync_cfg(WT_SESSION_IMPL *session, const char **cfg)
 	WT_RET(
 	    __wt_config_gets(session, cfg, "transaction_sync.method", &cval));
 	FLD_CLR(conn->txn_logsync, WT_LOG_DSYNC | WT_LOG_FLUSH | WT_LOG_FSYNC);
-	if (WT_STRING_MATCH("dsync", cval.str, cval.len))
+
+	//生效见__wt_log_release
+	if (WT_STRING_MATCH("dsync", cval.str, cval.len)) //表示同时sync dir和sync file
 		FLD_SET(conn->txn_logsync, WT_LOG_DSYNC | WT_LOG_FLUSH);
-	else if (WT_STRING_MATCH("fsync", cval.str, cval.len))
+	else if (WT_STRING_MATCH("fsync", cval.str, cval.len)) //fsync刷盘
 		FLD_SET(conn->txn_logsync, WT_LOG_FSYNC);
-	else if (WT_STRING_MATCH("none", cval.str, cval.len))
+	else if (WT_STRING_MATCH("none", cval.str, cval.len))  
 		FLD_SET(conn->txn_logsync, WT_LOG_FLUSH);
+
 	return (0);
 }
 
@@ -526,6 +540,8 @@ __log_file_server(void *arg)
 			WT_ASSERT(session,
 			    log->log_close_lsn.l.file == filenum);
 
+            /*close fh中有文件等待close操作，并且文件末尾对应的LSN
+            位置已经小于正在写日志的文件LSN,表明这个文件不可能再支持写，可以关闭*/
 			if (__wt_log_cmp(
 			    &log->write_lsn, &log->log_close_lsn) >= 0) {
 				/*
@@ -580,7 +596,7 @@ __log_file_server(void *arg)
 				WT_ASSERT(session, __wt_log_cmp(
 				    &close_end_lsn, &log->sync_lsn) >= 0);
 				log->sync_lsn = close_end_lsn;
-				/*触发一个log_sync_cond表示sync_lsn重新设置了新的值*/
+				/*触发一个log_sync_cond表示sync_lsn重新设置了新的值，触发__wt_log_release __wt_log_release wait*/
 				__wt_cond_signal(session, log->log_sync_cond);
 				locked = false;
 				__wt_spin_unlock(session, &log->log_sync_lock);
@@ -588,7 +604,7 @@ __log_file_server(void *arg)
 		}
 		/*
 		 * If a later thread asked for a background sync, do it now.
-		 */
+		 */ //backgroud相关，参考__session_log_flush
 		if (__wt_log_cmp(&log->bg_sync_lsn, &log->sync_lsn) > 0) {
 			/*
 			 * Save the latest write LSN which is the minimum
@@ -616,6 +632,7 @@ __log_file_server(void *arg)
 				    log->bg_sync_lsn.l.file) ||
 				    (log->sync_lsn.l.file < min_lsn.l.file))
 					continue;
+
 				WT_ERR(__wt_fsync(session, log->log_fh, true));
 				__wt_spin_lock(session, &log->log_sync_lock);
 				locked = true;
@@ -684,6 +701,9 @@ typedef struct {
  *	Process written log slots and attempt to coalesce them if the LSNs
  *	are contiguous.  The purpose of this function is to advance the
  *	write_lsn in LSN order after the buffer is written to the log file.
+
+ 处理写好的日志槽，如果LSNs是连续的，尝试合并它们。
+ 这个函数的目的是在将缓冲区写入日志文件后，以LSN的顺序推进write_lsn。
  */
 /*只是处理SLOT_BUFFERED且不主动的fsync的模式*/
 void
@@ -936,6 +956,7 @@ __log_server(void *arg)
 		 * and a buffer may need to wait for the write_lsn to advance
 		 * in the case of a synchronous buffer.  We end up with a hang.
 		 */ 
+		//保证slot log，每隔5ms写一次，触发slog buf数据写
 		WT_ERR_BUSY_OK(__wt_log_force_write(session, 0, &did_work));
 
 		/*
@@ -970,6 +991,7 @@ __log_server(void *arg)
 			    /*删除已经checkpoint的日志文件,注意：其实WT整个引擎很少发生对log_archive_lock竞争，所以即使使用spin lock也消耗不大*/
 				if (__wt_try_writelock(
 				    session, &log->log_archive_lock) == 0) {
+				    /*进行一次日志归档操作,相当于删除多余的日志文件*/
 					ret = __log_archive_once(session, 0);
 					__wt_writeunlock(
 					    session, &log->log_archive_lock);

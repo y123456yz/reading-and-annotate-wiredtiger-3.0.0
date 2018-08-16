@@ -376,17 +376,21 @@ __wt_logop_row_modify_pack(
 	size_t size;
 	uint32_t optype, recsize;
 
+    //类型为更新
 	optype = WT_LOGOP_ROW_MODIFY;
 	WT_RET(__wt_struct_size(session, &size, fmt,
 	    optype, 0, fileid, key, value));
 
 	__wt_struct_size_adjust(session, &size);
+	//紧接着logrec后面扩容size字节空间
 	WT_RET(__wt_buf_extend(session, logrec, logrec->size + size));
 	recsize = (uint32_t)size;
+	/*"格式化串 = "iiiru",表示操作类型，recsize,field id,日志记录序号和一个WT_ITEM类型的value*/
 	WT_RET(__wt_struct_pack(session,
 	    (uint8_t *)logrec->data + logrec->size, size, fmt,
 	    optype, recsize, fileid, key, value));
 
+    //更新加入log op后的总logrec size大小
 	logrec->size += (uint32_t)size;
 	return (0);
 }

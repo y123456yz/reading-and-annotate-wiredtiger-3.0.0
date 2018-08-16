@@ -15,7 +15,9 @@
  *************************************************/
 union __wt_lsn {
 	struct {
+//[__wt_log_release, 1909], file:WiredTiger.wt, WT_SESSION.create: log_release: sync log ./WiredTigerLog.0000000001 to LSN 1/3968
 #ifdef	WORDS_BIGENDIAN
+        //例如WiredTigerLog.0000000001中file为1
 		uint32_t file;  /*日志文件序号*/
 		uint32_t offset; /*日志文件偏移位置*/
 #else
@@ -207,13 +209,16 @@ struct __wt_logslot {
 	//kv log在__wt_log_fill记录到该buf中
 	WT_ITEM  slot_buf;		/* Buffer for grouped writes */
 
+    //下面的WT_SLOT_CLOSEFH等
+	uint32_t flags;			/* Flags */
+	WT_CACHE_LINE_PAD_END
+};
+
 #define	WT_SLOT_CLOSEFH		0x01		/* Close old fh on release */
 #define	WT_SLOT_FLUSH		0x02		/* Wait for write */
 #define	WT_SLOT_SYNC		0x04		/* Needs sync on release */
 #define	WT_SLOT_SYNC_DIR	0x08		/* Directory sync on release */
-	uint32_t flags;			/* Flags */
-	WT_CACHE_LINE_PAD_END
-};
+
 
 #define	WT_SLOT_INIT_FLAGS	0
 
@@ -235,6 +240,11 @@ struct __wt_myslot {
 
 #define	WT_MYSLOT_CLOSE		0x01	/* This thread is closing the slot */
 #define	WT_MYSLOT_NEEDS_RELEASE	0x02	/* This thread is releasing the slot */
+/*
+因为slot buffer空间不够，这时候会置slot为WT_MYSLOT_UNBUFFERED状态，触发T4线程直接将这个超限的logrec数
+据写入log文件，并做sync刷盘返回。在返回前因为发现有logrec4大小的日志数据无法合并，全局log对象会试图将
+slot buffer的大小放大两倍，这样做的目的是尽量让下面的提交的日志能进行slot合并写操作。
+*/
 #define	WT_MYSLOT_UNBUFFERED	0x04	/* Write directly */
 
 
@@ -269,12 +279,13 @@ struct __wt_log {
 	WT_LSN		ckpt_lsn;	/* Last checkpoint LSN */ /* 最后一次建立ckeckpoint的LSN位置 */
 	//赋值见__wt_log_open，对应最小的WiredTigerLog.xx中的xx
 	WT_LSN		first_lsn;	/* First LSN */ /* 日志起始的LSN */
-	WT_LSN		sync_dir_lsn;	/* LSN of the last directory sync */ /* 最后一次sync dir的LSN位置 */
+	WT_LSN		sync_dir_lsn;	/* LSN of the last directory sync */ /* __wt_log_release 最后一次sync dir的LSN位置 */
+	//生效见__wt_log_release  必须保证小的lsn文件先做sync
 	WT_LSN		sync_lsn;	/* LSN of the last sync */ /* 日志文件最后一次sync LSN位置*/
 	/* 在恢复过程中，如果有日志数据损坏，那么需要截掉这个位置后的所有日志文件，表示开始截掉数据的LSN*/
 	WT_LSN		trunc_lsn;	/* End LSN for recovery truncation */
 	
-    /* 最后一次写日志的LSN位置 */
+    /* 最后一次写日志的LSN位置,也就是当前正在写的log文件的后缀，如WiredTigerLog.0000000001表示1 */
 	WT_LSN		write_lsn;	/* End of last LSN written */
 	WT_LSN		write_start_lsn;/* Beginning of last LSN written */
 
