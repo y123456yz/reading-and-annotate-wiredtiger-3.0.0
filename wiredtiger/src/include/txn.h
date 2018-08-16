@@ -211,6 +211,7 @@ struct __wt_txn {
 	uint64_t snap_min, snap_max;
 	uint64_t *snapshot;
 	uint32_t snapshot_count;
+	//生效见__wt_txn_log_commit  //来源在__logmgr_sync_cfg中配置解析  赋值见__wt_txn_begin
 	uint32_t txn_logsync;	/* Log sync configuration */
 
 	/*

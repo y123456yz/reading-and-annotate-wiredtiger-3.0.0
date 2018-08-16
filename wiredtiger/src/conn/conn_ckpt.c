@@ -30,7 +30,6 @@ __ckpt_server_config(WT_SESSION_IMPL *session, const char **cfg, bool *startp)
 	WT_RET(__wt_config_gets(session, cfg, "checkpoint.log_size", &cval));
 	conn->ckpt_logsize = (wt_off_t)cval.val;
 
-    printf("yang test.......cfg[0]:%s\r\n  cfg[1]:%s.\r\n...wait:%d, log:%d\r\n", cfg[0], cfg[1], conn->ckpt_usecs, conn->ckpt_logsize);
 	/*
 	 * The checkpoint configuration requires a wait time and/or a log size,
 	 * if neither is set, we're not running at all. Checkpoints based on log

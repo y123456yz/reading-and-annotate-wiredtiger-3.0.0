@@ -396,6 +396,7 @@ __wt_txn_checkpoint_log(
 				*lsnp = *ckpt_lsn;
 			return (0);
 		}
+		//强制日志刷盘
 		return (__txn_log_file_sync(session, flags, lsnp));
 	}
 

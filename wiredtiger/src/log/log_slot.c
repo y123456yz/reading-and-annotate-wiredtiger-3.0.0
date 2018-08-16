@@ -337,7 +337,6 @@ __log_slot_switch_internal(
 		 * is processing the slot change.
 		 */
 
-		printf("yang test ..........__log_slot_switch_internal..........1 ret:%d\r\n", ret);
 		if (ret == WT_NOTFOUND)
 			return (0);
 		WT_RET(ret);
@@ -368,10 +367,8 @@ __log_slot_switch_internal(
 		if (free_slot)
 			__wt_log_slot_free(session, slot);
 
-		printf("yang test ..........__log_slot_switch_internal..........2\r\n");
 	}
 
-	printf("yang test ..........__log_slot_switch_internal..........3  ret:%d\r\n\r\n");
 	return (ret);
 }
 
@@ -414,7 +411,6 @@ __wt_log_slot_switch(WT_SESSION_IMPL *session,
 			break;
 	} while (F_ISSET(myslot, WT_MYSLOT_CLOSE) || (retry && ret == EBUSY));
 
-	printf("yang test ................... slot switch ret:%d\r\n", ret);
 	return (ret);
 }
 
@@ -524,7 +520,7 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 	struct timespec start, stop;
 	WT_CONNECTION_IMPL *conn;
 	WT_LOG *log;
-	WT_LOGSLOT *slot;
+	WT_LOGSLOT *slot;  
 	uint64_t usecs;
 	int64_t flag_state, new_state, old_state, released;
 	int32_t join_offset, new_join, wait_cnt;
@@ -550,13 +546,14 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 	diag_yield = false;
 	if (mysize > WT_LOG_SLOT_BUF_MAX) {
 //#endif
-        printf("yang test xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
 		unbuffered = true;
-		F_SET(myslot, WT_MYSLOT_UNBUFFERED);
+		F_SET(myslot, WT_MYSLOT_UNBUFFERED); 
 	}
 	for (;;) {
 		WT_BARRIER();
+		//确定当前正在使用的slot
 		slot = log->active_slot;
+		//上次KV操作后的状态信息
 		old_state = slot->slot_state;
 		if (WT_LOG_SLOT_OPEN(old_state)) { //
 			/*
@@ -564,14 +561,20 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 			 * atomically write it back into the state.
 			 */
 			/*
+
+			
 			63          62                31                0
             |------------|----------------|-------------------|
               flag_state     join_offset            released
+
+              
 			*/ //最终的结果是join_offset为新的KV加进来后的总数据长度，released为不加本次KV数据的长度，也就是上一次的长度
+            //恢复上次KV操作后的flag_state  join_offset  released
 			flag_state = WT_LOG_SLOT_FLAGS(old_state);
 			released = WT_LOG_SLOT_RELEASED(old_state);
 			join_offset = WT_LOG_SLOT_JOINED(old_state);
-			
+
+			//更新新KV join后的offset，其他线程写就必现从这个offset开始
 			if (unbuffered)
 				new_join = join_offset + WT_LOG_SLOT_UNBUFFERED;
 			else
@@ -583,7 +586,7 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 
             //第一次:  .....0...8000000000..  0   0  80
             //第二次: .....8000000080...10000000080..  80   80  100
-			printf("  .....%llx...%llx..  %x   %x  %x\r\n",  old_state, new_state, join_offset, released, new_join);
+			//printf("  .....%llx...%llx..  %x   %x  %x\r\n",  old_state, new_state, join_offset, released, new_join);
 
 			/*
 			 * Braces used due to potential empty body warning.
@@ -594,6 +597,9 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize,
 			/*
 			 * Attempt to swap our size into the state.
 			 */
+			//通过这里的原子操作来保证多个线程定位到slot buffer的不同位置，如果两个线程重复了同样的slot buffer空间，则
+			//还没有更新slot_state的线程需要重新进行新的offset写入位置确认，本次offset位置确认失效，需要在一次循环确认
+			//新的offset
 			if (__wt_atomic_casiv64(
 			    &slot->slot_state, old_state, new_state))
 				break;

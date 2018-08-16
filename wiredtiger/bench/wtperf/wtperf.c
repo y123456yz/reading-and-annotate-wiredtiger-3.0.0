@@ -1106,16 +1106,16 @@ populate_thread(void *arg)
 			__wt_epoch(NULL, &start); 
 
 		//__wt_cursor_set_key
-		printf("yang test .....cccccccccccc..........set key... \r\n");
+		//printf("yang test .....cccccccccccc..........set key... \r\n");
 		cursor->set_key(cursor, key_buf);
 		if (opts->random_value)
 			randomize_value(thread, value_buf);
 		//__wt_cursor_set_value
-		printf("yang test .....cccccccccccc..........set value... \r\n");
-		cursor->set_value(cursor, value_buf);
+		//printf("yang test .....cccccccccccc..........set value... \r\n");
+		cursor->set_value(cursor, key_buf);
 
 		//__curtable_insert
-		printf("yang test .....cccccccccccc.............insert... \r\n");
+		//printf("yang test .....cccccccccccc.............insert... \r\n");
 		if ((ret = cursor->insert(cursor)) == WT_ROLLBACK) {
 			lprintf(wtperf, ret, 0, "insert retrying");
 			if ((ret = session->rollback_transaction(
@@ -1170,6 +1170,8 @@ populate_thread(void *arg)
 			}
 		}
 	}
+
+	
 	if (intxn &&
 	    (ret = session->commit_transaction(session, NULL)) != 0)
 		lprintf(wtperf, ret, 0,
