@@ -269,9 +269,11 @@ class Stats {
     }
     AppendWithSpace(&extra, message_);
 
+	//fillseq      :       1.225 micros/op;   90.3 MB/s   
     fprintf(stdout, "%-12s : %11.3f micros/op;%s%s\n",
             name.ToString().c_str(),
-            seconds_ * 1e6 / done_,
+            done_ / seconds_,
+            //seconds_ * 1e6 / done_,
             (extra.empty() ? "" : " "),
             extra.c_str());
     if (FLAGS_histogram) {
@@ -854,7 +856,7 @@ class Benchmark {
     std::stringstream cur_config;
     cur_config.str("");
     cur_config << "overwrite";
-    if (seq) //Ë³ÐòÐ´ÉèÖÃbulkÎªtrue
+    if (seq && FLAGS_threads == 1) //Ë³ÐòÐ´ÉèÖÃbulkÎªtrue
 	cur_config << ",bulk=true";
     int ret = thread->session->open_cursor(thread->session, uri_.c_str(), NULL, cur_config.str().c_str(), &cursor);
     if (ret != 0) {
