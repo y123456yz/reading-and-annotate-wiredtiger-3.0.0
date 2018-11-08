@@ -1422,7 +1422,7 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  "reserve=0,size=500MB),statistics=none,statistics_log=(json=false"
 	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
 	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
-	  ",method=none),use_environment=true,use_environment_priv=false,"
+	  ",method=fsync),use_environment=true,use_environment_priv=false,"
 	  "verbose=(fileops=true),write_through=",
 	  confchk_wiredtiger_open, 42
 	},
@@ -1446,7 +1446,7 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  "reserve=0,size=500MB),statistics=none,statistics_log=(json=false"
 	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
 	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
-	  ",method=none),use_environment=true,use_environment_priv=false,"
+	  ",method=fsync),use_environment=true,use_environment_priv=false,"
 	  "verbose=(api=true,block=true,checkpoint=true,checkpoint_progress=true,compact=true,evict=true,evict_stuck=true,evictserver=true,"
         "fileops=true,handleops=true,log=true,lookaside=true,lookaside_activity=true,lsm=true,lsm_manager=true,metadata=true,"
         "mutex=true,overflow=true,read=true,rebalance=true,reconcile=true,reconcile=true,recovery=true,recovery_progress=true,"
@@ -1472,7 +1472,7 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  "reserve=0,size=500MB),statistics=none,statistics_log=(json=false"
 	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
 	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
-	  ",method=none),verbose=,version=(major=0,minor=0),write_through=",
+	  ",method=fsync),verbose=,version=(major=0,minor=0),write_through=",
 	  confchk_wiredtiger_open_basecfg, 37
 	},
 	{ "wiredtiger_open_usercfg",
@@ -1493,7 +1493,7 @@ static const WT_CONFIG_ENTRY config_entries[] = {
 	  "reserve=0,size=500MB),statistics=none,statistics_log=(json=false"
 	  ",on_close=false,path=\".\",sources=,timestamp=\"%b %d %H:%M:%S\""
 	  ",wait=0),timing_stress_for_test=,transaction_sync=(enabled=false"
-	  ",method=none),verbose=,write_through=",
+	  ",method=fsync),verbose=,write_through=",
 	  confchk_wiredtiger_open_usercfg, 36
 	},
 	{ NULL, NULL, NULL, 0 }

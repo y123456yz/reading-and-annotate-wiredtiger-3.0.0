@@ -54,6 +54,7 @@ static const char* FLAGS_benchmarks =
 #endif
     "readseq,"
     "readreverse,"
+    "fill100K,"
 #if 0
     "compact,"
     "readrandom,"
@@ -264,7 +265,8 @@ class Stats {
 
     fprintf(stdout, "%-12s : %11.3f micros/op;%s%s\n",
             name.ToString().c_str(),
-            seconds_ * 1e6 / done_,
+            done_ / seconds_,
+            //seconds_ * 1e6 / done_,
             (extra.empty() ? "" : " "),
             extra.c_str());
     if (FLAGS_histogram) {
@@ -555,8 +557,8 @@ class Benchmark {
 	  char cmd[200];
 	  std::string test_dir;
 	  Env::Default()->GetTestDirectory(&test_dir);
-	  sprintf(cmd, "du %s", test_dir.c_str());
-	  system(cmd);
+	 // sprintf(cmd, "du %s", test_dir.c_str());
+	 // system(cmd);
 	}
       }
     }

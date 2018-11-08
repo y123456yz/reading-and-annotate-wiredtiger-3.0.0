@@ -1015,9 +1015,9 @@ run_mix_schedule(WTPERF *wtperf, WORKLOAD *workp)
 }
 
 //populate_thread同步写  populate_async异步写
-
 static WT_THREAD_RET
-populate_thread(void *arg)
+    populate_thread(void *arg)
+
 {
 	struct timespec start, stop;
 	CONFIG_OPTS *opts;
@@ -1046,15 +1046,15 @@ populate_thread(void *arg)
 	key_buf = thread->key_buf;
 	value_buf = thread->value_buf;
 
-	if ((ret = conn->open_session(
+	if ((ret = conn->open_session( //conn为所有线程复用，session为每个线程一个session
 	    conn, NULL, opts->sess_config, &session)) != 0) {
 		lprintf(wtperf, ret, 0, "populate: WT_CONNECTION.open_session");
 		goto err;
 	}
 
 	/* Do bulk loads if populate is single-threaded. */
-	cursor_config =
-	    (opts->populate_threads == 1 && !opts->index) ? "bulk" : NULL;
+//	cursor_config =
+//	    (opts->populate_threads == 1 && !opts->index) ? "bulk" : NULL;
 	/* Create the cursors. */
 	cursors = dcalloc(opts->table_count, sizeof(WT_CURSOR *));
 	//获取每个//table:table_name%d的curosr

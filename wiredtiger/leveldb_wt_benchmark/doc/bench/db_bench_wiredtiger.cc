@@ -813,7 +813,7 @@ class Benchmark {
     config << ",block_compressor=snappy";
 #endif
 
-    fprintf(stderr, "Creating %s with config %s\n",uri_.c_str(), config.str().c_str());
+    //fprintf(stderr, "Creating %s with config %s\n",uri_.c_str(), config.str().c_str());
     int ret = session->create(session, uri_.c_str(), config.str().c_str());
     if (ret != 0) {
       fprintf(stderr, "create error: %s\n", wiredtiger_strerror(ret));
