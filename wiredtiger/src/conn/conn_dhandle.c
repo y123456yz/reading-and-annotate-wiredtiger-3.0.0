@@ -121,7 +121,7 @@ __conn_dhandle_destroy(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle)
  * __wt_conn_dhandle_alloc --
  *	Allocate a new data handle and return it linked into the connection's
  *	list.
- */
+ */ //创建dhandle
 int
 __wt_conn_dhandle_alloc(
     WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
@@ -407,7 +407,7 @@ err:	__wt_spin_unlock(session, &dhandle->close_lock);
  * __wt_conn_dhandle_open --
  *	Open the current data handle.
  * 主要函数为__wt_btree_open，创建对应的btree或者table
- */
+ */ //获取session->dhandle,如果是table则对应WT_TABLE，如果是file则对应WT_DATA_HANDLE 
 int
 __wt_conn_dhandle_open(
     WT_SESSION_IMPL *session, const char *cfg[], uint32_t flags)

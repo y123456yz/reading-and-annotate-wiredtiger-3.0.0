@@ -468,7 +468,7 @@ __schema_open_table(WT_SESSION_IMPL *session, const char *cfg[])
 	__wt_config_subinit(session, &cparser, &table->colconf);
 	table->is_simple = true;
 
-	//如果列关键字不止一项
+	//不止一项
 	while ((ret = __wt_config_next(&cparser, &ckey, &cval)) == 0)
 		table->is_simple = false;
 	WT_RET_NOTFOUND_OK(ret);

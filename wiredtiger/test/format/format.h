@@ -244,6 +244,7 @@ typedef struct {
 #define	ENCRYPT_ROTN_7			2
 	u_int c_encryption_flag;		/* Encryption flag value */
 
+//只有支持 readCommited 隔离级别的存储引擎才能支持mongodb readConcern，比如 wiredtiger 引擎，而 mmapv1引擎则不能支持。
 #define	ISOLATION_RANDOM		1
 #define	ISOLATION_READ_UNCOMMITTED	2
 #define	ISOLATION_READ_COMMITTED	3

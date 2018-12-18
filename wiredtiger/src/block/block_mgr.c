@@ -614,7 +614,7 @@ __bm_method_set(WT_BM *bm, bool readonly)
 /*
  * __wt_block_manager_open --
  *	Open a file. 创建一个btree文件
- */
+ */ //WT_BTREE和__wt_block文件通过__wt_btree_open->__wt_block_manager_open关联
 int
 __wt_block_manager_open(WT_SESSION_IMPL *session,
     const char *filename, const char *cfg[],

@@ -31,6 +31,7 @@
 #include <test_util.h>
 
 static const char *home;
+//所有常用函数全局默认配置见config_entries
 #define	CONN_CONFIG \
     "create,cache_size=1M,log=(archive=false,enabled=true,file_max=100K)"
 

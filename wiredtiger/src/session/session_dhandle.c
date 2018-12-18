@@ -518,6 +518,7 @@ __session_get_dhandle(
  * file table有各自的dhandle
  * 把获取的uri和checkpoint对应的dhandle赋值给session->dhandle
  */
+//根据uri和checkpoint获取对应的dhandle,如果是table则对应WT_TABLE，如果是file则对应__wt_data_handle，赋值给了session->dhandle
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session,
     const char *uri, const char *checkpoint, const char *cfg[], uint32_t flags)

@@ -225,6 +225,7 @@ struct __wt_bm {//bm代表block manage
 //block创建见__wt_block_open  
 //__bm_checkpoint_load中做mmap操作  
 //见__wt_block_alloc   
+//WT_BTREE和__wt_block文件通过__wt_btree_open->__wt_block_manager_open关联
 struct __wt_block {//一个xx.wt表文件对应一个block
     //一个文件对应一个block,见__wt_block_open
 	const char *name;		/* Name */

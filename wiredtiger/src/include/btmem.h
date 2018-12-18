@@ -489,10 +489,10 @@ struct __wt_col_rle {
  * 参考https://weibo.com/ttarticle/p/show?id=2309403992797932856430
  BTREE简单代码例子:https://blog.csdn.net/cyongxue/article/details/16971337
  */
-//内存中的 page 结构对象，page 的访问入口。  同一个table操作，起page是同一个
+//内存中的 page 结构对象，page 的访问入口。  同一个table操作，其page是同一个
 //page都是挂载__wt_btree.root下面，组成tree树   
 //leaf page在__page_read->__wt_btree_new_leaf_page中创建   internal page在__btree_tree_open_empty中创建
-struct __wt_page { 
+struct __wt_page {  //__wt_ref.page
 //创建空间和赋值见__wt_page_alloc
 	/* Per page-type information. */
 	union {
@@ -690,8 +690,10 @@ https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 #define	WT_PAGE_COL_INT		3	/* Col-store internal page */
 #define	WT_PAGE_COL_VAR		4	/* Col-store var-length leaf page */
 #define	WT_PAGE_OVFL		5	/* Overflow page */
-#define	WT_PAGE_ROW_INT		6	/* Row-store internal page */
-#define	WT_PAGE_ROW_LEAF	7	/* Row-store leaf page */
+//internal page创建空间__btree_tree_open_empty
+#define	WT_PAGE_ROW_INT		6	/* Row-store internal page */  //internal page
+//leaf page创建空间__wt_btree_new_leaf_page
+#define	WT_PAGE_ROW_LEAF	7	/* Row-store leaf page */      //leaf page
 
 
 #undef	pg_intl_parent_ref
@@ -920,6 +922,7 @@ struct __wt_ref {
  * references to the field (so the code doesn't read it multiple times), all
  * to make sure we don't introduce this bug (again).
  */
+//空间分配见__wt_page_alloc
 //__wt_page.row 每一个leaf page都有一个该结构，当从文件读取数据的时候构建，见，见__inmem_row_leaf
 struct __wt_row {	/* On-page key, on-page cell, or off-page WT_IKEY */
 	void * volatile __key; //这个值是在page读入内存时根据KV存储在page_disk的位置确定的

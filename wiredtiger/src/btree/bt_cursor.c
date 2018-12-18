@@ -13,7 +13,7 @@
  * upper-level cursor code is likely to retry. This structure and the associated
  * functions are used save and restore the cursor state.
  */ //__wt_btcur_insert中用到
-typedef struct {
+typedef struct { //赋值见__cursor_state_save
 	WT_ITEM key;
 	WT_ITEM value;
 	uint64_t recno;
@@ -681,7 +681,7 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
 
 	if (btree->type == BTREE_ROW) /*对kv的值大小做校验过滤*/
 		WT_RET(__cursor_size_chk(session, &cursor->key));
-	WT_RET(__cursor_size_chk(session, &cursor->value));
+	WT_RET(__cursor_size_chk(session, &cursor->value)); //value长度检查
 
 	/* It's no longer possible to bulk-load into the tree. */
 	__cursor_disable_bulk(session, btree);
@@ -751,7 +751,7 @@ retry:	WT_ERR(__cursor_func_init(cbt, true));
 		/*
 		 * If not overwriting, fail if the key exists, else insert the
 		 * key/value pair.
-		 */
+		 */ //
 		if (!F_ISSET(cursor, WT_CURSTD_OVERWRITE) &&
 		    cbt->compare == 0 && __wt_cursor_valid(cbt, NULL)) //根据前面的查找是否找到这里是否返回重复WT_DUPLICATE_KEY
 			WT_ERR(WT_DUPLICATE_KEY);

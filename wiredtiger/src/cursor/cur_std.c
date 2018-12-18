@@ -279,7 +279,7 @@ __wt_cursor_set_raw_value(WT_CURSOR *cursor, WT_ITEM *value)
 /*
  * __wt_cursor_get_keyv --
  *	WT_CURSOR->get_key worker function.
- */
+ *///__wt_cursor_set_keyv和__wt_cursor_get_keyv配合阅读，体验pack和unpack
 int
 __wt_cursor_get_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 {
@@ -294,8 +294,8 @@ __wt_cursor_get_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 	if (!F_ISSET(cursor, WT_CURSTD_KEY_SET))
 		WT_ERR(__wt_cursor_kv_not_set(cursor, true));
 
-	if (WT_CURSOR_RECNO(cursor)) {
-		if (LF_ISSET(WT_CURSTD_RAW)) {
+	if (WT_CURSOR_RECNO(cursor)) {//__wt_cursor_set_keyv和__wt_cursor_get_keyv配合阅读，体验pack和unpack
+		if (LF_ISSET(WT_CURSTD_RAW)) { //和__wt_cursor_get_keyv
 			key = va_arg(ap, WT_ITEM *);
 			key->data = cursor->raw_recno_buf;
 			WT_ERR(__wt_struct_size(
@@ -352,19 +352,20 @@ __wt_cursor_set_keyv(WT_CURSOR *cursor, uint32_t flags, va_list ap)
 	F_CLR(cursor, WT_CURSTD_KEY_SET);
 
     //#define	WT_CURSOR_RECNO(cursor)	WT_STREQ((cursor)->key_format, "r")
-	if (WT_CURSOR_RECNO(cursor)) {
+    //列存储
+	if (WT_CURSOR_RECNO(cursor)) { //__wt_cursor_set_keyv和__wt_cursor_get_keyv配合阅读，体验pack和unpack
 		if (LF_ISSET(WT_CURSTD_RAW)) {
-			item = va_arg(ap, WT_ITEM *);
+			item = va_arg(ap, WT_ITEM *); //获取KV数据
 			WT_ERR(__wt_struct_unpack(session,
-			    item->data, item->size, "q", &cursor->recno));
+			    item->data, item->size, "q", &cursor->recno));  //unpack转换为其他格式后，数据存入cursor->recno
 		} else
 			cursor->recno = va_arg(ap, uint64_t);
 		if (cursor->recno == WT_RECNO_OOB)
 			WT_ERR_MSG(session, EINVAL,
 			    "%d is an invalid record number", WT_RECNO_OOB);
-		buf->data = &cursor->recno;
-		sz = sizeof(cursor->recno);
-	} else {
+		buf->data = &cursor->recno;  //数据指针
+		sz = sizeof(cursor->recno);  //数据长度
+	} else { //行存储，默认行存储
 		/* Fast path some common cases and special case WT_ITEMs. */
 		fmt = cursor->key_format;
 		if (LF_ISSET(WT_CURSOR_RAW_OK | WT_CURSTD_DUMP_JSON) ||
@@ -679,7 +680,7 @@ __wt_cursor_reconfigure(WT_CURSOR *cursor, const char *config)
 	/*
 	 * overwrite
 	 */
-	if ((ret = __wt_config_getones(
+	if ((ret = __wt_config_getones(//如果false则重复的话报错WT_DUPLICATE_KEY，如果为ture则始终成功写入
 	    session, config, "overwrite", &cval)) == 0) {
 		if (cval.val)
 			F_SET(cursor, WT_CURSTD_OVERWRITE);

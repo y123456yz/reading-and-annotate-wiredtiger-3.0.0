@@ -101,7 +101,7 @@ __wt_buf_fmt(WT_SESSION_IMPL *session, WT_ITEM *buf, const char *fmt, ...)
 /*
  * __wt_buf_catfmt --
  *	Grow a buffer to append a formatted string.
- */
+ */ //增长一个缓冲区把fmt内容格式化追加
 int
 __wt_buf_catfmt(WT_SESSION_IMPL *session, WT_ITEM *buf, const char *fmt, ...)
     WT_GCC_FUNC_ATTRIBUTE((format (printf, 3, 4)))

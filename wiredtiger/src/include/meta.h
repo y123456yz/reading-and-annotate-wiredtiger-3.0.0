@@ -34,13 +34,16 @@ journal存储Write ahead log
 #define	WT_INCREMENTAL_SRC	"WiredTiger.isrc"	/* Incremental source */
 
 //内容默认在__wt_turtle_read中构造，创建文件和写入内容在__wt_turtle_update
+//WiredTiger.turtle存储WiredTiger.wt的元数据信息
 #define	WT_METADATA_TURTLE	"WiredTiger.turtle"	/* Metadata metadata */
 //turtle更新的时候临时文件，见__wt_turtle_update
+//WiredTiger.turtle存储WiredTiger.wt的元数据信息
 #define	WT_METADATA_TURTLE_SET	"WiredTiger.turtle.set"	/* Turtle temp file */
 
 #define	WT_METADATA_URI		"metadata:"		/* Metadata alias */
-//该文件在__create_file中创建
+//该文件在__create_file中创建  WiredTiger.wt是特殊的table，用于存储所有其他table的元数据信息，如表的位置，表的配置信息等 写入见__wt_metadata_insert
 #define	WT_METAFILE		"WiredTiger.wt"		/* Metadata table */
+//WiredTiger.wt是特殊的table，用于存储所有其他table的元数据信息，如表的位置，表的配置信息等，写入见__wt_metadata_insert
 #define	WT_METAFILE_URI		"file:WiredTiger.wt"	/* Metadata table URI */
 
 //__wt_las_create中创建
@@ -77,25 +80,31 @@ journal存储Write ahead log
 	for ((ckpt) = (ckptbase); (ckpt)->name != NULL; ++(ckpt))
 
 /*checkpoint信息结构指针, __ckpt_load中获取配置的checkPoint信息填充该结构 */
+//__wt_meta_checkpoint中获取checkpoint信息
 struct __wt_ckpt {
+    /*名称字符*/
 	char	*name;				/* Name or NULL */
-
+	
+    /*检查点的addr二进制数据，分别打包了root_off/root_size/root_checksum*/
 	WT_ITEM  addr;				/* Checkpoint cookie string */
+	/*一个完整的checkpoint addr信息*/
 	WT_ITEM  raw;				/* Checkpoint cookie raw */
-
+	
+    /*checkpoint的序号，一直递增的,可以用这个ID来确定checkpoint之间的先后关系*/
 	int64_t	 order;				/* Checkpoint order */
-
+    /*时间戳*/
 	uintmax_t sec;				/* Timestamp */
-
+    /*checkpoint中的总数据空间大小*/
 	uint64_t ckpt_size;			/* Checkpoint size */
 
 	uint64_t write_gen;			/* Write generation */
-
+    /*一个WT_BLOCK_CKPT结构指针，连有详细的checkpiont信息*/
 	void	*bpriv;				/* Block manager private */
 
 #define	WT_CKPT_ADD	0x01			/* Checkpoint to be added */
 #define	WT_CKPT_DELETE	0x02			/* Checkpoint to be deleted */
 #define	WT_CKPT_FAKE	0x04			/* Checkpoint is a fake */
 #define	WT_CKPT_UPDATE	0x08			/* Checkpoint requires update */
+    /*checkpoint的状态标识*/
 	uint32_t flags;
 };
