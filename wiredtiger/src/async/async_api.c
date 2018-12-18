@@ -567,6 +567,8 @@ __async_runtime_config(WT_ASYNC_OP_IMPL *op, const char *cfg[])
 		F_SET(&asyncop->c, WT_CURSTD_APPEND);
 	else
 		F_CLR(&asyncop->c, WT_CURSTD_APPEND);
+
+	//如果false则重复的话报错WT_DUPLICATE_KEY，如果为ture则始终成功写入
 	WT_RET(__wt_config_gets_def(session, cfg, "overwrite", 1, &cval));
 	if (cval.val)
 		F_SET(&asyncop->c, WT_CURSTD_OVERWRITE);

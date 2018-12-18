@@ -609,6 +609,7 @@ __create_table(WT_SESSION_IMPL *session,
 [1532331783:898609][5465:0x7f3f1db28740][__curfile_search, 184], file:WiredTiger.wt, WT_CURSOR.search: CALL: WT_CURSOR:search
 [1532331783:898620][5465:0x7f3f1db28740][__curfile_reset, 160], file:WiredTiger.wt, WT_CURSOR.reset: CALL: WT_CURSOR:reset
 	*/
+    //获取WT_METAFILE_URI WiredTiger version，或者table的元数据存到tableconf
 	if ((ret = __wt_metadata_search(
 	    session, uri, &tableconf)) != WT_NOTFOUND) {
 		if (exclusive)
@@ -627,9 +628,9 @@ __create_table(WT_SESSION_IMPL *session,
 		;
 	WT_ERR_NOTFOUND_OK(ret);
 
-    //根据cfg获取tableconf配置信息
+    //根据cfg获取tableconf配置信息，也就是把cfg数组中相同的配置做合并，存到tableconf中
 	WT_ERR(__wt_config_collapse(session, cfg, &tableconf));
-	WT_ERR(__wt_metadata_insert(session, uri, tableconf));
+	WT_ERR(__wt_metadata_insert(session, uri, tableconf)); //更新元数据文件WiredTiger.wt
 
 	if (ncolgroups == 0) {
 		cgsize = strlen("colgroup:") + strlen(tablename) + 1;
@@ -642,7 +643,7 @@ __create_table(WT_SESSION_IMPL *session,
 	 * Open the table to check that it was setup correctly.  Keep the
 	 * handle exclusive until it is released at the end of the call.
 	 */
-	/*尝试性的打开刚刚创建的table对象*/
+	/* 获取uri对应的table信息，没有则创建 */
 	WT_ERR(__wt_schema_get_table_uri(
 	    session, uri, true, WT_DHANDLE_EXCLUSIVE, &table));
 	if (WT_META_TRACKING(session)) {
@@ -709,7 +710,6 @@ __wt_schema_create(
 	exclusive =
 	    __wt_config_getones(session, config, "exclusive", &cval) == 0 &&
 	    cval.val != 0;
-
    
 	/*
 	 * We track create operations: if we fail in the middle of creating a

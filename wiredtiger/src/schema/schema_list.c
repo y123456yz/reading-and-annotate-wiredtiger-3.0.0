@@ -27,6 +27,7 @@ __wt_schema_get_table_uri(WT_SESSION_IMPL *session,
 
 	*tablep = NULL;
 
+    //根据uri获取对应的dhandle,也就是对应的WT_TABLE
 	WT_ERR(__wt_session_get_dhandle(session, uri, NULL, NULL, flags));
 	table = (WT_TABLE *)session->dhandle; //配合__session_get_dhandle阅读
 	if (!ok_incomplete && !table->cg_complete) {

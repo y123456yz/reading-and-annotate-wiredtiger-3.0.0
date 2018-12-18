@@ -67,18 +67,21 @@
  * WT_BTREE --
  *	A btree handle.
  btree spliete:
- https://image.baidu.com/search/detail?ct=503316480&z=0&ipn=d&word=btree%20%E5%9B%BE%E8%A7%A3&step_word=&hs=2&pn=11&spn=0&di=199133070401&pi=0&rn=1&tn=baiduimagedetail&is=0%2C0&istype=0&ie=utf-8&oe=utf-8&in=&cl=2&lm=-1&st=undefined&cs=483906054%2C1404470189&os=3936313937%2C1070787049&simid=2643080156%2C2515390863&adpicid=0&lpn=0&ln=1155&fr=&fmq=1533289631579_R&fm=&ic=undefined&s=undefined&se=&sme=&tab=0&width=undefined&height=undefined&face=undefined&ist=&jit=&cg=&bdtype=0&oriquery=&objurl=http%3A%2F%2Fhi.csdn.net%2Fattachment%2F201006%2F3%2F0_1275560772aU6Q.gif&fromurl=ippr_z2C%24qAzdH3FAzdH3Fooo_z%26e3Bvgks52f_z%26e3Bv54AzdH3F1iz8dnAzdH3Fw6vitejAzdH3Fda8aAzdH3FamAzdH3FanAzdH3Fd8l9d09_z%26e3Bip4s&gsm=0&rpstart=0&rpnum=0&islist=&querylist=
- btree分裂过程:https://image.baidu.com/search/detail?ct=503316480&z=0&ipn=d&word=btree%20%E5%9B%BE%E8%A7%A3&step_word=&hs=2&pn=11&spn=0&di=199133070401&pi=0&rn=1&tn=baiduimagedetail&is=0%2C0&istype=0&ie=utf-8&oe=utf-8&in=&cl=2&lm=-1&st=undefined&cs=483906054%2C1404470189&os=3936313937%2C1070787049&simid=2643080156%2C2515390863&adpicid=0&lpn=0&ln=1155&fr=&fmq=1533289631579_R&fm=&ic=undefined&s=undefined&se=&sme=&tab=0&width=undefined&height=undefined&face=undefined&ist=&jit=&cg=&bdtype=0&oriquery=&objurl=http%3A%2F%2Fhi.csdn.net%2Fattachment%2F201006%2F3%2F0_1275560772aU6Q.gif&fromurl=ippr_z2C%24qAzdH3FAzdH3Fooo_z%26e3Bvgks52f_z%26e3Bv54AzdH3F1iz8dnAzdH3Fw6vitejAzdH3Fda8aAzdH3FamAzdH3FanAzdH3Fd8l9d09_z%26e3Bip4s&gsm=0&rpstart=0&rpnum=0&islist=&querylist=
 
  btree图解参考:https://blog.csdn.net/xu_flash/article/details/62216969
  BTREE简单代码例子:https://blog.csdn.net/cyongxue/article/details/16971337
+ 图解B+树的插入和删除(一看就懂）https://yq.aliyun.com/articles/9280
+ Mongodb的索引的实现算法---B-tree/B+tree/B*tree  http://lib.csdn.net/article/mongodb/53952
 
  __wt_conn_dhandle_alloc中分配空间
  btree结构  S2BT(session)完成session到btree的转换   成员赋值__btree_conf
  btree对应的文件见__wt_block_open
- */ //该结构实际上是S2BT(session)，可以参考__wt_btree_open
+ */ 
+    //WT_BTREE和__wt_block文件通过__wt_btree_open->__wt_block_manager_open关联
+
+ //该结构实际上是S2BT(session)，可以参考__wt_btree_open
  //不同xxx.wt对应的文btree可以通过conn->dhhash关联起来，参考__wt_conn_dhandle_alloc
-struct __wt_btree { //btree创建空间在__wt_conn_dhandle_alloc
+struct __wt_btree { //btree创建空间在__wt_conn_dhandle_alloc    __wt_btree.root为树的跟节点
     //赋值见__wt_btree_open
 	WT_DATA_HANDLE *dhandle;
     /*checkpoint信息结构指针*/

@@ -18,7 +18,7 @@ static int __btree_tree_open_empty(WT_SESSION_IMPL *, bool);
  * __btree_clear --
  *	Clear a Btree, either on handle discard or re-open.
  */
-//清除session对应的btree
+//清除session对应的btree，实际上是释放btree结构中成员malloc的相关内存，并消耗对应的锁
 static int
 __btree_clear(WT_SESSION_IMPL *session)
 {
@@ -62,7 +62,7 @@ int
 __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 {
 	WT_BM *bm;
-	WT_BTREE *btree;
+	WT_BTREE *btree; 
 	WT_CKPT ckpt;
 	WT_CONFIG_ITEM cval;
 	WT_DATA_HANDLE *dhandle;
@@ -615,7 +615,7 @@ err:	__wt_buf_free(session, &dsk);
  * __btree_tree_open_empty --
  *	Create an empty in-memory tree.
  */
-/*在内存中创建一个空的btree对象  创建一个root跟节点 */
+/*在内存中创建一个空的internal page，并与btree.root关联 */
 static int
 __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 {
@@ -652,9 +652,10 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 	switch (btree->type) {  //行存储还是列存储，参考__btree_conf配置解析  swich里面对应创建的是internal page
 	case BTREE_COL_FIX:
 	case BTREE_COL_VAR:
-	    //root page和internal page在后面__wt_root_ref_init这里关联
+	    
 		WT_ERR(__wt_page_alloc(
-		    session, WT_PAGE_COL_INT, 1, true, &root));
+		    session, WT_PAGE_COL_INT, 1, true, &root)); 
+		
 		root->pg_intl_parent_ref = &btree->root; //
 
 		pindex = WT_INTL_INDEX_GET_SAFE(root);
@@ -666,6 +667,8 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 		ref->ref_recno = 1;
 		break;
 	case BTREE_ROW:
+	//root对应internal page，root page和子page通过((root)->u.intl.__index)数组(ref结构数组)和子page关联
+	//root page和internal page在后面__wt_root_ref_init这里关联
 		WT_ERR(__wt_page_alloc(
 		    session, WT_PAGE_ROW_INT, 1, true, &root)); //分配internal page结构
 		root->pg_intl_parent_ref = &btree->root;
@@ -676,6 +679,7 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 		ref->page = NULL;
 		ref->addr = NULL;
 		ref->state = WT_REF_DELETED;
+		//获取一个WT_IKEY结构并赋值，存入ref->ref_ikey
 		WT_ERR(__wt_row_ikey_incr(session, root, 0, "", 1, ref));
 		break;
 	}
@@ -684,12 +688,13 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 	/*如果bulk load操作，需要提前新建一个叶子页来做协调存储*/
 	if (F_ISSET(btree, WT_BTREE_BULK)) { //叶子page创建
 		WT_ERR(__wt_btree_new_leaf_page(session, &leaf));
-		ref->page = leaf;
+		ref->page = leaf; //借助ref，也就是父page的u.intl.__index[i]，和子page关联起来
 		ref->state = WT_REF_MEM;
 		WT_ERR(__wt_page_modify_init(session, leaf));
 		__wt_page_only_modify_set(session, leaf);
 	}
 
+    //root page和internal page在后面__wt_root_ref_init这里关联
 	/* Finish initializing the root, root reference links. */
 	__wt_root_ref_init(&btree->root, root, btree->type != BTREE_ROW);
 
@@ -705,7 +710,7 @@ err:	if (leaf != NULL)
 /*
  * __wt_btree_new_leaf_page --
  *	Create an empty leaf page.
- */
+ */ //创建leaf page
 int
 __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_PAGE **pagep)
 {
@@ -722,7 +727,7 @@ __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_PAGE **pagep)
 		WT_RET(__wt_page_alloc(
 		    session, WT_PAGE_COL_VAR, 0, false, pagep));
 		break;
-	case BTREE_ROW:
+	case BTREE_ROW:  //如果是leaf page，则alloc_refs为0，也就是不会在有子节点
 		WT_RET(__wt_page_alloc(
 		    session, WT_PAGE_ROW_LEAF, 0, false, pagep));
 		break;

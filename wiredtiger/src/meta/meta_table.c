@@ -13,14 +13,14 @@
  *	Return if a key's value should be taken from the turtle file.
  */
 static bool
-__metadata_turtle(const char *key)
-{
+__metadata_turtle(const char *key) 
+{//file:WiredTiger.wt和WiredTiger version对应的元数据存储在WiredTiger.turtle文件
 	switch (key[0]) {
 	case 'f':
 		if (strcmp(key, WT_METAFILE_URI) == 0) //"file:WiredTiger.wt"
 			return (true);
 		break;
-	case 'W':
+	case 'W': //获取版本信息
 		if (strcmp(key, "WiredTiger version") == 0)
 			return (true);
 		if (strcmp(key, "WiredTiger version string") == 0)
@@ -34,7 +34,8 @@ __metadata_turtle(const char *key)
  * __wt_metadata_cursor_open --
  *	Opens a cursor on the metadata.
  */
- //获取一个cursor,通过cursorp返回
+ //获取一个cursor,通过cursorp返回  
+ //获取一个file:WiredTiger.wt元数据文件对应的cursor，这里面存储有所有table的元数据
 int
 __wt_metadata_cursor_open(
     WT_SESSION_IMPL *session, const char *config, WT_CURSOR **cursorp)
@@ -89,7 +90,11 @@ __wt_metadata_cursor_open(
  * which case it opens and returns another metadata cursor.
  */
 
+//__wt_turtle_read从WiredTiger.turtle文件中获取WT_METAFILE_URI或者WiredTiger version的元数据，
+//__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
+
 /*打开一个meta cursor， 通过cursorp返回并记录到session->meta_cursor */
+//获取一个file:WiredTiger.wt元数据文件对应的cursor，这里面存储有所有table的元数据
 int
 __wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
 {
@@ -103,6 +108,7 @@ __wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
 	//没有meta_cursor或者在使用中，则重写打开一个新的meta_cursor
 	if (session->meta_cursor == NULL ||
 	    F_ISSET(session->meta_cursor, WT_CURSTD_META_INUSE)) {
+	    //获取一个file:WiredTiger.wt元数据文件对应的cursor，这里面存储有所有table的元数据
 		WT_RET(__wt_metadata_cursor_open(session, NULL, &cursor));
 		if (session->meta_cursor == NULL) {
 			session->meta_cursor = cursor;
@@ -166,6 +172,7 @@ __wt_metadata_cursor_release(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
  */
 
 /*插入一个meta key/value对到meta中*/
+//把key value写入到WiredTiger.wt元数据文件
 int
 __wt_metadata_insert(
     WT_SESSION_IMPL *session, const char *key, const char *value)
@@ -276,8 +283,16 @@ err:	WT_TRET(__wt_metadata_cursor_release(session, &cursor));
  * __wt_metadata_search --
  *	Return a copied row from the metadata.
  *	The caller is responsible for freeing the allocated memory.
+WiredTiger.basecfg存储基本配置信息
+WiredTiger.lock用于防止多个进程连接同一个Wiredtiger数据库
+table*.wt存储各个tale（数据库中的表）的数据
+WiredTiger.wt是特殊的table，用于存储所有其他table的元数据信息
+WiredTiger.turtle存储WiredTiger.wt的元数据信息
+journal存储Write ahead log
  */
-/*在meta WiredTiger.turtle中查找key对应的value值，并拷贝对应的value进行返回*/
+//__wt_turtle_read从WiredTiger.turtle文件中获取WT_METAFILE_URI或者WiredTiger version的元数据，
+//__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
+//获取WT_METAFILE_URI WiredTiger version，或者table的元数据,通过valuep返回
 int
 __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 {
@@ -287,12 +302,14 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 
 	*valuep = NULL;
 
+    //WT_SESSION.create: Search: key: table:access, tracking: true, not turtle
 	__wt_verbose(session, WT_VERB_METADATA,
 	    "Search: key: %s, tracking: %s, %s" "turtle",
 	    key, WT_META_TRACKING(session) ? "true" : "false",
 	    __metadata_turtle(key) ? "" : "not ");
 
-	if (__metadata_turtle(key)) {
+	if (__metadata_turtle(key)) { 
+	//file:WiredTiger.wt和WiredTiger version对应的元数据存储在WiredTiger.turtle文件，从WiredTiger.turtle中获取
 		/*
 		 * The returned value should only be set if ret is non-zero, but
 		 * Coverity is convinced otherwise. The code path is used enough
@@ -301,14 +318,18 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 		 */ 
 		 /*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回， 返回内容填充到valuep中
            WiredTiger.turtle存储WiredTiger.wt的元数据信息，也就是查找是否有WiredTiger.wt配置信息
-		 */
+		 */ 
+		//key默认为WT_METAFILE_URI，或者WiredTiger version字符串,因为WT_METAFILE_URI和"WiredTiger version"的元数据在WiredTiger.turtle文件中
 		WT_WITH_TURTLE_LOCK(session,
+		//__wt_turtle_read从WiredTiger.turtle文件中获取WT_METAFILE_URI或者WiredTiger version的元数据，
+		//__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
 		    ret = __wt_turtle_read(session, key, valuep));
 		if (ret != 0)
 			__wt_free(session, *valuep);
 		return (ret);
 	}
 
+    //普通table的元数据存储在WiredTiger.wt，从WiredTiger.wt中获取
 	/*
 	 * All metadata reads are at read-uncommitted isolation.  That's
 	 * because once a schema-level operation completes, subsequent
@@ -317,6 +338,9 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 	 * Metadata updates use non-transactional techniques (such as the
 	 * schema and metadata locks) to protect access to in-flight updates.
 	 */
+	//__wt_turtle_read从WiredTiger.turtle文件中获取WT_METAFILE_URI或者WiredTiger version的元数据，
+	//__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
+	//获取一个file:WiredTiger.wt元数据文件对应的cursor，这里面存储有所有table的元数据
 	WT_RET(__wt_metadata_cursor(session, &cursor));
 	cursor->set_key(cursor, key);
 	WT_WITH_TXN_ISOLATION(session, WT_ISO_READ_UNCOMMITTED,

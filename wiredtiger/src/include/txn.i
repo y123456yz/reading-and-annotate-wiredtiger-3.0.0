@@ -450,7 +450,19 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 /*
  * __wt_txn_visible --
  *	Can the current transaction see the given ID / timestamp?
- */ /*检查事务id是否对当前session对应事务可见*/
+ */
+/*
+WiredTiger 很早就支持事务，在 3.x 版本里，MongoDB 就通过 WiredTiger 事务，来保证一条修改操作，
+对数据、索引、oplog 三者修改的原子性。但实际上 MongoDB 经过多个版本的迭代，才提供了事务接口，核心难点就是时序问题。
+MongoDB 通过 oplog 时间戳来标识全局顺序，而 WiredTiger 通过内部的事务ID来标识全局顺序，在实现上，
+
+2者没有任何关联。这就导致在并发情况下， MongoDB 看到的事务提交顺序与 WiredTiger 看到的事务提交顺序不一致。
+为解决这个问题，WiredTier 3.0 引入事务时间戳（transaction timestamp）机制，应用程序可以通过 
+WT_SESSION::timestamp_transaction 接口显式的给 WiredTiger 事务分配 commit timestmap，然后就可以实现指定
+时间戳读（read "as of" a timestamp）。有了 read "as of" a timestamp 特性后，在重放 oplog 时，备节点上
+的读就不会再跟重放 oplog 有冲突了，不会因重放 oplog 而阻塞读请求，这是4.0版本一个巨大的提升。
+*/
+/*检查事务id是否对当前session对应事务可见*/
 static inline bool
 __wt_txn_visible(
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)

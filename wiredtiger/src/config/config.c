@@ -708,7 +708,7 @@ __wt_config_getone(WT_SESSION_IMPL *session,
 /*
  * __wt_config_getones --
  *	Get the value for a given string key from a single config string.
- */
+ */ //获取config中key对应的配置，通过value返回
 int
 __wt_config_getones(WT_SESSION_IMPL *session,
     const char *config, const char *key, WT_CONFIG_ITEM *value)

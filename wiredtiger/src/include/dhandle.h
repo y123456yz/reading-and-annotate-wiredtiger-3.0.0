@@ -63,6 +63,7 @@
 //可以对应table  file  index colgroup等，
 //__wt_data_handle_cache.dhandle 
 //__session_add_dhandle  __conn_dhandle_get创建空间和赋值
+//__wt_conn_dhandle_alloc中创建dhandle，一个dhandle对应一个table或者file，如果是file与一个btree(__wt_data_handle.handle)树关联
 struct __wt_data_handle {
 	WT_RWLOCK rwlock;		/* Lock for shared/exclusive ops */
 
@@ -88,10 +89,10 @@ struct __wt_data_handle {
 	WT_SESSION_IMPL *excl_session;	/* Session with exclusive use, if any */
 
 	WT_DATA_SOURCE *dsrc;		/* Data source for this handle */
-	//赋值见__conn_dhandle_get
+	//赋值见__wt_conn_dhandle_alloc,如果是file，则通过这里与btree关联
 	void *handle;			/* Generic handle */
 
-	enum {
+	enum { //赋值见__wt_conn_dhandle_alloc
 		WT_DHANDLE_TYPE_BTREE, //table   tw create
 		WT_DHANDLE_TYPE_TABLE  //file
 	} type;

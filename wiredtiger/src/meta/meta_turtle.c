@@ -262,6 +262,10 @@ err:	__wt_free(session, metaconf);
  *	Read the turtle file.
  */ 
 /*读取turtle "WiredTiger.turtle"文件,并找到key对应的value值返回，不存在该文件则构造该文件内容返回 返回内容填充到valuep中*/
+//key默认为WT_METAFILE_URI，或者WiredTiger version字符串，见__wt_metadata_search。
+//也就是获取WT_METAFILE_URI，或者WiredTiger version字符串的元数据
+//__wt_turtle_read从WiredTiger.turtle文件中获取WT_METAFILE_URI或者WiredTiger version的元数据，
+//__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
 int
 __wt_turtle_read(WT_SESSION_IMPL *session, const char *key, char **valuep)
 {

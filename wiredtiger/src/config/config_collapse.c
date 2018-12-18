@@ -29,7 +29,7 @@
  *	use the final value of "key", regardless of field overlap or missing
  *	fields in the nested value.
  */
-//根据cfg
+//合并cfg数组中的配置项，通过config_ret返回，例如cfg[0]配置为key=(k2=v2,k3=v3)，cfg[1]配置为key=(k4=v4)，结果是key=(k4=v4)
 int
 __wt_config_collapse(
     WT_SESSION_IMPL *session, const char **cfg, char **config_ret)
@@ -59,6 +59,7 @@ __wt_config_collapse(
 			--v.str;
 			v.len += 2;
 		}
+		//增加一个缓冲区把fmt内容格式化追加
 		WT_ERR(__wt_buf_catfmt(session, tmp, "%.*s=%.*s,",
 		    (int)k.len, k.str, (int)v.len, v.str));
 	}

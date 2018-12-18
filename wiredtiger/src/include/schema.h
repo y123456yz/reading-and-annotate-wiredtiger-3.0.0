@@ -53,17 +53,17 @@ struct __wt_index {
  *	in an index key that can be used to reconstruct the primary key.
  */
 //table赋值见__schema_open_table，空间创建见__wt_conn_dhandle_alloc  
-//数据库表结构都在这里面
+//数据库表结构都在这里面  成员赋值见__schema_open_table
 struct __wt_table {
 	WT_DATA_HANDLE iface;
 
 	const char *plan;
-	const char *key_format, *value_format;
+	const char *key_format, *value_format; //赋值见__schema_open_table
 
 	WT_CONFIG_ITEM cgconf, colconf;
-
+    /*列式存储的column group*/
 	WT_COLGROUP **cgroups; //赋值见__wt_schema_open_colgroups
-	WT_INDEX **indices;
+	WT_INDEX **indices; /*索引集合*/
 	size_t idx_alloc;
 
 	bool cg_complete, //__wt_schema_open_colgroups中赋值为true

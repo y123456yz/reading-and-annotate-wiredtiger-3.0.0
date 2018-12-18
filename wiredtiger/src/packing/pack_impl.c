@@ -91,7 +91,7 @@ __wt_struct_pack(WT_SESSION_IMPL *session,
 /*
  * __wt_struct_unpack --
  *	Unpack a byte string.
- */
+ */ 
 int
 __wt_struct_unpack(WT_SESSION_IMPL *session,
     const void *buffer, size_t size, const char *fmt, ...)

@@ -81,7 +81,7 @@ struct __wt_cursor_backup {
 #define	WT_CURSOR_BACKUP_ID(cursor)	(((WT_CURSOR_BACKUP *)(cursor))->maxid)
 
 //__curfile_create中创建空间和赋值  插入一条记录到btree参考__wt_btcur_insert
-struct __wt_cursor_btree {//__wt_cursor_bulk.cbt
+struct __wt_cursor_btree {//__wt_cursor_bulk.cbt  cbt = (WT_CURSOR_BTREE *)cursor;
 	WT_CURSOR iface;
 
 	WT_BTREE *btree;		/* Enclosing btree */
@@ -513,6 +513,8 @@ struct __wt_cursor_table {
 #define	WT_CURSOR_PRIMARY(cursor)					\
 	(((WT_CURSOR_TABLE *)(cursor))->cg_cursors[0])
 
+//The 'r' type is used for record number keys in column stores. It is otherwise identical to the 'Q' type.
+//r列存储  S行存储，参考http://source.wiredtiger.com/3.0.0/schema.html#schema_column_types
 #define	WT_CURSOR_RECNO(cursor)	WT_STREQ((cursor)->key_format, "r")
 
 #define	WT_CURSOR_RAW_OK						\

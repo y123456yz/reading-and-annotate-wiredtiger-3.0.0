@@ -495,6 +495,7 @@ int
 __wt_row_ikey_incr(WT_SESSION_IMPL *session, WT_PAGE *page,
     uint32_t cell_offset, const void *key, size_t size, WT_REF *ref)
 {
+    //获取一个WT_IKEY结构并赋值，存入ref->ref_ikey
 	WT_RET(__wt_row_ikey(session, cell_offset, key, size, ref));
 
 	__wt_cache_page_inmem_incr(session, page, sizeof(WT_IKEY) + size);
