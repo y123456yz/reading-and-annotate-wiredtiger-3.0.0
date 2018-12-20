@@ -172,7 +172,7 @@ err:	API_END_RET(session, ret);
 /*
  * __curfile_search --
  *	WT_CURSOR->search method for the btree cursor type.
- */
+ */ //__wt_metadata_search中调用
 static int
 __curfile_search(WT_CURSOR *cursor)
 {
@@ -595,7 +595,7 @@ err:		/*
  //获取uri对应的cursor，通过cursorp返回
 int
 __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri,
-    WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp)
+    WT_CURSOR *owner, const char *cfg[], WT_CURSOR **cursorp) //file对应的cursor接口见__curfile_create
 {
 	WT_CONFIG_ITEM cval;
 	WT_DECL_RET;

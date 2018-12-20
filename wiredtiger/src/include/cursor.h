@@ -9,7 +9,7 @@
 /*
  * Initialize a static WT_CURSOR structure.
  */
-//参考__session_open_cursor_int  __wt_curtable_open  __wt_curindex_open __wt_clsm_open等
+//参考__session_open_cursor_int  __curfile_create __wt_curtable_open  __wt_curindex_open __wt_clsm_open __wt_curmetadata_open等
 #define	WT_CURSOR_STATIC_INIT(n,					\
 	get_key,							\
 	get_value,							\
@@ -81,6 +81,7 @@ struct __wt_cursor_backup {
 #define	WT_CURSOR_BACKUP_ID(cursor)	(((WT_CURSOR_BACKUP *)(cursor))->maxid)
 
 //__curfile_create中创建空间和赋值  插入一条记录到btree参考__wt_btcur_insert
+//__wt_cursor_bulk.cbt
 struct __wt_cursor_btree {//__wt_cursor_bulk.cbt  cbt = (WT_CURSOR_BTREE *)cursor;
 	WT_CURSOR iface;
 
@@ -128,7 +129,7 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt  cbt = (WT_CURSOR_BTREE *)curso
 	 *	> 1 if the found key is larger than the specified key
 	 */
 	//赋值见__search_insert_append  __wt_search_insert
-	int	compare;
+	int	compare; //=0表示__cursor_row_search key的时候btree中有该key
 
 	/*
 	 * A key returned from a binary search or cursor movement on a row-store

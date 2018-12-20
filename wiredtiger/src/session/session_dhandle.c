@@ -481,7 +481,8 @@ __session_get_dhandle(
 
     //先从session->dhhash查找
 	__session_find_dhandle(session, uri, checkpoint, &dhandle_cache);
-	if (dhandle_cache != NULL) { //找到，直接返回
+	if (dhandle_cache != NULL) { //找到，直接返回  从hash表中找到对应的dhandle，session->dhandle指向这个找到的handle，没找到则创建
+	//说明session->dhandle实际上存储的是当前需要用的dhandle，如果是table,则为__wt_table.iface，如果是file则就为__wt_data_handle 
 		session->dhandle = dhandle_cache->dhandle;
 		return (0);
 	}
@@ -530,10 +531,9 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 	WT_ASSERT(session, !F_ISSET(session, WT_SESSION_NO_DATA_HANDLES));
 
 	for (;;) {
-	    //根据uri和checkpoint获取对应的dhandle放入session->dhandle，没有则创建
+	    //根据uri和checkpoint获取对应的dhandle放入session->dhandle，没有则创建一个dhandle
 		WT_RET(__session_get_dhandle(session, uri, checkpoint));
 		dhandle = session->dhandle;
-
 		/* Try to lock the handle. */
 		WT_RET(__wt_session_lock_dhandle(session, flags, &is_dead));
 		if (is_dead)
@@ -572,8 +572,9 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 
 		/* Open the handle. 创建对应的btree或者table 并赋值*/
 		if ((ret = __wt_conn_dhandle_open(session, cfg, flags)) == 0 &&
-		    LF_ISSET(WT_DHANDLE_EXCLUSIVE))
+		    LF_ISSET(WT_DHANDLE_EXCLUSIVE)) {
 			break;
+        }
 
 		/*
 		 * If we got the handle exclusive to open it but only want
@@ -585,6 +586,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session,
 		__wt_writeunlock(session, &dhandle->rwlock);
 		WT_RET(ret);
 	}
+
 
 	WT_ASSERT(session, !F_ISSET(dhandle, WT_DHANDLE_DEAD));
 	WT_ASSERT(session, LF_ISSET(WT_DHANDLE_LOCK_ONLY) ||

@@ -16,7 +16,7 @@
 //创建空间赋值见__wt_schema_open_colgroups
 struct __wt_colgroup {
 	const char *name;		/* Logical name */
-	const char *source;		/* Underlying data source */
+	const char *source;		/* Underlying data source */ //file:access，
 	const char *config;		/* Configuration string */
 
 	WT_CONFIG_ITEM colconf;		/* List of columns from config */

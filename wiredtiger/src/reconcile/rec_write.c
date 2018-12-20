@@ -20,6 +20,7 @@ struct __rec_kv;		typedef struct __rec_kv WT_KV;
  * WT_RECONCILE --
  *	Information tracking a single page reconciliation.
  */ 
+//page刷盘的过程称为reconcile
 //创建空间和赋值见__rec_init   __rec_split_init  和checkpoint相关，可以参考__rec_row_leaf
 typedef struct {
 	WT_REF  *ref;			/* Page being reconciled */
@@ -125,6 +126,7 @@ typedef struct {
 	 * page_size can continue to grow past page_size_orig, and we keep
 	 * accumulating raw data until the raw compression callback accepts it.
 	 */
+	//默认btree->maxleafpage  leaf_page_max配置  当page size使用达到split_pct一定比例开始split 
 	uint32_t page_size;		/* Set page size */
 	uint32_t page_size_orig;	/* Saved set page size */
 	uint32_t max_raw_page_size;	/* Max page size with raw compression */
@@ -134,6 +136,8 @@ typedef struct {
 	 * smaller-than-maximum page size when a split is required so we don't
 	 * repeatedly split a packed page.
 	 */
+	//page size达到这么多开始分裂，见__rec_split_page_size_from_pct
+	//是否需要split，判断见__rec_need_split 
 	uint32_t split_size;		/* Split page size */
 	uint32_t min_split_size;	/* Minimum split page size */
 
@@ -193,6 +197,8 @@ typedef struct {
 	uint32_t entries;		/* Current number of entries */
 	//赋值见__rec_copy_incr拷贝数据实际上是填充r->cur_ptr->image  __rec_incr，指向的是r->cur_ptr->image，见__rec_split_init
 	uint8_t *first_free;		/* Current first free byte */
+    //r->space_avail = r->split_size - WT_PAGE_HEADER_BYTE_SIZE(btree);
+    //是否需要split，判断见__rec_need_split
 	size_t	 space_avail;		/* Remaining space in this chunk */
 	/* Remaining space in this chunk to put a minimum size boundary */
 	size_t	 min_space_avail;
@@ -206,6 +212,7 @@ typedef struct {
 	WT_SAVE_UPD *supd;		/* Saved updates */
 	uint32_t     supd_next;
 	size_t	     supd_allocated;
+	//该page已经使用的内存，
 	size_t       supd_memsize;	/* Size of saved update structures */
 
 	/* List of pages we've written so far. */
@@ -2139,6 +2146,7 @@ __rec_leaf_page_max(WT_SESSION_IMPL *session, WT_RECONCILE *r)
  * __rec_need_split --
  *	Check whether adding some bytes to the page requires a split.
  */
+//判断是否需要分裂
 static bool
 __rec_need_split(WT_RECONCILE *r, size_t len)
 {

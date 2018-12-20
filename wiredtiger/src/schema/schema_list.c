@@ -38,7 +38,7 @@ __wt_schema_get_table_uri(WT_SESSION_IMPL *session,
 		    table->iface.name);
 	}
 	*tablep = table;
-
+    printf("yang test ......................... __wt_schema_get_table_uri\r\n");
     //恢复
 err:	session->dhandle = saved_dhandle;
 	return (ret);
@@ -48,7 +48,7 @@ err:	session->dhandle = saved_dhandle;
  * __wt_schema_get_table --
  *	Get the table handle for the named table.
  */ 
-//获取name对应的table handle
+//获取name对应的table handle,  注意会在name前加上table:
 int
 __wt_schema_get_table(WT_SESSION_IMPL *session,
     const char *name, size_t namelen, bool ok_incomplete, uint32_t flags,
@@ -59,7 +59,7 @@ __wt_schema_get_table(WT_SESSION_IMPL *session,
 
 	WT_RET(__wt_scr_alloc(session, namelen + 1, &namebuf));
 	WT_ERR(__wt_buf_fmt(
-	    session, namebuf, "table:%.*s", (int)namelen, name));
+	    session, namebuf, "table:%.*s", (int)namelen, name)); //name变为table:name
 
 	WT_ERR(__wt_schema_get_table_uri(
 	    session, namebuf->data, ok_incomplete, flags, tablep));

@@ -92,7 +92,7 @@ static inline int
 __wt_compare(WT_SESSION_IMPL *session, WT_COLLATOR *collator,
     const WT_ITEM *user_item, const WT_ITEM *tree_item, int *cmpp)
 {
-	if (collator == NULL) {
+	if (collator == NULL) { //一般用这个默认的
 		*cmpp = __wt_lex_compare(user_item, tree_item);
 		return (0);
 	}

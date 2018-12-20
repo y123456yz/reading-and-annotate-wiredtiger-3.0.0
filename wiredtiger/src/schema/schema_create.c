@@ -74,7 +74,7 @@ __create_file(WT_SESSION_IMPL *session,
 	WT_PREFIX_SKIP_REQUIRED(session, filename, "file:");
 
 	/* Check if the file already exists. */
-	if (!is_metadata && (ret =
+	if (!is_metadata && (ret = //检查元数据文件是否有uri的元数据信息，也就是该file是否已经存在
 	    __wt_metadata_search(session, uri, &fileconf)) != WT_NOTFOUND) {
 		if (exclusive)
 			WT_TRET(EEXIST);
@@ -83,7 +83,7 @@ __create_file(WT_SESSION_IMPL *session,
 
 	/* Sanity check the allocation size. */
 	WT_ERR(__wt_direct_io_size_check(
-	    session, filecfg, "allocation_size", &allocsize)); //从file_meta中获取的allocation_size值
+	    session, filecfg, "allocation_size", &allocsize)); //从filecfg中获取的allocation_size值
 
 	/* Create the file. */
 	// 构造WT_BLOCK_DESC结构，并写入到磁盘,一次写入allocsize字节到文件，其中前面的内容为WT_BLOCK_DESC结构内容，
@@ -97,7 +97,7 @@ __create_file(WT_SESSION_IMPL *session,
 	 * numbers to the passed-in configuration and insert the resulting
 	 * configuration into the metadata.
 	 */
-	if (!is_metadata) { //如果不是metadata
+	if (!is_metadata) { //如果不是metadata,也就是uri不是file:WiredTiger.wt
 		WT_ERR(__wt_scr_alloc(session, 0, &val));
 		WT_ERR(__wt_buf_fmt(session, val,
 		    "id=%" PRIu32 ",version=(major=%d,minor=%d)",
@@ -107,7 +107,7 @@ __create_file(WT_SESSION_IMPL *session,
 			;
 		*p = val->data;
 		WT_ERR(__wt_config_collapse(session, filecfg, &fileconf));
-		WT_ERR(__wt_metadata_insert(session, uri, fileconf));
+		WT_ERR(__wt_metadata_insert(session, uri, fileconf)); //把uri的配置信息写入meta表文件
 	}
     
 	/*
@@ -134,7 +134,7 @@ err:	__wt_scr_free(session, &val);
 /*
  * __wt_schema_colgroup_source --
  *	Get the URI of the data source for a column group.
- */
+ */ //这里会默认把table前缀改为file
 int
 __wt_schema_colgroup_source(WT_SESSION_IMPL *session,
     WT_TABLE *table, const char *cgname, const char *config, WT_ITEM *buf)
@@ -144,16 +144,16 @@ __wt_schema_colgroup_source(WT_SESSION_IMPL *session,
 	size_t len;
 	const char *prefix, *suffix, *tablename;
 
-	tablename = table->iface.name + strlen("table:");
+	tablename = table->iface.name + strlen("table:"); //去除前面的table:,如table:access，则tablename就变为access
 	if ((ret = __wt_config_getones(session, config, "type", &cval)) == 0 &&
 	    !WT_STRING_MATCH("file", cval.str, cval.len)) {
 		prefix = cval.str;
 		len = cval.len;
 		suffix = "";
 	} else {
-		prefix = "file";
+		prefix = "file"; //前缀
 		len = strlen(prefix);
-		suffix = ".wt";
+		suffix = ".wt"; //后缀
 	}
 	WT_RET_NOTFOUND_OK(ret);
 
@@ -170,7 +170,7 @@ __wt_schema_colgroup_source(WT_SESSION_IMPL *session,
 /*
  * __create_colgroup --
  *	Create a column group.
- */
+ */ //建table的时候也会走到这里面
 static int
 __create_colgroup(WT_SESSION_IMPL *session,
     const char *name, bool exclusive, const char *config)
@@ -195,7 +195,7 @@ __create_colgroup(WT_SESSION_IMPL *session,
 	exists = tracked = false;
 
 	tablename = name;
-	WT_PREFIX_SKIP_REQUIRED(session, tablename, "colgroup:");
+	WT_PREFIX_SKIP_REQUIRED(session, tablename, "colgroup:"); //跳过了colgroup，tablename也就是实际的表名，如access
 	cgname = strchr(tablename, ':');
 	if (cgname != NULL) {
 		tlen = (size_t)(cgname - tablename);
@@ -204,7 +204,7 @@ __create_colgroup(WT_SESSION_IMPL *session,
 		tlen = strlen(tablename);
 
 	if ((ret = __wt_schema_get_table(
-	    session, tablename, tlen, true, WT_DHANDLE_EXCLUSIVE, &table)) != 0)
+	    session, tablename, tlen, true, WT_DHANDLE_EXCLUSIVE, &table)) != 0) //获取一个临时的table handle
 		WT_RET_MSG(session, (ret == WT_NOTFOUND) ? ENOENT : ret,
 		    "Can't create '%s' for non-existent table '%.*s'",
 		    name, (int)tlen, tablename);
@@ -222,7 +222,7 @@ __create_colgroup(WT_SESSION_IMPL *session,
 		WT_ERR_MSG(session, EINVAL,
 		    "Column group '%s' not found in table '%.*s'",
 		    cgname, (int)tlen, tablename);
-
+		    
 	/* Check if the column group already exists. */
 	if ((ret = __wt_metadata_search(session, name, &origconf)) == 0) {
 		if (exclusive)
@@ -242,6 +242,7 @@ __create_colgroup(WT_SESSION_IMPL *session,
 		    session, &namebuf, "%.*s", (int)cval.len, cval.str));
 		source = namebuf.data;
 	} else {
+	    //这里会默认把table前缀改为file
 		WT_ERR(__wt_schema_colgroup_source(
 		    session, table, cgname, config, &namebuf));
 		source = namebuf.data;
@@ -265,6 +266,7 @@ __create_colgroup(WT_SESSION_IMPL *session,
 	}
 	sourcecfg[1] = fmt.data;
 	WT_ERR(__wt_config_merge(session, sourcecfg, NULL, &sourceconf));
+	//改为file后开始走file创建流程，一个file对应一个btree
 	WT_ERR(__wt_schema_create(session, source, sourceconf));
 
 	WT_ERR(__wt_config_collapse(session, cfg, &cgconf));
@@ -611,11 +613,12 @@ __create_table(WT_SESSION_IMPL *session,
 	*/
     //获取WT_METAFILE_URI WiredTiger version，或者table的元数据存到tableconf
 	if ((ret = __wt_metadata_search(
-	    session, uri, &tableconf)) != WT_NOTFOUND) {
+	    session, uri, &tableconf)) != WT_NOTFOUND) { //第一次create table肯定会返回WT_NOTFOUND
 		if (exclusive)
 			WT_TRET(EEXIST);
 		goto err;
 	}
+
 
 //uri:table:access, tableconf:(null)[1532331783:898653][5465:0x7f3f1db28740][__wt_metadata_insert, 179], WT_SESSION.create: Insert: key: table:access, value: app_metadata=,colgroups=,collator=,columns=,key_format=S,value_format=S, tracking: true, not turtle
 //printf("uri:%s, tableconf:%s", uri, tableconf);
@@ -626,16 +629,15 @@ __create_table(WT_SESSION_IMPL *session,
 	    (ret = __wt_config_next(&conf, &cgkey, &cgval)) == 0;
 	    ncolgroups++)
 		;
-	WT_ERR_NOTFOUND_OK(ret);
-
+	WT_ERR_NOTFOUND_OK(ret); 
     //根据cfg获取tableconf配置信息，也就是把cfg数组中相同的配置做合并，存到tableconf中
 	WT_ERR(__wt_config_collapse(session, cfg, &tableconf));
-	WT_ERR(__wt_metadata_insert(session, uri, tableconf)); //更新元数据文件WiredTiger.wt
+	WT_ERR(__wt_metadata_insert(session, uri, tableconf)); //更新uri元数据信息到元数据文件WiredTiger.wt
 
 	if (ncolgroups == 0) {
 		cgsize = strlen("colgroup:") + strlen(tablename) + 1;
 		WT_ERR(__wt_calloc_def(session, cgsize, &cgname));
-		WT_ERR(__wt_snprintf(cgname, cgsize, "colgroup:%s", tablename));
+		WT_ERR(__wt_snprintf(cgname, cgsize, "colgroup:%s", tablename)); //table头替换为colgroup头
 		WT_ERR(__create_colgroup(session, cgname, exclusive, config));
 	}
 
@@ -646,6 +648,7 @@ __create_table(WT_SESSION_IMPL *session,
 	/* 获取uri对应的table信息，没有则创建 */
 	WT_ERR(__wt_schema_get_table_uri(
 	    session, uri, true, WT_DHANDLE_EXCLUSIVE, &table));
+	
 	if (WT_META_TRACKING(session)) {
 		WT_WITH_DHANDLE(session, &table->iface,
 		    ret = __wt_meta_track_handle_lock(session, true));
@@ -724,7 +727,8 @@ __wt_schema_create(
 		ret = __wt_lsm_tree_create(session, uri, exclusive, config);
 	else if (WT_PREFIX_MATCH(uri, "index:"))//索引index
 		ret = __create_index(session, uri, exclusive, config);
-	else if (WT_PREFIX_MATCH(uri, "table:")) //wt create
+	else if (WT_PREFIX_MATCH(uri, "table:")) //wt create          table:access在__wt_schema_colgroup_source中改为file
+        // __create_table->__create_colgroup->__wt_schema_colgroup_source中把table:access改为file:access，并走创建file(btree流程)
 		ret = __create_table(session, uri, exclusive, config); //创建表
 	else if ((dsrc = __wt_schema_get_source(session, uri)) != NULL)
 		ret = dsrc->create == NULL ?

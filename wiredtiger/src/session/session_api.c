@@ -278,7 +278,7 @@ err:	API_END_RET_NOTFOUND_MAP(session, ret);
  * __session_open_cursor_int --
  *	Internal version of WT_SESSION::open_cursor, with second cursor arg.
  */ // 根据uri打开一个对应的cursor对象 
- /*获取cursor返回 */
+ /*获取cursor返回，不同的table file lsm等有不同的cursor操作接口 */
 static int
 __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
     WT_CURSOR *owner, WT_CURSOR *other, const char *cfg[], WT_CURSOR **cursorp)
@@ -343,6 +343,7 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri,
 	 */
 	case 'f':  //获取uri对应的cursor，通过cursorp返回
 		if (WT_PREFIX_MATCH(uri, "file:"))
+		    //file对应的cursor接口见__curfile_create
 			WT_RET(__wt_curfile_open(
 			    session, uri, owner, cfg, cursorp));
 		break;
@@ -550,7 +551,7 @@ __wt_session_create(
 /*根据uri和config信息创建一个对应的schema对象
 util_create会调用该函数  
 //根据uri创建对应的colgroup  file  lsm index table等
-*/
+*/ //session->create调用，参考example
 static int
 __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 {

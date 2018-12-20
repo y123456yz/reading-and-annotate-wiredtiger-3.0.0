@@ -77,8 +77,7 @@
  btree½á¹¹  S2BT(session)Íê³Ésessionµ½btreeµÄ×ª»»   ³ÉÔ±¸³Öµ__btree_conf
  btree¶ÔÓ¦µÄÎÄ¼ş¼û__wt_block_open
  */ 
-    //WT_BTREEºÍ__wt_blockÎÄ¼şÍ¨¹ı__wt_btree_open->__wt_block_manager_open¹ØÁª
-
+//WT_BTREEºÍ__wt_blockÎÄ¼şÍ¨¹ı__wt_btree_open->__wt_block_manager_open¹ØÁª
  //¸Ã½á¹¹Êµ¼ÊÉÏÊÇS2BT(session)£¬¿ÉÒÔ²Î¿¼__wt_btree_open
  //²»Í¬xxx.wt¶ÔÓ¦µÄÎÄbtree¿ÉÒÔÍ¨¹ıconn->dhhash¹ØÁªÆğÀ´£¬²Î¿¼__wt_conn_dhandle_alloc
 struct __wt_btree { //btree´´½¨¿Õ¼äÔÚ__wt_conn_dhandle_alloc    __wt_btree.rootÎªÊ÷µÄ¸ú½Úµã
@@ -97,7 +96,7 @@ struct __wt_btree { //btree´´½¨¿Õ¼äÔÚ__wt_conn_dhandle_alloc    __wt_btree.rootÎ
 	const char *value_format;	/* Value format */
 	/*¶¨³¤fieldµÄ³¤¶È*/
 	uint8_t bitcnt;			/* Fixed-length field size in bits */
-    /*ĞĞ´æ´¢Ê±µÄ±È½ÏÆ÷*/
+    /*ĞĞ´æ´¢Ê±µÄ±È½ÏÆ÷*/ //Èç¹ûÃ»Ö¸¶¨£¬ÔòÒ»°ãÓÃÄ¬ÈÏµÄ£¬¼û__wt_compare
 	WT_COLLATOR *collator;		/* Row-store comparator */
 	/*Èç¹ûÕâ¸öÖµÎª1£¬±íÊ¾±È½ÏÆ÷ĞèÒª½øĞĞfree*/
 	int collator_owned;		/* The collator needs to be freed */
@@ -150,6 +149,8 @@ struct __wt_btree { //btree´´½¨¿Õ¼äÔÚ__wt_conn_dhandle_alloc    __wt_btree.rootÎ
 #define	WT_SPLIT_DEEPEN_PER_CHILD_DEF	100
     /*Ò³slpitÊ±btree²ãÔö¼ÓµÄÆ½¾ùentry¸öÊı*/
 	u_int split_deepen_per_child;	/* Entries per child when deepened */
+	///*btree->split_pctÊÇpage·ÖÁÑãĞÖµµÄ°Ù·Ö±È£¬Ã¿´Î·ÖÁÑµÄÊ±ºò¶¼·ÖÁÑ³É×î´ósizeµÄÕâ¸ö°Ù·ÖÊı´óĞ¡*/
+	//¼û__wt_split_page_size
 	int   split_pct;		/* Split page percent */
 
     /*Ò³Êı¾İÑ¹ËõÆ÷*/
@@ -177,7 +178,7 @@ struct __wt_btree { //btree´´½¨¿Õ¼äÔÚ__wt_conn_dhandle_alloc    __wt_btree.rootÎ
 	bool lookaside_entries;		/* Has entries in the lookaside table */
 	bool lsm_primary;		/* Handle is/was the LSM primary */
 
-    /*block manager¾ä±ú*/
+    /*block manager¾ä±ú ´Ó¶øÈÃbtreeÓëblockÎÄ¼ş¶ÔÓ¦ÆğÀ´ */
 	WT_BM	*bm;			/* Block manager reference */
 	/*blockÍ·³¤¶È£¬=WT_PAGE_HEADER_BYTE_SIZE*/
 	u_int	 block_header;		/* WT_PAGE_HEADER_BYTE_SIZE */

@@ -690,13 +690,14 @@ https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 #define	WT_PAGE_COL_INT		3	/* Col-store internal page */
 #define	WT_PAGE_COL_VAR		4	/* Col-store var-length leaf page */
 #define	WT_PAGE_OVFL		5	/* Overflow page */
-//internal page创建空间__btree_tree_open_empty
+//internal page创建空间__btree_tree_open_empty  root page和internale page实际上都是WT_PAGE_ROW_INT
 #define	WT_PAGE_ROW_INT		6	/* Row-store internal page */  //internal page
 //leaf page创建空间__wt_btree_new_leaf_page
 #define	WT_PAGE_ROW_LEAF	7	/* Row-store leaf page */      //leaf page
 
 
 #undef	pg_intl_parent_ref
+//指向本page对应的ref，一个ref里面会包含一个page指针
 #define	pg_intl_parent_ref		u.intl.parent_ref
 #undef	pg_intl_split_gen
 #define	pg_intl_split_gen		u.intl.split_gen
@@ -735,10 +736,11 @@ https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 } while (0)
 
 
-//参考__wt_page_alloc
+//参考__wt_page_alloc  
 #define	WT_INTL_INDEX_GET_SAFE(page)					\
 	((page)->u.intl.__index)
-	
+
+//获取page的__index	
 #define	WT_INTL_INDEX_GET(session, page, pindex) do {			\
 	WT_ASSERT(session,						\
 	    __wt_session_gen(session, WT_GEN_SPLIT) != 0);		\
@@ -865,13 +867,15 @@ struct __wt_ref {
 	union {
 	    //列存储用这个，见__check_leaf_key_range
 		uint64_t recno;		/* Column-store: starting recno */
-		//行存储用这个，见__check_leaf_key_range
+		//行存储用这个，见__check_leaf_key_range  该ref对应的page上的所有key都存到该内存地址，参考__wt_row_ikey
 		void	*ikey;		/* Row-store: key */ //赋值见__wt_row_ikey
 	} key;
 #undef	ref_recno
 #define	ref_recno	key.recno
 #undef	ref_ikey
-#define	ref_ikey	key.ikey  //赋值见__wt_row_ikey
+//该ref对应的page上的key查找就是根据这个进行比较,参考__wt_ref_key, 
+//所有insert的key都写入该地址对应的内存空间，参考__wt_row_ikey
+#define	ref_ikey	key.ikey  //赋值见__wt_row_ikey  __wt_ref_key_onpage_set  
 
 	union {
 		WT_PAGE_DELETED	*page_del;	/* Deleted page information */
@@ -884,7 +888,7 @@ struct __wt_ref {
 
 //赋值见__evict_page_dirty_update
 #define	WT_REF_DISK	 0		/* Page is on disk */
-////默认WT_REF_DELETED，见__btree_tree_open_empty  __inmem_row_int
+////默认WT_REF_DELETED，见__btree_tree_open_empty __split_parent  __inmem_row_int
 #define	WT_REF_DELETED	 1		/* Page is on disk, but deleted */
 #define	WT_REF_LOCKED	 2		/* Page locked for exclusive access */
 #define	WT_REF_LOOKASIDE 3		/* Page is on disk with lookaside */
@@ -1125,8 +1129,10 @@ struct __wt_update {
  * scale and it isn't useful enough to re-implement, IMNSHO.)
  */
 //分配空间可以参考__wt_row_insert_alloc  __wt_insert_serial中添加到tree中
+//所有的__wt_insert(ins)通过page->mod->mod_row_insert[]跳跃表组织管理起来
 struct __wt_insert {
-	WT_UPDATE *upd;				/* value */
+	WT_UPDATE *upd;				/* value */ 
+	//同一个key可能多次update 删除等，有多少次update或者删除等操作，该upd链表就有多少个WT_UPDATE
 
 	union {
 		uint64_t recno;			/* column-store record number */
@@ -1138,6 +1144,7 @@ struct __wt_insert {
 		} key;
 	} u;
 
+    //
 	WT_INSERT *next[0];			/* forward-linked skip list */
 };
 

@@ -507,6 +507,7 @@ __wt_row_ikey_incr(WT_SESSION_IMPL *session, WT_PAGE *page,
  * __wt_row_ikey --
  *	Instantiate a key in a WT_IKEY structure.
  */ /*实例化一个指定的key结构对象*/
+//__wt_ref_key_onpage_set __wt_row_ikey和__wt_ref_key对应
 int
 __wt_row_ikey(WT_SESSION_IMPL *session,
     uint32_t cell_offset, const void *key, size_t size, WT_REF *ref)

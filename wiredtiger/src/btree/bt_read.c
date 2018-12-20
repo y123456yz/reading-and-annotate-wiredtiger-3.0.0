@@ -370,7 +370,7 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 		WT_ASSERT(session, previous_state != WT_REF_DISK);
 
 		WT_ERR(__wt_btree_new_leaf_page(session, &page));
-		ref->page = page;
+		ref->page = page; //ref对应的page为这个新开辟的page
 		if (previous_state == WT_REF_LOOKASIDE)
 			goto skip_read;
 		goto done;
@@ -570,7 +570,7 @@ __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 	    force_attempts = 0, sleep_cnt = wait_cnt = 0;;) {
 	 
 		switch (ref->state) {
-		case WT_REF_DELETED: //
+		case WT_REF_DELETED: //root page初始化后的第一个子ref为该状态
 			if (LF_ISSET(WT_READ_NO_EMPTY) &&
 			    __wt_delete_page_skip(session, ref, false)) {
 		

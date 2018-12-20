@@ -687,8 +687,8 @@ __wt_ref_addr_free(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_ref_key --
  *	Return a reference to a row-store internal page key as cheaply as
  * possible.
- */ /*获取行存储时ref对应page中的内部key值*/
-static inline void
+ */ /*获取行存储时ref对应page中的内部所有key值(实际上获取的是所有key在内存的开始位置及所有key总长度)*/
+static inline void  //page为
 __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
 {
 	uintptr_t v;
@@ -731,7 +731,7 @@ __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
  * __wt_ref_key_onpage_set --
  *	Set a WT_REF to reference an on-page key.
  */
-//__wt_ref_key_onpage_set和__wt_ref_key对应
+//__wt_ref_key_onpage_set __wt_row_ikey和__wt_ref_key对应
 static inline void
 __wt_ref_key_onpage_set(WT_PAGE *page, WT_REF *ref, WT_CELL_UNPACK *unpack)
 {

@@ -514,9 +514,9 @@ err:	if (ret != 0) {
 		__cursor_state_restore(cursor, &state);
 	}
 
-    if(ret == WT_NOTFOUND)
+    if(ret == WT_NOTFOUND)  //Ã»ÕÒµ½
 	    __wt_verbose(session, WT_VERB_API, "__wt_btcur_search, key:%s, value:%s", cursor->key.data, "not found");
-	else
+	else //ÕÒµ½
 	    __wt_verbose(session, WT_VERB_API, "__wt_btcur_search, key:%s, value:%s", cursor->key.data, cursor->value.data);
 	return (ret);
 }
@@ -705,7 +705,7 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
 	 * configured for append aren't included, regardless of whether or not
 	 * they meet all other criteria.
 	 */
-	if (__cursor_page_pinned(cbt) &&
+	if (__cursor_page_pinned(cbt) &&  //inserting with overwrite configured
 	    F_ISSET_ALL(cursor, WT_CURSTD_KEY_INT | WT_CURSTD_OVERWRITE) &&
 	    !append_key) {
 		WT_ERR(__wt_txn_autocommit_check(session));

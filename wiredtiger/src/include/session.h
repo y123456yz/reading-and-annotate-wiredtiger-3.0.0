@@ -65,8 +65,9 @@ struct __wt_session_impl {
 	uint32_t id;			/* UID, offset in session array */
     //赋值见__wt_event_handler_set
 	WT_EVENT_HANDLER *event_handler;/* Application's event handlers */
-
-    //__session_get_dhandle  __wt_conn_dhandle_alloc中 __wt_conn_dhandle_find赋值 
+	
+	//说明session->dhandle实际上存储的是当前需要用的dhandle，如果是table,则为__wt_table.iface，如果是file则就为__wt_data_handle 
+    //__session_get_dhandle(获取，默认先从hash缓存中获取，没有才创建)  __wt_conn_dhandle_alloc中 __wt_conn_dhandle_find赋值 
 	WT_DATA_HANDLE *dhandle;	/* Current data handle */
 
 	/*

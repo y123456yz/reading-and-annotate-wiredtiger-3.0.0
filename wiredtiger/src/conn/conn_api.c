@@ -1887,7 +1887,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[])
 		if ((ret = __wt_config_subgets(
 		    session, &cval, ft->name, &sval)) == 0 && sval.val != 0) {
 #ifdef HAVE_VERBOSE  //需要使能HAVE_VERBOSE才有效
-			//LF_SET(ft->flag); //flag赋值在这里面
+			LF_SET(ft->flag); //flag赋值在这里面
 #else
 			WT_RET_MSG(session, EINVAL,
 			    "Verbose option specified when WiredTiger built "
@@ -1896,7 +1896,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[])
 			    "for verbose messages");
 #endif
 		}
-		
+		LF_SET(ft->flag); //保证所有日志都打印
 		WT_RET_NOTFOUND_OK(ret);
 	}
     
