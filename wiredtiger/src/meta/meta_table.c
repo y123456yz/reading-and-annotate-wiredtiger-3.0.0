@@ -94,9 +94,9 @@ __wt_metadata_cursor_open(
 //__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
 
 /*打开一个meta cursor， 通过cursorp返回并记录到session->meta_cursor */
-//获取一个file:WiredTiger.wt元数据文件对应的cursor，这里面存储有所有table的元数据
+//获取一个file:WiredTiger.wt元数据文件对应的cursor，这里面存储有所有table的元数据  file对应的cursor接口赋值在__curfile_create
 int
-__wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
+__wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp) 
 {
 	WT_CURSOR *cursor;
 
@@ -173,7 +173,7 @@ __wt_metadata_cursor_release(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
 
 /*插入一个meta key/value对到meta中*/
 //把key value写入到WiredTiger.wt元数据文件
-int
+int //__wt_metadata_search和__wt_metadata_insert配合，一个写，一个查询
 __wt_metadata_insert(
     WT_SESSION_IMPL *session, const char *key, const char *value)
 {
@@ -191,9 +191,9 @@ __wt_metadata_insert(
 
 	WT_RET(__wt_metadata_cursor(session, &cursor));
 
-	//__wt_cursor_set_keyv  填充key到cursor->key
+	//__wt_cursor_set_key  填充key到cursor->key
 	cursor->set_key(cursor, key);
-	//__wt_cursor_set_valuev 填充value到cursor->value
+	//__wt_cursor_set_value 填充value到cursor->value
 	cursor->set_value(cursor, value);
 	//__curfile_insert
 	WT_ERR(cursor->insert(cursor));
@@ -293,7 +293,7 @@ journal存储Write ahead log
 //__wt_turtle_read从WiredTiger.turtle文件中获取WT_METAFILE_URI或者WiredTiger version的元数据，
 //__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
 //获取WT_METAFILE_URI WiredTiger version，或者table的元数据,通过valuep返回
-int
+int  //__wt_metadata_search和__wt_metadata_insert配合，一个写，一个查询
 __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 {
 	WT_CURSOR *cursor;
@@ -342,9 +342,9 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
 	//__wt_metadata_cursor->cursor->search(cursor))从WiredTiger.wt文件获取key对应的元数据
 	//获取一个file:WiredTiger.wt元数据文件对应的cursor，这里面存储有所有table的元数据
 	WT_RET(__wt_metadata_cursor(session, &cursor));
-	cursor->set_key(cursor, key);
+	cursor->set_key(cursor, key); //__wt_cursor_set_key
 	WT_WITH_TXN_ISOLATION(session, WT_ISO_READ_UNCOMMITTED,
-	    ret = cursor->search(cursor));
+	    ret = cursor->search(cursor)); //__curfile_search
 	WT_ERR(ret);
 
 	WT_ERR(cursor->get_value(cursor, &value));

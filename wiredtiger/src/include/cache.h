@@ -244,6 +244,13 @@ struct __wt_cache {
 #define	WT_CACHE_POOL_RUN	  0x002 /* Cache pool thread running */
 	uint32_t pool_flags;		/* Cache pool flags */
 
+/*
+eviction_target	80	当 cache used 超过 eviction_target，后台evict线程开始淘汰 CLEAN PAGE
+eviction_trigger	95	当 cache used 超过 eviction_trigger，用户线程也开始淘汰 CLEAN PAGE
+eviction_dirty_target	5	当 cache dirty 超过 eviction_dirty_target，后台evict线程开始淘汰 DIRTY PAGE
+eviction_dirty_trigger	20	当 cache dirty 超过 eviction_dirty_trigger, 用户线程也开始淘汰 DIRTY PAGE
+参考http://www.mongoing.com/archives/3675
+*/
 #define	WT_CACHE_EVICT_CLEAN	  0x001 /* Evict clean pages */
 #define	WT_CACHE_EVICT_CLEAN_HARD 0x002 /* Clean % blocking app threads */
 #define	WT_CACHE_EVICT_DIRTY	  0x004 /* Evict dirty pages */

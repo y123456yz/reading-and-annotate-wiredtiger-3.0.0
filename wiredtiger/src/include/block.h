@@ -159,7 +159,9 @@ struct __wt_block_ckpt { //__block_buffer_to_ckpt
  * WT_BM --
  *	Block manager handle, references a single checkpoint in a file.
  */
+//WT_BTREE和__wt_block文件通过__wt_btree_open->__wt_block_manager_open关联
 //赋值见__bm_method_set  __wt_block_manager_open
+//__wt_btree.bm成员为该类型,从而让btree与block文件对应起来
 struct __wt_bm {//bm代表block manage
 						/* Methods */
 	int (*addr_invalid)
@@ -226,6 +228,7 @@ struct __wt_bm {//bm代表block manage
 //__bm_checkpoint_load中做mmap操作  
 //见__wt_block_alloc   
 //WT_BTREE和__wt_block文件通过__wt_btree_open->__wt_block_manager_open关联
+//__wt_bm.block成员为该类型
 struct __wt_block {//一个xx.wt表文件对应一个block
     //一个文件对应一个block,见__wt_block_open
 	const char *name;		/* Name */

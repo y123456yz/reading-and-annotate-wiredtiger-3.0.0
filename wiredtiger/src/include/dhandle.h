@@ -63,18 +63,18 @@
 //可以对应table  file  index colgroup等，
 //__wt_data_handle_cache.dhandle 
 //__session_add_dhandle  __conn_dhandle_get创建空间和赋值
-//__wt_conn_dhandle_alloc中创建dhandle，一个dhandle对应一个table或者file，如果是file与一个btree(__wt_data_handle.handle)树关联
-struct __wt_data_handle {
+//__wt_conn_dhandle_alloc中创建dhandle，一个dhandle对应一个table或者file，如果是file，则与一个btree(__wt_data_handle.handle)树关联
+struct __wt_data_handle {//如果是table,则为__wt_table.iface，如果是file则就为__wt_data_handle 
 	WT_RWLOCK rwlock;		/* Lock for shared/exclusive ops */
 
-    //table  index  file colgroup名
+    //table  index  file colgroup名   如table:access，在__wt_schema_colgroup_source中改为file
 	const char *name;		/* Object name as a URI */
 	uint64_t name_hash;		/* Hash of name */
 	const char *checkpoint;		/* Checkpoint name (or NULL) */
 	//__conn_dhandle_config_clear  __conn_dhandle_config_set 分别清除配置和添加配置
 	//__conn_dhandle_config_set
 	//配置信息，例如table 配置  file 配置  index配置 colgroup配置 
-	//对应WT_CONFIG_ENTRY_file_meta配置
+	//对应WT_CONFIG_ENTRY_file_meta配置   __conn_dhandle_config_set赋值
 	const char **cfg;		/* Configuration information */
 
 	/*
@@ -90,11 +90,12 @@ struct __wt_data_handle {
 
 	WT_DATA_SOURCE *dsrc;		/* Data source for this handle */
 	//赋值见__wt_conn_dhandle_alloc,如果是file，则通过这里与btree关联
+	//WT_BTREE和__wt_block文件通过__wt_btree_open->__wt_block_manager_open关联
 	void *handle;			/* Generic handle */
 
 	enum { //赋值见__wt_conn_dhandle_alloc
-		WT_DHANDLE_TYPE_BTREE, //table   tw create
-		WT_DHANDLE_TYPE_TABLE  //file
+		WT_DHANDLE_TYPE_BTREE, //file相关
+		WT_DHANDLE_TYPE_TABLE  //table相关
 	} type;
 
 	bool compact_skip;		/* If the handle failed to compact */

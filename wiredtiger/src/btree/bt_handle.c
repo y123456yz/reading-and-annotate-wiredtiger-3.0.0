@@ -127,7 +127,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 
     //Open a file. 创建一个btree文件
 	WT_ERR(__wt_block_manager_open(session, filename, dhandle->cfg,
-	    forced_salvage, readonly, btree->allocsize, &btree->bm));
+	    forced_salvage, readonly, btree->allocsize, &btree->bm)); 
 	bm = btree->bm;
 
 	/*
@@ -667,18 +667,18 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
 		ref->ref_recno = 1;
 		break;
 	case BTREE_ROW:
-	//root对应internal page，root page和子page通过((root)->u.intl.__index)数组(ref结构数组)和子page关联
-	//root page和internal page在后面__wt_root_ref_init这里关联
+	//创建该btree.root(ref)对应的page，root ref对应的page实际上也是一个internale page
 		WT_ERR(__wt_page_alloc(
 		    session, WT_PAGE_ROW_INT, 1, true, &root)); //分配internal page结构
 		root->pg_intl_parent_ref = &btree->root;
 
+        //root page对应的index[0](ref)对应的状态初始化为WT_REF_DELETED
 		pindex = WT_INTL_INDEX_GET_SAFE(root);
 		ref = pindex->index[0];
 		ref->home = root;
 		ref->page = NULL;
 		ref->addr = NULL;
-		ref->state = WT_REF_DELETED;
+		ref->state = WT_REF_DELETED; //root page初始化后的第一个子ref为该状态
 		//获取一个WT_IKEY结构并赋值，存入ref->ref_ikey
 		WT_ERR(__wt_row_ikey_incr(session, root, 0, "", 1, ref));
 		break;
@@ -936,6 +936,7 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
 	 * to do. If the maximum internal key value is too large for the page,
 	 * reset it to the default.
 	 */
+	//根据split size调整maxkey最大值
 	if (btree->maxintlkey == 0 || btree->maxintlkey > intl_split_size / 10)
 		    btree->maxintlkey = intl_split_size / 10;
 	if (btree->maxleafkey == 0)

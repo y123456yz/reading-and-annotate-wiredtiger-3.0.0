@@ -151,6 +151,7 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
 	WT_PAGE_INDEX *pindex;
 	uint32_t indx;
 	int cmp;
+    printf("yang test ......d........... 11 __check_leaf_key_range\r\n");
 
 	btree = S2BT(session);
 	collator = btree->collator;
@@ -169,8 +170,8 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
 	 * cheap test expensive.
 	 */
 	WT_INTL_INDEX_GET(session, leaf->home, pindex);
-	indx = leaf->pindex_hint;
-	if (indx >= pindex->entries || pindex->index[indx] != leaf)
+	indx = leaf->pindex_hint;//先找到该page的父节点的_index，做检查，因为父page的pindex->index[indx]应该要指向该leaf page
+	if (indx >= pindex->entries || pindex->index[indx] != leaf) //
 		return (0);
 
 	/*
@@ -181,7 +182,8 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
 	 * reconciliation doesn't build it, it may not be a valid key.
 	 */
 	if (indx != 0) {
-		__wt_ref_key(leaf->home, leaf, &item->data, &item->size);
+		__wt_ref_key(leaf->home, leaf, &item->data, &item->size); //获取该leaf page上所有的key空间
+        __wt_verbose(session, WT_VERB_API, "__check_leaf_key_range 1, key:%s, value:%s", item->data, item->size);
 		WT_RET(__wt_compare(session, collator, srch_key, item, &cmp));
 		if (cmp < 0) {
 			cbt->compare = 1;	/* page keys > search key */
@@ -195,6 +197,7 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
 	 */
 	++indx;
 	if (indx < pindex->entries) {
+	    __wt_verbose(session, WT_VERB_API, "__check_leaf_key_range 2, key:%s, value:%s", item->data, item->size);
 		__wt_ref_key(
 		    leaf->home, pindex->index[indx], &item->data, &item->size);
 		WT_RET(__wt_compare(session, collator, srch_key, item, &cmp));
@@ -210,9 +213,6 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
 /*
  * __wt_row_search --
  *	Search a row-store tree for a specific key.
- 二叉树可以参考
- https://image.baidu.com/search/detail?ct=503316480&z=0&ipn=d&word=btree%20%E5%9B%BE%E8%A7%A3&step_word=&hs=2&pn=7&spn=0&di=90414523681&pi=0&rn=1&tn=baiduimagedetail&is=0%2C0&istype=0&ie=utf-8&oe=utf-8&in=&cl=2&lm=-1&st=undefined&cs=3626138812%2C3985006186&os=2077054410%2C1536861763&simid=0%2C0&adpicid=0&lpn=0&ln=1281&fr=&fmq=1533022910474_R&fm=&ic=undefined&s=undefined&se=&sme=&tab=0&width=undefined&height=undefined&face=undefined&ist=&jit=&cg=&bdtype=11&oriquery=&objurl=http%3A%2F%2Fimage.bubuko.com%2Finfo%2F201807%2F20180730005024489733.png&fromurl=ippr_z2C%24qAzdH3FAzdH3Fooo_z%26e3Bk7k7h5_z%26e3Bv54AzdH3Ftgu51jpwts-d0acl0d_z%26e3Bip4s&gsm=0&rpstart=0&rpnum=0&islist=&querylist=
- https://image.baidu.com/search/detail?ct=503316480&z=0&ipn=d&word=btree%20%E5%9B%BE%E8%A7%A3&step_word=&hs=2&pn=10&spn=0&di=199133070401&pi=0&rn=1&tn=baiduimagedetail&is=0%2C0&istype=0&ie=utf-8&oe=utf-8&in=&cl=2&lm=-1&st=undefined&cs=483906054%2C1404470189&os=3936313937%2C1070787049&simid=2643080156%2C2515390863&adpicid=0&lpn=0&ln=1281&fr=&fmq=1533022910474_R&fm=&ic=undefined&s=undefined&se=&sme=&tab=0&width=undefined&height=undefined&face=undefined&ist=&jit=&cg=&bdtype=0&oriquery=&objurl=http%3A%2F%2Fhi.csdn.net%2Fattachment%2F201006%2F3%2F0_1275560772aU6Q.gif&fromurl=ippr_z2C%24qAzdH3FAzdH3Fooo_z%26e3Bvgks52f_z%26e3Bv54AzdH3F1iz8dnAzdH3Fw6vitejAzdH3Fda8aAzdH3FamAzdH3FanAzdH3Fd8l9d09_z%26e3Bip4s&gsm=0&rpstart=0&rpnum=0&islist=&querylist=*/
 /* 用指定的key在ref对应的page进行查找定位，存储方式为row store方式 */
 int
 __wt_row_search(WT_SESSION_IMPL *session,
@@ -268,6 +268,7 @@ __wt_row_search(WT_SESSION_IMPL *session,
 	 * cursor is being re-positioned.  Skip this if the page is being
 	 * re-instantiated in memory.
 	 */
+	//直接在该leaf page中查找
 	if (leaf != NULL) { /*如果BTREE SPLITS, 只能检索单个叶子节点, 而不能检索整个树*/
 		if (!restore) {
 			WT_RET(__check_leaf_key_range(
@@ -296,13 +297,14 @@ restart:	/*
 		skiphigh = skiplow = 0;
 	}
 
+    //没有指定leaf page则查找整课树
 	/* Search the internal pages of the tree. */
 	current = &btree->root;
 	/*对internal page做检索定位*/
 	for (depth = 2, pindex = NULL;; ++depth) {
 		parent_pindex = pindex;
 		page = current->page;
-		/*已经到叶子节点了，退出对叶子节点做检索*/
+		/*已经到叶子节点了，退出对叶子节点做检索  root page和internale page实际上都是WT_PAGE_ROW_INT*/
 		if (page->type != WT_PAGE_ROW_INT) //只遍历internal page下的leaf page
 			break;
 
@@ -334,6 +336,7 @@ restart:	/*
 
 			//获取page对应的key存储到item中
 			__wt_ref_key(page, descent, &item->data, &item->size);
+			__wt_verbose(session, WT_VERB_API, "__wt_row_search 1, key:%s, value:%s", item->data, item->size);
 			WT_ERR(__wt_compare(
 			    session, collator, srch_key, item, &cmp));
 			if (cmp >= 0)
@@ -359,13 +362,13 @@ restart:	/*
 		/*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
 		if (collator == NULL && //没有指定collator比较方法
 		/*key范围增量比较,防止比较过程运算过多*/
-		    srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
+		    srch_key->size <= WT_COMPARE_SHORT_MAXLEN) {
 			for (; limit != 0; limit >>= 1) {
 				indx = base + (limit >> 1);
 				descent = pindex->index[indx];
 				__wt_ref_key(
 				    page, descent, &item->data, &item->size);
-
+                __wt_verbose(session, WT_VERB_API, "__wt_row_search 1, key:%s, value:%s", item->data, item->size);
 				cmp = __wt_lex_compare_short(srch_key, item);
 				if (cmp > 0) { //srch_key > item对应的key，说明srch_key需要从indx对应下一个leaf page中查找
 					base = indx + 1; //
@@ -373,7 +376,7 @@ restart:	/*
 				} else if (cmp == 0)
 					goto descend;
 			} 
-		else if (collator == NULL) { /*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
+		} else if (collator == NULL) { /*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
 			/*
 			 * Reset the skipped prefix counts; we'd normally expect
 			 * the parent's skipped prefix values to be larger than
@@ -399,6 +402,7 @@ restart:	/*
 				descent = pindex->index[indx];
 				__wt_ref_key(
 				    page, descent, &item->data, &item->size);
+                __wt_verbose(session, WT_VERB_API, "__wt_row_search 1, key:%s, value:%s", item->data, item->size);
 
 				match = WT_MIN(skiplow, skiphigh);
 				cmp = __wt_lex_compare_skip(
@@ -418,7 +422,7 @@ restart:	/*
 				descent = pindex->index[indx];
 				__wt_ref_key(
 				    page, descent, &item->data, &item->size);
-
+                __wt_verbose(session, WT_VERB_API, "__wt_row_search 1, key:%s, value:%s", item->data, item->size);
 				WT_ERR(__wt_compare(
 				    session, collator, srch_key, item, &cmp));
 				if (cmp > 0) {
@@ -468,7 +472,7 @@ descend:	/*
 		 /*进行下一级页读取，如果有限制，先从内存中淘汰正在操作的page,如果正要读取的page在splits,
 		 那么我们从新检索当前(current)的page*/
 		 //这里面会调用__wt_page_alloc分配page leaf
-		if ((ret = __wt_page_swap( //current和descent交换，下次循环就从descent = pindex->index[base - 1]开始，也就是到子节点了
+		if ((ret = __wt_page_swap( //current和descent交换，下次循环就从子ref对应的page descent = pindex->index[base - 1]开始，也就是到子节点了
 		    session, current, descent, WT_READ_RESTART_OK)) == 0) {
 			current = descent; 
 			continue;
@@ -484,7 +488,7 @@ descend:	/*
 	if (depth > btree->maximum_depth)
 		btree->maximum_depth = depth;
 
-leaf_only:
+leaf_only: //到叶子节点了
 	page = current->page;
 	cbt->ref = current; //current指向了leaf page，每个leaf page多个KV，继续在leaf page查找
 
@@ -541,6 +545,7 @@ leaf_only:
 	//没查到要么limit为0，要么查找遍了limit范围也没找到  
 	base = 0;
 	limit = page->entries;//二分查找的最大边界
+
 	//注意leaf查找是根据pg_row中查找的,找不到才会从后面的__wt_search_insert中查找
 	if (collator == NULL && srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
 		for (; limit != 0; limit >>= 1) {
@@ -619,7 +624,7 @@ leaf_match:	cbt->compare = 0;
 	 * use the extra slot of the insert array, otherwise the insert array
 	 * maps one-to-one to the WT_ROW array.
 	 */
-	//说明page->entries为0，也就是page没有子节点了
+	//在叶子节点的第几个index上面
 	if (base == 0) {
 		cbt->compare = 1;
 		cbt->slot = 0;
@@ -636,7 +641,7 @@ leaf_match:	cbt->compare = 0;
 	}
 
 	/* If there's no insert list, we're done. */
-	if (WT_SKIP_FIRST(ins_head) == NULL)
+	if (WT_SKIP_FIRST(ins_head) == NULL) //如果该leaf page还没有KV(如第一次忘wiredtiger中insert kv)一般从这里返回 
 		return (0);
 
 	/*

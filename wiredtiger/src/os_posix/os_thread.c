@@ -92,6 +92,9 @@ __wt_thread_id(uintmax_t *id)
  * __wt_thread_str --
  *	Fill in a printable version of the process and thread IDs.
  */
+#include <sys/types.h>
+#include "unistd.h"
+
 int
 __wt_thread_str(char *buf, size_t buflen)
     WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
@@ -109,5 +112,6 @@ __wt_thread_str(char *buf, size_t buflen)
 #else
 	return (__wt_snprintf(buf, buflen,
 	    "%" PRIuMAX ":%p", (uintmax_t)getpid(), (void *)self));
+	    //"%" PRIuMAX ":%d", (uintmax_t)getpid(), (int)self));
 #endif
 }

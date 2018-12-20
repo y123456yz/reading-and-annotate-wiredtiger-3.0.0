@@ -409,7 +409,7 @@ err:	__wt_spin_unlock(session, &dhandle->close_lock);
  * 主要函数为__wt_btree_open，创建对应的btree或者table
  */ //获取session->dhandle,如果是table则对应WT_TABLE，如果是file则对应WT_DATA_HANDLE 
 int
-__wt_conn_dhandle_open(
+__wt_conn_dhandle_open( //分table和file两种情况
     WT_SESSION_IMPL *session, const char *cfg[], uint32_t flags)
 {
 	WT_BTREE *btree;
@@ -448,8 +448,7 @@ __wt_conn_dhandle_open(
 	/* Discard any previous configuration, set up the new configuration. */
 	//设置handle配置
 	__conn_dhandle_config_clear(session);
-	WT_ERR(__conn_dhandle_config_set(session));
-
+	WT_ERR(__conn_dhandle_config_set(session)); //调用__wt_metadata_search获取dhandle->name对应的配置信息
 
 	switch (dhandle->type) {
 	case WT_DHANDLE_TYPE_BTREE:

@@ -78,7 +78,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	 * Insert: allocate an insert array as necessary, build a WT_INSERT
 	 * and WT_UPDATE structure pair, and call a serialized function to
 	 * insert the WT_INSERT structure.
-	 */ /* 修改操作， */
+	 */ /* 修改操作，说明前面的__cursor_row_search key的时候btree中有该key */
 	if (cbt->compare == 0) {
 		if (cbt->ins == NULL) { //如果打开的cursor，reset后重新打开cursor做update，则ins=null
 			/* Allocate an update array as necessary. */
@@ -184,11 +184,13 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		} else
 			upd_size = __wt_update_list_memsize(upd);
 
-        //最终key value都存入ins
+        //最终key value都存入ins, key在ins->u, update放入ins->update   
+        //只有第一次插入某key的时候才会到这里，如果后期继续更新该key，则在上面的cbt->compare=0中处理，因为
+        //外层的__cursor_row_search查找的时候会发现btree中有该key存在，则cbt->compare=0
 		ins->upd = upd;
 		ins_size += upd_size;
-        
-
+            
+        //所有的insert(ins)通过page->mod->mod_row_insert[]跳跃表组织管理起来
 		/*
 		 * If there was no insert list during the search, the cursor's
 		 * information cannot be correct, search couldn't have

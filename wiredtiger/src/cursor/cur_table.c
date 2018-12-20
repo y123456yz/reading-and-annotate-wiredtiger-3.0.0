@@ -999,14 +999,15 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 
 	WT_RET(__curtable_complete(session, table));	/* completeness check */
 
+    printf("yang test ...............table->is_simple:%d, source:%s\r\n", table->is_simple, table->cgroups[0]->source);
 	if (table->is_simple) { //这里面会对cursor重新赋值
 	    //ex_access对应 ....................__wt_open_cursor table->cgroups[0]->source:file:access.wt
     	/* Just return a cursor on the underlying data source. */
 		//注意这里面会对WT_CURSOR重新赋值   table->cgroups[0]->source:lsm:test
 		ret = __wt_open_cursor(session,
-		    table->cgroups[0]->source, NULL, cfg, cursorp);
+		    table->cgroups[0]->source, NULL, cfg, cursorp); //source这里是file:access，也就是获取file对应的cursor
 
-		WT_TRET(__wt_schema_release_table(session, table));
+		WT_TRET(__wt_schema_release_table(session, table)); //销毁table对应的dhandle，也就是hash缓存中不会再有table的dhandle
 		if (ret == 0) {
 			/* Fix up the public URI to match what was passed in. */
 			cursor = *cursorp;
