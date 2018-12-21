@@ -297,6 +297,19 @@ restart:	/*
 		skiphigh = skiplow = 0;
 	}
 
+    /*
+注意:如果KV较少，则一个leaf page就可以存储所有的KV，其树结构如下
+          root page(internal page类型)
+          /
+         /
+        /
+     leaf page(该leaf page存储了所有这些少量的KV)
+
+    上面的模型serach kv的时候，一次性就可以定位到leaf page
+    当该leaf page随着KV越来越多，消耗的page内存超过一定比例(split_pct)，就开始进行分裂
+    当所有的tree树使用的内存超过cacheSizeGB，则会触发evict线程淘汰处理，把一部分page写入磁盘，参考http://www.mongoing.com/archives/3675
+    */
+
     //没有指定leaf page则查找整课树
 	/* Search the internal pages of the tree. */
 	current = &btree->root;
@@ -358,7 +371,6 @@ restart:	/*
 		 */
 		base = 1;
 		limit = pindex->entries - 1;
-		
 		/*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
 		if (collator == NULL && //没有指定collator比较方法
 		/*key范围增量比较,防止比较过程运算过多*/

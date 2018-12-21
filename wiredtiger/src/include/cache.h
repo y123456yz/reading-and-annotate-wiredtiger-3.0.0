@@ -113,6 +113,7 @@ struct __wt_cache {
     eviction_dirty_trigger：cache脏页使用量到该百分比时，触发evict操作
     eviction_dirty_target：触发上述参数evict后，需要将cache脏页使用量降低到该百分比水位，才停止evict
     */
+    //判断是否需要开始淘汰，见__wt_eviction_needed
 	u_int eviction_dirty_target;    /* Percent to allow dirty */
 	u_int eviction_dirty_trigger;	/* Percent to trigger dirty eviction */
 	u_int eviction_trigger;		/* Percent to trigger eviction */
@@ -251,7 +252,9 @@ eviction_dirty_target	5	当 cache dirty 超过 eviction_dirty_target，后台evict线程
 eviction_dirty_trigger	20	当 cache dirty 超过 eviction_dirty_trigger, 用户线程也开始淘汰 DIRTY PAGE
 参考http://www.mongoing.com/archives/3675
 */
+// WT_CACHE_EVICT_CLEAN 标记代表后台线程需要淘汰 CLEAN PAGE
 #define	WT_CACHE_EVICT_CLEAN	  0x001 /* Evict clean pages */
+// WT_CACHE_EVICT_CLEAN_HARD 代表用户线程也需要去淘汰 CLEAN PAGE
 #define	WT_CACHE_EVICT_CLEAN_HARD 0x002 /* Clean % blocking app threads */
 #define	WT_CACHE_EVICT_DIRTY	  0x004 /* Evict dirty pages */
 #define	WT_CACHE_EVICT_DIRTY_HARD 0x008 /* Dirty % blocking app threads */

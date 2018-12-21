@@ -561,6 +561,10 @@ __wt_evict_destroy(WT_SESSION_IMPL *session)
  * __evict_update_work --
  *	Configure eviction work state.
  */
+/*
+后台的 evict server 线程会遍历 wiredtiger 的 btree 页，将满足条件的的 page 加入到 evict queue 并进行淘汰，
+每一轮都会通过 __evict_update_work 更新当前的工作状态信息，并告知调用者是否还需要继续执行 evict。
+*/
 static bool
 __evict_update_work(WT_SESSION_IMPL *session)
 {
@@ -2299,6 +2303,11 @@ __evict_page(WT_SESSION_IMPL *session, bool is_server)
  *	Worker function for __wt_cache_eviction_check: evict pages if the cache
  * crosses its boundaries.
  */
+/*
+用户线程执行 __wt_cache_eviction_worker 会持续的检查 __wt_eviction_needed 条件是否满足，不需要 evict 时，
+用户线程就会继续响应请求；如果需要evict，就会从 evict queue 里取 page 进行淘汰，当 evict queue 为空时，
+用户线程 wait 一段时间继续重复上述逻辑。
+*/
 int
 __wt_cache_eviction_worker(
     WT_SESSION_IMPL *session, bool busy, bool readonly, u_int pct_full)

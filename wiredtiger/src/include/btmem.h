@@ -890,6 +890,7 @@ struct __wt_ref {
 #define	WT_REF_DISK	 0		/* Page is on disk */
 ////默认WT_REF_DELETED，见__btree_tree_open_empty __split_parent  __inmem_row_int
 #define	WT_REF_DELETED	 1		/* Page is on disk, but deleted */
+//ref分片page后，该ref进入该状态，见__page_read
 #define	WT_REF_LOCKED	 2		/* Page locked for exclusive access */
 #define	WT_REF_LOOKASIDE 3		/* Page is on disk with lookaside */
 #define	WT_REF_MEM	 4		/* Page is in cache and valid */
