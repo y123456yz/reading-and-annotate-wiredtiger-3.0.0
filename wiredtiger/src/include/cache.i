@@ -310,6 +310,11 @@ __wt_eviction_dirty_needed(WT_SESSION_IMPL *session, u_int *pct_fullp)
  *	Return if an application thread should do eviction, and the cache full
  *      percentage as a side-effect.
  */
+/*
+当用户请求打开wiredtiger cursor 的时候，会检查是否需要 进行 cache 淘汰，当 『cache 使用百分比超出 
+eviction_trigger』 或者 『cache 脏页百分比超过 eviction_dirty_triger』，用户请求线程就会进入到 
+cache 淘汰逻辑，执行__wt_cache_eviction_worker
+*/
 static inline bool
 __wt_eviction_needed(
     WT_SESSION_IMPL *session, bool busy, bool readonly, u_int *pct_fullp)

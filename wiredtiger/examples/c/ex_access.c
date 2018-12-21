@@ -72,16 +72,16 @@ access_example(void)
    
 	/*! [access example cursor insert] */
 	//__wt_cursor_set_key
-	cursor->set_key(cursor, "key1");	/* Insert a record. */
+	cursor->set_key(cursor, "key11111111111111111111111111111");	/* Insert a record. */
 	//__wt_cursor_set_value
-	cursor->set_value(cursor, "value1");
+	cursor->set_value(cursor, "value11111111111111111111111111111111111");
 	printf("yang test ....................__wt_cursor_set_valuev end\r\n");
 	//__curfile_insert
     error_check(cursor->insert(cursor));
  
-    cursor->set_key(cursor, "key2");	/* Insert a record. */
+    cursor->set_key(cursor, "key11111111111111111111111111111");	/* Insert a record. */
 	//__wt_cursor_set_value
-	cursor->set_value(cursor, "value2");
+	cursor->set_value(cursor, "value11111111111111111111111111111111111");
 	//__curfile_insert
     error_check(cursor->insert(cursor));
 
