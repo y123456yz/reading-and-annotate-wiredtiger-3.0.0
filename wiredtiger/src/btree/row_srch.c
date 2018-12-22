@@ -55,6 +55,8 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 			    &ins_head->tail[i]->next[i] : &ins_head->head[i];
 			cbt->next_stack[i] = NULL;
 		}
+
+		//获取该kv对应的insert和insert_head，也就是应该在跳跃表中的那个insert位置插入，后面的__cursor_row_modify取这些ins和ins_head指针来做插入操作
 		cbt->compare = -cmp;
 		cbt->ins = ins;
 		cbt->ins_head = ins_head;
@@ -130,7 +132,7 @@ __wt_search_insert(WT_SESSION_IMPL *session,
 	 * decide whether we are positioned in a skiplist.
 	 */
 	cbt->compare = -cmp;
-	//记录下这个找到的位置，例如serch操作查找某个key的value的时候，就从ins取，见__wt_btcur_search
+	//记录下这个找到的位置，例如serch操作查找某个key的value的时候，就从ins取，见__wt_btcur_search __wt_row_modify
 	cbt->ins = (ins != NULL) ? ins : last_ins;
 	cbt->ins_head = ins_head;
 	return (0);

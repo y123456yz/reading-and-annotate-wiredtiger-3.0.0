@@ -70,6 +70,19 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 	WT_RET(__wt_page_modify_init(session, page));
 	mod = page->modify;
 
+        /*
+注意:如果KV较少，则一个leaf page就可以存储所有的KV，其树结构如下
+          root page(internal page类型)
+          /
+         /
+        /
+     leaf page(该leaf page存储了所有这些少量的KV)
+
+    上面的模型serach kv的时候，一次性就可以定位到leaf page
+    当该leaf page随着KV越来越多，消耗的page内存超过一定比例(split_pct)，就开始进行分裂
+    当所有的tree树使用的内存超过cacheSizeGB，则会触发evict线程淘汰处理，把一部分page写入磁盘，参考http://www.mongoing.com/archives/3675
+    */
+
 	/*
 	 * Modify: allocate an update array as necessary, build a WT_UPDATE
 	 * structure, and call a serialized function to insert the WT_UPDATE
@@ -90,7 +103,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 			upd_entry = &mod->mod_row_update[cbt->slot];
 		} else /* 更新会走这个分支，因为在insert的时候cbt->ins会赋值
 		    直接获取insert时候的ins，insert的时候key和value都放入ins中 */
-			upd_entry = &cbt->ins->upd;
+			upd_entry = &cbt->ins->upd; //如果是update，则新的value直接放入ins->upd头部
 
 		if (upd_arg == NULL) { //update和insert udp_arg都是等于NULL
 			/* Make sure the update can proceed. */
@@ -131,7 +144,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		upd->next = old_upd;
 
 		/* Serialize the update. */
-		/*进行串行更新操作*/
+		/*进行串行更新操作， 也就是新的udp放到update链表的最前面，也就是最新的数据*/
 		WT_ERR(__wt_update_serial(
 		    session, page, upd_entry, &upd, upd_size, exclusive));
 	} else {/*没有定位到具体的记录，那么相当于插入一个新的记录行*/
@@ -187,7 +200,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
         //最终key value都存入ins, key在ins->u, update放入ins->update   
         //只有第一次插入某key的时候才会到这里，如果后期继续更新该key，则在上面的cbt->compare=0中处理，因为
         //外层的__cursor_row_search查找的时候会发现btree中有该key存在，则cbt->compare=0
-		ins->upd = upd;
+		ins->upd = upd; //一个新的KV对应一个WT_INSERT
 		ins_size += upd_size;
             
         //所有的insert(ins)通过page->mod->mod_row_insert[]跳跃表组织管理起来
@@ -212,6 +225,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 			for (i = 0; i < skipdepth; i++)
 				ins->next[i] = cbt->next_stack[i];
 
+        //新的WT_INSERT通过跳跃表管理起来
 		/* Insert the WT_INSERT structure. */
 		WT_ERR(__wt_insert_serial(
 		    session, page, cbt->ins_head, cbt->ins_stack,

@@ -25,7 +25,8 @@ __wt_row_leaf_keys(WT_SESSION_IMPL *session, WT_PAGE *page)
 	uint32_t gap, i;
 
 	btree = S2BT(session);
-
+	
+    /*页没有行数据，设置已经完成内存中实现了row key实例化并直接返回*/
 	if (page->entries == 0) {		/* Just checking... */
 		F_SET_ATOMIC(page, WT_PAGE_BUILD_KEYS);
 		return (0);
@@ -50,17 +51,19 @@ __wt_row_leaf_keys(WT_SESSION_IMPL *session, WT_PAGE *page)
 	 * marking up the array.
 	 */
 	WT_RET(__wt_scr_alloc(session, 0, &key));
-	WT_RET(__wt_scr_alloc(session,
+	WT_RET(__wt_scr_alloc(session, /*每一行占一个bit位置*/
 	    (uint32_t)__bitstr_size(page->entries), &tmp));
 	memset(tmp->mem, 0, tmp->memsize);
 
+    /*确定行间距离*/
 	if ((gap = btree->key_gap) == 0)
 		gap = 1;
+	/*将row slots槽位在内存中创建*/
 	__inmem_row_leaf_slots(tmp->mem, 0, page->entries, gap);
 
 	/* Instantiate the keys. */
 	for (rip = page->pg_row, i = 0; i < page->entries; ++rip, ++i)
-		if (__bit_test(tmp->mem, i))
+		if (__bit_test(tmp->mem, i))/*确定这个行是否需要实例化key,是不是实例化是由__inmem_row_leaf_slots确定的*/
 			WT_ERR(__wt_row_leaf_key_work(
 			    session, page, rip, key, true));
 
@@ -75,7 +78,7 @@ err:	__wt_scr_free(session, &key);
  * __inmem_row_leaf_slots --
  *	Figure out the interesting slots of a page for random search, up to
  * the specified depth.
- */
+ *//*按照gap间隔距离来标记需要实例化key的row slots*/
 static void
 __inmem_row_leaf_slots(
     uint8_t *list, uint32_t base, uint32_t entries, uint32_t gap)
@@ -93,7 +96,7 @@ __inmem_row_leaf_slots(
 	 * !!!
 	 * There's got to be a function that would give me this information, but
 	 * I don't see any performance reason we can't just do this recursively.
-	 */
+	 */ /* 用二分法进行key实例化的row做标记, 标记的间隔是gap大小 */
 	limit = entries;
 	indx = base + (limit >> 1);
 	__bit_set(list, indx);
@@ -127,6 +130,7 @@ __wt_row_leaf_key_copy(
  *	Return a reference to, a row-store leaf-page key, optionally instantiate
  * the key into the in-memory page.
  */
+/*获得一个row key,这个row是在叶子数据节点上，如果key没有被实例化到内存中，进行内存实例化*/
 int
 __wt_row_leaf_key_work(WT_SESSION_IMPL *session,
     WT_PAGE *page, WT_ROW *rip_arg, WT_ITEM *keyb, bool instantiate)
@@ -178,12 +182,12 @@ switch_and_jump:	/* Switching to a forward roll. */
 
 		/*
 		 * Figure out what the key looks like.
-		 */
+		 */ //获取rip对应的KEY VALUE 
 		(void)__wt_row_leaf_key_info(
 		    page, copy, &ikey, &cell, &p, &size);
 
 		/* 1: the test for a directly referenced on-page key. */
-		if (cell == NULL) {
+		if (cell == NULL) {/*直接可以到的key和value的值*/
 			keyb->data = p;
 			keyb->size = size;
 
@@ -213,7 +217,7 @@ switch_and_jump:	/* Switching to a forward roll. */
 		}
 
 		/* 2: the test for an instantiated off-page key. */
-		if (ikey != NULL) {
+		if (ikey != NULL) { /*判断key是否已经实例化*/
 			/*
 			 * If this is the key we originally wanted, we don't
 			 * care if we're rolling forward or backward, or if
@@ -238,7 +242,7 @@ switch_and_jump:	/* Switching to a forward roll. */
 			 *	If we're rolling forward, there's no work to be
 			 * done because prefixes skip overflow keys: keep
 			 * rolling forward.
-			 */
+			 */ /*key值属于overflow类型，值是存储在其他地方的cell对象上*/
 			if (__wt_cell_type(cell) == WT_CELL_KEY_OVFL)
 				goto next;
 
@@ -261,11 +265,11 @@ switch_and_jump:	/* Switching to a forward roll. */
 
 		/*
 		 * It must be an on-page cell, unpack it.
-		 */
+		 */ /*对cell进行unpack*/
 		__wt_cell_unpack(cell, unpack);
 
 		/* 3: the test for an on-page reference to an overflow key. */
-		if (unpack->type == WT_CELL_KEY_OVFL) {
+		if (unpack->type == WT_CELL_KEY_OVFL) { /* 3: 处理overflow key */
 			/*
 			 * If this is the key we wanted from the start, we don't
 			 * care if it's an overflow key, get a copy and wrap up.
@@ -437,7 +441,7 @@ next:		switch (direction) {
 		copy = WT_ROW_KEY_COPY(rip_arg);
 		(void)__wt_row_leaf_key_info(
 		    page, copy, &ikey, &cell, NULL, NULL);
-		if (ikey == NULL) {
+		if (ikey == NULL) { 
 			WT_ERR(__wt_row_ikey_alloc(session,
 			    WT_PAGE_DISK_OFFSET(page, cell),
 			    keyb->data, keyb->size, &ikey));
@@ -446,9 +450,8 @@ next:		switch (direction) {
 			 * Serialize the swap of the key into place: on success,
 			 * update the page's memory footprint, on failure, free
 			 * the allocated memory.
-			 */
-			if (__wt_atomic_cas_ptr(
-			    (void *)&WT_ROW_KEY_COPY(rip), copy, ikey))
+			 */ //rip->__key指向key位置,也就是给rip_arg->__key赋值
+			if (__wt_atomic_cas_ptr((void *)&WT_ROW_KEY_COPY(rip), copy, ikey))
 				__wt_cache_page_inmem_incr(session,
 				    page, sizeof(WT_IKEY) + ikey->size);
 			else

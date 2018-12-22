@@ -412,7 +412,9 @@ __inmem_col_var(
  *	Build in-memory index for row-store internal pages.
  */ /*为行存储的page构建内部索引的内存对象,非叶子节点*/
  //构建row store internal page
-static int
+ //__inmem_row_int和__inmem_row_leaf分别加载磁盘数据到索引internale page和leaf page
+ //internal page磁盘数据通过内存ref->ref_ikey(internal page只需要存key)对应，leaf page通过page->pg_row对应磁盘数据(leafpage需要存kv)
+static int  //注意internale page只会存key，不会value
 __inmem_row_int(WT_SESSION_IMPL *session, WT_PAGE *page, size_t *sizep)
 {
 	WT_BTREE *btree;
@@ -454,7 +456,7 @@ __inmem_row_int(WT_SESSION_IMPL *session, WT_PAGE *page, size_t *sizep)
 			/*
 			 * Note: we don't Huffman encode internal page keys,
 			 * there's no decoding work to do.
-			 */
+			 */ //注意internale page只会存key，不会value
 			__wt_ref_key_onpage_set(page, ref, unpack);
 			break;
 		case WT_CELL_KEY_OVFL:
@@ -579,6 +581,7 @@ __inmem_row_leaf_entries(
  * __inmem_row_leaf --
  *	Build in-memory index for row-store leaf pages.
  */ /*构建行存储leaf page的内存索引对象(row array)*/
+//__inmem_row_int和__inmem_row_leaf分别对应索引internale page和leaf page
 static int
 __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -594,7 +597,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page)
 	unpack = &_unpack;
 
 	/* Walk the page, building indices. */
-	rip = page->pg_row;//从磁盘文件读取到leaf page中的数据都是放pg_row中的
+	rip = page->pg_row;//从磁盘文件读取到leaf page中的数据都是放pg_row中的，遍历某个page对应的磁盘dsk即可获取该page所有的KV信息
 	WT_CELL_FOREACH(btree, dsk, cell, unpack, i) {
 		__wt_cell_unpack(cell, unpack);
 		switch (unpack->type) {
