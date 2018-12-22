@@ -104,9 +104,10 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt  cbt = (WT_CURSOR_BTREE *)curso
     //实际上对应mod_row_insert
 	WT_INSERT_HEAD	*ins_head;	/* Insert chain head */
 	WT_INSERT	*ins;		/* Current insert node */
-					/* Search stack */
-	WT_INSERT	**ins_stack[WT_SKIP_MAXDEPTH];
 
+    //管理上面的ins_head对应的跳跃表，实际上是管理__wt_page_modify.mod_row_insert
+					/* Search stack */
+	WT_INSERT	**ins_stack[WT_SKIP_MAXDEPTH];  
 					/* Next item(s) found during search */
 	WT_INSERT	*next_stack[WT_SKIP_MAXDEPTH];
 

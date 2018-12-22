@@ -379,7 +379,7 @@ struct __wt_page_modify {
 		WT_UPDATE	**update; 
 	} row_leaf;
 
-//赋值见__wt_row_modify   WT_ROW_INSERT_SLOT获取
+//赋值见__wt_row_modify   WT_ROW_INSERT_SLOT获取  所有WT_INSERT通过跳跃表管理起来(__wt_cursor_btree.ins_stack和__wt_cursor_btree.next_stack)
 #undef	mod_row_insert
 #define	mod_row_insert		u2.row_leaf.insert
 
@@ -540,8 +540,18 @@ struct __wt_page {  //__wt_ref.page
         //下面的pg_row进行了宏定义直接返回u.row  __wt_row_search中做二分查找
         //__wt_page_alloc中赋值 
         //在WT_ROW_FOREACH  WT_ROW_FOREACH_REVERSE中遍历，__rec_row_leaf中把leaf page写入磁盘  
-        //如果从磁盘上读取到的key1数据放在了row[3]位置，则下次insert key3的时候，search会找到row的位置，
+        //如果从磁盘上读取到的key1数据放在了row[3]位置，则下次update key1的时候，search会找到row的位置，
         //判断为更新,构造的__wt_insert会插入到mod_row_insert[3]链头位置，这样row[]和mod_row_insert[]就对应上了
+        /*
+        如果page因为内存不足，则需要刷盘，内存中就没有该page已经该page对应的KV了，那查询或者更新的时候怎么定位到对应Key是否存在呢
+        就是通过该row指针来实现，其存储了key value所在的位置，遍历该row即可获取所有的KV数据，见__inmem_row_leaf
+        注意和ref->ref_ikey的区别 
+        可以参考https://weibo.com/ttarticle/p/show?id=2309403992797932856430
+        */ 
+        
+        //__inmem_row_int和__inmem_row_leaf分别加载磁盘数据到索引internale page和leaf page
+        //internal page磁盘数据通过内存ref->ref_ikey(internal page只需要存key)对应，leaf page通过page->pg_row对应磁盘数据(leafpage需要存kv)
+        //被定义为宏#define	pg_row		u.row  只有叶子节点leaf page才会使用，见__wt_page_alloc分配空间
         WT_ROW *row;            /* Key/value pairs */ //对应leaf page 从文件中读取到该row中，见__inmem_row_leaf
     
         /* Fixed-length column-store leaf page. */
@@ -704,8 +714,11 @@ https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 
 //在WT_ROW_FOREACH  WT_ROW_FOREACH_REVERSE中遍历，__rec_row_leaf中把leaf page写入磁盘    在__value_return   
 //在__inmem_row_leaf中从磁盘空间加载数据到leaf page的时候是放入改row中的，但是insert update delete中的数据是放入 mod_row_update  mod_row_insert
-#undef	pg_row
-#define	pg_row		u.row  //__wt_page_alloc中赋值
+
+//__inmem_row_int和__inmem_row_leaf分别加载磁盘数据到索引internale page和leaf page
+//internal page磁盘数据通过内存ref->ref_ikey(internal page只需要存key)对应，leaf page通过page->pg_row对应磁盘数据(leafpage需要存kv)
+#undef	pg_row //只有叶子leaf page才会使用该节点，见__wt_page_alloc分配空间
+#define	pg_row		u.row  //__wt_page_alloc中赋值   实际上是一个数组  
                     
 #undef	pg_fix_bitf
 #define	pg_fix_bitf	u.fix_bitf
@@ -875,6 +888,11 @@ struct __wt_ref {
 #undef	ref_ikey
 //该ref对应的page上的key查找就是根据这个进行比较,参考__wt_ref_key, 
 //所有insert的key都写入该地址对应的内存空间，参考__wt_row_ikey
+//所有的磁盘上的key索引都通过该变量来定位，参考__inmem_row_int->__wt_ref_key_onpage_set
+/*
+//__inmem_row_int和__inmem_row_leaf分别加载磁盘数据到索引internale page和leaf page
+//internal page磁盘数据通过内存ref->ref_ikey(internal page只需要存key)对应，leaf page通过page->pg_row对应磁盘数据(leafpage需要存kv)
+*/
 #define	ref_ikey	key.ikey  //赋值见__wt_row_ikey  __wt_ref_key_onpage_set  
 
 	union {
@@ -927,6 +945,14 @@ struct __wt_ref {
  * references to the field (so the code doesn't read it multiple times), all
  * to make sure we don't introduce this bug (again).
  */
+/*
+row_array 的长度是根据 page 从磁盘中读取出来的行数确定的，每个数组单元（wt_row）存储的是这个 kv row 
+在 page_disk_data 缓冲区偏移的位置和编码方式（这个位置和编码方式在 WT 上定义成一个 wt_cell 对象，在
+后面的 K/V cell章节来分析），通过这个信息偏移位置信息就可以访问到这一样在 disk_data缓冲区中的 K/V 内容值。
+
+内存中能存储的KV数量是有限的，当内存消耗到一定比例，就会把page刷盘到磁盘，那查找的时候怎么知道该page在磁盘中的KV呢，
+就是通过该__wt_row结构来定位
+*/
 //空间分配见__wt_page_alloc
 //__wt_page.row 每一个leaf page都有一个该结构，当从文件读取数据的时候构建，见，见__inmem_row_leaf
 struct __wt_row {	/* On-page key, on-page cell, or off-page WT_IKEY */
@@ -1021,8 +1047,8 @@ struct __wt_ikey {
 	 * Row-store cell references are page offsets, not pointers (we boldly
 	 * re-invent short pointers).  The trade-off is 4B per K/V pair on a
 	 * 64-bit machine vs. a single cycle for the addition of a base pointer.
-	 */
-	uint32_t  cell_offset;
+	 */ //在磁盘中的位置，参考__wt_row_leaf_key_work->__wt_row_ikey_alloc
+	uint32_t  cell_offset; //根据该位置可以获取其他的key
 
 	/* The key bytes immediately follow the WT_IKEY structure. */
 #define	WT_IKEY_DATA(ikey)						\
@@ -1129,6 +1155,19 @@ struct __wt_update {
  * subsequent records.  Berkeley DB did support mutable records, but it won't
  * scale and it isn't useful enough to re-implement, IMNSHO.)
  */
+/*
+
+               |---------kye信息(u.key)
+               |
+__wt_insert1---|
+               |
+               |  实际上就是value
+               |-----udp(update或者WT_UPDATE)--->
+
+
+
+
+*/ 
 //分配空间可以参考__wt_row_insert_alloc  __wt_insert_serial中添加到tree中
 //所有的__wt_insert(ins)通过page->mod->mod_row_insert[]跳跃表组织管理起来
 struct __wt_insert {
@@ -1145,7 +1184,7 @@ struct __wt_insert {
 		} key;
 	} u;
 
-    //
+    //所有的__wt_insert通过跳跃表关联起来
 	WT_INSERT *next[0];			/* forward-linked skip list */
 };
 
