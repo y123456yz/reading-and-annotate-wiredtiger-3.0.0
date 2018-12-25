@@ -444,8 +444,7 @@ __inmem_row_int(WT_SESSION_IMPL *session, WT_PAGE *page, size_t *sizep)
 	overflow_keys = false;
 	hint = 0;
 
-	//leaf page的
-	WT_CELL_FOREACH(btree, dsk, cell, unpack, i) { //确定internal page所指定的index[]个leaf page的磁盘addr
+	WT_CELL_FOREACH(btree, dsk, cell, unpack, i) { //加载之前写入到磁盘的internal page到内存(通过ref->ref_ikey指向)
 		ref = *refp;
 		ref->home = page;
 		ref->pindex_hint = hint++;

@@ -149,7 +149,7 @@ __wt_snprintf_len_incr(
  * __wt_txn_context_check --
  *	Complain if a transaction is/isn't running.
  */
-/*如果session的事务正在执行，不能修改事务的隔离级别，抛出一个错误*/
+/**/
 static inline int
 __wt_txn_context_check(WT_SESSION_IMPL *session, bool requires_txn)
 {

@@ -9,11 +9,11 @@
 #
 # This generates about 80 Gb of uncompressed data.  But it should compress
 # well and be small on disk.
-conn_config="cache_size=2G,checkpoint=(wait=60,log_size=2GB),session_max=20000,log=(enabled),eviction=(threads_max=8),statistics=[fast,clear],statistics_log=(wait=30)"
+conn_config="cache_size=1000M,checkpoint=(wait=60,log_size=2GB),session_max=20000,log=(enabled),eviction=(threads_max=8),statistics=[fast,clear],statistics_log=(wait=30)"
 compact=true
 #compression="snappy"
 #sess_config="isolation=snapshot"
-table_config="internal_page_max=16K,type=file,leaf_page_max=16K,memory_page_max=10M,split_pct=90"
+table_config="internal_page_max=16K,type=file,leaf_page_max=16K,memory_page_max=1M,split_pct=90"
 table_count=2
 #icount=50000000
 icount=5
@@ -21,7 +21,7 @@ key_sz=40
 value_sz=120
 max_latency=2000
 
-populate_threads=5
+populate_threads=1
 
 report_interval=1
 random_value=true

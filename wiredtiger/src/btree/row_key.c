@@ -510,7 +510,14 @@ __wt_row_ikey_incr(WT_SESSION_IMPL *session, WT_PAGE *page,
  * __wt_row_ikey --
  *	Instantiate a key in a WT_IKEY structure.
  */ /*实例化一个指定的key结构对象*/
-//__wt_ref_key_onpage_set __wt_row_ikey和__wt_ref_key对应
+
+/* 在内存中时，一般是这样使用，先获取到原来的key，加入一个新key的时候，重新分配原来+新的key总长度
+__wt_ref_key(page, *page_refp, &p, &size);
+WT_ERR(__wt_row_ikey(session, 0, p, size, ref));
+
+*/
+    //__wt_ref_key_onpage_set(page上的key在磁盘) __wt_row_ikey(page上的key在内存)和__wt_ref_key对应
+
 int
 __wt_row_ikey(WT_SESSION_IMPL *session,
     uint32_t cell_offset, const void *key, size_t size, WT_REF *ref)
