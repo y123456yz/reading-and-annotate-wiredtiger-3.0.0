@@ -14,7 +14,7 @@
  * as we go.
  */
 /* 在insert append列表中查找定位key对应的记录, 并构建一个skip list stack 对象返回*/
-//insert list定位该KV应该放在什么位置
+//insert list定位该KV应该放在什么位置，注意是排好序的跳跃表中
 static inline int
 __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
     WT_INSERT_HEAD *ins_head, WT_ITEM *srch_key, bool *donep)
@@ -229,7 +229,7 @@ __wt_row_search(WT_SESSION_IMPL *session,
 	WT_PAGE *page;
 	WT_PAGE_INDEX *pindex, *parent_pindex;
 	WT_REF *current, *descent;
-	WT_ROW *rip;
+	WT_ROW *rip; //当找到该key后，确定该KV在page->pg_row的位置
 	size_t match, skiphigh, skiplow;
 	uint32_t base, indx, limit;
 	int cmp, depth;
@@ -371,6 +371,8 @@ restart:	/*
 		 * Reference the comment above about the 0th key: we continue to
 		 * special-case it.
 		 */
+        //参考《MySQL技术内幕:InnoDB存储引擎(第2版)》 索引与算法更好理解
+		 
 		base = 1;
 		limit = pindex->entries - 1;
 		/*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
@@ -384,10 +386,10 @@ restart:	/*
 				    page, descent, &item->data, &item->size);
                 __wt_verbose(session, WT_VERB_API, "__wt_row_search 1, key:%s, value:%s", item->data, item->size);
 				cmp = __wt_lex_compare_short(srch_key, item);
-				if (cmp > 0) { //srch_key > item对应的key，说明srch_key需要从indx对应下一个leaf page中查找
+				if (cmp > 0) { //srch_key > item对应的key，说明srch_key需要从下一个indx对应的page中查找
 					base = indx + 1; //
 					--limit;
-				} else if (cmp == 0)
+				} else if (cmp == 0) //相等，说明应该在该index对应的page中继续查找
 					goto descend;
 			} 
 		} else if (collator == NULL) { /*用二分法进行内部索引页内定位,定位到key对应的leaf page*/
@@ -427,7 +429,7 @@ restart:	/*
 					--limit;
 				} else if (cmp < 0)
 					skiphigh = match;
-				else
+				else //相等，说明应该在该index对应的page中继续查找
 					goto descend;
 			}
 		} else
@@ -442,7 +444,7 @@ restart:	/*
 				if (cmp > 0) {
 					base = indx + 1;
 					--limit;
-				} else if (cmp == 0)
+				} else if (cmp == 0) //相等，说明应该在该index对应的page中继续查找
 					goto descend;
 			}
 
@@ -486,7 +488,7 @@ descend:	/*
 		 /*进行下一级页读取，如果有限制，先从内存中淘汰正在操作的page,如果正要读取的page在splits,
 		 那么我们从新检索当前(current)的page*/
 		 //这里面会调用__wt_page_alloc分配page leaf
-		if ((ret = __wt_page_swap( //current和descent交换，下次循环就从子ref对应的page descent = pindex->index[base - 1]开始，也就是到子节点了
+		if ((ret = __wt_page_swap( //current和descent交换，下次循环就从子ref对应的page descent = pindex->index[base - 1]开始
 		    session, current, descent, WT_READ_RESTART_OK)) == 0) {
 			current = descent; 
 			continue;
@@ -545,7 +547,7 @@ leaf_only: //到叶子节点了
 		}
 		WT_ERR(__search_insert_append(
 		    session, cbt, ins_head, srch_key, &done));
-		if (done) //已经定位到srch_key要插入的位置，直接返回
+		if (done) //已经定位到srch_key要插入的位置，直接返回  
 			return (0);
 	}
 
@@ -560,16 +562,17 @@ leaf_only: //到叶子节点了
 	base = 0;
 	limit = page->entries;//二分查找的最大边界
 
-	//注意leaf查找是根据pg_row中查找的,找不到才会从后面的__wt_search_insert中查找
+	//注意leaf查找是根据pg_row中查找的, pg_row中存储的是已经罗盘的KV(因为每个page不可能全部都在内存，内存没那么多)
+	//先从pg_row对应的磁盘找对应的key
 	if (collator == NULL && srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
 		for (; limit != 0; limit >>= 1) {
 			indx = base + (limit >> 1); //右移一位代表除2，用于二分查找
-			rip = page->pg_row + indx;
+			rip = page->pg_row + indx; 
 			WT_ERR( /*获取row store的叶子节ref的KEY值*/
 			    __wt_row_leaf_key(session, page, rip, item, true));
 
 			cmp = __wt_lex_compare_short(srch_key, item);
-			if (cmp > 0) {
+			if (cmp > 0) { //srch_key比item大，则继续查找
 				base = indx + 1;
 				--limit;
 			} else if (cmp == 0)
@@ -615,8 +618,8 @@ leaf_only: //到叶子节点了
 	 * get out fast.
 	 */
 	if (0) {
-leaf_match:	cbt->compare = 0;
-		cbt->slot = WT_ROW_SLOT(page, rip); //找到了leaf中有该key
+leaf_match:	cbt->compare = 0; //该key在磁盘上通过这里返回，如果不在磁盘，在内存中则在后面返回
+		cbt->slot = WT_ROW_SLOT(page, rip); //在page->pg_row对应的磁盘中，找到了leaf中有该key
 		return (0);
 	}
 
@@ -638,6 +641,7 @@ leaf_match:	cbt->compare = 0;
 	 * use the extra slot of the insert array, otherwise the insert array
 	 * maps one-to-one to the WT_ROW array.
 	 */
+	//可能KV还没有罗盘，则会记录page内存中，也就是到mod_row_insert[]对应的数组链中(买个KV对应一个WT_INSERT，并由跳跃表管理起来)
 	//在叶子节点的第几个index上面
 	if (base == 0) {
 		cbt->compare = 1;
@@ -658,6 +662,10 @@ leaf_match:	cbt->compare = 0;
 	if (WT_SKIP_FIRST(ins_head) == NULL) //如果该leaf page还没有KV(如第一次忘wiredtiger中insert kv)一般从这里返回 
 		return (0);
 
+    /*
+    下面确定该KEY应该放到管理WT_INSERT(即一个KV)的跳跃表中的什么位置
+    */
+    
 	/*
 	 * Test for an append first when inserting onto an insert list, try to
 	 * catch cursors repeatedly inserting at a single point.
@@ -665,12 +673,12 @@ leaf_match:	cbt->compare = 0;
 	if (insert) {
 		WT_ERR(__search_insert_append(
 		    session, cbt, ins_head, srch_key, &done));
-		if (done)
+		if (done) //已经确定好新的insert kv对应在跳跃表中的位置，则返回
 			return (0);
 	}
 
-	//serch操作走这里
-	WT_ERR(__wt_search_insert(session, cbt, ins_head, srch_key));
+    //更新删除等操作，确定该更新操作对应的kv在跳跃表中的位置
+	WT_ERR(__wt_search_insert(session, cbt, ins_head, srch_key)); 
 
 	return (0);
 

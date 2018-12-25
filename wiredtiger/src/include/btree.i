@@ -688,7 +688,7 @@ __wt_ref_addr_free(WT_SESSION_IMPL *session, WT_REF *ref)
  *	Return a reference to a row-store internal page key as cheaply as
  * possible.
  */ /*获取行存储时ref对应page中的内部所有key值(实际上获取的是所有key在内存的开始位置及所有key总长度)*/
-static inline void  //page为
+static inline void  
 __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
 {
 	uintptr_t v;
@@ -711,17 +711,17 @@ __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
 	 * In this specific case, we use bit 0x01 to mark an on-page key, else
 	 * it's a WT_IKEY reference.  The bit pattern for internal row-store
 	 * on-page keys is:
-	 *	32 bits		key length
-	 *	31 bits		page offset of the key's bytes,
+	 *	32 bits		key length    
+	 *	31 bits		page offset of the key's bytes,  在磁盘上的位置
 	 *	 1 bits		flags
 	 */
 	v = (uintptr_t)ref->ref_ikey;
 	/*key的值与key.ikey内存关系是不连续的，keyp指向key值开始位置,通过v的值计算偏移*/
-	if (v & WT_IK_FLAG) { //和__wt_ref_key_onpage_set对应
+	if (v & WT_IK_FLAG) { //和__wt_ref_key_onpage_set对应  key在磁盘，如内存不够会罗盘，通过该指针指向在磁盘中的位置
 		*(void **)keyp =
 		    WT_PAGE_REF_OFFSET(page, WT_IK_DECODE_KEY_OFFSET(v));
 		*sizep = WT_IK_DECODE_KEY_LEN(v);
-	} else { //和__wt_ref_key_instantiated对应
+	} else { //和__wt_row_ikey对应   key在内存
 		*(void **)keyp = WT_IKEY_DATA(ref->ref_ikey);
 		*sizep = ((WT_IKEY *)ref->ref_ikey)->size;
 	}
@@ -731,8 +731,8 @@ __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
  * __wt_ref_key_onpage_set --
  *	Set a WT_REF to reference an on-page key.
  */
-//__wt_ref_key_onpage_set __wt_row_ikey和__wt_ref_key对应
-static inline void
+//__wt_ref_key_onpage_set(page上的key在磁盘) __wt_row_ikey(page上的key在内存)和__wt_ref_key对应
+static inline void  //page key在磁盘，通过ref_ikey对于到磁盘具体偏移位置
 __wt_ref_key_onpage_set(WT_PAGE *page, WT_REF *ref, WT_CELL_UNPACK *unpack)
 {
 	uintptr_t v;
@@ -750,7 +750,7 @@ __wt_ref_key_onpage_set(WT_PAGE *page, WT_REF *ref, WT_CELL_UNPACK *unpack)
  * __wt_ref_key_instantiated --
  *	Return if a WT_REF key is instantiated.
  */
-//__wt_ref_key_instantiated和__wt_ref_key对应
+//__wt_ref_key_instantiated和__wt_ref_key配合阅读
 static inline WT_IKEY *
 __wt_ref_key_instantiated(WT_REF *ref)
 {

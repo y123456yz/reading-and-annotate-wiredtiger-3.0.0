@@ -101,8 +101,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 			/* 为cbt游标分配一个update对象数组,并设置update数组槽位，原子操作性的分配*/
 			/* Set the WT_UPDATE array reference. */
 			upd_entry = &mod->mod_row_update[cbt->slot];
-		} else /* 更新会走这个分支，因为在insert的时候cbt->ins会赋值
-		    直接获取insert时候的ins，insert的时候key和value都放入ins中 */
+		} else /* 更新会走这个分支，同一个KV(对应一个WT_INSERT)，key一样，每次update则把新的WT_UPDATE添加到ins->upd头部*/
 			upd_entry = &cbt->ins->upd; //如果是update，则新的value直接放入ins->upd头部
 
 		if (upd_arg == NULL) { //update和insert udp_arg都是等于NULL

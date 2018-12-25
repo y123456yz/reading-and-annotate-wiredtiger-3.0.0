@@ -204,13 +204,15 @@ main(int argc, char *argv[])
 
 	error_check(session->open_cursor(
 	    session, "table:access", NULL, NULL, &cursor));
-	cursor->set_key(cursor, "key");
-	cursor->set_value(cursor, "value");
+	cursor->set_key(cursor, "keyxxxxxxxxxxxxxx");
+	cursor->set_value(cursor, "valuexxxxxxxxxxxxxxxx");
 	error_check(cursor->insert(cursor));
 	error_check(cursor->close(cursor));
 
 	error_check(session->checkpoint(session, NULL));
+    return (EXIT_SUCCESS);
 
+    
 	print_database_stats(session);
 
 	print_file_stats(session);

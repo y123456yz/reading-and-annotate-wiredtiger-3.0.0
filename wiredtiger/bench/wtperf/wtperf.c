@@ -2456,7 +2456,7 @@ usage(void)
 	config_opt_usage();
 }
 
-//默认配置文件为wtperf_opt.i
+//默认配置文件为wtperf_opt.i    ./wtperf -O runners_bak/500m-btree-populate.wtperf 
 int
 main(int argc, char *argv[])
 {

@@ -97,15 +97,18 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt  cbt = (WT_CURSOR_BTREE *)curso
 	//在__wt_row_modify会插入tree中   __wt_row_search或者__wt_col_search中赋值
 	WT_REF	  *ref;			/* Current page */
 	//赋值见__wt_row_search  确定在pg_row中的数组位置，参考WT_ROW_SLOT
+	//多个KV在同一个page，该KV是该page的第几个KV，后面的更新操作就是添加到mod_row_update[slot]对应的数组链表位置
 	uint32_t   slot;		/* WT_COL/WT_ROW 0-based slot */
 
     //赋值见__search_insert_append  __wt_search_insert insert操作相关定位
     //实际上就是__wt_page_modify.mod_row_insert，见__wt_row_modify
     //实际上对应mod_row_insert
 	WT_INSERT_HEAD	*ins_head;	/* Insert chain head */
+	//该key对应的WT_INSERT位置，update del等更新操作都是把新的WT_UPDATE添加到WT_INSERT->upd
 	WT_INSERT	*ins;		/* Current insert node */
 
     //管理上面的ins_head对应的跳跃表，实际上是管理__wt_page_modify.mod_row_insert
+    //确定查找的key对应的WT_INSERT在跳跃表中的位置，跳跃表是排好序的，见__wt_search_insert  __search_insert_append 
 					/* Search stack */
 	WT_INSERT	**ins_stack[WT_SKIP_MAXDEPTH];  
 					/* Next item(s) found during search */
