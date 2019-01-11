@@ -307,7 +307,7 @@ struct __wt_connection_impl {
 
 					/* Connection statistics */
 	//__wt_stat_connection_init中初始化  //记录各种状态信息
-	WT_CONNECTION_STATS *stats[WT_COUNTER_SLOTS];
+	WT_CONNECTION_STATS *stats[WT_COUNTER_SLOTS];  
 	WT_CONNECTION_STATS *stat_array;
 
     //分配空间及赋值见__async_start

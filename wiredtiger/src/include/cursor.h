@@ -451,6 +451,7 @@ struct __wt_cursor_metadata {
 	uint8_t	flags;
 };
 
+//__wt_cursor_stat.join_stats_group成员
 struct __wt_join_stats_group {
 	const char *desc_prefix;	/* Prefix appears before description */
 	WT_CURSOR_JOIN *join_cursor;
@@ -464,9 +465,11 @@ struct __wt_cursor_stat {
 	bool	notinitialized;		/* Cursor not initialized */
 	bool	notpositioned;		/* Cursor not positioned */
 
+    //赋值见__curstat_conn_init
 	int64_t	     *stats;		/* Statistics */
 	int	      stats_base;	/* Base statistics value */
 	int	      stats_count;	/* Count of statistics values */
+	//__curstat_get_value中执行
 	int	     (*stats_desc)(WT_CURSOR_STAT *, int, const char **);
 					/* Statistics descriptions */
 	int	     (*next_set)(WT_SESSION_IMPL *, WT_CURSOR_STAT *, bool,
@@ -474,7 +477,7 @@ struct __wt_cursor_stat {
 
 	union {				/* Copies of the statistics */
 		WT_DSRC_STATS dsrc_stats;
-		WT_CONNECTION_STATS conn_stats;
+		WT_CONNECTION_STATS conn_stats; //__wt_cursor_stat.join_stats_group成员
 		WT_JOIN_STATS_GROUP join_stats_group;
 	} u;
 

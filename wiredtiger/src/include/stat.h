@@ -51,7 +51,7 @@
  *
  * Default hash table size; use a prime number of buckets rather than assuming
  * a good hash (Reference Sedgewick, Algorithms in C, "Hash Functions").
- */
+ */ //__wt_connection_impl.stats[]数组成员个数
 #define	WT_COUNTER_SLOTS	23
 
 /*
@@ -86,7 +86,7 @@
 
 /*
  * Sum the values from all structures in the array.
- */
+ */ //把stats[0-WT_COUNTER_SLOTS][slot]的所有成员求和
 static inline int64_t
 __wt_stats_aggregate(void *stats_arg, int slot)
 {
@@ -139,6 +139,7 @@ __wt_stats_clear(void *stats_arg, int slot)
  */
 #define	WT_STAT_ENABLED(session) (S2C(session)->stat_flags != 0)
 
+//把stats[i][j]二维数组的所有stats[0-max][offset]成员求和
 #define	WT_STAT_READ(stats, fld)					\
 	__wt_stats_aggregate(stats, WT_STATS_FIELD_TO_OFFSET(stats, fld))
 #define	WT_STAT_WRITE(session, stats, fld, v) do {			\
@@ -256,8 +257,8 @@ __wt_stats_clear(void *stats_arg, int slot)
  * Statistics entries for connections.
  */
 #define	WT_CONNECTION_STATS_BASE	1000
-//记录各种状态信息
-struct __wt_connection_stats {
+//记录各种状态信息 //__wt_cursor_stat.conn_stats   __wt_connection_impl->stats成员
+struct __wt_connection_stats { //__stats_connection_desc和__wt_connection_stats对应
 	int64_t lsm_work_queue_app;
 	int64_t lsm_work_queue_manager;
 	int64_t lsm_rows_merged;
@@ -413,23 +414,29 @@ struct __wt_connection_stats {
 	int64_t dh_session_handles;
 	//清理dhandle的次数
 	int64_t dh_session_sweeps;
+	//lock相关的赋值参考WT_RWLOCK_INIT_TRACKED
 	int64_t lock_checkpoint_count;
 	int64_t lock_checkpoint_wait_application;
 	int64_t lock_checkpoint_wait_internal;
+	//赋值参考WT_RWLOCK_INIT_TRACKED
 	int64_t lock_dhandle_wait_application;
 	int64_t lock_dhandle_wait_internal;
 	int64_t lock_dhandle_read_count;
 	int64_t lock_dhandle_write_count;
+	//赋值参考WT_RWLOCK_INIT_TRACKED
 	int64_t lock_metadata_count;
 	int64_t lock_metadata_wait_application;
 	int64_t lock_metadata_wait_internal;
+	//赋值参考WT_RWLOCK_INIT_TRACKED
 	int64_t lock_schema_count;
 	int64_t lock_schema_wait_application;
 	int64_t lock_schema_wait_internal;
+	//赋值参考WT_RWLOCK_INIT_TRACKED，stat对应的lock实际上在__wt_rwlock结构的相关成员
 	int64_t lock_table_wait_application;
 	int64_t lock_table_wait_internal;
 	int64_t lock_table_read_count;
 	int64_t lock_table_write_count;
+	
 	int64_t log_slot_switch_busy;
 	int64_t log_force_ckpt_sleep;
 	int64_t log_bytes_payload;
@@ -560,7 +567,7 @@ struct __wt_connection_stats {
  * Statistics entries for data sources.
  */
 #define	WT_DSRC_STATS_BASE	2000
-struct __wt_dsrc_stats {
+struct __wt_dsrc_stats { //__wt_cursor_stat.dsrc_stats成员
 	int64_t bloom_false_positive;
 	int64_t bloom_hit;
 	int64_t bloom_miss;

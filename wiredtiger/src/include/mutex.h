@@ -50,6 +50,7 @@ struct __wt_rwlock {			/* Read/write lock */
 		} s;
 	} u;
 
+    //初始赋值见WT_RWLOCK_INIT_TRACKED
 	int16_t stat_read_count_off;	/* read acquisitions offset */
 	int16_t stat_write_count_off;	/* write acquisitions offset */
 	int16_t stat_app_usecs_off;	/* waiting application threads offset */
@@ -65,7 +66,7 @@ struct __wt_rwlock {			/* Read/write lock */
  *
  * Implemented as a macro so we can pass in a statistics field and convert
  * it into a statistics structure array offset.
- */
+ */ //对应的锁信息赋值给了__wt_rwlock相关成员
 #define	WT_RWLOCK_INIT_TRACKED(session, l, name) do {                   \
 	WT_RET(__wt_rwlock_init(session, l));                           \
 	(l)->stat_read_count_off = (int16_t)WT_STATS_FIELD_TO_OFFSET(   \

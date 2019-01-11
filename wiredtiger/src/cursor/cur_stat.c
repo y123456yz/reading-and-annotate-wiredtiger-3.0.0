@@ -4,7 +4,7 @@
  *	All rights reserved.
  *
  * See the file LICENSE for redistribution information.
- */
+ */ //stat相关的统计应该只在内存中，无需罗盘
 
 #include "wt_internal.h"
 
@@ -12,9 +12,12 @@
  * The statistics identifier is an offset from a base to ensure the integer ID
  * values don't overlap (the idea is if they overlap it's easy for application
  * writers to confuse them).
- */
+ */ 
+//stats_base结构体末尾位置
 #define	WT_STAT_KEY_MAX(cst)	(((cst)->stats_base + (cst)->stats_count) - 1)
+//stats_base结构体起始位置
 #define	WT_STAT_KEY_MIN(cst)	((cst)->stats_base)
+//定位key在数组stats_base的位置，第几个成员
 #define	WT_STAT_KEY_OFFSET(cst)	((cst)->key - (cst)->stats_base)
 
 /*
@@ -76,7 +79,7 @@ err:	va_end(ap);
 /*
  * __curstat_get_value --
  *	WT_CURSOR->get_value for statistics cursors.
- */
+ */ //stat相关的统计信息应该只在内存中
 static int
 __curstat_get_value(WT_CURSOR *cursor, ...)
 {
@@ -276,7 +279,7 @@ err:	API_END_RET(session, ret);
 /*
  * __curstat_search --
  *	WT_CURSOR->search method for the statistics cursor type.
- */
+ */ //获取cursor对应在数组stats中的成员内容
 static int
 __curstat_search(WT_CURSOR *cursor)
 {
@@ -351,12 +354,15 @@ __curstat_conn_init(WT_SESSION_IMPL *session, WT_CURSOR_STAT *cst)
 	 * Fill in the connection statistics, and copy them to the cursor.
 	 * Optionally clear the connection statistics.
 	 */
-	__wt_conn_stat_init(session);
+	//printf("yang test .................lock_table_write_count:%d\r\n", conn->stats.lock_table_write_count,  cst->u.conn_stats.lock_table_write_count);
+	__wt_conn_stat_init(session); 
+	//从conn->stats中获取stats信息存入conn_stats
 	__wt_stat_connection_aggregate(conn->stats, &cst->u.conn_stats);
 	if (F_ISSET(cst, WT_STAT_CLEAR))
 		__wt_stat_connection_clear_all(conn->stats);
 
 	cst->stats = (int64_t *)&cst->u.conn_stats;
+
 	cst->stats_base = WT_CONNECTION_STATS_BASE;
 	cst->stats_count = sizeof(WT_CONNECTION_STATS) / sizeof(int64_t);
 	cst->stats_desc = __wt_stat_connection_desc;

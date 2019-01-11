@@ -2,6 +2,7 @@
 
 #include "wt_internal.h"
 
+//参考ex_stat.c，该example可以查看这些打印
 static const char * const __stats_dsrc_desc[] = {
 	"LSM: bloom filter false positives",
 	"LSM: bloom filter hits",
@@ -165,6 +166,7 @@ __wt_stat_dsrc_init(
 
 	WT_RET(__wt_calloc(session, (size_t)WT_COUNTER_SLOTS,
 	    sizeof(*handle->stat_array), &handle->stat_array));
+    struct __wt_connection_stats aa;
 
 	for (i = 0; i < WT_COUNTER_SLOTS; ++i) {
 		handle->stats[i] = &handle->stat_array[i];
@@ -724,6 +726,7 @@ __wt_stat_dsrc_aggregate(
 	to->txn_update_conflict += WT_STAT_READ(from, txn_update_conflict);
 }
 
+//__stats_connection_desc和__wt_connection_stats对应
 static const char * const __stats_connection_desc[] = {
 	"LSM: application work units currently queued",
 	"LSM: merge work units currently queued",
@@ -1046,6 +1049,7 @@ __wt_stat_connection_init(
 		handle->stats[i] = &handle->stat_array[i];
 		__wt_stat_connection_init_single(handle->stats[i]);
 	}
+	
 	return (0);
 }
 
@@ -1357,13 +1361,13 @@ void
 __wt_stat_connection_clear_all(WT_CONNECTION_STATS **stats)
 {
 	u_int i;
-
+    
 	for (i = 0; i < WT_COUNTER_SLOTS; ++i)
 		__wt_stat_connection_clear_single(stats[i]);
 }
 
 void
-__wt_stat_connection_aggregate(
+__wt_stat_connection_aggregate(  
     WT_CONNECTION_STATS **from, WT_CONNECTION_STATS *to)
 {
 	int64_t v;
@@ -1614,6 +1618,7 @@ __wt_stat_connection_aggregate(
 	    WT_STAT_READ(from, lock_table_wait_internal);
 	to->lock_table_read_count +=
 	    WT_STAT_READ(from, lock_table_read_count);
+	printf("yang test ...................WT_STAT_READ(from, lock_table_write_count):%d,  %d\r\n", to->lock_table_write_count,WT_STAT_READ(from, lock_table_write_count));
 	to->lock_table_write_count +=
 	    WT_STAT_READ(from, lock_table_write_count);
 	to->log_slot_switch_busy += WT_STAT_READ(from, log_slot_switch_busy);
