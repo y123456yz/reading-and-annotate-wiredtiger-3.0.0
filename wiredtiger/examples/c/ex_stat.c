@@ -48,10 +48,11 @@ print_cursor(WT_CURSOR *cursor)
 	uint64_t value;
 	int ret;
 
+    printf("yang test ....... ex stat!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\r\n");
 	while ((ret = cursor->next(cursor)) == 0) {
 		error_check(cursor->get_value(cursor, &desc, &pvalue, &value));
 		if (value != 0)
-			printf("%s=%s\n", desc, pvalue);
+			printf("statistic    %s=%s\n", desc, pvalue);
 	}
 	scan_end_check(ret == WT_NOTFOUND);
 }
@@ -210,7 +211,7 @@ main(int argc, char *argv[])
 	error_check(cursor->close(cursor));
 
 	error_check(session->checkpoint(session, NULL));
-    return (EXIT_SUCCESS);
+    //return (EXIT_SUCCESS);
 
     
 	print_database_stats(session);
@@ -224,6 +225,6 @@ main(int argc, char *argv[])
 	print_derived_stats(session);
 
 	error_check(conn->close(conn, NULL));
-
+    printf("yang test ccccccccccccccccccccccccccccccccccccccccc\r\n");
 	return (EXIT_SUCCESS);
 }
