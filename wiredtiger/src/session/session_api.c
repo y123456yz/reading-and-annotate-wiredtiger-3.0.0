@@ -55,7 +55,7 @@ __wt_session_reset_cursors(WT_SESSION_IMPL *session, bool free_buffers)
  * __wt_session_copy_values --
  *	Copy values into all positioned cursors, so that they don't keep
  *	transaction IDs pinned.
- */
+ */ /*将session中所有的cursor的value值拷贝到value的开始位置*/
 int
 __wt_session_copy_values(WT_SESSION_IMPL *session)
 {

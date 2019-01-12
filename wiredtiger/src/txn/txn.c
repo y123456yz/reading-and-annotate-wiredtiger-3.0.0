@@ -110,7 +110,7 @@ __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_get_snapshot --
  *	Allocate a snapshot.
- */
+ */ //获取当前系统正在处理的所有事务信息，也就是当前事务快照
 void
 __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 {
@@ -140,6 +140,7 @@ __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 	 * metadata.  We don't have to keep the checkpoint's changes pinned so
 	 * don't including it in the published pinned ID.
 	 */
+	//凡是transaction_id不等于WT_TNX_NONE都认为是在执行中且有修改操作的事务
 	if ((id = txn_global->checkpoint_state.id) != WT_TXN_NONE) {
 		txn->snapshot[n++] = id;
 		txn_state->metadata_pinned = id;
@@ -153,6 +154,7 @@ __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 		goto done;
 	}
 
+    //凡是transaction_id不等于WT_TNX_NONE都认为是在执行中且有修改操作的事务
 	/* Walk the array of concurrent transactions. */
 	WT_ORDERED_READ(session_cnt, conn->session_cnt);
 	for (i = 0, s = txn_global->states; i < session_cnt; i++, s++) {
@@ -190,7 +192,7 @@ done:	__wt_readunlock(session, &txn_global->rwlock);
 /*
  * __txn_oldest_scan --
  *	Sweep the running transactions to calculate the oldest ID required.
- */
+ */ //获取系统中最早产生且还在执行的写事务ID
 static void
 __txn_oldest_scan(WT_SESSION_IMPL *session,
     uint64_t *oldest_idp, uint64_t *last_runningp, uint64_t *metadata_pinnedp,
@@ -264,7 +266,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session,
  * __wt_txn_update_oldest --
  *	Sweep the running transactions to update the oldest ID required.
  */
-//清除正在运行的事务以更新所需的最旧ID。 
+//获取当前事务中最老的事务id
 int
 __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
 {
@@ -603,11 +605,13 @@ __wt_txn_release(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_commit --
  *	Commit the current transaction.
- */ //每次插入 更新 删除等操作都会通过 TXN_API_END_RETRY 走到这里    
+ */
+//每次插入 更新 删除等操作都会通过 TXN_API_END_RETRY 走到这里    
+//普通写操作通过TXN_API_END_RETRY调用
 int
 __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 {
-	WT_CONFIG_ITEM cval;
+	WT_CONFIG_ITEM cval; 
 	WT_CONNECTION_IMPL *conn;
 	WT_DECL_RET;
 	WT_TXN *txn;

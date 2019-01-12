@@ -478,7 +478,7 @@ struct __wt_extension_api {
 	 * @returns the current transaction ID.
 	 *
 	 * @snippet ex_data_source.c WT_EXTENSION transaction ID
-	 */
+	 */ //本次事务的全局唯一的ID，用于标示事务修改数据的版本号
 	uint64_t (*transaction_id)(WT_EXTENSION_API *wt_api,
 	    WT_SESSION *session);
 
