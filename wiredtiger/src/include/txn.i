@@ -534,7 +534,7 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
 	 * have an ID setup.
 	 */
 	if (txn->isolation == WT_ISO_SNAPSHOT &&
-	    !F_ISSET(txn, WT_TXN_NAMED_SNAPSHOT)) {
+	    !F_ISSET(txn, WT_TXN_NAMED_SNAPSHOT)) { 
 		if (session->ncursors > 0)
 			WT_RET(__wt_session_copy_values(session));
 
@@ -600,7 +600,7 @@ __wt_txn_idle_cache_check(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_id_alloc --
  *	Allocate a new transaction ID.
- */
+ */ //分配事务id
 static inline uint64_t
 __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 {
@@ -645,7 +645,7 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 	 * Even though we are in a spinlock, readers are not.  We rely on
 	 * atomic reads of the current ID to create snapshots, so for unlocked
 	 * reads to be well defined, we must use an atomic increment here.
-	 */
+	 */ /*分配事务ID，这里采用了cas进行多线程竞争生成ID*/
 	(void)__wt_atomic_addv64(&txn_global->current, 1);
 	__wt_spin_unlock(session, &txn_global->id_lock);
 	return (id);
@@ -654,7 +654,7 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 /*
  * __wt_txn_id_check --
  *	A transaction is going to do an update, allocate a transaction ID.
- */
+ */ /*检查cache内存是否满了，如果满了，evict lru page,并为txn产生一个全局唯一的ID*/
 static inline int
 __wt_txn_id_check(WT_SESSION_IMPL *session)
 {
@@ -666,10 +666,11 @@ __wt_txn_id_check(WT_SESSION_IMPL *session)
 
 	if (F_ISSET(txn, WT_TXN_HAS_ID))
 		return (0);
-
+		
+    /*在事务开始前先检查cache的内存占用率，确保cache有足够的内存运行事务*/
 	/* If the transaction is idle, check that the cache isn't full. */
 	WT_RET(__wt_txn_idle_cache_check(session));
-
+    /*分配事务ID，这里采用了cas进行多线程竞争生成ID*/
 	(void)__wt_txn_id_alloc(session, true);
 
 	/*

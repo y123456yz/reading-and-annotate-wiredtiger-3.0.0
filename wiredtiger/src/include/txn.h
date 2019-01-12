@@ -57,6 +57,7 @@
 	txn_state->pinned_id = saved_state.pinned_id;			\
 } while (0)
 
+//有名快照，参考__wt_txn_named_snapshot_begin
 struct __wt_named_snapshot {
 	const char *name;
 
@@ -67,6 +68,8 @@ struct __wt_named_snapshot {
 	uint32_t snapshot_count;
 };
 
+//__wt_txn_global.states  记录各个session的事务id信息
+//通过WT_SESSION_TXN_STATE取值
 struct __wt_txn_state {
 	WT_CACHE_LINE_PAD_BEGIN
 	volatile uint64_t id;
@@ -76,16 +79,19 @@ struct __wt_txn_state {
 	WT_CACHE_LINE_PAD_END
 };
 
+//该结构用于全局事务管理
 struct __wt_txn_global {
+    // 全局写事务ID产生种子,一直递增  __wt_txn_id_alloc总自增
 	volatile uint64_t current;	/* Current transaction ID. */
 
 	/* The oldest running transaction ID (may race). */
+	
 	volatile uint64_t last_running;
 
 	/*
 	 * The oldest transaction ID that is not yet visible to some
 	 * transaction in the system.
-	 */
+	 */ //系统中最早产生且还在执行的写事务ID
 	volatile uint64_t oldest_id;
 
 	WT_DECL_TIMESTAMP(commit_timestamp)
@@ -141,9 +147,11 @@ struct __wt_txn_global {
 	volatile uint64_t nsnap_oldest_id;
 	TAILQ_HEAD(__wt_nsnap_qh, __wt_named_snapshot) nsnaph;
 
-	WT_TXN_STATE *states;		/* Per-session transaction states */
+    //数组，不同session的WT_TXN_STATE记录到该数组对应位置，见WT_SESSION_TXN_STATE
+	WT_TXN_STATE *states;		/* Per-session transaction states */ 
 };
 
+/* wiredtiger 事务隔离类型 */
 typedef enum __wt_txn_isolation {
 	WT_ISO_READ_COMMITTED,
 	WT_ISO_READ_UNCOMMITTED,
@@ -196,7 +204,7 @@ struct __wt_txn_op {
 //WT_SESSION_IMPL.txn成员为该类型
 //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
 struct __wt_txn {
-	uint64_t id; /*事务ID*/
+	uint64_t id; /*事务ID*/ //赋值见__wt_txn_id_alloc
 
 	WT_TXN_ISOLATION isolation; /*隔离级别*/
 
@@ -207,10 +215,11 @@ struct __wt_txn {
 	 *	ids < snap_min are visible,
 	 *	ids > snap_max are invisible,
 	 *	everything else is visible unless it is in the snapshot.
-	 */
+	 */ //这个范围内的事务表示当前系统中正在操作的事务，参考https://blog.csdn.net/yuanrxdu/article/details/78339295
 	uint64_t snap_min, snap_max;
-	uint64_t *snapshot;
-	uint32_t snapshot_count;
+	//系统事务对象数组，保存系统中所有的事务对象
+	uint64_t *snapshot; //snapshot数组，对应__wt_txn_init
+	uint32_t snapshot_count; //txn->snapshot数组中有多少个成员
 	//生效见__wt_txn_log_commit  //来源在__logmgr_sync_cfg中配置解析  赋值见__wt_txn_begin
 	uint32_t txn_logsync;	/* Log sync configuration */
 
@@ -235,10 +244,11 @@ struct __wt_txn {
 	TAILQ_ENTRY(__wt_txn) read_timestampq;
 
 	/* Array of modifications by this transaction. */
-	//见__wt_txn_log_op   赋值见__txn_next_op
+	//一次事务操作里面包含的具体内容通过mod数组存储
+	//见__wt_txn_log_op   赋值见__txn_next_op中分配WT_TXN_OP
 	 //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
 	WT_TXN_OP      *mod;  /*事务进行的操作对象数组*/
-	size_t		mod_alloc;
+	size_t		mod_alloc; //__txn_next_op
 	u_int		mod_count;
 
 	/* Scratch buffer for in-memory log records. */

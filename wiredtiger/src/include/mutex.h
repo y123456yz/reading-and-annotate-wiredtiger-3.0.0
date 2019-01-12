@@ -37,6 +37,7 @@ struct __wt_condvar {
  * Don't modify this structure without understanding the read/write locking
  * functions.
  */
+//不同功能模块会有不同的锁，都会包含一个WT_RWLOCK成员，可以搜索WT_RWLOCK
 struct __wt_rwlock {			/* Read/write lock */
 	volatile union {
 		uint64_t v;			/* Full 64-bit value */
