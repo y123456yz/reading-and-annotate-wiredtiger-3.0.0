@@ -65,7 +65,7 @@ __snapsort(uint64_t *array, uint32_t size)
 /*
  * __txn_sort_snapshot --
  *	Sort a snapshot for faster searching and set the min/max bounds.
- */
+ */ //txn->snapshot数组排序
 static void
 __txn_sort_snapshot(WT_SESSION_IMPL *session, uint32_t n, uint64_t snap_max)
 {
@@ -103,7 +103,8 @@ __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
 	    session->txn.isolation == WT_ISO_READ_UNCOMMITTED ||
 	    !__wt_txn_visible_all(session, txn_state->pinned_id, NULL));
 
-	txn_state->metadata_pinned = txn_state->pinned_id = WT_TXN_NONE;
+    //保证其他事务在创建系统事务snapshot时本次事务的状态是已提交的状态。
+	txn_state->metadata_pinned = txn_state->pinned_id = WT_TXN_NONE; //事务提前成功后，恢复该session的事务状态信息到初始状态
 	F_CLR(txn, WT_TXN_HAS_SNAPSHOT);
 }
 
@@ -111,7 +112,7 @@ __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
  * __wt_txn_get_snapshot --
  *	Allocate a snapshot.
  */ //获取当前系统正在处理的所有事务信息，也就是当前事务快照
-void
+void //获取当前正在执行但还没有提交的事务快照信息存入txn->snapshot[]数组
 __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 {
 	WT_CONNECTION_IMPL *conn;
@@ -168,7 +169,7 @@ __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 		 *    an ID -- the ID will not be used because the thread will
 		 *    keep spinning until it gets a valid one.
 		 */
-		if (s != txn_state &&
+		if (s != txn_state && //txn_state表示本session自己的快照信息，自己的快照信息保存在WT_SESSION_TXN_STATE(session)中，因此不需要获取
 		    (id = s->id) != WT_TXN_NONE &&
 		    WT_TXNID_LE(prev_oldest_id, id)) {
 			txn->snapshot[n++] = id;
@@ -186,13 +187,15 @@ __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 	txn_state->pinned_id = pinned_id;
 
 done:	__wt_readunlock(session, &txn_global->rwlock);
+
+    //txn->snapshot数组排序
 	__txn_sort_snapshot(session, n, current_id);
 }
 
 /*
  * __txn_oldest_scan --
  *	Sweep the running transactions to calculate the oldest ID required.
- */ //获取系统中最早产生且还在执行的写事务ID
+ */ //获取系统中最早产生且还在执行(也就是还未commit提交)的写事务ID，以及oldest_sessionp等
 static void
 __txn_oldest_scan(WT_SESSION_IMPL *session,
     uint64_t *oldest_idp, uint64_t *last_runningp, uint64_t *metadata_pinnedp,
@@ -297,7 +300,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
 	/*
 	 * For pure read-only workloads, or if the update isn't forced and the
 	 * oldest ID isn't too far behind, avoid scanning.
-	 */ /*当前事务已经是最早且存活的事务，不用扫描整个全局事务队列，将snapshot中的txn id数组排序即可*/
+	 */ /*当前事务已经是最早且存活的事务，并且等于prev_oldest_id，说明只存在当前一个事务，直接返回，oldest_id不变*/
 	if ((prev_oldest_id == current_id &&
 	    prev_metadata_pinned == current_id) ||
 	    (!strict && WT_TXNID_LT(current_id, prev_oldest_id + 100)))
@@ -867,6 +870,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 		(void)__wt_cache_eviction_check(session, false, false, NULL);
 	return (0);
 
+//异常，回滚
 err:	/*
 	 * If anything went wrong, roll back.
 	 *
@@ -882,6 +886,9 @@ err:	/*
 /*
  * __wt_txn_rollback --
  *	Roll back the current transaction.
+ WT引擎对事务的回滚过程也比较简单，先遍历整个mod数组，对每个数组单元对应update的事务id设置以为一
+ 个WT_TXN_ABORTED（= uint64_max），标示mvcc 对应的修改单元值被回滚，在其他读事务进行mvcc读操作的时候，
+ 跳过这个放弃的值即可。整个过程是一个无锁操作，高效、简洁。
  */
 int
 __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])

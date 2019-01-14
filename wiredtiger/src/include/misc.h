@@ -182,7 +182,7 @@
 
 /*
  * Binary search for an integer key.
- */
+ */ //二分查找key是否在arrayp[n]数组中存在，通过found返回，true存在，false没找到
 #define	WT_BINARY_SEARCH(key, arrayp, n, found) do {			\
 	uint32_t __base, __indx, __limit;				\
 	(found) = false;						\

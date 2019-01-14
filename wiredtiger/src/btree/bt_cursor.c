@@ -167,7 +167,7 @@ __cursor_fix_implicit(WT_BTREE *btree, WT_CURSOR_BTREE *cbt)
  * __wt_cursor_valid --
  *	Return if the cursor references an valid key/value pair.
  */  //ins不为NULL，直接获取ins->udp,如果为NULL则从mod_row_update表中根据cbt->slot定位获取
-bool
+bool  //获取cbt对应的KV，通过updp返回   __wt_btcur_insert调用
 __wt_cursor_valid(WT_CURSOR_BTREE *cbt, WT_UPDATE **updp)
 {
 	WT_BTREE *btree;
