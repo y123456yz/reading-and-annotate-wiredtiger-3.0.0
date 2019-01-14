@@ -5,9 +5,10 @@
  *
  * See the file LICENSE for redistribution information.
  */
-
+//表示该事务是已提交的
 #define	WT_TXN_NONE	0		/* No txn running in a session. */
 #define	WT_TXN_FIRST	1		/* First transaction to run. */
+//表示该事务是回滚了的
 #define	WT_TXN_ABORTED	UINT64_MAX	/* Update rolled back, ignore. */
 
 /*
@@ -58,7 +59,7 @@
 } while (0)
 
 //有名快照，参考__wt_txn_named_snapshot_begin
-struct __wt_named_snapshot {
+struct __wt_named_snapshot {//该结构对应的数据最终存入到__wt_txn_global.snapshot队列
 	const char *name;
 
 	TAILQ_ENTRY(__wt_named_snapshot) q;
@@ -79,9 +80,10 @@ struct __wt_txn_state {
 	WT_CACHE_LINE_PAD_END
 };
 
+//一个conn中包含多个session,每个session有一个对应的事务txn信息
 //该结构用于全局事务管理
 struct __wt_txn_global {
-    // 全局写事务ID产生种子,一直递增  __wt_txn_id_alloc总自增
+    // 全局写事务ID产生种子,一直递增  __wt_txn_id_alloc总自增 
 	volatile uint64_t current;	/* Current transaction ID. */
 
 	/* The oldest running transaction ID (may race). */
@@ -91,7 +93,7 @@ struct __wt_txn_global {
 	/*
 	 * The oldest transaction ID that is not yet visible to some
 	 * transaction in the system.
-	 */ //系统中最早产生且还在执行的写事务ID
+	 */ //系统中最早产生且还在执行(也就是还未提交)的写事务ID，赋值见__wt_txn_update_oldest
 	volatile uint64_t oldest_id;
 
 	WT_DECL_TIMESTAMP(commit_timestamp)
@@ -148,11 +150,14 @@ struct __wt_txn_global {
 	TAILQ_HEAD(__wt_nsnap_qh, __wt_named_snapshot) nsnaph;
 
     //数组，不同session的WT_TXN_STATE记录到该数组对应位置，见WT_SESSION_TXN_STATE
+    //存储了所有session的事务id信息，参考__wt_txn_am_oldest
+    //程序一起来就会分陪空间，见__wt_txn_global_init，每个session对应的WT_TXN_STATE的赋值在__wt_txn_get_snapshot
 	WT_TXN_STATE *states;		/* Per-session transaction states */ 
 };
 
-/* wiredtiger 事务隔离类型 */
-typedef enum __wt_txn_isolation {
+//可以参考https://blog.csdn.net/yuanrxdu/article/details/78339295
+/* wiredtiger 事务隔离类型，生效见__txn_visible_id */
+typedef enum __wt_txn_isolation { //赋值见__wt_txn_config
 	WT_ISO_READ_COMMITTED,
 	WT_ISO_READ_UNCOMMITTED,
 	WT_ISO_SNAPSHOT
@@ -164,7 +169,7 @@ typedef enum __wt_txn_isolation {
  *	of these operations as it runs, then uses the array to either write log
  *	records during commit or undo the operations during rollback.
  */ //赋值见__wt_txn_modify  用于记录各种操作
- //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
+ //WT_TXN和__wt_txn_op在__txn_next_op中关联起来    __wt_txn.mod数组成员
 struct __wt_txn_op {
 	uint32_t fileid;
 	enum {
@@ -194,7 +199,7 @@ struct __wt_txn_op {
 				WT_TXN_TRUNC_STOP
 			} mode;
 		} truncate_row;
-	} u;
+	} u; //和每个key的update链关联起来，见__wt_txn_modify
 };
 
 /*
@@ -203,10 +208,11 @@ struct __wt_txn_op {
  */
 //WT_SESSION_IMPL.txn成员为该类型
 //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
-struct __wt_txn {
+struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
+    //本次事务的全局唯一的ID，用于标示事务修改数据的版本号
 	uint64_t id; /*事务ID*/ //赋值见__wt_txn_id_alloc
 
-	WT_TXN_ISOLATION isolation; /*隔离级别*/
+	WT_TXN_ISOLATION isolation; /*隔离级别*/ //赋值见__wt_txn_config
 
 	uint32_t forced_iso;	/* Isolation is currently forced. */
 
@@ -217,8 +223,9 @@ struct __wt_txn {
 	 *	everything else is visible unless it is in the snapshot.
 	 */ //这个范围内的事务表示当前系统中正在操作的事务，参考https://blog.csdn.net/yuanrxdu/article/details/78339295
 	uint64_t snap_min, snap_max;
-	//系统事务对象数组，保存系统中所有的事务对象
-	uint64_t *snapshot; //snapshot数组，对应__wt_txn_init
+	//系统事务对象数组，保存系统中所有的事务对象,保存的是正在执行事务的区间的事务对象序列
+	//当前事务开始或者操作时刻其他正在执行且并未提交的事务集合,用于事务隔离
+	uint64_t *snapshot; //snapshot数组，对应__wt_txn_init   数组内容默认在__txn_sort_snapshot中按照id排序
 	uint32_t snapshot_count; //txn->snapshot数组中有多少个成员
 	//生效见__wt_txn_log_commit  //来源在__logmgr_sync_cfg中配置解析  赋值见__wt_txn_begin
 	uint32_t txn_logsync;	/* Log sync configuration */
@@ -247,9 +254,12 @@ struct __wt_txn {
 	//一次事务操作里面包含的具体内容通过mod数组存储
 	//见__wt_txn_log_op   赋值见__txn_next_op中分配WT_TXN_OP
 	 //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
-	WT_TXN_OP      *mod;  /*事务进行的操作对象数组*/
+	 //本次事务中已执行的操作列表,用于事务回滚。
+	 //在内存中的update结构信息，就是存入该数组对应成员中的
+	WT_TXN_OP      *mod;  /* 该mod数组记录了本session对应的事务的所有写操作信息*/  
+	
 	size_t		mod_alloc; //__txn_next_op
-	u_int		mod_count;
+	u_int		mod_count; //见__txn_next_op
 
 	/* Scratch buffer for in-memory log records. */
 	//赋值见__txn_logrec_init    https://blog.csdn.net/yuanrxdu/article/details/78339295
@@ -268,6 +278,7 @@ struct __wt_txn {
 	WT_ITEM		*ckpt_snapshot;
 	bool		full_ckpt;
 
+    //下面的WT_TXN_AUTOCOMMIT等
 	uint32_t flags;
 };
 
@@ -276,6 +287,7 @@ struct __wt_txn {
 #define	WT_TXN_AUTOCOMMIT	0x00001
 #define	WT_TXN_ERROR		0x00002
 #define	WT_TXN_HAS_ID		0x00004
+//获取当前系统事务快照后在__wt_txn_get_snapshot->__txn_sort_snapshot中置位，在__wt_txn_release_snapshot中清楚标记
 #define	WT_TXN_HAS_SNAPSHOT	0x00008
 #define	WT_TXN_HAS_TS_COMMIT	0x00010
 /* Are we using a read timestamp for this checkpoint transaction? */

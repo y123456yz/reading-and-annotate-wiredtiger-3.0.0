@@ -67,7 +67,7 @@ struct __wt_rwlock {			/* Read/write lock */
  *
  * Implemented as a macro so we can pass in a statistics field and convert
  * it into a statistics structure array offset.
- */ //对应的锁信息赋值给了__wt_rwlock相关成员
+ */ //对应的锁信息赋值给了__wt_rwlock相关成员   各种不同__wt_rwlock锁真正的赋值在__wt_rwlock_init  __wt_try_readlock
 #define	WT_RWLOCK_INIT_TRACKED(session, l, name) do {                   \
 	WT_RET(__wt_rwlock_init(session, l));                           \
 	(l)->stat_read_count_off = (int16_t)WT_STATS_FIELD_TO_OFFSET(   \

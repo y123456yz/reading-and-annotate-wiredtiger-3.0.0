@@ -272,7 +272,7 @@ struct __wt_connection_impl {
 	volatile uint64_t cache_size;	/* Cache size (either statically
 					   configured or the current size
 					   within a cache pool). */
-
+    //session->txn  conn->txn_global的关系可以参考__wt_txn_am_oldest
 	WT_TXN_GLOBAL txn_global;	/* Global transaction state */
 
 	WT_RWLOCK hot_backup_lock;	/* Hot backup serialization */

@@ -266,6 +266,7 @@ new_page:	/* Find the matching WT_COL slot. */
  *	Move to the next row-store item.
  */ 
 /*移向行存储的下一个行对象  获取对应的key和value填充到*/
+//读操作，一行一行的读
 static inline int
 __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage)
 {

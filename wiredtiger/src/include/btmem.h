@@ -1067,6 +1067,7 @@ struct __wt_ikey {
  */
 //创建空间赋值见__wt_update_alloc   __wt_insert.udp为见结构，__wt_insert包含key和value
 struct __wt_update {
+    //赋值见__wt_txn_modify
 	volatile uint64_t txnid;	/* transaction ID */
 #if WT_TIMESTAMP_SIZE == 8
 	WT_DECL_TIMESTAMP(timestamp)	/* aligned uint64_t timestamp */
@@ -1097,9 +1098,13 @@ struct __wt_update {
 };
 
 #define	WT_UPDATE_INVALID	0	/* diagnostic check */
+//__wt_btcur_remove中赋值
 #define	WT_UPDATE_DELETED	1	/* deleted */
+//__wt_btcur_modify中赋值
 #define	WT_UPDATE_MODIFIED	2	/* partial-update modify value */
+//__wt_btcur_reserve中赋值
 #define	WT_UPDATE_RESERVED	3	/* reserved */ 
+//__wt_btcur_update   __wt_btcur_insert中赋值
 #define	WT_UPDATE_STANDARD	4	/* complete value */ //insert
 
 

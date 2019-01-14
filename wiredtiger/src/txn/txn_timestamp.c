@@ -617,7 +617,7 @@ __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_txn_set_commit_timestamp --
  *	Publish a transaction's commit timestamp.
- */
+ */ //一些计数信息
 void
 __wt_txn_set_commit_timestamp(WT_SESSION_IMPL *session)
 {

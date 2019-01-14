@@ -420,6 +420,8 @@ __wt_writelock(WT_SESSION_IMPL *session, WT_RWLOCK *l)
 			    l->cond_writers, 10 * WT_THOUSAND, __write_blocked);
 		}
 	}
+
+	//计算等待该锁的时间，主要是上面的for循环里面的时间
 	if (set_stats) {
 		__wt_epoch(session, &leave);
 		if (F_ISSET(session, WT_SESSION_INTERNAL))

@@ -431,6 +431,8 @@ struct __wt_connection_stats { //__stats_connection_descºÍ__wt_connection_stats¶
 	int64_t lock_schema_count;
 	int64_t lock_schema_wait_application;
 	int64_t lock_schema_wait_internal;
+
+	//¸÷ÖÖ²»Í¬__wt_rwlockËøÕæÕıµÄ¸³ÖµÔÚ__wt_readlock  __wt_try_readlock
 	//¸³Öµ²Î¿¼WT_RWLOCK_INIT_TRACKED£¬stat¶ÔÓ¦µÄlockÊµ¼ÊÉÏÔÚ__wt_rwlock½á¹¹µÄÏà¹Ø³ÉÔ±
 	int64_t lock_table_wait_application;
 	int64_t lock_table_wait_internal;

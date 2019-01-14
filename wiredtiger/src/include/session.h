@@ -136,7 +136,7 @@ struct __wt_session_impl {
 
     //默认WT_ISO_READ_COMMITTED，见__open_session
 	WT_TXN_ISOLATION isolation; 
-	//赋值见__wt_txn_init
+	//赋值见__wt_txn_init   //session->txn  conn->txn_global的关系可以参考__wt_txn_am_oldest 
 	WT_TXN	txn; 			/* Transaction state */
 #define	WT_SESSION_BG_SYNC_MSEC		1200000
 	WT_LSN	bg_sync_lsn;		/* Background sync operation LSN. */

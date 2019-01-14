@@ -207,7 +207,7 @@ __wt_txn_unmodify(WT_SESSION_IMPL *session)
  *	Mark a WT_UPDATE object modified by the current transaction.
  */
 /*向session对应的事务的操作列表添加一个update操作,标记这个操作属于这个事务*/
-static inline int
+static inline int //insert update delete等操作都会走向这里
 __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
 	WT_TXN *txn; //WT_TXN和WT_TXN_OP通过__wt_txn_modify->__wt_txn_modify关联起来
@@ -398,6 +398,7 @@ __wt_txn_upd_visible_all(WT_SESSION_IMPL *session, WT_UPDATE *upd)
  * __txn_visible_id --
  *	Can the current transaction see the given ID?
  *//*检查事务id是否对当前session对应事务可见*/
+//__wt_txn_read->__wt_txn_upd_visible->__wt_txn_visible->__txn_visible_id
 static inline bool
 __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 {
@@ -407,11 +408,11 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 	txn = &session->txn;
 
 	/* Changes with no associated transaction are always visible. */
-	if (id == WT_TXN_NONE)
+	if (id == WT_TXN_NONE) //已经提交的事务
 		return (true);
 
 	/* Nobody sees the results of aborted transactions. */
-	if (id == WT_TXN_ABORTED)
+	if (id == WT_TXN_ABORTED) //已回滚的事务，
 		return (false);
 
 	/* Read-uncommitted transactions see all other changes. */
@@ -422,11 +423,11 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 	 * If we don't have a transactional snapshot, only make stable updates
 	 * visible.
 	 */
-	if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT))
+	if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) // 
 		return (__txn_visible_all_id(session, id));
 
 	/* Transactions see their own changes. */
-	if (id == txn->id)
+	if (id == txn->id) //id和session对应的事务id相同
 		return (true);
 
 	/*
@@ -438,11 +439,12 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 	 * saw when taking the snapshot should be invisible, even if the
 	 * snapshot is empty.
 	 */
-	if (WT_TXNID_LE(txn->snap_max, id))
+	if (WT_TXNID_LE(txn->snap_max, id)) //超出未提交快照范围最大值
 		return (false);
-	if (txn->snapshot_count == 0 || WT_TXNID_LT(id, txn->snap_min))
+	if (txn->snapshot_count == 0 || WT_TXNID_LT(id, txn->snap_min)) //没有其他事务，或者id是小于snap_min的已提交的事务
 		return (true);
 
+    //和__txn_sort_snapshot对应
 	WT_BINARY_SEARCH(id, txn->snapshot, txn->snapshot_count, found);
 	return (!found);
 }
@@ -462,7 +464,7 @@ WT_SESSION::timestamp_transaction 接口显式的给 WiredTiger 事务分配 commit timest
 时间戳读（read "as of" a timestamp）。有了 read "as of" a timestamp 特性后，在重放 oplog 时，备节点上
 的读就不会再跟重放 oplog 有冲突了，不会因重放 oplog 而阻塞读请求，这是4.0版本一个巨大的提升。
 */
-/*检查事务id是否对当前session对应事务可见*/
+/*检查事务id是否对当前session对应事务可见*/ //__wt_txn_read->__wt_txn_upd_visible->__wt_txn_visible
 static inline bool
 __wt_txn_visible(
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)
@@ -489,7 +491,8 @@ __wt_txn_visible(
 /*
  * __wt_txn_upd_visible --
  *	Can the current transaction see the given update.
- */
+ */ /*检查事务id是否对当前session对应事务可见*/ 
+//__wt_txn_read->__wt_txn_upd_visible
 static inline bool
 __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
@@ -500,14 +503,15 @@ __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __wt_txn_read --
  *	Get the first visible update in a list (or NULL if none are visible).
- */
-static inline WT_UPDATE *
+ */ //从udp链表头部开始遍历，获取第一个获取upd链表的
+static inline WT_UPDATE *   //所有的读操作都会走这里，
 __wt_txn_read(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
 	/* Skip reserved place-holders, they're never visible. */
+	//根据不同的隔离级别要求，遍历udp链表中的所有WT_UPDATE成员
 	for (; upd != NULL; upd = upd->next)
 		if (upd->type != WT_UPDATE_RESERVED &&
-		    __wt_txn_upd_visible(session, upd))
+		    __wt_txn_upd_visible(session, upd)) //__wt_txn_read->__wt_txn_upd_visible
 			break;
 
 	return (upd);
@@ -516,7 +520,7 @@ __wt_txn_read(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __wt_txn_begin --
  *	Begin a transaction.
- */
+ */ //主要是生成当前系统事务快照信息  对应mongodb的wiredtiger_snapshot_manager.cpp文件的 session->begin_transaction
 static inline int
 __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -807,6 +811,7 @@ __wt_txn_cursor_op(WT_SESSION_IMPL *session)
  * __wt_txn_am_oldest --
  *	Am I the oldest transaction in the system?
  */
+/*判断session执行的事务是否是整个系统中最早的且正在执行的事务*/
 static inline bool
 __wt_txn_am_oldest(WT_SESSION_IMPL *session)
 {
@@ -818,13 +823,14 @@ __wt_txn_am_oldest(WT_SESSION_IMPL *session)
 	uint32_t i, session_cnt;
 
 	conn = S2C(session);
-	txn = &session->txn;
+	txn = &session->txn; 
 	txn_global = &conn->txn_global;
 
 	if (txn->id == WT_TXN_NONE)
 		return (false);
 
 	WT_ORDERED_READ(session_cnt, conn->session_cnt);
+	//如果id比当前系统中所有的事务id都小则说明是最老的事务id
 	for (i = 0, s = txn_global->states; i < session_cnt; i++, s++)
 		if ((id = s->id) != WT_TXN_NONE && WT_TXNID_LT(id, txn->id))
 			return (false);
@@ -855,3 +861,4 @@ __wt_txn_activity_check(WT_SESSION_IMPL *session, bool *txn_active)
 
 	return (0);
 }
+
