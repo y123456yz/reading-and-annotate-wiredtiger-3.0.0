@@ -235,7 +235,7 @@ __checkpoint_apply(WT_SESSION_IMPL *session, const char *cfg[],
 /*
  * __checkpoint_data_source --
  *	Checkpoint all data sources.
- */ /*为所有的datasource建立一个checkpoint*/
+ */ /*为所有的datasource建立一个checkpoint,默认dsrcqh为空，因此跳过*/
 static int
 __checkpoint_data_source(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -375,7 +375,7 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __checkpoint_reduce_dirty_cache --
  *	Release clean trees from the list cached for checkpoints.
- */
+ */ //这里面sleep等待evict线程释放掉部分page，保证checkpoint至少有多少内存，因为checkpoint过程需要消耗内存的
 static void
 __checkpoint_reduce_dirty_cache(WT_SESSION_IMPL *session)
 {
@@ -406,7 +406,7 @@ __checkpoint_reduce_dirty_cache(WT_SESSION_IMPL *session)
 	 * size can briefly become zero if we're transitioning to a shared
 	 * cache via reconfigure.  This avoids potential divide by zero.
 	 */
-	if (cache_size < 10 * WT_MEGABYTE)
+	if (cache_size < 10 * WT_MEGABYTE) //cache size太小，返回
 		return;
 
 	/*
@@ -421,8 +421,8 @@ __checkpoint_reduce_dirty_cache(WT_SESSION_IMPL *session)
 	 * equate to a scrub phase a few seconds long. That said, the value of
 	 * 0.2% and 500 MB are still somewhat arbitrary.
 	 */
-	scrub_min = WT_MIN((0.2 * conn->cache_size) / 100, 500 * WT_MEGABYTE);
-	if (__wt_cache_dirty_leaf_inuse(cache) <
+	scrub_min = WT_MIN((0.2 * conn->cache_size) / 100, 500 * WT_MEGABYTE); //
+	if (__wt_cache_dirty_leaf_inuse(cache) < //leaf page脏数据量没有达到淘汰上限，返回
 	    ((cache->eviction_checkpoint_target * conn->cache_size) / 100) +
 	    scrub_min)
 		return;
@@ -444,7 +444,7 @@ __checkpoint_reduce_dirty_cache(WT_SESSION_IMPL *session)
 	max_write = __wt_cache_dirty_leaf_inuse(cache);
 
 	/* Step down the dirty target to the eviction trigger */
-	for (;;) {
+	for (;;) { //脏数据占比小于eviction_checkpoint_target，说明有足够的内存用于checkpoint，checkpoint操作过程需要内存
 		current_dirty =
 		    (100.0 * __wt_cache_dirty_leaf_inuse(cache)) / cache_size;
 		if (current_dirty <= (double)cache->eviction_checkpoint_target)
@@ -457,10 +457,12 @@ __checkpoint_reduce_dirty_cache(WT_SESSION_IMPL *session)
 		if (F_ISSET(cache, WT_CACHE_EVICT_LOOKASIDE))
 			break;
 
+        //这里的sleep可以保证evict线程把脏页写入磁盘
 		__wt_sleep(0, stepdown_us / 10);
 		__wt_epoch(session, &stop);
+		//表示在该函数中画了多少时间
 		current_us = WT_TIMEDIFF_US(stop, last);
-		bytes_written_total =
+		bytes_written_total = //说明在前面sleep过程中，其他evict线程写入磁盘的page字节数增加了这么多
 		    cache->bytes_written - bytes_written_start;
 
 		if (current_dirty > cache->eviction_scrub_limit) {
@@ -470,7 +472,7 @@ __checkpoint_reduce_dirty_cache(WT_SESSION_IMPL *session)
 			 * Don't wait indefinitely: there might be dirty pages
 			 * that can't be evicted.  If we can't meet the target,
 			 * give up and start the checkpoint for real.
-			 */
+			 */ //该函数中执行时间超过最大时间，或者evict线程淘汰page写入磁盘的字节数超过max_write,返回
 			if (current_us > WT_MAX(WT_MILLION, 10 * stepdown_us) ||
 			    bytes_written_total > max_write)
 				break;
@@ -488,7 +490,7 @@ __checkpoint_reduce_dirty_cache(WT_SESSION_IMPL *session)
 		 * will take to step the dirty target down by delta.
 		 *
 		 * Take care to avoid dividing by zero.
-		 */
+		 */ //本次循环中当前线程sleep过程中，evict线程淘汰page写入磁盘的数据量比上一次当前线程sleep过程中evict线程写入磁盘的量还多1M
 		if (bytes_written_total - bytes_written_last > WT_MEGABYTE &&
 		    work_us > 0) {
 			stepdown_us = (uint64_t)((delta * cache_size / 100) /
@@ -805,12 +807,12 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 	    session, WT_TXN_OLDEST_STRICT | WT_TXN_OLDEST_WAIT));
 
 	/* Flush data-sources before we start the checkpoint. */
-	WT_ERR(__checkpoint_data_source(session, cfg));
+	WT_ERR(__checkpoint_data_source(session, cfg)); //可以忽略
 
 	/*
 	 * Try to reduce the amount of dirty data in cache so there is less
 	 * work do during the critical section of the checkpoint.
-	 */
+	 */ //尽量减少缓存中的脏数据量，这样在检查点的关键部分可以做更少的工作
 	__checkpoint_reduce_dirty_cache(session);
 
 	/* Tell logging that we are about to start a database checkpoint. */
@@ -1080,6 +1082,7 @@ __wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], bool waiting)
 	WT_RET(__wt_session_reset_cursors(session, false));
 
 	/* Ensure the metadata table is open before taking any locks. */
+	//获取元数据的cursor
 	WT_RET(__wt_metadata_cursor(session, NULL));
 
 	/*
@@ -1118,6 +1121,7 @@ __wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], bool waiting)
 	 * to ensure we don't get into trouble.
 	 */
 	if (waiting)
+	    //获取checkpoint_lock锁，然后执行__txn_checkpoint_wrapper
 		WT_WITH_CHECKPOINT_LOCK(session,
 		    ret = __txn_checkpoint_wrapper(session, cfg));
 	else

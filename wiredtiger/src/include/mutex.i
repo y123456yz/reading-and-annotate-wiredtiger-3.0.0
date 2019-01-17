@@ -290,6 +290,8 @@ __wt_spin_unlock(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
  * __wt_spin_lock_track --
  *	Spinlock acquisition, with tracking.
  */
+//自旋锁相关的等待锁时间统计
+//__wt_spin_lock_track对应spin lock, __wt_spin_trylock_track对应spin trylock
 static inline void
 __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
 {
@@ -316,12 +318,13 @@ __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
  * __wt_spin_trylock_track --
  *      Try to lock a spinlock or fail immediately if it is busy.
  *      Track if successful.
- */
+ */ //__wt_spin_lock_track对应spin lock, __wt_spin_trylock_track对应spin trylock
 static inline int
 __wt_spin_trylock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
 {
 	int64_t **stats;
 
+    //trylock时延统计
 	if (t->stat_count_off != -1 && WT_STAT_ENABLED(session)) {
 		WT_RET(__wt_spin_trylock(session, t));
 		stats = (int64_t **)S2C(session)->stats;

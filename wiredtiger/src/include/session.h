@@ -38,7 +38,8 @@ struct __wt_hazard {
 //WT_CONNECTION_IMPL的第一个成员iface为WT_CONNECTION结构，所以可以将(session)->iface.connection直接转换为WT_CONNECTION_IMPL
 #define	S2C(session)	  ((WT_CONNECTION_IMPL *)(session)->iface.connection)
 
-/* Get the btree for a session */
+/* Get the btree for a session */ 
+//该session操作的是那颗bree树，一个tree数对应磁盘上的一个文件
 #define	S2BT(session)	   ((WT_BTREE *)(session)->dhandle->handle)
 #define	S2BT_SAFE(session) ((session)->dhandle == NULL ? NULL : S2BT(session))
 

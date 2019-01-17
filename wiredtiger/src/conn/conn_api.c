@@ -296,7 +296,7 @@ __wt_conn_remove_compressor(WT_SESSION_IMPL *session)
 /*
  * __conn_add_data_source --
  *	WT_CONNECTION->add_data_source method.
- */
+ */ //__conn_add_data_source和__wt_conn_remove_data_source对应
 static int
 __conn_add_data_source(WT_CONNECTION *wt_conn,
     const char *prefix, WT_DATA_SOURCE *dsrc, const char *config)
@@ -333,7 +333,7 @@ err:	if (ndsrc != NULL) {
 /*
  * __wt_conn_remove_data_source --
  *	Remove data source added by WT_CONNECTION->add_data_source.
- */
+ */ //__conn_add_data_source和__wt_conn_remove_data_source对应
 int
 __wt_conn_remove_data_source(WT_SESSION_IMPL *session)
 {

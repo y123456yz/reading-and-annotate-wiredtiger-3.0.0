@@ -90,7 +90,8 @@ struct __wt_table {
 /*
  * WT_WITH_LOCK_WAIT --
  *	Wait for a lock, perform an operation, drop the lock.
- */
+ */ //WT_WITH_LOCK_NOWAIT对应trylock, WT_WITH_LOCK_WAIT对应lock  获取锁成功后才执行op操作
+ //
 #define	WT_WITH_LOCK_WAIT(session, lock, flag, op) do {			\
 	if (F_ISSET(session, (flag))) {					\
 		op;							\
@@ -106,7 +107,9 @@ struct __wt_table {
 /*
  * WT_WITH_LOCK_NOWAIT --
  *	Acquire a lock if available, perform an operation, drop the lock.
- */
+ */ //WT_WITH_LOCK_NOWAIT对应trylock, WT_WITH_LOCK_WAIT对应lock  获取锁后只需op操作
+
+//这里只有trylock获取锁成功的时候ret才为1，才会执行op操作，如果trylock失败，不会执行op操作
 #define	WT_WITH_LOCK_NOWAIT(session, ret, lock, flag, op) do {		\
 	(ret) = 0;							\
 	if (F_ISSET(session, (flag))) {					\
@@ -123,7 +126,7 @@ struct __wt_table {
 /*
  * WT_WITH_CHECKPOINT_LOCK, WT_WITH_CHECKPOINT_LOCK_NOWAIT --
  *	Acquire the checkpoint lock, perform an operation, drop the lock.
- */
+ */ //WT_WITH_CHECKPOINT_LOCK和WT_WITH_CHECKPOINT_LOCK_NOWAIT的区别是 lock还是trylock
 #define	WT_WITH_CHECKPOINT_LOCK(session, op)				\
 	WT_WITH_LOCK_WAIT(session,					\
 	    &S2C(session)->checkpoint_lock, WT_SESSION_LOCKED_CHECKPOINT, op)

@@ -5,7 +5,7 @@
  *
  * See the file LICENSE for redistribution information.
  */
-//表示该事务是已提交的
+//表示该事务是已提交的，已结束
 #define	WT_TXN_NONE	0		/* No txn running in a session. */
 #define	WT_TXN_FIRST	1		/* First transaction to run. */
 //表示该事务是回滚了的
@@ -73,7 +73,7 @@ struct __wt_named_snapshot {//该结构对应的数据最终存入到__wt_txn_global.snapshot
 //通过WT_SESSION_TXN_STATE取值
 struct __wt_txn_state {
 	WT_CACHE_LINE_PAD_BEGIN
-	volatile uint64_t id;
+	volatile uint64_t id; /*执行事务的事务ID*/
 	volatile uint64_t pinned_id;
 	volatile uint64_t metadata_pinned;
 
@@ -81,7 +81,7 @@ struct __wt_txn_state {
 };
 
 //一个conn中包含多个session,每个session有一个对应的事务txn信息
-//该结构用于全局事务管理
+//该结构用于全局事务管理，__wt_connection_impl.txn_global  该全局锁针对整个conn
 struct __wt_txn_global {
     // 全局写事务ID产生种子,一直递增  __wt_txn_id_alloc总自增 
 	volatile uint64_t current;	/* Current transaction ID. */
@@ -89,7 +89,6 @@ struct __wt_txn_global {
 	/* The oldest running transaction ID (may race). */
 	
 	volatile uint64_t last_running;
-
 	/*
 	 * The oldest transaction ID that is not yet visible to some
 	 * transaction in the system.

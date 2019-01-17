@@ -158,6 +158,7 @@ __wt_txn_context_check(WT_SESSION_IMPL *session, bool requires_txn)
 		    "%s: only permitted in a running transaction",
 		    session->name);
 	if (!requires_txn && F_ISSET(&session->txn, WT_TXN_RUNNING))
+	//当前session有正在执行的事务，不能进行checkpoint
 		WT_RET_MSG(session, EINVAL,
 		    "%s: not permitted in a running transaction",
 		    session->name);

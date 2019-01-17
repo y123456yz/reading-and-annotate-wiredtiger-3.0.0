@@ -118,7 +118,7 @@ __wt_cache_pages_inuse(WT_CACHE *cache)
 /*
  * __wt_cache_bytes_plus_overhead --
  *	Apply the cache overhead to a size in bytes.
- */
+ */ //根据overhead_pct比例，重新计数sz
 static inline uint64_t
 __wt_cache_bytes_plus_overhead(WT_CACHE *cache, uint64_t sz)
 {
@@ -152,7 +152,7 @@ __wt_cache_dirty_inuse(WT_CACHE *cache)
 /*
  * __wt_cache_dirty_leaf_inuse --
  *	Return the number of dirty bytes in use by leaf pages.
- */
+ */ //leaf page脏数据量
 static inline uint64_t
 __wt_cache_dirty_leaf_inuse(WT_CACHE *cache)
 {

@@ -158,7 +158,7 @@ __wt_timestamp_set_zero(wt_timestamp_t *ts)
 /*
  * __txn_next_op --
  *	Mark a WT_UPDATE object modified by the current transaction.
- */ /*从txn对象中获得一个操作存放__wt_txn_op对象*/
+ */ /*从txn对象中获得一个操作存放__wt_txn_op对象*/  //__wt_row_modify->__wt_txn_modify insert del update操作都会调用
 static inline int
 __txn_next_op(WT_SESSION_IMPL *session, WT_TXN_OP **opp)
 {
@@ -605,7 +605,7 @@ __wt_txn_idle_cache_check(WT_SESSION_IMPL *session)
  * __wt_txn_id_alloc --
  *	Allocate a new transaction ID.
  */ //分配事务id
-static inline uint64_t
+static inline uint64_t   //__wt_txn_id_check调用
 __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 {
 	WT_TXN_GLOBAL *txn_global;
@@ -658,8 +658,8 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 /*
  * __wt_txn_id_check --
  *	A transaction is going to do an update, allocate a transaction ID.
- */ /*检查cache内存是否满了，如果满了，evict lru page,并为txn产生一个全局唯一的ID*/
-static inline int
+ */ /*检查cache内存是否超限，超限则淘汰，evict lru page,并为txn产生一个全局唯一的ID*/
+static inline int       //__txn_next_op调用  //__wt_row_modify->__wt_txn_modify->__txn_next_op
 __wt_txn_id_check(WT_SESSION_IMPL *session)
 {
 	WT_TXN *txn;
