@@ -222,9 +222,10 @@ __txn_oldest_scan(WT_SESSION_IMPL *session,
 	WT_ORDERED_READ(session_cnt, conn->session_cnt);
 	for (i = 0, s = txn_global->states; i < session_cnt; i++, s++) {
 		/* Update the last running transaction ID. */
+		//也就是获取所有session对应的事务中，大于等于prev_oldest_id，并且小于current的事务id
 		if ((id = s->id) != WT_TXN_NONE &&
 		    WT_TXNID_LE(prev_oldest_id, id) &&
-		    WT_TXNID_LT(id, last_running))
+		    WT_TXNID_LT(id, last_running)) //在所有session对应的事务中(每个session->txn都有对应的事务,每个事务有个id)
 			last_running = id;
 
 		/* Update the metadata pinned ID. */
@@ -300,17 +301,18 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
 	/*
 	 * For pure read-only workloads, or if the update isn't forced and the
 	 * oldest ID isn't too far behind, avoid scanning.
-	 */ /*当前事务已经是最早且存活的事务，并且等于prev_oldest_id，说明只存在当前一个事务，直接返回，oldest_id不变*/
+	 */ /*当前事务已经是最早且存活的事务，并且等于prev_oldest_id，直接返回，oldest_id不变*/
 	if ((prev_oldest_id == current_id &&
 	    prev_metadata_pinned == current_id) ||
+	    //strict=0，并且不是落后太远
 	    (!strict && WT_TXNID_LT(current_id, prev_oldest_id + 100)))
 		return (0);
 
 	/* First do a read-only scan. */
-	if (wait)
+	if (wait) //表示一定要获取到txn_global->rwlock全局读锁，才会返回
 		__wt_readlock(session, &txn_global->rwlock);
 	else if ((ret =
-	    __wt_try_readlock(session, &txn_global->rwlock)) != 0)
+	    __wt_try_readlock(session, &txn_global->rwlock)) != 0) //trylock要是没能获取到锁，直接返回
 		return (ret == EBUSY ? 0 : ret);
 	__txn_oldest_scan(session,
 	    &oldest_id, &last_running, &metadata_pinned, &oldest_session);

@@ -56,8 +56,8 @@ typedef enum __wt_cache_op {
 
 /*
  * WiredTiger cache structure.
- */
-struct __wt_cache {
+ */ //对内存page结构的各种统计都在该结构中，记录的是当前系统中总的内存消耗等统计
+struct __wt_cache { //__wt_connection_impl.cache  全局conn有个对应的cache，用于统计当前存储引擎的一些计数
 	/*
 	 * Different threads read/write pages to/from the cache and create pages
 	 * in the cache, so we cannot know precisely how much memory is in use
@@ -66,9 +66,9 @@ struct __wt_cache {
 	 * out and calculate the difference as needed.
 	 */
 	uint64_t bytes_dirty_intl;	/* Bytes/pages currently dirty */
-	uint64_t pages_dirty_intl; /*增加脏页数量*/
-	uint64_t bytes_dirty_leaf;
-	uint64_t pages_dirty_leaf;
+	uint64_t pages_dirty_intl; /*增加internal脏页数量*/
+	uint64_t bytes_dirty_leaf; //leaf page脏数据量
+	uint64_t pages_dirty_leaf;  //leaf page脏页数量
 	uint64_t bytes_evict;		/* Bytes/pages discarded by eviction */
 	uint64_t pages_evicted;
 	uint64_t bytes_image;		/* Bytes of disk images */
@@ -76,7 +76,7 @@ struct __wt_cache {
 	uint64_t pages_inmem;
 	uint64_t bytes_internal;	/* Bytes of internal pages */
 	uint64_t bytes_read;		/* Bytes read into memory */
-	uint64_t bytes_written;
+	uint64_t bytes_written; //__wt_bt_write增加，表示写入磁盘的字节数
 
 	uint64_t bytes_lookaside;	/* Lookaside bytes inmem */
 
@@ -112,7 +112,7 @@ struct __wt_cache {
     eviction_target：触发上述参数evict后，需要将cache总使用量降低到该百分比水位，才停止evict
     eviction_dirty_trigger：cache脏页使用量到该百分比时，触发evict操作
     eviction_dirty_target：触发上述参数evict后，需要将cache脏页使用量降低到该百分比水位，才停止evict
-    */
+    */ //触发淘汰的条件，脏数据太多，或者内存使用总量太大
     //判断是否需要开始淘汰，见__wt_eviction_needed
 	u_int eviction_dirty_target;    /* Percent to allow dirty */
 	u_int eviction_dirty_trigger;	/* Percent to trigger dirty eviction */
@@ -125,6 +125,7 @@ struct __wt_cache {
 					   dirty eviction during checkpoint
 					   scrubs */
 
+    //生效见__wt_cache_bytes_plus_overhead
 	u_int overhead_pct;	        /* Cache percent adjustment */
 
 	/*

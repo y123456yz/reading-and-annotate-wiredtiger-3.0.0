@@ -535,7 +535,7 @@ struct __wt_connection_stats { //__stats_connection_descºÍ__wt_connection_stats¶
 	int64_t txn_snapshots_dropped;
 	int64_t txn_begin;
 	//__txn_checkpoint_wrapperÖÐ¸³Öµ
-	int64_t txn_checkpoint_running;
+	int64_t txn_checkpoint_running; //1±íÊ¾µ±Ç°ÕýÔÚ×öcheckpoint²Ù×÷£¬¼û__txn_checkpoint_wrapper
 	int64_t txn_checkpoint_generation;
 	int64_t txn_checkpoint_time_max;
 	int64_t txn_checkpoint_time_min;

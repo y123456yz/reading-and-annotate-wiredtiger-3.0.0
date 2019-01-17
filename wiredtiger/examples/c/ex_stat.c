@@ -200,16 +200,17 @@ main(int argc, char *argv[])
 	error_check(
 	    wiredtiger_open(home, NULL, "create,statistics=(all)", &conn));
 	error_check(conn->open_session(conn, NULL, NULL, &session));
-	error_check(session->create(session,
+	error_check(session->create(session,  //__session_create
 	    "table:access", "key_format=S,value_format=S,columns=(k,v)"));
 
-	error_check(session->open_cursor(
+	error_check(session->open_cursor(  //__session_open_cursor
 	    session, "table:access", NULL, NULL, &cursor));
 	cursor->set_key(cursor, "keyxxxxxxxxxxxxxx");
 	cursor->set_value(cursor, "valuexxxxxxxxxxxxxxxx");
-	error_check(cursor->insert(cursor));
+	error_check(cursor->insert(cursor)); //__curfile_insert
 	error_check(cursor->close(cursor));
 
+    //__session_checkpoint
 	error_check(session->checkpoint(session, NULL));
     //return (EXIT_SUCCESS);
 

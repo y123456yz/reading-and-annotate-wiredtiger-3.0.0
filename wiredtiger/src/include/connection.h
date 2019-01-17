@@ -162,7 +162,7 @@ struct __wt_named_extractor {
  */
 //S2C完成session(WT_SESSION_IMPL)到connection(__wt_connection_impl)转换
 //成员初始化见__wt_connection_init, 一些成员通过解析wiredtiger_open配置项赋值
-struct __wt_connection_impl { 
+struct __wt_connection_impl {  
 	WT_CONNECTION iface; //赋值参考 wiredtiger_open
 
 	/* For operations without an application-supplied session */
@@ -295,8 +295,8 @@ struct __wt_connection_impl {
 
 	/* Checkpoint stats and verbosity timers */
 	//赋值见__txn_checkpoint  赋值见__txn_checkpoint
-	struct timespec ckpt_timer_start;
-	struct timespec ckpt_timer_scrub_end;
+	struct timespec ckpt_timer_start; //checkpoint开始时间
+	struct timespec ckpt_timer_scrub_end; //做checkpoint的时候，需要系统有足够的内存，如果内存不够需要等待evict淘汰page释放出足够的内存
 
 	/* Checkpoint progress message data */
 	uint64_t ckpt_progress_msg_count;
@@ -404,6 +404,7 @@ struct __wt_connection_impl {
 					/* Locked: compressor list */
 	TAILQ_HEAD(__wt_comp_qh, __wt_named_compressor) compqh;
 
+    //__conn_add_data_source和__wt_conn_remove_data_source对应
 					/* Locked: data source list */
 	TAILQ_HEAD(__wt_dsrc_qh, __wt_named_data_source) dsrcqh;
 
@@ -422,7 +423,7 @@ struct __wt_connection_impl {
 	uint64_t stashed_bytes;		/* Atomic: stashed memory statistics */
 	uint64_t stashed_objects;
 					/* Generations manager */
-	//__wt_gen_init中赋值初始化
+	//__wt_gen_init中赋值初始化  获取参考__wt_gen   __wt_gen_next
 	volatile uint64_t generations[WT_GENERATIONS];
 
     //赋值见wiredtiger_open  file_extend配置，

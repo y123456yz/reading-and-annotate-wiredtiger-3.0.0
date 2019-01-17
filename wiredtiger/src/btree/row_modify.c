@@ -112,7 +112,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 			/* Allocate a WT_UPDATE structure and transaction ID. */
 			WT_ERR(__wt_update_alloc(session,
 			    value, &upd, &upd_size, modify_type));  //构建一个新的upd,
-			WT_ERR(__wt_txn_modify(session, upd)); //事务相关
+			WT_ERR(__wt_txn_modify(session, upd)); //事务相关   
 			logged = true;
 
 			/* Avoid WT_CURSOR.update data copy. */

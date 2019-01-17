@@ -240,16 +240,17 @@ stall:			__wt_cond_wait(session,
 	/* Wait for our group to start. */
 	for (pause_cnt = 0; ticket != l->u.s.current; pause_cnt++) {
 		if (pause_cnt < 1000)
-			WT_PAUSE();
+			WT_PAUSE(); //自旋等待
 		else if (pause_cnt < 1200)
-			__wt_yield();
+			__wt_yield(); //让出CPU时间片
 		else {
 			session->current_rwlock = l;
 			session->current_rwticket = ticket;
-			__wt_cond_wait(session,
+			__wt_cond_wait(session, //
 			    l->cond_readers, 10 * WT_THOUSAND, __read_blocked);
 		}
 	}
+	//开始计数操作
 	if (set_stats) {
 		__wt_epoch(session, &leave);
 		if (F_ISSET(session, WT_SESSION_INTERNAL))
