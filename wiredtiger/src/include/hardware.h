@@ -37,6 +37,7 @@
 	    &(p)->flags_atomic, __orig, __orig | (uint8_t)(mask)));	\
 } while (0)
 
+/*原子性取消p的flags的mask位*/
 #define	F_CLR_ATOMIC(p, mask)	do {					\
 	uint8_t __orig;							\
 	do {								\

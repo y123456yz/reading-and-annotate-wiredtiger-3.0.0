@@ -257,6 +257,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 				break;
 
 			/* Skip clean pages. */
+			//干净的page，也就是没有脏数据的page，不用写入磁盘
 			if (!__wt_page_is_modified(walk->page))
 				continue;
 
@@ -267,7 +268,7 @@ __sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 			 * structure could have been created between taking the
 			 * reference and checking modified.
 			 */
-			page = walk->page;
+			page = walk->page; //获取到对应的page
 			
 
 			/*

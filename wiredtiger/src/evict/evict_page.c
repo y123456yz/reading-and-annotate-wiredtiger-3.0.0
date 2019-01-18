@@ -48,7 +48,9 @@ __evict_exclusive(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __wt_page_release_evict --
  *	Release a reference to a page, and attempt to immediately evict it.
- */
+ */ 
+//__wt_page_release_evict直接调用__wt_evict立马淘汰page,
+//__wt_page_evict_urgent->__evict_push_candidate把page加入evict_queue队列中，等待evict worker线程淘汰
 int
 __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -67,6 +69,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref)
 	 * reference without first locking the page, it could be evicted in
 	 * between.
 	 */
+	/*先将state从ref mem设置为LOCKED,防止其他事务操作这个页,因为在evcit过程中需要对hazard array进行扫描，确定没有任何线程在操作这个PAGE方可evcit成功*/
 	locked = __wt_atomic_casv32(&ref->state, WT_REF_MEM, WT_REF_LOCKED);
 	if ((ret = __wt_hazard_clear(session, ref)) != 0 || !locked) {
 		if (locked)
@@ -76,12 +79,13 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref)
 
 	(void)__wt_atomic_addv32(&btree->evict_busy, 1);
 
+    //如果该page内存超过分裂阀值，说明该page内存还是挺大的
 	too_big = page->memory_footprint >= btree->splitmempage;
 
 	/*
 	 * Track how long the call to evict took. If eviction is successful then
 	 * we have one of two pairs of stats to increment.
-	 */
+	 */ /*进行页淘汰*/
 	ret = __wt_evict(session, ref, false);
 	__wt_epoch(session, &stop);
 	if (ret == 0) {
@@ -114,7 +118,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __wt_evict --
  *	Evict a page.
- */
+ */ //淘汰一个ref对应的page
 int
 __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
 {

@@ -5,6 +5,10 @@
  *
  * See the file LICENSE for redistribution information.
  */
+ /*
+ 会话内存在会话关闭后仍然存在，不是马上释放，因为它是由控制线程访问的，而不是由拥有会话的线程访问的。例如，btree分割和
+ 危险指针可以“释放”仍在使用的内存。当生成中没有线程正在读取时，内存可以真正释放。该结构就是控制合适释放这些内存
+ */
 
 #include "wt_internal.h"
 
@@ -50,7 +54,7 @@ __wt_gen(WT_SESSION_IMPL *session, int which)
 /*
  * __wt_gen_next --
  *	Switch the resource to its next generation.
- */
+ */ //generations[which]成员加1
 uint64_t
 __wt_gen_next(WT_SESSION_IMPL *session, int which)
 {
@@ -354,3 +358,4 @@ __wt_stash_discard_all(WT_SESSION_IMPL *session_safe, WT_SESSION_IMPL *session)
 		session_stash->cnt = session_stash->alloc = 0;
 	}
 }
+

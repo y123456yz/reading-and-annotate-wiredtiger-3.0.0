@@ -5300,7 +5300,7 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
  * __rec_row_leaf --
  *	Reconcile a row-store leaf page.
  */
-/*解析cell到unpack结构中*/
+/*解析cell到unpack结构中， leaf page写入磁盘*/
 static int
 __rec_row_leaf(WT_SESSION_IMPL *session,
     WT_RECONCILE *r, WT_PAGE *page, WT_SALVAGE_COOKIE *salvage)

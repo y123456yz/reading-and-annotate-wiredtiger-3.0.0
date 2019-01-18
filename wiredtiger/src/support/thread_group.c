@@ -186,7 +186,7 @@ __thread_group_resize(
 	/*
 	 * Initialize the structures based on the previous group size, not
 	 * the previous allocated size.
-	 */
+	 */ //__thread_group_resize线程提前建好，但是要通过__wt_thread_group_start_one激活才能运行起来，所以活跃线程数由__wt_thread_group_start_one决定
 	for (i = group->max; i < new_max; i++) { //创建new_max-group->max个线程
 		WT_ERR(__wt_calloc_one(session, &thread));
 		/*
@@ -360,8 +360,8 @@ __wt_thread_group_destroy(WT_SESSION_IMPL *session, WT_THREAD_GROUP *group)
 /*
  * __wt_thread_group_start_one --
  *	Start a new thread if possible.
- */
-void
+ */ //__thread_group_resize线程提前建好，但是要通过__wt_thread_group_start_one激活才能运行起来，所以活跃线程数由__wt_thread_group_start_one决定
+void //__wt_thread_group_stop_one和__wt_thread_group_start_one对应，分别对应激活和停止
 __wt_thread_group_start_one(
     WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, bool is_locked)
 {
@@ -391,7 +391,7 @@ __wt_thread_group_start_one(
 /*
  * __wt_thread_group_stop_one --
  *	Pause one thread if possible.
- */
+ */ //__wt_thread_group_stop_one和__wt_thread_group_start_one对应，分别对应激活和停止
 void
 __wt_thread_group_stop_one(WT_SESSION_IMPL *session, WT_THREAD_GROUP *group)
 {

@@ -35,6 +35,12 @@ static const char *home;
 #define	CONN_CONFIG \
     "create,cache_size=1M,log=(archive=false,enabled=true,file_max=100K)"
 
+/*
+这里使用--use-system-wiredtiger来指定可以使用自己编译的WiredTiger，这个技巧也可用来测试wt的兼容性和开发的debug用。
+
+scons --use-system-wiredtiger CPPPATH=/home/xixuan.lx/taobao/wiredtiger/include LIBPATH=/home/xixuan.lx/taobao/wiredtiger/lib/
+LD_LIBRARY_PATH=/home/xixuan.lx/taobao/wiredtiger/lib/:$LD_LIBRARY_PATH gdb -tui ./mongod 
+*/
 static void
 access_example(void)
 {
