@@ -115,6 +115,7 @@ struct __wt_btree { //btree´´½¨¿Õ¼äÔÚ__wt_conn_dhandle_alloc    __wt_btree.rootÎ
 	uint32_t maxleafkey;		/* Leaf page max key size */
 	uint32_t maxleafvalue;		/* Leaf page max value size */
 	uint64_t maxmempage;		/* In-memory page max size */
+	//Ä¬ÈÏ0.8*btree->maxmempage
 	uint64_t splitmempage;		/* In-memory split trigger size */
 
 #define	WT_ASSERT_COMMIT_TS_ALWAYS	0x0001
@@ -186,10 +187,12 @@ struct __wt_btree { //btree´´½¨¿Õ¼äÔÚ__wt_conn_dhandle_alloc    __wt_btree.rootÎ
 	uint64_t write_gen;		/* Write generation */
 	uint64_t rec_max_txn;		/* Maximum txn seen (clean trees) */
 
+    //¸³Öµ¼û__checkpoint_update_generation
 	uint64_t checkpoint_gen;	/* Checkpoint generation */
 	volatile enum {
+	    //checkpoint¹ý³ÌÖÐµÄ×´Ì¬
 		WT_CKPT_OFF, WT_CKPT_PREPARE, WT_CKPT_RUNNING
-	} checkpointing;		/* Checkpoint in progress */
+	} checkpointing;		/* Checkpoint in progress */ 
 
 	uint64_t    bytes_inmem;	/* Cache bytes in memory. */
 	uint64_t    bytes_dirty_intl;	/* Bytes in dirty internal pages. */

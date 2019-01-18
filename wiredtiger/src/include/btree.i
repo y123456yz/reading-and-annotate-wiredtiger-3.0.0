@@ -1489,8 +1489,9 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 		    (LF_ISSET(WT_READ_NO_SPLIT) || (!inmem_split &&
 		    F_ISSET(session, WT_SESSION_NO_RECONCILE)))) {
 			if (!WT_SESSION_IS_CHECKPOINT(session))
+			//__wt_page_evict_urgent把page加入evict_queue队列中，等待evict worker线程淘汰
 				__wt_page_evict_urgent(session, ref);
-		} else {
+		} else { //__wt_page_release_evict直接调用__wt_evict立马淘汰page
 			WT_RET_BUSY_OK(__wt_page_release_evict(session, ref));
 			return (0);
 		}

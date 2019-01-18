@@ -217,7 +217,7 @@ struct __wt_table {
  *	Note: readlock always waits because some operations need the table lock
  *	to discard handles, and we only expect it to be held across short
  *	operations.
- */
+ */ //获取锁执行op操作
 #define	WT_WITH_TABLE_READ_LOCK(session, op) do {			\
 	if (F_ISSET(session, WT_SESSION_LOCKED_TABLE)) {		\
 		op;							\

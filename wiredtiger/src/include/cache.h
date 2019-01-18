@@ -39,6 +39,8 @@ struct __wt_evict_entry {
  */
 struct __wt_evict_queue {
 	WT_SPINLOCK evict_lock;		/* Eviction LRU queue */
+	//__evict_lru_pages->__evict_page->__evict_get_refÑ­»·±éÀúevict_queue¶ÓÁĞ£¬»ñÈ¡¶ÔÓ¦ref pageÌÔÌ­
+	//__wt_page_evict_urgent->__evict_push_candidate°Ñpage¼ÓÈëevict_queue¶ÓÁĞÖĞ£¬µÈ´ıevict workerÏß³ÌÌÔÌ­
 	WT_EVICT_ENTRY *evict_queue;	/* LRU pages being tracked */
 	WT_EVICT_ENTRY *evict_current;	/* LRU current page to be evicted */
 	uint32_t evict_candidates;	/* LRU list pages to evict */
@@ -149,6 +151,10 @@ struct __wt_cache { //__wt_connection_impl.cache  È«¾ÖconnÓĞ¸ö¶ÔÓ¦µÄcache£¬ÓÃÓÚÍ
 	 * LRU eviction list information.
 	 ²Î¿¼https://yq.aliyun.com/articles/69040?spm=a2c4e.11155435.0.0.c19c4df38LYbba
 	 */
+	/*
+    1¸öserverÏß³Ì¸ºÔğÉ¨ÃèbtreeÕÒµ½Ò»Ğ©page£¬È»ºó½øĞĞlruÅÅĞò£¬·ÅÈëÒ»¸öevict_queueÖĞ£¬ÔÙÓÉworkerÏß³ÌÏû·Ñ£¬½øĞĞpage evict¶¯×÷¡£
+    workerÍ¨¹ıÇÀÒ»°Ñevict_pass_lockËøÀ´³ÉÎªserver
+	*/
 	WT_SPINLOCK evict_pass_lock;	/* Eviction pass lock */
 	WT_SESSION_IMPL *walk_session;	/* Eviction pass session */
 	WT_DATA_HANDLE *evict_file_next;/* LRU next file to search */

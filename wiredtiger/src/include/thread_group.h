@@ -55,7 +55,7 @@ struct __wt_thread_group {
 	uint32_t	 max;		/* Max threads in group */
 	//激活的线程数，也就是处于running运行状态的线程数，参考__thread_group_resize
 	uint32_t	 min;		/* Min threads in group */
-	//向前线程数
+	//向前线程数  __wt_thread_group_start_one激活一个线程就加1
 	uint32_t	 current_threads;/* Number of active threads */
 
 	const char	*name;		/* Name */

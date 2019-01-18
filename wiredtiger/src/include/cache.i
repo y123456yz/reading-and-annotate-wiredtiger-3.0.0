@@ -9,7 +9,7 @@
 /*
  * __wt_cache_aggressive --
  *      Indicate if the cache is operating in aggressive mode.
- */
+ */ //为true说明内存比较紧张，用了比较多的内存
 static inline bool
 __wt_cache_aggressive(WT_SESSION_IMPL *session)
 {

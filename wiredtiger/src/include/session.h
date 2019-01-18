@@ -20,6 +20,14 @@ struct __wt_data_handle_cache {
 	TAILQ_ENTRY(__wt_data_handle_cache) hashq;
 };
 
+					/* Generations manager */
+#define	WT_GEN_CHECKPOINT	0	/* Checkpoint generation */
+#define	WT_GEN_EVICT		1	/* Eviction generation */
+#define	WT_GEN_HAZARD		2	/* Hazard pointer */
+#define	WT_GEN_SPLIT		3	/* Page splits */
+#define	WT_GENERATIONS		4	/* Total generation manager entries */
+
+
 /*
  * WT_HAZARD --
  *	A hazard pointer.
@@ -56,7 +64,7 @@ struct __wt_session_impl {
 
 	void	*lang_private;		/* Language specific private storage */
 
-    //是否已经已使用
+    //是否已经在使用
 	u_int active;			/* Non-zero if the session is in-use */
 
     //session->name会打印出来，见__wt_verbose  赋值见__wt_open_internal_session
@@ -151,6 +159,7 @@ struct __wt_session_impl {
 
 					/* Checkpoint handles */
 	//赋值见__wt_checkpoint_get_handles
+	//数组对象，数组成员个数ckpt_handle_next，可以参考__checkpoint_apply
 	WT_DATA_HANDLE **ckpt_handle;	/* Handle list */
 	u_int   ckpt_handle_next;	/* Next empty slot */
 	size_t  ckpt_handle_allocated;	/* Bytes allocated */
@@ -192,16 +201,8 @@ struct __wt_session_impl {
 	//__wt_random_init获取随机数赋值给rnd
 	WT_RAND_STATE rnd;		/* Random number generation state */
 
-					/* Hashed handle reference list array */
-	//dhandles和上面的dhhash配合，删除dhandle在__session_discard_dhandle中删除，添加在__session_add_dhandle
-	TAILQ_HEAD(__dhandles_hash, __wt_data_handle_cache) *dhhash;
-
-					/* Generations manager */
-#define	WT_GEN_CHECKPOINT	0	/* Checkpoint generation */
-#define	WT_GEN_EVICT		1	/* Eviction generation */
-#define	WT_GEN_HAZARD		2	/* Hazard pointer */
-#define	WT_GEN_SPLIT		3	/* Page splits */
-#define	WT_GENERATIONS		4	/* Total generation manager entries */
+    //数组下标取值参考WT_GEN_CHECKPOINT等
+    //conn->generations[]和session->s->generations[]的关系可以参考__wt_gen_oldest，conn包含多个session,因此代表总的
 	volatile uint64_t generations[WT_GENERATIONS];
 
 	/*
@@ -212,6 +213,10 @@ struct __wt_session_impl {
 	 * with its generation number; when no thread is reading in generation,
 	 * the memory can be freed for real.
 	 */
+	/*
+    会话内存在会话关闭后仍然存在，不是马上释放，因为它是由控制线程访问的，而不是由拥有会话的线程访问的。例如，btree分割和
+    危险指针可以“释放”仍在使用的内存。当生成中没有线程正在读取时，内存可以真正释放。该结构就是控制合适释放这些内存
+	*/
 	struct __wt_session_stash {
 		struct __wt_stash {
 			void	*p;	/* Memory, length */
@@ -234,6 +239,9 @@ struct __wt_session_impl {
 #define	WT_SESSION_FIRST_USE(s)						\
 	((s)->hazard == NULL)
 
+					/* Hashed handle reference list array */
+	//dhandles和上面的dhhash配合，删除dhandle在__session_discard_dhandle中删除，添加在__session_add_dhandle
+	TAILQ_HEAD(__dhandles_hash, __wt_data_handle_cache) *dhhash;
 
 
     /*
@@ -247,7 +255,7 @@ struct __wt_session_impl {
     
     HazardPointer在WiredTiger中的使用 
     在WiredTiger里， 对于每一个缓存的页， 使用一个Hazard Pointer 来对它管理， 之所以需要这样的管理方式， 是因为， 
-    每当读了一个物理页到内存， WiredTiger会把它尽可能的放入缓存， 以备后续的内存访问， 但是徐彤同时由一些evict 线程
+    每当读了一个物理页到内存， WiredTiger会把它尽可能的放入缓存， 以备后续的内存访问， 但是同时由一些evict 线程
     在运行，当内存吃紧的时候， evict线程就会按照LRU算法， 将一些不常被访问到的内存页写回磁盘。 
     由于每一个内存页有一个Hazard Point， 在evict的时候， 就可以根据Hazard Pointer List的长度， 来决定是否可以将该
     内存页从缓存中写回磁盘。
@@ -263,3 +271,5 @@ struct __wt_session_impl {
 	uint32_t   nhazard;		/* Count of active hazard pointers */
 	WT_HAZARD *hazard;		/* Hazard pointer array */
 };
+
+

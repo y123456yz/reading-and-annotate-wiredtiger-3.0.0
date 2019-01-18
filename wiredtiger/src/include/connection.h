@@ -181,6 +181,7 @@ struct __wt_connection_impl {
 	WT_SPINLOCK metadata_lock;	/* Metadata update spinlock */
 	WT_SPINLOCK reconfig_lock;	/* Single thread reconfigure */
 	WT_SPINLOCK schema_lock;	/* Schema operation spinlock */
+	//WT_WITH_TABLE_READ_LOCK  WT_WITH_TABLE_WRITE_LOCK
 	WT_RWLOCK table_lock;		/* Table list lock */
 	WT_SPINLOCK turtle_lock;	/* Turtle file spinlock */
 	WT_RWLOCK dhandle_lock;		/* Data handle list lock */
@@ -328,10 +329,10 @@ struct __wt_connection_impl {
     //__wt_evict_create中赋值
 	WT_THREAD_GROUP  evict_threads; 
 	//线程组中总的线程数  __cache_config_local  
-	//最大并发的evict线程数
+	//最大并发的evict线程数 生效参考__wt_evict_create
 	uint32_t	 evict_threads_max;/* Max eviction threads */
 	//线程组中活跃线程数 __cache_config_local
-	//最少并发的evict线程数
+	//最少并发的evict线程数  生效参考__wt_evict_create
 	uint32_t	 evict_threads_min;/* Min eviction threads */
 
     //赋值见__statlog_config
@@ -424,7 +425,8 @@ struct __wt_connection_impl {
 	uint64_t stashed_objects;
 					/* Generations manager */
 	//__wt_gen_init中赋值初始化  获取参考__wt_gen   __wt_gen_next
-	volatile uint64_t generations[WT_GENERATIONS];
+	//conn->generations[]和session->s->generations[]的关系可以参考__wt_gen_oldest，conn包含多个session,因此代表总的
+	volatile uint64_t generations[WT_GENERATIONS]; //数组下标取值参考WT_GEN_CHECKPOINT等
 
     //赋值见wiredtiger_open  file_extend配置，
 	wt_off_t data_extend_len;	/* file_extend data length */

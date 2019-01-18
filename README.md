@@ -2,5 +2,6 @@
 mongodb存储引擎wiredtiger源码分析注释  
   
   
-mongodb源码分析: https://github.com/y123456yz/reading-and-annotate-mongodb-3.6.1
+mongodb源码分析: https://github.com/y123456yz/reading-and-annotate-mongodb-3.6.1  
+参考:https://github.com/yuanrongxi/wiredtiger的部分注释  
 

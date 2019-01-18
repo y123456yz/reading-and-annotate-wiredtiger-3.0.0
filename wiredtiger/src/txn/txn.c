@@ -613,6 +613,7 @@ __wt_txn_release(WT_SESSION_IMPL *session)
  */
 //每次插入 更新 删除等操作都会通过 TXN_API_END_RETRY 走到这里    
 //普通写操作通过TXN_API_END_RETRY调用
+//commit异常，在末尾回滚
 int
 __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 {

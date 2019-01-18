@@ -137,8 +137,11 @@ struct __wt_txn_global {
 	 */
 	//说明在做checkpoint过程中，见__txn_checkpoint_wrapper
 	volatile bool	  checkpoint_running;	/* Checkpoint running */
+	//做checkpoint时候的session对应的id，赋值见__checkpoint_prepare
 	volatile uint32_t checkpoint_id;	/* Checkpoint's session ID */
+	//做checkpoint所在session的state，赋值见__checkpoint_prepare
 	WT_TXN_STATE	  checkpoint_state;	/* Checkpoint's txn state */
+	//做checkpoint所在session的txn，赋值见__checkpoint_prepare
 	WT_TXN           *checkpoint_txn;	/* Checkpoint's txn structure */
 
 	volatile uint64_t metadata_pinned;	/* Oldest ID for metadata */

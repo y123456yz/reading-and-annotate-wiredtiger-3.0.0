@@ -44,7 +44,7 @@ __checkpoint_name_ok(WT_SESSION_IMPL *session, const char *name, size_t len)
  * __checkpoint_name_check --
  *	Check for an attempt to name a checkpoint that includes anything
  * other than a file object.
- */
+ */ //检查uri格式是否符合规范,如果uri为null，检查元数据文件内容是否符合要求
 static int
 __checkpoint_name_check(WT_SESSION_IMPL *session, const char *uri)
 {
@@ -63,7 +63,7 @@ __checkpoint_name_check(WT_SESSION_IMPL *session, const char *uri)
 	 * make sure it's backed by a file.  If no target list is configured,
 	 * confirm the metadata file contains no non-file objects.
 	 */
-	if (uri == NULL) {
+	if (uri == NULL) { //检查meta元数据文件内容是否符合要求，元数据key必须是下面的格式
 		WT_RET(__wt_metadata_cursor(session, &cursor));
 		while ((ret = cursor->next(cursor)) == 0) {
 			WT_ERR(cursor->get_key(cursor, &uri));
@@ -97,7 +97,7 @@ err:	WT_TRET(__wt_metadata_cursor_release(session, &cursor));
  *
  *	This indicates that the tree will not be visited again by the current
  *	checkpoint.
- */
+ */ //获取btree->checkpoint_gen
 static void
 __checkpoint_update_generation(WT_SESSION_IMPL *session)
 {
@@ -121,7 +121,7 @@ __checkpoint_update_generation(WT_SESSION_IMPL *session)
  * __checkpoint_apply_all --
  *	Apply an operation to all files involved in a checkpoint.
  */
-//将配置中target配置项指定的操作在所有相关的文件对象中进行执行op操作，一般是涉及到schema的修改
+//将配置中target指定的uri，按照op操作执行
 static int
 __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
     int (*op)(WT_SESSION_IMPL *, const char *[]), bool *fullp) //
@@ -150,7 +150,7 @@ __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
 	while ((ret = __wt_config_next(&targetconf, &k, &v)) == 0) {
 		if (!target_list) {
 			WT_ERR(__wt_scr_alloc(session, 512, &tmp));
-			target_list = true; //说明有配置项
+			target_list = true; //说明target有配置项
 		}
 
 		if (v.len != 0)
@@ -174,7 +174,7 @@ __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
 	}
 	WT_ERR_NOTFOUND_OK(ret);
 
-	if (!target_list && named)
+	if (!target_list && named)  //检查uri格式是否符合规范,如果uri为null，检查元数据文件内容是否符合要求
 		/* Some objects don't support named checkpoints. */
 		WT_ERR(__checkpoint_name_check(session, NULL));
 
@@ -210,7 +210,7 @@ err:	__wt_scr_free(session, &tmp);
 /*
  * __checkpoint_apply --
  *	Apply an operation to all handles locked for a checkpoint.
- */
+ */ //获取dhandle,也就是session->ckpt_handle[i]，并执行对应的op操作
 static int
 __checkpoint_apply(WT_SESSION_IMPL *session, const char *cfg[],
     int (*op)(WT_SESSION_IMPL *, const char *[]))
@@ -628,7 +628,7 @@ __checkpoint_fail_reset(WT_SESSION_IMPL *session)
 /*
  * __checkpoint_prepare --
  *	Start the transaction for a checkpoint and gather handles.
- */
+ */ //开始事务，并做一些检查，同时根据配置项target来决定是否需要提前执行__wt_checkpoint_get_handles
 static int
 __checkpoint_prepare(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -877,7 +877,8 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 		    session, full, WT_TXN_LOG_CKPT_START, NULL));
 
 	__checkpoint_timing_stress(session);
-	
+
+	//遍历btree page写入磁盘，在这里
 	WT_ERR(__checkpoint_apply(session, cfg, __checkpoint_tree_helper)); //后面还会执行__wt_checkpoint
 
 	/*
@@ -900,6 +901,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 	 * Checkpoints have to hit disk (it would be reasonable to configure for
 	 * lazy checkpoints, but we don't support them yet).
 	 */
+	//sync刷盘，保证从系统cache到磁盘
 	__wt_epoch(session, &fsync_start);
 	WT_ERR(__checkpoint_apply(session, cfg, __wt_checkpoint_sync));
 	__wt_epoch(session, &fsync_stop);
@@ -917,7 +919,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 	 * checkpoint are now in a consistent state.
 	 */
 	
-	WT_ERR(__wt_txn_commit(session, NULL));
+	WT_ERR(__wt_txn_commit(session, NULL)); //事务commit，这里面要是异常，该函数会回滚
 
 	/*
 	 * Ensure that the metadata changes are durable before the checkpoint
@@ -948,7 +950,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 		WT_ERR(ret);
 
 		__checkpoint_verbose_track(session, "metadata sync completed");
-	} else
+	} else //默认走这里
 		WT_WITH_DHANDLE(session,
 		    WT_SESSION_META_DHANDLE(session),
 		    ret = __wt_txn_checkpoint_log(
@@ -1495,7 +1497,7 @@ __checkpoint_mark_skip(
  * __checkpoint_tree --
  *	Checkpoint a single tree.
  *	Assumes all necessary locks have been acquired by the caller.
- */
+ */ //把session对应的btree树写入磁盘
 static int
 __checkpoint_tree(
     WT_SESSION_IMPL *session, bool is_checkpoint, const char *cfg[])

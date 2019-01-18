@@ -672,8 +672,9 @@ struct __wt_page {  //__wt_ref.page
 	((readgen) != WT_READGEN_NOTSET && (readgen) < WT_READGEN_START_VALUE)
 #define	WT_READGEN_START_VALUE	100
 #define	WT_READGEN_STEP		100
-	uint64_t read_gen;
+	uint64_t read_gen; //page淘汰评分，分数越低越容易被淘汰
 
+    //该page总内存
 	size_t memory_footprint;	/* Memory attached to the page */
 
 	/* Page's on-disk representation: NULL for pages created in memory. */
