@@ -2,6 +2,8 @@
 
 #include "wt_internal.h"
 
+//注意__stats_connection_desc和__stats_dsrc_desc的区别
+
 //参考ex_stat.c，该example可以查看这些打印
 static const char * const __stats_dsrc_desc[] = {
 	"LSM: bloom filter false positives",
@@ -726,6 +728,8 @@ __wt_stat_dsrc_aggregate(
 	to->txn_update_conflict += WT_STAT_READ(from, txn_update_conflict);
 }
 
+//注意__stats_connection_desc和__stats_dsrc_desc的区别
+//mongodb中输入db.serverStatus().wiredTiger获取到的
 //__stats_connection_desc和__wt_connection_stats对应
 static const char * const __stats_connection_desc[] = {
 	"LSM: application work units currently queued",

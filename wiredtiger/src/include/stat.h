@@ -534,37 +534,69 @@ struct __wt_connection_stats { //__stats_connection_descºÍ__wt_connection_stats¶
 	int64_t page_del_rollback_blocked;
 	int64_t child_modify_blocked_page;
 	int64_t tree_descend_blocked;
+
+    //"transaction: number of named snapshots created",
 	int64_t txn_snapshots_created;
+	//"transaction: number of named snapshots dropped",
 	int64_t txn_snapshots_dropped;
+	//"transaction: transaction begins",
 	int64_t txn_begin;
+	//"transaction: transaction checkpoint currently running",
 	//__txn_checkpoint_wrapperÖÐ¸³Öµ
 	int64_t txn_checkpoint_running; //1±íÊ¾µ±Ç°ÕýÔÚ×öcheckpoint²Ù×÷£¬¼û__txn_checkpoint_wrapper
+	////"transaction: transaction checkpoint generation",
 	int64_t txn_checkpoint_generation;
+	//"transaction: transaction checkpoint max time (msecs)",
 	int64_t txn_checkpoint_time_max;
+	//"transaction: transaction checkpoint min time (msecs)",
 	int64_t txn_checkpoint_time_min;
+    //"transaction: transaction checkpoint most recent time (msecs)",
 	int64_t txn_checkpoint_time_recent;
+	//"transaction: transaction checkpoint scrub dirty target",
 	int64_t txn_checkpoint_scrub_target;
+	//"transaction: transaction checkpoint scrub time (msecs)",
 	int64_t txn_checkpoint_scrub_time;
+	//"transaction: transaction checkpoint total time (msecs)",
 	int64_t txn_checkpoint_time_total;
+	//"transaction: transaction checkpoints",
 	int64_t txn_checkpoint;
+	//"transaction: transaction checkpoints skipped because database was clean",
 	int64_t txn_checkpoint_skipped;
+	//"transaction: transaction failures due to cache overflow",
 	int64_t txn_fail_cache;
+	//"transaction: transaction fsync calls for checkpoint after allocating the transaction ID",
 	int64_t txn_checkpoint_fsync_post;
+	//"transaction: transaction fsync duration for checkpoint after allocating the transaction ID (usecs)",
 	int64_t txn_checkpoint_fsync_post_duration;
+	//"transaction: transaction range of IDs currently pinned",
 	int64_t txn_pinned_range;
+	//"transaction: transaction range of IDs currently pinned by a checkpoint",
 	int64_t txn_pinned_checkpoint_range;
+	//"transaction: transaction range of IDs currently pinned by named snapshots",
 	int64_t txn_pinned_snapshot_range;
+	//"transaction: transaction range of timestamps currently pinned",
 	int64_t txn_pinned_timestamp;
+	//"transaction: transaction range of timestamps pinned by the oldest timestamp",
 	int64_t txn_pinned_timestamp_oldest;
+	//"transaction: transaction sync calls",
 	int64_t txn_sync;
+	//"transaction: transactions commit timestamp queue inserts to head",
 	int64_t txn_commit_queue_head;
+	//"transaction: transactions commit timestamp queue inserts total",
 	int64_t txn_commit_queue_inserts;
+	//"transaction: transactions commit timestamp queue length",
 	int64_t txn_commit_queue_len;
+	//"transaction: transactions committed",
 	int64_t txn_commit;
+	//"transaction: transactions read timestamp queue inserts to head",
 	int64_t txn_read_queue_head;
+	//"transaction: transactions read timestamp queue inserts total",
 	int64_t txn_read_queue_inserts;
+	//"transaction: transactions read timestamp queue length",
 	int64_t txn_read_queue_len;
+	//"transaction: transactions rolled back",
 	int64_t txn_rollback;
+	//"transaction: update conflicts",
 	int64_t txn_update_conflict;
 };
 
