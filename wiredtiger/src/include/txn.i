@@ -483,7 +483,8 @@ __wt_txn_visible(
 	/* Timestamp check. */
 	if (!F_ISSET(txn, WT_TXN_HAS_TS_READ) || timestamp == NULL)
 		return (true);
-
+		
+    //如果timestamp小于txn->read_timestamp，则不可见
 	return (__wt_timestamp_cmp(timestamp, &txn->read_timestamp) <= 0);
 	}
 #else

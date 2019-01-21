@@ -103,6 +103,13 @@ struct __wt_txn_global {
 	*/
 	WT_DECL_TIMESTAMP(oldest_timestamp)
 	WT_DECL_TIMESTAMP(pinned_timestamp)
+	/*
+    4.0 版本实现了存储引擎层的回滚机制，当复制集节点需要回滚时，直接调用 WiredTiger 接口，将数据回滚到
+    某个稳定版本（实际上就是一个 Checkpoint），这个稳定版本则依赖于 stable timestamp。WiredTiger 会确保 
+    stable timestamp 之后的数据不会写到 Checkpoint里，MongoDB 根据复制集的同步状态，当数据已经同步到大多
+    数节点时（Majority commited），会更新 stable timestamp，因为这些数据已经提交到大多数节点了，一定不
+    会发生 ROLLBACK，这个时间戳之前的数据就都可以写到 Checkpoint 里了。
+	*/
 	WT_DECL_TIMESTAMP(stable_timestamp)
 	bool has_commit_timestamp;
 	bool has_oldest_timestamp;
@@ -219,6 +226,7 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
     //本次事务的全局唯一的ID，用于标示事务修改数据的版本号
 	uint64_t id; /*事务ID*/ //赋值见__wt_txn_id_alloc
 
+    //生效见__txn_visible_id */
 	WT_TXN_ISOLATION isolation; /*隔离级别*/ //赋值见__wt_txn_config
 
 	uint32_t forced_iso;	/* Isolation is currently forced. */
@@ -252,6 +260,7 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 	WT_DECL_TIMESTAMP(first_commit_timestamp)
 
 	/* Read updates committed as of this timestamp. */
+	//生效参考__wt_txn_visible
 	WT_DECL_TIMESTAMP(read_timestamp)
 
 	TAILQ_ENTRY(__wt_txn) commit_timestampq;
