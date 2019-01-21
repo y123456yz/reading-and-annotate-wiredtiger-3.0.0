@@ -341,7 +341,11 @@ __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
  *	Check if a given transaction is "globally visible". This is, if all
  *	sessions in the system will see the transaction ID including the ID
  *	that belongs to a running checkpoint.
- */ /*判断事务ID是否对系统中所有的事务是可见的*/
+ */ 
+/*判断事务ID是否对系统中所有的事务是可见的*/
+//WiredTiger(WT) 事务会打开一个快照，而快照的存在的 WiredTiger cache evict 是有影响的。一个 WT page 上，
+//有N个版本的修改，如果这些修改没有全局可见（参考 __wt_txn_visible_all），这个 page 是不能 evict 的
+//（参考 __wt_page_can_evict）。
 static inline bool
 __wt_txn_visible_all(
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)

@@ -96,6 +96,11 @@ struct __wt_txn_global {
 	volatile uint64_t oldest_id;
 
 	WT_DECL_TIMESTAMP(commit_timestamp)
+	/*
+    WiredTiger 提供设置 oldest timestamp 的功能，允许由 MongoDB 来设置该时间戳，含义是Read as of a timestamp 
+    不会提供更小的时间戳来进行一致性读，也就是说，WiredTiger 无需维护 oldest timestamp 之前的所有历史版本。
+    MongoDB 层需要频繁（及时）更新 oldest timestamp，避免让 WT cache 压力太大。
+	*/
 	WT_DECL_TIMESTAMP(oldest_timestamp)
 	WT_DECL_TIMESTAMP(pinned_timestamp)
 	WT_DECL_TIMESTAMP(stable_timestamp)
