@@ -73,7 +73,7 @@ struct __wt_named_snapshot {//该结构对应的数据最终存入到__wt_txn_global.snapshot
 //通过WT_SESSION_TXN_STATE取值
 struct __wt_txn_state {
 	WT_CACHE_LINE_PAD_BEGIN
-	volatile uint64_t id; /*执行事务的事务ID*/
+	volatile uint64_t id; /* 执行事务的事务ID，赋值见__wt_txn_id_alloc */
 	volatile uint64_t pinned_id;
 	volatile uint64_t metadata_pinned;
 
@@ -170,7 +170,7 @@ struct __wt_txn_global {
 };
 
 //可以参考https://blog.csdn.net/yuanrxdu/article/details/78339295
-/* wiredtiger 事务隔离类型，生效见__txn_visible_id */
+/* wiredtiger 事务隔离类型，生效见__wt_txn_visible->__txn_visible_id */
 typedef enum __wt_txn_isolation { //赋值见__wt_txn_config
 	WT_ISO_READ_COMMITTED,
 	WT_ISO_READ_UNCOMMITTED,
@@ -185,7 +185,7 @@ typedef enum __wt_txn_isolation { //赋值见__wt_txn_config
  */ //赋值见__wt_txn_modify  用于记录各种操作
  //WT_TXN和__wt_txn_op在__txn_next_op中关联起来    __wt_txn.mod数组成员
 struct __wt_txn_op {
-	uint32_t fileid;
+	uint32_t fileid; //赋值见__txn_next_op  对应btree id
 	enum {
 		WT_TXN_OP_BASIC,
 		WT_TXN_OP_BASIC_TS,
@@ -223,7 +223,7 @@ struct __wt_txn_op {
 //WT_SESSION_IMPL.txn成员为该类型
 //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
 struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
-    //本次事务的全局唯一的ID，用于标示事务修改数据的版本号
+    //本次事务的全局唯一的ID，用于标示事务修改数据的版本号，也就是多个session都会有不同的id，每个事务有一个非重复id，见__wt_txn_id_alloc
 	uint64_t id; /*事务ID*/ //赋值见__wt_txn_id_alloc
 
     //生效见__txn_visible_id */
@@ -260,7 +260,7 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 	WT_DECL_TIMESTAMP(first_commit_timestamp)
 
 	/* Read updates committed as of this timestamp. */
-	//生效参考__wt_txn_visible
+	//生效参考__wt_txn_visible，赋值见__wt_txn_config
 	WT_DECL_TIMESTAMP(read_timestamp)
 
 	TAILQ_ENTRY(__wt_txn) commit_timestampq;

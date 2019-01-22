@@ -57,7 +57,7 @@ __btree_clear(WT_SESSION_IMPL *session)
  * __wt_btree_open --
  *	Open a Btree.
  */
-//创建btree文件，同时根据checkpoint配置从checkpoint文件中读取镜像信息，然后
+//创建btree文件，同时根据checkpoint配置从checkpoint文件中读取镜像信息加载到内存
 int
 __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 {
@@ -329,7 +329,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
     /*获得文件ID*/
 	/* Get the file ID. */
 	WT_RET(__wt_config_gets(session, cfg, "id", &cval));
-	btree->id = (uint32_t)cval.val;
+	btree->id = (uint32_t)cval.val; //实际上是checkpoint id
 
 	/* Validate file types and check the data format plan. */
 	/*读取cfg中的key format格式*/

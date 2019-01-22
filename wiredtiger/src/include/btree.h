@@ -101,7 +101,7 @@ struct __wt_btree { //btree´´½¨¿Õ¼äÔÚ__wt_conn_dhandle_alloc    __wt_btree.rootÎ
 	/*Èç¹ûÕâ¸öÖµÎª1£¬±íÊ¾±È½ÏÆ÷ĞèÒª½øĞĞfree*/
 	int collator_owned;		/* The collator needs to be freed */
 
-    /*btreeË÷ÒıÎÄ¼şID,Ö÷ÒªÓÃÓÚredo logµÄÍÆÑİ*/
+    /*btreeË÷ÒıÎÄ¼şID,Ö÷ÒªÓÃÓÚredo logµÄÍÆÑİ, Êµ¼ÊÉÏÊÇcheckpoint id£¬¸ù¾İ¸Ãcheckpoint id»ñÈ¡Ä³¸öÊ±¼äµãµÄ¿ìÕÕ£¬È»ºó½áºÏjournal logÔöÁ¿»Ö¸´*/
 	uint32_t id;			/* File ID, for logging */
     /*ĞĞ´æ´¢Ê±µÄkeyÇ°×º·¶Î§³¤¶È*/
 	uint32_t key_gap;		/* Row-store prefix key gap */

@@ -64,6 +64,8 @@
 //__wt_data_handle_cache.dhandle 
 //__session_add_dhandle  __conn_dhandle_get创建空间和赋值
 //__wt_conn_dhandle_alloc中创建dhandle，一个dhandle对应一个table或者file，如果是file，则与一个btree(__wt_data_handle.handle)树关联
+/*file对应一个tree，也就是__wt_data_handle.handle。如果有多个table创建则会有多个tree及其对应的文件，
+也就有多个__wt_data_handle结构，这些handle最终存入session->dhandles队列*/
 struct __wt_data_handle {//如果是table,则为__wt_table.iface，如果是file则就为__wt_data_handle 
 	WT_RWLOCK rwlock;		/* Lock for shared/exclusive ops */
 

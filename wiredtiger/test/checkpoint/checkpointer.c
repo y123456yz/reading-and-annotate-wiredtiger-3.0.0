@@ -129,9 +129,9 @@ done:	if ((ret = session->close(session, NULL)) != 0)
  * verify_checkpoint --
  *     Open a cursor on each table at the last checkpoint and walk through
  *     the tables in parallel. The key/values should match across all tables.
- */
+ */ //只有一个线程做该操作，事务操作过程见real_worker，该real_worker函数由多个线程同时执行
 static int
-verify_checkpoint(WT_SESSION *session)
+verify_checkpoint(WT_SESSION *session) //checkpoint操作在该函数外层
 {
 	WT_CURSOR **cursors;
 	uint64_t key_count;
@@ -155,7 +155,7 @@ verify_checkpoint(WT_SESSION *session)
 		if (g.cookies[i].type == LSM)
 			continue;
 		testutil_check(__wt_snprintf(
-		    next_uri, sizeof(next_uri), "table:__wt%04d", i));
+		    next_uri, sizeof(next_uri), "table:__wt%04d", i));//和start_workers建表对应
 		if ((ret = session->open_cursor(
 		    session, next_uri, NULL, ckpt, &cursors[i])) != 0) {
 			(void)log_print_err(
@@ -181,7 +181,7 @@ verify_checkpoint(WT_SESSION *session)
 		/*
 		 * Check to see that all remaining cursors have the
 		 * same key/value pair.
-		 */
+		 */ //校验方法是，所有表的第n个key，和对应的value值完全一样，即第一个表的kv和第二个表的kv完全一样
 		for (i = 1; i < g.ntables; i++) {
 			/*
 			 * TODO: LSM doesn't currently support reading from
@@ -189,7 +189,7 @@ verify_checkpoint(WT_SESSION *session)
 			 */
 			if (g.cookies[i].type == LSM)
 				continue;
-			t_ret = cursors[i]->next(cursors[i]);
+			t_ret = cursors[i]->next(cursors[i]); //__curfile_next
 			if (t_ret != 0 && t_ret != WT_NOTFOUND) {
 				(void)log_print_err("cursor->next", t_ret, 1);
 				goto err;

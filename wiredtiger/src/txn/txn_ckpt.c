@@ -271,7 +271,7 @@ __checkpoint_data_source(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_checkpoint_get_handles --
  *	Get a list of handles to flush.
- */
+ */ /*通过dhandle name和checkpoint name找到对应的dhande和btree file*/
 int
 __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -357,7 +357,7 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
 	 */
 	name = session->dhandle->name;
 	session->dhandle = NULL;
-
+    /*通过dhandle name和checkpoint name找到对应的dhande和btree file*/
 	if ((ret = __wt_session_get_dhandle(session, name, NULL, NULL, 0)) != 0)
 		return (ret == EBUSY ? 0 : ret);
 
