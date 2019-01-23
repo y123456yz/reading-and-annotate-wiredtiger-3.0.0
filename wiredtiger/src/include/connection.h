@@ -221,15 +221,9 @@ struct __wt_connection_impl {
 					/* Locked: data handle hash array */
 	//__wt_connection_init  __open_session中初始化赋值，
 	//添加在WT_CONN_DHANDLE_INSERT，删除在WT_CONN_DHANDLE_REMOVE，查找__wt_conn_dhandle_find
-<<<<<<< HEAD
 	TAILQ_HEAD(__wt_dhhash, __wt_data_handle) dhhash[WT_HASH_ARRAY_SIZE]; //hash桶用于快速查找，参考__wt_conn_btree_apply
 					/* Locked: data handle list */ //参考__wt_conn_btree_apply，通过这里可以获取到所有的tree
 	TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh; //dhqh和dhhash一起配合  这个是链表，所有的dhandle都可以通过遍历链表得到
-=======
-	TAILQ_HEAD(__wt_dhhash, __wt_data_handle) dhhash[WT_HASH_ARRAY_SIZE];
-					/* Locked: data handle list */
-	TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh; //dhqh和dhhash一起配合
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 
 	//lsm hander树，参考__lsm_tree_find， 插入lsm tree节点见__lsm_tree_open  删除lsm节点见__lsm_tree_discard
 					/* Locked: LSM handle list. */

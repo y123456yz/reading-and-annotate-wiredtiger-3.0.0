@@ -11,11 +11,7 @@
 /*
  * __snapsort_partition --
  *	Custom quick sort partitioning for snapshots.
-<<<<<<< HEAD
  */ //事务ID镜像快速排序相关
-=======
- */
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static uint32_t
 __snapsort_partition(uint64_t *array, uint32_t f, uint32_t l, uint64_t pivot)
 {
@@ -40,11 +36,7 @@ __snapsort_partition(uint64_t *array, uint32_t f, uint32_t l, uint64_t pivot)
 /*
  * __snapsort_impl --
  *	Custom quick sort implementation for snapshots.
-<<<<<<< HEAD
  */  //事务ID镜像快速排序相关
-=======
- */
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static void
 __snapsort_impl(uint64_t *array, uint32_t f, uint32_t l)
 {
@@ -62,13 +54,8 @@ __snapsort_impl(uint64_t *array, uint32_t f, uint32_t l)
 /*
  * __snapsort --
  *	Sort an array of transaction IDs.
-<<<<<<< HEAD
  */  //事务ID快速排序相关
 static void 
-=======
- */
-static void
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 __snapsort(uint64_t *array, uint32_t size)
 {
 	__snapsort_impl(array, 0, size - 1);
@@ -101,11 +88,7 @@ __txn_sort_snapshot(WT_SESSION_IMPL *session, uint32_t n, uint64_t snap_max)
  * __wt_txn_release_snapshot --
  *	Release the snapshot in the current transaction.
  */
-<<<<<<< HEAD
 /*release当前的事务的snapshot*/  //__wt_txn_get_snapshot和__wt_txn_release_snapshot对应
-=======
-/*release当前的事务的snapshot*/
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 void
 __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
 {
@@ -131,11 +114,7 @@ __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
  */ //获取当前系统正在处理的所有事务信息，也就是当前事务快照
 void //获取当前正在执行但还没有提交的事务快照信息存入txn->snapshot[]数组
 __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
-<<<<<<< HEAD
 { //__wt_txn_get_snapshot和__wt_txn_release_snapshot对应
-=======
-{
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	WT_CONNECTION_IMPL *conn;
 	WT_TXN *txn;
 	WT_TXN_GLOBAL *txn_global;
@@ -664,17 +643,10 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 	/*
 	 * Look for a commit timestamp.
 	 */
-<<<<<<< HEAD
 	WT_ERR( //该配置使用可以参考test_timestamp_abort
 	    __wt_config_gets_def(session, cfg, "commit_timestamp", 0, &cval));
 	if (cval.len != 0) {
 #ifdef HAVE_TIMESTAMPS //对mongodb配置的commit_timestamp做检查
-=======
-	WT_ERR(
-	    __wt_config_gets_def(session, cfg, "commit_timestamp", 0, &cval));
-	if (cval.len != 0) {
-#ifdef HAVE_TIMESTAMPS
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 		WT_ERR(__wt_txn_parse_timestamp(session, "commit", &ts, &cval));
 		WT_ERR(__wt_timestamp_validate(session,
 		    "commit", &ts, &cval, true, true, true));

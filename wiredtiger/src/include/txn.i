@@ -241,11 +241,9 @@ __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 	}
 #endif
 	op->u.upd = upd;
-<<<<<<< HEAD
+
 	upd->txnid = session->txn.id; //上面的__txn_next_op产生
-=======
-	upd->txnid = session->txn.id;
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
+
 	return (0);
 }
 
@@ -472,12 +470,9 @@ WT_SESSION::timestamp_transaction 接口显式的给 WiredTiger 事务分配 commit timest
 时间戳读（read "as of" a timestamp）。有了 read "as of" a timestamp 特性后，在重放 oplog 时，备节点上
 的读就不会再跟重放 oplog 有冲突了，不会因重放 oplog 而阻塞读请求，这是4.0版本一个巨大的提升。
 */
-<<<<<<< HEAD
+
 /*检查事务id是否对当前session对应事务可见*/ 
 //__wt_txn_read->__wt_txn_upd_visible->__wt_txn_visible
-=======
-/*检查事务id是否对当前session对应事务可见*/ //__wt_txn_read->__wt_txn_upd_visible->__wt_txn_visible
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static inline bool
 __wt_txn_visible(
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)
@@ -663,11 +658,7 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 	 * Even though we are in a spinlock, readers are not.  We rely on
 	 * atomic reads of the current ID to create snapshots, so for unlocked
 	 * reads to be well defined, we must use an atomic increment here.
-<<<<<<< HEAD
 	 */ /*分配事务ID，这里采用了cas进行多线程竞争生成ID，虽然该函数加了自旋锁，但是读线程不会加锁，并且可以范围current，因此这里采用原子操作*/
-=======
-	 */ /*分配事务ID，这里采用了cas进行多线程竞争生成ID*/
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	(void)__wt_atomic_addv64(&txn_global->current, 1);
 	__wt_spin_unlock(session, &txn_global->id_lock);
 	return (id);

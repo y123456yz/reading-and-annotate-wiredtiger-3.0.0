@@ -178,12 +178,8 @@ __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
 		/* Some objects don't support named checkpoints. */
 		WT_ERR(__checkpoint_name_check(session, NULL));
 
-<<<<<<< HEAD
     //针对所有tree执行checkpoint
 	if (!target_list && op != NULL) { //如果没有指定target,则
-=======
-	if (!target_list && op != NULL) {
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 		/*
 		 * If the checkpoint is named or we're dropping checkpoints, we
 		 * checkpoint both open and closed files; else, only checkpoint
@@ -201,13 +197,8 @@ __checkpoint_apply_all(WT_SESSION_IMPL *session, const char *cfg[],
 			ckpt_closed = cval.len != 0;
 		}
 		WT_ERR(ckpt_closed ?
-<<<<<<< HEAD
 		    __wt_meta_apply_all(session, op, NULL, cfg) : //指定了name或者drop
 		    __wt_conn_btree_apply(session, NULL, op, NULL, cfg)); //没有指定
-=======
-		    __wt_meta_apply_all(session, op, NULL, cfg) :
-		    __wt_conn_btree_apply(session, NULL, op, NULL, cfg));
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	}
 
 	if (fullp != NULL)
@@ -281,11 +272,7 @@ __checkpoint_data_source(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_checkpoint_get_handles --
  *	Get a list of handles to flush.
-<<<<<<< HEAD
  */ /*通过dhandle name和checkpoint name找到对应的dhande和btree file*/
-=======
- */
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 int
 __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -371,11 +358,8 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
 	 */
 	name = session->dhandle->name;
 	session->dhandle = NULL;
-<<<<<<< HEAD
     /*通过dhandle name和checkpoint name找到对应的dhande和btree file*/
-=======
 
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	if ((ret = __wt_session_get_dhandle(session, name, NULL, NULL, 0)) != 0)
 		return (ret == EBUSY ? 0 : ret);
 
@@ -647,11 +631,8 @@ __checkpoint_fail_reset(WT_SESSION_IMPL *session)
  * __checkpoint_prepare --
  *	Start the transaction for a checkpoint and gather handles.
  */ //开始事务，并做一些检查，同时根据配置项target来决定是否需要提前执行__wt_checkpoint_get_handles
-<<<<<<< HEAD
+
 static int  //注意checkpoint只会由一个线程操作，不存在多个线程进行checkpoint的情况  
-=======
-static int
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 __checkpoint_prepare(WT_SESSION_IMPL *session, const char *cfg[])
 {
 	WT_CONFIG_ITEM cval;
@@ -662,11 +643,7 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, const char *cfg[])
 	WT_TXN_STATE *txn_state;
 	const char *txn_cfg[] = { WT_CONFIG_BASE(session,
 	    WT_SESSION_begin_transaction), "isolation=snapshot", NULL, NULL };
-<<<<<<< HEAD
 	bool use_timestamp; //由cfg配置中的"use_timestamp"指定
-=======
-	bool use_timestamp;
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 
 	conn = S2C(session);
 	txn = &session->txn;
@@ -731,11 +708,7 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, const char *cfg[])
 	 * consider the checkpoint ID in the global structure. Most operations
 	 * can safely ignore the checkpoint ID (see the visible all check for
 	 * details).
-<<<<<<< HEAD
 	 */ //txn_global->checkpoint_state和做checkpoint对应的session是同一个id，因此为了避免重复session对应的txn_state赋值为WT_TXN_NONE
-=======
-	 */
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	txn_state->id = txn_state->pinned_id =
 	    txn_state->metadata_pinned = WT_TXN_NONE;
 

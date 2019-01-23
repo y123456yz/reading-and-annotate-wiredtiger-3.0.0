@@ -406,11 +406,7 @@ err:	__wt_spin_unlock(session, &dhandle->close_lock);
 /*
  * __wt_conn_dhandle_open --
  *	Open the current data handle.
-<<<<<<< HEAD
  * 主要函数为__wt_btree_open，创建对应的btree文件
-=======
- * 主要函数为__wt_btree_open，创建对应的btree或者table
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
  */ //获取session->dhandle,如果是table则对应WT_TABLE，如果是file则对应WT_DATA_HANDLE 
 int
 __wt_conn_dhandle_open( //分table和file两种情况
@@ -511,11 +507,7 @@ err:		if (btree != NULL)
 /*
  * __conn_btree_apply_internal --
  *	Apply a function to an open data handle.
-<<<<<<< HEAD
  */ //针对dhandle(一般对应一个tree)，执行func，例如对某个tree执行checkpoint
-=======
- */
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static int
 __conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
     int (*file_func)(WT_SESSION_IMPL *, const char *[]),
@@ -552,13 +544,8 @@ __conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
 /*
  * __wt_conn_btree_apply --
  *	Apply a function to all open btree handles with the given URI.
-<<<<<<< HEAD
  */ //如果uri不为空，则执行uri对应的dhandle,如果uri为空，则遍历dhandle链表，所有dhandle 都执行func,也就是可以对所有的tree树执行func
 int //例如针对某个tree或者所有tree执行checkpoint
-=======
- */
-int
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
     int (*file_func)(WT_SESSION_IMPL *, const char *[]),
     int (*name_func)(WT_SESSION_IMPL *, const char *, bool *),
@@ -576,19 +563,11 @@ __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
 	 * name.  If we don't have a URI we walk the entire dhandle list.
 	 */ 
 	 //如果uri不为空，则只在对应的桶中查找，否则全桶查找
-<<<<<<< HEAD
 	if (uri != NULL) { //找到uri对应的dhandle，执行file_func  name_func
 		bucket =
 		    __wt_hash_city64(uri, strlen(uri)) % WT_HASH_ARRAY_SIZE;
 
 		for (dhandle = NULL;;) { 
-=======
-	if (uri != NULL) {
-		bucket =
-		    __wt_hash_city64(uri, strlen(uri)) % WT_HASH_ARRAY_SIZE;
-
-		for (dhandle = NULL;;) {
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 			WT_WITH_HANDLE_LIST_READ_LOCK(session,
 			    WT_DHANDLE_NEXT(session, dhandle,
 			    &conn->dhhash[bucket], hashq));
@@ -605,11 +584,7 @@ __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
 			    dhandle, file_func, name_func, cfg));
 		}
 	} else { 
-<<<<<<< HEAD
 		for (dhandle = NULL;;) { //遍历链表，获取到所有dhandle，然后执行file_func  name_func
-=======
-		for (dhandle = NULL;;) {
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 			WT_WITH_HANDLE_LIST_READ_LOCK(session,
 			    WT_DHANDLE_NEXT(session, dhandle, &conn->dhqh, q));
 			if (dhandle == NULL)

@@ -1262,11 +1262,7 @@ err:	API_END_RET(session, ret);
 /*
  * __conn_set_timestamp --
  *	WT_CONNECTION->set_timestamp method.
-<<<<<<< HEAD
  */ //²Î¿¼Àý×Óthread_ts_run
-=======
- */
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static int
 __conn_set_timestamp(WT_CONNECTION *wt_conn, const char *config)
 {

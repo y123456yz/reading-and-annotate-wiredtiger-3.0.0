@@ -48,11 +48,7 @@ typedef enum { MIX = 0, COL, LSM, ROW } table_type;	/* File type */
 typedef struct {
 	int id;
 	table_type type;			/* Type for table. */
-<<<<<<< HEAD
 	char uri[128]; //´ú±í±ítable
-=======
-	char uri[128];
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 } COOKIE;
 
 typedef struct {

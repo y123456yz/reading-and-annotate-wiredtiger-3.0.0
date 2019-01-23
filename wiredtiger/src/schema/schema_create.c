@@ -52,11 +52,7 @@ __wt_direct_io_size_check(WT_SESSION_IMPL *session,
  * __create_file --
  *	Create a new 'file:' object.   WT_METAFILE "WiredTiger.wt"就是在该函数创建 
  * __create_file创建   __wt_open打开
-<<<<<<< HEAD
  */ //WT_SESSION::create中创建table的时候最终会走到这里，一个table file对应一个tree和对应的dhandle
-=======
- */
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static int
 __create_file(WT_SESSION_IMPL *session,
     const char *uri, bool exclusive, const char *config)
