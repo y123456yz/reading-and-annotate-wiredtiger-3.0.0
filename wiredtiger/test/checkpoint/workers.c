@@ -159,9 +159,15 @@ worker(void *arg)
  * real_worker --
  *     A single worker thread that transactionally updates all tables with
  *     consistent values.
+<<<<<<< HEAD
  */ //checkpoint校验参考verify_checkpoint
 static int
 real_worker(void) //多个线程调用该函数
+=======
+ */
+static int
+real_worker(void)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 {
 	WT_CURSOR **cursors;
 	WT_RAND_STATE rnd;
@@ -189,8 +195,12 @@ real_worker(void) //多个线程调用该函数
 			(void)log_print_err("session.open_cursor", ret, 1);
 			goto err;
 		}
+<<<<<<< HEAD
 	
 //模拟同一个session对多个表同时做事务操作，该函数多个线程同时调用，也就是多个线程同时对多个表做事务操作
+=======
+
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	for (i = 0; i < g.nops && g.running; ++i, __wt_yield()) {
 		if ((ret = session->begin_transaction(session, NULL)) != 0) {
 			(void)log_print_err(
@@ -198,7 +208,11 @@ real_worker(void) //多个线程调用该函数
 			goto err;
 		}
 		keyno = __wt_random(&rnd) % g.nkeys + 1;
+<<<<<<< HEAD
 		for (j = 0; j < g.ntables; j++) { //事务内容就是向多个表写入一条数据
+=======
+		for (j = 0; j < g.ntables; j++) {
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 			if ((ret = worker_op(cursors[j], keyno, i)) != 0)
 				break;
 		}

@@ -1068,7 +1068,11 @@ struct __wt_ikey {
  */
 //创建空间赋值见__wt_update_alloc   __wt_insert.udp为见结构，__wt_insert包含key和value
 struct __wt_update {
+<<<<<<< HEAD
     //赋值见__wt_txn_modify 该操作属于哪个事务
+=======
+    //赋值见__wt_txn_modify
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	volatile uint64_t txnid;	/* transaction ID */
 #if WT_TIMESTAMP_SIZE == 8
 	WT_DECL_TIMESTAMP(timestamp)	/* aligned uint64_t timestamp */

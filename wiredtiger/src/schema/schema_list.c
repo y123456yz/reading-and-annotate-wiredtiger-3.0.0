@@ -38,7 +38,11 @@ __wt_schema_get_table_uri(WT_SESSION_IMPL *session,
 		    table->iface.name);
 	}
 	*tablep = table;
+<<<<<<< HEAD
    // printf("yang test ......................... __wt_schema_get_table_uri\r\n");
+=======
+    printf("yang test ......................... __wt_schema_get_table_uri\r\n");
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
     //»Ö¸´
 err:	session->dhandle = saved_dhandle;
 	return (ret);

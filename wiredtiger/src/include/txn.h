@@ -7,7 +7,10 @@
  */
 //表示该事务是已提交的，已结束
 #define	WT_TXN_NONE	0		/* No txn running in a session. */
+<<<<<<< HEAD
 //初始状态
+=======
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 #define	WT_TXN_FIRST	1		/* First transaction to run. */
 //表示该事务是回滚了的
 #define	WT_TXN_ABORTED	UINT64_MAX	/* Update rolled back, ignore. */
@@ -25,7 +28,10 @@
 #define	WT_TXNID_LT(t1, t2)						\
 	((t1) < (t2))
 
+<<<<<<< HEAD
 //当前session正在处理的事务的状态信息
+=======
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 #define	WT_SESSION_TXN_STATE(s) (&S2C(s)->txn_global.states[(s)->id])
 
 #define	WT_SESSION_IS_CHECKPOINT(s)					\
@@ -75,7 +81,11 @@ struct __wt_named_snapshot {//该结构对应的数据最终存入到__wt_txn_global.snapshot
 //通过WT_SESSION_TXN_STATE取值
 struct __wt_txn_state {
 	WT_CACHE_LINE_PAD_BEGIN
+<<<<<<< HEAD
 	volatile uint64_t id; /* 执行事务的事务ID，赋值见__wt_txn_id_alloc */
+=======
+	volatile uint64_t id; /*执行事务的事务ID*/
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	volatile uint64_t pinned_id;
 	volatile uint64_t metadata_pinned;
 
@@ -97,17 +107,26 @@ struct __wt_txn_global {
 	 */ //系统中最早产生且还在执行(也就是还未提交)的写事务ID，赋值见__wt_txn_update_oldest
 	volatile uint64_t oldest_id;
 
+<<<<<<< HEAD
 	//WT_DECL_TIMESTAMP(commit_timestamp)
 	wt_timestamp_t commit_timestamp;
+=======
+	WT_DECL_TIMESTAMP(commit_timestamp)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	/*
     WiredTiger 提供设置 oldest timestamp 的功能，允许由 MongoDB 来设置该时间戳，含义是Read as of a timestamp 
     不会提供更小的时间戳来进行一致性读，也就是说，WiredTiger 无需维护 oldest timestamp 之前的所有历史版本。
     MongoDB 层需要频繁（及时）更新 oldest timestamp，避免让 WT cache 压力太大。
 	*/
+<<<<<<< HEAD
 	//WT_DECL_TIMESTAMP(oldest_timestamp)
 	//WT_DECL_TIMESTAMP(pinned_timestamp)
 	wt_timestamp_t oldest_timestamp; //举例使用可以参考thread_ts_run
 	wt_timestamp_t pinned_timestamp;
+=======
+	WT_DECL_TIMESTAMP(oldest_timestamp)
+	WT_DECL_TIMESTAMP(pinned_timestamp)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	/*
     4.0 版本实现了存储引擎层的回滚机制，当复制集节点需要回滚时，直接调用 WiredTiger 接口，将数据回滚到
     某个稳定版本（实际上就是一个 Checkpoint），这个稳定版本则依赖于 stable timestamp。WiredTiger 会确保 
@@ -115,8 +134,12 @@ struct __wt_txn_global {
     数节点时（Majority commited），会更新 stable timestamp，因为这些数据已经提交到大多数节点了，一定不
     会发生 ROLLBACK，这个时间戳之前的数据就都可以写到 Checkpoint 里了。
 	*/
+<<<<<<< HEAD
 	//WT_DECL_TIMESTAMP(stable_timestamp) //举例使用可以参考thread_ts_run
 	wt_timestamp_t stable_timestamp; //赋值通过mongodb调用__conn_set_timestamp->__wt_txn_global_set_timestamp实现
+=======
+	WT_DECL_TIMESTAMP(stable_timestamp)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	bool has_commit_timestamp;
 	bool has_oldest_timestamp;
 	bool has_pinned_timestamp;
@@ -176,7 +199,11 @@ struct __wt_txn_global {
 };
 
 //可以参考https://blog.csdn.net/yuanrxdu/article/details/78339295
+<<<<<<< HEAD
 /* wiredtiger 事务隔离类型，生效见__wt_txn_visible->__txn_visible_id */
+=======
+/* wiredtiger 事务隔离类型，生效见__txn_visible_id */
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 typedef enum __wt_txn_isolation { //赋值见__wt_txn_config
 	WT_ISO_READ_COMMITTED,
 	WT_ISO_READ_UNCOMMITTED,
@@ -191,7 +218,11 @@ typedef enum __wt_txn_isolation { //赋值见__wt_txn_config
  */ //赋值见__wt_txn_modify  用于记录各种操作
  //WT_TXN和__wt_txn_op在__txn_next_op中关联起来    __wt_txn.mod数组成员
 struct __wt_txn_op {
+<<<<<<< HEAD
 	uint32_t fileid; //赋值见__txn_next_op  对应btree id
+=======
+	uint32_t fileid;
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	enum {
 		WT_TXN_OP_BASIC,
 		WT_TXN_OP_BASIC_TS,
@@ -229,7 +260,11 @@ struct __wt_txn_op {
 //WT_SESSION_IMPL.txn成员为该类型
 //WT_TXN和__wt_txn_op在__txn_next_op中关联起来
 struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
+<<<<<<< HEAD
     //本次事务的全局唯一的ID，用于标示事务修改数据的版本号，也就是多个session都会有不同的id，每个事务有一个非重复id，见__wt_txn_id_alloc
+=======
+    //本次事务的全局唯一的ID，用于标示事务修改数据的版本号
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	uint64_t id; /*事务ID*/ //赋值见__wt_txn_id_alloc
 
     //生效见__txn_visible_id */
@@ -257,13 +292,18 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 	 * In some use cases, this can be updated while the transaction is
 	 * running.
 	 */
+<<<<<<< HEAD
 	//WT_DECL_TIMESTAMP(commit_timestamp)
 	wt_timestamp_t commit_timestamp;
+=======
+	WT_DECL_TIMESTAMP(commit_timestamp)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 
 	/*
 	 * Set to the first commit timestamp used in the transaction and fixed
 	 * while the transaction is on the public list of committed timestamps.
 	 */
+<<<<<<< HEAD
 	//WT_DECL_TIMESTAMP(first_commit_timestamp)
 	wt_timestamp_t first_commit_timestamp;
 
@@ -271,6 +311,13 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 	//生效参考__wt_txn_visible，赋值见__wt_txn_config
 	//WT_DECL_TIMESTAMP(read_timestamp)
 	wt_timestamp_t read_timestamp;
+=======
+	WT_DECL_TIMESTAMP(first_commit_timestamp)
+
+	/* Read updates committed as of this timestamp. */
+	//生效参考__wt_txn_visible
+	WT_DECL_TIMESTAMP(read_timestamp)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 
 	TAILQ_ENTRY(__wt_txn) commit_timestampq;
 	TAILQ_ENTRY(__wt_txn) read_timestampq;
@@ -313,7 +360,10 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 #define	WT_TXN_ERROR		0x00002
 #define	WT_TXN_HAS_ID		0x00004
 //获取当前系统事务快照后在__wt_txn_get_snapshot->__txn_sort_snapshot中置位，在__wt_txn_release_snapshot中清楚标记
+<<<<<<< HEAD
 //__txn_sort_snapshot  __wt_txn_named_snapshot_get中置位，__wt_txn_release_snapshot中清除
+=======
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 #define	WT_TXN_HAS_SNAPSHOT	0x00008
 #define	WT_TXN_HAS_TS_COMMIT	0x00010
 /* Are we using a read timestamp for this checkpoint transaction? */
