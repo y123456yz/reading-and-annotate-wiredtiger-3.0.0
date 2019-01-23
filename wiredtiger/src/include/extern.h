@@ -270,11 +270,7 @@ extern int __wt_conn_dhandle_alloc( WT_SESSION_IMPL *session, const char *uri, c
 extern int __wt_conn_dhandle_find( WT_SESSION_IMPL *session, const char *uri, const char *checkpoint) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern int __wt_conn_dhandle_close( WT_SESSION_IMPL *session, bool final, bool mark_dead) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern int __wt_conn_dhandle_open( //分table和file两种情况 WT_SESSION_IMPL *session, const char *cfg[], uint32_t flags) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
-<<<<<<< HEAD
 extern int //例如针对某个tree或者所有tree执行checkpoint __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri, int (*file_func)(WT_SESSION_IMPL *, const char *[]), int (*name_func)(WT_SESSION_IMPL *, const char *, bool *), const char *cfg[]) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
-=======
-extern int __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri, int (*file_func)(WT_SESSION_IMPL *, const char *[]), int (*name_func)(WT_SESSION_IMPL *, const char *, bool *), const char *cfg[]) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 extern int __wt_conn_dhandle_close_all( WT_SESSION_IMPL *session, const char *uri, bool mark_dead) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern int __wt_conn_dhandle_discard_single( WT_SESSION_IMPL *session, bool final, bool mark_dead) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern int __wt_conn_dhandle_discard(WT_SESSION_IMPL *session) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
@@ -780,11 +776,7 @@ extern void __wt_stat_join_aggregate( WT_JOIN_STATS **from, WT_JOIN_STATS *to);
 extern int __wt_thread_group_resize( WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, uint32_t new_min, uint32_t new_max, uint32_t flags) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern int __wt_thread_group_create( WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, const char *name, uint32_t min, uint32_t max, uint32_t flags, bool (*chk_func)(WT_SESSION_IMPL *session), int (*run_func)(WT_SESSION_IMPL *session, WT_THREAD *context), int (*stop_func)(WT_SESSION_IMPL *session, WT_THREAD *context)) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern int __wt_thread_group_destroy(WT_SESSION_IMPL *session, WT_THREAD_GROUP *group) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
-<<<<<<< HEAD
 extern void //__wt_thread_group_stop_one和__wt_thread_group_start_one对应，分别对应激活和停止 __wt_thread_group_start_one( WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, bool is_locked);
-=======
-extern void __wt_thread_group_start_one( WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, bool is_locked);
->>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 extern void __wt_thread_group_stop_one(WT_SESSION_IMPL *session, WT_THREAD_GROUP *group);
 extern void __wt_epoch(WT_SESSION_IMPL *session, struct timespec *tsp) WT_GCC_FUNC_DECL_ATTRIBUTE((visibility("default")));
 extern void __wt_seconds(WT_SESSION_IMPL *session, time_t *timep);
