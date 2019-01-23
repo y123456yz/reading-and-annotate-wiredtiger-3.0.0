@@ -74,9 +74,13 @@ static const char * const stable_store = "table:stable";
 static const char * const ckpt_file = "checkpoint_done";
 
 static bool compat, inmem, use_ts;
+<<<<<<< HEAD
 //thread_runÖÐÑ­»·Ïò3¸ö±íÖÐÐ´ÈëÊý¾ÝµÄ´ÎÊý£¬Ò²¾ÍÊÇÑ­»·´ÎÊý
 static volatile uint64_t global_ts = 1;
 //Ã¿¸öÏß³ÌµÄstable_ts
+=======
+static volatile uint64_t global_ts = 1;
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static volatile uint64_t th_ts[MAX_TH];
 
 #define	ENV_CONFIG_COMPAT	",compatibility=(release=\"2.9\")"
@@ -96,9 +100,15 @@ typedef struct {
 } REPORT;
 
 typedef struct {
+<<<<<<< HEAD
 	WT_CONNECTION *conn; //¶ÔÓ¦wiredtigerµÄconn
 	uint64_t start; //¸³Öµ¼ûrun_workload£¬±íÊ¾ÏòÃ¿¸ö±íÖÐÐ´Èë¶àÉÙÌõÊý¾Ý²ÅÍË³ö
 	uint32_t info; //nth´ú±í5-10Ö®¼äµÄËæ»úÊý£¬´ú±íÐ´¹¤×÷Ïß³ÌÊý
+=======
+	WT_CONNECTION *conn;
+	uint64_t start;
+	uint32_t info;
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 } THREAD_DATA;
 
 static void handler(int)
@@ -116,7 +126,11 @@ usage(void)
 /*
  * thread_ts_run --
  *	Runner function for a timestamp thread.
+<<<<<<< HEAD
  */ //thread_ckpt_run  thread_ts_run  thread_runÈý¸öÏß³Ì»Øµ÷£¬ÆäÖÐthread_runÊÇ¶à¸öÏß³Ìµ÷ÓÃ
+=======
+ */
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static WT_THREAD_RET
 thread_ts_run(void *arg)
 {
@@ -186,7 +200,11 @@ ts_wait:		__wt_sleep(0, 1000);
  *	Runner function for the checkpoint thread.
  */
 static WT_THREAD_RET
+<<<<<<< HEAD
 thread_ckpt_run(void *arg) //thread_ckpt_run  thread_ts_run  thread_runÈý¸öÏß³Ì»Øµ÷£¬ÆäÖÐthread_runÊÇ¶à¸öÏß³Ìµ÷ÓÃ
+=======
+thread_ckpt_run(void *arg)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 {
 	FILE *fp;
 	WT_RAND_STATE rnd;
@@ -238,7 +256,11 @@ thread_ckpt_run(void *arg) //thread_ckpt_run  thread_ts_run  thread_runÈý¸öÏß³Ì»
 /*
  * thread_run --
  *	Runner function for the worker threads.
+<<<<<<< HEAD
  */  //thread_ckpt_run  thread_ts_run  thread_runÈý¸öÏß³Ì»Øµ÷£¬ÆäÖÐthread_runÊÇ¶à¸öÏß³Ìµ÷ÓÃ
+=======
+ */
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 static WT_THREAD_RET
 thread_run(void *arg)
 {
@@ -288,7 +310,10 @@ thread_run(void *arg)
 	printf("Thread %" PRIu32 " starts at %" PRIu64 "\n",
 	    td->info, td->start);
 	stable_ts = 0;
+<<<<<<< HEAD
 	//Ïò3¸ö±íÖÐÑ­»·Ð´ÈëËæ»úÊý¾Ý
+=======
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 	for (i = td->start;; ++i) {
 		if (use_ts)
 			stable_ts = __wt_atomic_addv64(&global_ts, 1);
@@ -320,7 +345,11 @@ thread_run(void *arg)
 		data.data = obuf;
 		cur_oplog->set_value(cur_oplog, &data);
 		testutil_check(cur_oplog->insert(cur_oplog));
+<<<<<<< HEAD
 		if (use_ts) { //´ÓÕâÀï¿´³öÃ¿¸öÊÂÎñ²Ù×÷¶¼¸üÐÂÁËcommit_timestamp
+=======
+		if (use_ts) {
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 			testutil_check(__wt_snprintf(tscfg, sizeof(tscfg),
 			    "commit_timestamp=%" PRIx64, stable_ts));
 			testutil_check(
@@ -360,7 +389,11 @@ thread_run(void *arg)
 static void run_workload(uint32_t)
     WT_GCC_FUNC_DECL_ATTRIBUTE((noreturn));
 static void
+<<<<<<< HEAD
 run_workload(uint32_t nth) //nth´ú±í5-10Ö®¼äµÄËæ»úÊý£¬´ú±íÐ´¹¤×÷Ïß³ÌÊý
+=======
+run_workload(uint32_t nth)
+>>>>>>> 62b87d44d463bf7b5687ccd7a85292b946bdfff5
 {
 	WT_CONNECTION *conn;
 	WT_SESSION *session;
