@@ -153,7 +153,7 @@ __check_leaf_key_range(WT_SESSION_IMPL *session,
 	WT_PAGE_INDEX *pindex;
 	uint32_t indx;
 	int cmp;
-    printf("yang test ......d........... 11 __check_leaf_key_range\r\n");
+    //printf("yang test ......d........... 11 __check_leaf_key_range\r\n");
 
 	btree = S2BT(session);
 	collator = btree->collator;

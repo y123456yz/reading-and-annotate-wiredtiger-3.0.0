@@ -1622,7 +1622,7 @@ __wt_stat_connection_aggregate(
 	    WT_STAT_READ(from, lock_table_wait_internal);
 	to->lock_table_read_count +=
 	    WT_STAT_READ(from, lock_table_read_count);
-	printf("yang test ...................WT_STAT_READ(from, lock_table_write_count):%d,  %d\r\n", to->lock_table_write_count,WT_STAT_READ(from, lock_table_write_count));
+	//printf("yang test ...................WT_STAT_READ(from, lock_table_write_count):%d,  %d\r\n", to->lock_table_write_count,WT_STAT_READ(from, lock_table_write_count));
 	to->lock_table_write_count +=
 	    WT_STAT_READ(from, lock_table_write_count);
 	to->log_slot_switch_busy += WT_STAT_READ(from, log_slot_switch_busy);

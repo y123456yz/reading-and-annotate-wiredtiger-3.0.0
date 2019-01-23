@@ -89,7 +89,7 @@ __wt_verbose_timestamp(WT_SESSION_IMPL *session,
 /*
  * __wt_txn_parse_timestamp --
  *	Decodes and sets a timestamp.
- */
+ */ //对cval对应的时间撮字符串做检查，看是否符合要求
 int
 __wt_txn_parse_timestamp(WT_SESSION_IMPL *session,
      const char *name, wt_timestamp_t *timestamp, WT_CONFIG_ITEM *cval)

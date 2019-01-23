@@ -999,7 +999,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session,
 
 	WT_RET(__curtable_complete(session, table));	/* completeness check */
 
-    printf("yang test ...............table->is_simple:%d, source:%s\r\n", table->is_simple, table->cgroups[0]->source);
+    //printf("yang test ...............table->is_simple:%d, source:%s\r\n", table->is_simple, table->cgroups[0]->source);
 	if (table->is_simple) { //这里面会对cursor重新赋值
 	    //ex_access对应 ....................__wt_open_cursor table->cgroups[0]->source:file:access.wt
     	/* Just return a cursor on the underlying data source. */

@@ -61,7 +61,7 @@ end_checkpoints(void)
  *	Checkpoint thread start function.
  */
 static WT_THREAD_RET
-checkpointer(void *arg)
+checkpointer(void *arg) //checkpoint只会有一个线程操作
 {
 	char tid[128];
 
@@ -105,7 +105,7 @@ real_checkpointer(void)
 	}
 
 	while (g.running) {
-		/* Execute a checkpoint */
+		/* Execute a checkpoint */ //checkpoint只会有一个线程操作
 		if ((ret = session->checkpoint(
 		    session, checkpoint_config)) != 0)
 			return (log_print_err("session.checkpoint", ret, 1));

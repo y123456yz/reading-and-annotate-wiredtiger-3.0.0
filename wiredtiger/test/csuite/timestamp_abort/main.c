@@ -74,7 +74,9 @@ static const char * const stable_store = "table:stable";
 static const char * const ckpt_file = "checkpoint_done";
 
 static bool compat, inmem, use_ts;
+//thread_run中循环向3个表中写入数据的次数，也就是循环次数
 static volatile uint64_t global_ts = 1;
+//每个线程的stable_ts
 static volatile uint64_t th_ts[MAX_TH];
 
 #define	ENV_CONFIG_COMPAT	",compatibility=(release=\"2.9\")"
@@ -94,9 +96,9 @@ typedef struct {
 } REPORT;
 
 typedef struct {
-	WT_CONNECTION *conn;
-	uint64_t start;
-	uint32_t info;
+	WT_CONNECTION *conn; //对应wiredtiger的conn
+	uint64_t start; //赋值见run_workload，表示向每个表中写入多少条数据才退出
+	uint32_t info; //nth代表5-10之间的随机数，代表写工作线程数
 } THREAD_DATA;
 
 static void handler(int)
@@ -114,7 +116,7 @@ usage(void)
 /*
  * thread_ts_run --
  *	Runner function for a timestamp thread.
- */
+ */ //thread_ckpt_run  thread_ts_run  thread_run三个线程回调，其中thread_run是多个线程调用
 static WT_THREAD_RET
 thread_ts_run(void *arg)
 {
@@ -184,7 +186,7 @@ ts_wait:		__wt_sleep(0, 1000);
  *	Runner function for the checkpoint thread.
  */
 static WT_THREAD_RET
-thread_ckpt_run(void *arg)
+thread_ckpt_run(void *arg) //thread_ckpt_run  thread_ts_run  thread_run三个线程回调，其中thread_run是多个线程调用
 {
 	FILE *fp;
 	WT_RAND_STATE rnd;
@@ -236,7 +238,7 @@ thread_ckpt_run(void *arg)
 /*
  * thread_run --
  *	Runner function for the worker threads.
- */
+ */  //thread_ckpt_run  thread_ts_run  thread_run三个线程回调，其中thread_run是多个线程调用
 static WT_THREAD_RET
 thread_run(void *arg)
 {
@@ -286,6 +288,7 @@ thread_run(void *arg)
 	printf("Thread %" PRIu32 " starts at %" PRIu64 "\n",
 	    td->info, td->start);
 	stable_ts = 0;
+	//向3个表中循环写入随机数据
 	for (i = td->start;; ++i) {
 		if (use_ts)
 			stable_ts = __wt_atomic_addv64(&global_ts, 1);
@@ -317,7 +320,7 @@ thread_run(void *arg)
 		data.data = obuf;
 		cur_oplog->set_value(cur_oplog, &data);
 		testutil_check(cur_oplog->insert(cur_oplog));
-		if (use_ts) {
+		if (use_ts) { //从这里看出每个事务操作都更新了commit_timestamp
 			testutil_check(__wt_snprintf(tscfg, sizeof(tscfg),
 			    "commit_timestamp=%" PRIx64, stable_ts));
 			testutil_check(
@@ -357,7 +360,7 @@ thread_run(void *arg)
 static void run_workload(uint32_t)
     WT_GCC_FUNC_DECL_ATTRIBUTE((noreturn));
 static void
-run_workload(uint32_t nth)
+run_workload(uint32_t nth) //nth代表5-10之间的随机数，代表写工作线程数
 {
 	WT_CONNECTION *conn;
 	WT_SESSION *session;
