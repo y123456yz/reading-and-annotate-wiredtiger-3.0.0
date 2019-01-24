@@ -581,8 +581,10 @@ struct __wt_connection_stats { //__stats_connection_descºÍ__wt_connection_stats¶
 	//"transaction: transaction sync calls",
 	int64_t txn_sync;
 	//"transaction: transactions commit timestamp queue inserts to head",
+	//¼û__wt_txn_set_commit_timestamp
 	int64_t txn_commit_queue_head;
 	//"transaction: transactions commit timestamp queue inserts total",
+	//µ÷ÓÃ__wt_txn_set_commit_timestampµÄ´ÎÊý
 	int64_t txn_commit_queue_inserts;
 	//"transaction: transactions commit timestamp queue length",
 	int64_t txn_commit_queue_len;
