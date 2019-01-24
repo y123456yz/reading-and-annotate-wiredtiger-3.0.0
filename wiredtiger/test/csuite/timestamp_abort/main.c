@@ -74,10 +74,10 @@ static const char * const stable_store = "table:stable";
 static const char * const ckpt_file = "checkpoint_done";
 
 static bool compat, inmem, use_ts;
-//thread_run中循环向3个表中写入数据的次数，也就是循环次数
+//thread_run中循环向3个表中写入数据的次数，也就是循环次数，每个线程循环写一次加1
 static volatile uint64_t global_ts = 1;
-//每个线程的stable_ts
-
+//每个线程的stable_ts,也就是第i个线程向三个表中循环写入数据时候的global_ts，见thread_run，
+//这样也就保证了每个线程做事务处理时候的ts全部不一样
 static volatile uint64_t th_ts[MAX_TH];
 
 #define	ENV_CONFIG_COMPAT	",compatibility=(release=\"2.9\")"
@@ -151,15 +151,16 @@ thread_ts_run(void *arg)
 			 * any thread still with a zero timestamp we go to
 			 * sleep.
 			 */
-			this_ts = th_ts[i];
-			if (this_ts == 0)
+			this_ts = th_ts[i]; //表示当前线程最近一次执行循环写入的
+			if (this_ts == 0)  //可能工作线程还没有进行循环操作
 				goto ts_wait;
 			else if (this_ts < oldest_ts)
-				oldest_ts = this_ts;
+				oldest_ts = this_ts; //oldest_ts也就是这几个线程中当前最小的this_ts
 		}
 
 		if (oldest_ts != UINT64_MAX &&
-		    oldest_ts - last_ts > STABLE_PERIOD) {
+		    //本次循环的ts-上次循环的ts超过这么多
+		    oldest_ts - last_ts > STABLE_PERIOD) { //也就是只有global_ts增加至少100才会调用conn->set_timestamp
 			/*
 			 * Set both the oldest and stable timestamp so that we
 			 * don't need to maintain read availability at older
@@ -291,7 +292,7 @@ thread_run(void *arg)
 	stable_ts = 0;
 	//向3个表中循环写入随机数据
 	for (i = td->start;; ++i) {
-		if (use_ts)
+		if (use_ts) //stable_ts实际上是多个线程循环的次数之和，实际上也就是所有线程执行的事务总次数
 			stable_ts = __wt_atomic_addv64(&global_ts, 1);
 		testutil_check(__wt_snprintf(
 		    kname, sizeof(kname), "%" PRIu64, i));

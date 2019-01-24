@@ -134,8 +134,9 @@ struct __wt_txn_global {
 
 	/* List of transactions sorted by commit timestamp. */
 	WT_RWLOCK commit_timestamp_rwlock;
+	//时间撮相关的事务都会添加到该链表中，见__wt_txn_set_commit_timestamp
 	TAILQ_HEAD(__wt_txn_cts_qh, __wt_txn) commit_timestamph;
-	uint32_t commit_timestampq_len;
+	uint32_t commit_timestampq_len; //commit_timestamph队列的成员长度
 
 	/* List of transactions sorted by read timestamp. */
 	WT_RWLOCK read_timestamp_rwlock;
@@ -315,10 +316,12 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 //获取当前系统事务快照后在__wt_txn_get_snapshot->__txn_sort_snapshot中置位，在__wt_txn_release_snapshot中清楚标记
 //__txn_sort_snapshot  __wt_txn_named_snapshot_get中置位，__wt_txn_release_snapshot中清除
 #define	WT_TXN_HAS_SNAPSHOT	0x00008
+//__wt_txn_set_commit_timestamp中置位
 #define	WT_TXN_HAS_TS_COMMIT	0x00010
 /* Are we using a read timestamp for this checkpoint transaction? */
 #define	WT_TXN_HAS_TS_READ	0x00020
 #define	WT_TXN_NAMED_SNAPSHOT	0x00040
+//__wt_txn_set_commit_timestamp中置位
 #define	WT_TXN_PUBLIC_TS_COMMIT	0x00080
 #define	WT_TXN_PUBLIC_TS_READ	0x00100
 #define	WT_TXN_READONLY		0x00200
