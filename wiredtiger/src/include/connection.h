@@ -262,6 +262,7 @@ struct __wt_connection_impl {
 	WT_SESSION_IMPL	*sessions;	/* Session reference */
 	//wiredtiger_open中赋值
 	uint32_t	 session_size;	/* Session array size */
+	//当前正在使用的session数目，有效session数  赋值见__open_session
 	uint32_t	 session_cnt;	/* Session count */
 
     //scratch空间上限，生效见__wt_scr_free    

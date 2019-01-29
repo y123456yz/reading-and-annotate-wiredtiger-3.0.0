@@ -293,7 +293,7 @@ __wt_txn_oldest_id(WT_SESSION_IMPL *session)
 	include_checkpoint_txn = btree == NULL ||
 	    (!F_ISSET(btree, WT_BTREE_LOOKASIDE) &&
 	    btree->checkpoint_gen != __wt_gen(session, WT_GEN_CHECKPOINT));
-	if (!include_checkpoint_txn)
+	if (!include_checkpoint_txn) //该session不是做checkpoint的session
 		return (oldest_id);
 
 	/*
@@ -314,6 +314,7 @@ __wt_txn_oldest_id(WT_SESSION_IMPL *session)
 	 * the active checkpoint then it's safe to ignore the checkpoint ID in
 	 * the visibility check.
 	 */
+	//本session是做checkpoint操作的session
 	checkpoint_pinned = txn_global->checkpoint_state.pinned_id;
 	if (checkpoint_pinned == WT_TXN_NONE ||
 	    WT_TXNID_LT(oldest_id, checkpoint_pinned))
@@ -335,7 +336,7 @@ __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
 
 	oldest_id = __wt_txn_oldest_id(session);
 
-	return (WT_TXNID_LT(id, oldest_id));
+	return (WT_TXNID_LT(id, oldest_id)); //
 }
 
 /*
@@ -403,7 +404,11 @@ __wt_txn_upd_visible_all(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __txn_visible_id --
  *	Can the current transaction see the given ID?
- *//*检查事务id是否对当前session对应事务可见*/
+ */
+/*
+检查事务id是否对当前session对应事务可见
+可以结合 MongoDB新存储引擎WiredTiger实现(事务篇) https://www.jianshu.com/p/f053e70f9b18参考事务隔离级别
+*/
 //__wt_txn_read->__wt_txn_upd_visible->__wt_txn_visible->__txn_visible_id
 static inline bool
 __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
@@ -429,7 +434,7 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 	 * If we don't have a transactional snapshot, only make stable updates
 	 * visible.
 	 */
-	if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) // 
+	if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) //也就是WT_ISO_READ_COMMITTED
 		return (__txn_visible_all_id(session, id));
 
 	/* Transactions see their own changes. */
@@ -448,9 +453,14 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 	if (WT_TXNID_LE(txn->snap_max, id)) //超出未提交快照范围最大值
 		return (false);
 	if (txn->snapshot_count == 0 || WT_TXNID_LT(id, txn->snap_min)) //没有其他事务，或者id是小于snap_min的已提交的事务
-		return (true);
+		return (true); //小于snap_min返回true
 
-    //和__txn_sort_snapshot对应
+    //和__txn_sort_snapshot对应  如果id属于snap_min~snap_max范围之间，并且能在该范围找到该id，所有该id是该快照中的一员
+    //如果在该范围找到对应的id，说明该id是该快照范围中未提交的事务，所以不可见
+
+
+    //问题: 如果snap_min < id < snap_max,但是不是数组中的成员，什么情况下会满足该条件，为什么满足该条件会返回true表示可见????
+    //?????????????????????????
 	WT_BINARY_SEARCH(id, txn->snapshot, txn->snapshot_count, found);
 	return (!found);
 }
@@ -488,7 +498,7 @@ __wt_txn_visible(
 	if (!F_ISSET(txn, WT_TXN_HAS_TS_READ) || timestamp == NULL)
 		return (true);
 		
-    //如果timestamp小于txn->read_timestamp，则不可见
+    //如果timestamp小于txn->read_timestamp，则可见
 	return (__wt_timestamp_cmp(timestamp, &txn->read_timestamp) <= 0);
 	}
 #else
@@ -502,6 +512,7 @@ __wt_txn_visible(
  *	Can the current transaction see the given update.
  */ /*检查事务id是否对当前session对应事务可见*/ 
 //__wt_txn_read->__wt_txn_upd_visible
+//__wt_txn_update_check->__wt_txn_upd_visible
 static inline bool
 __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
@@ -523,7 +534,7 @@ __wt_txn_read(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 		    __wt_txn_upd_visible(session, upd)) //__wt_txn_read->__wt_txn_upd_visible
 			break;
 
-	return (upd);
+	return (upd); 
 }
 
 /*
@@ -731,7 +742,7 @@ __wt_txn_search_check(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_update_check --
  *	Check if the current transaction can update an item.
- */
+ */ //检查udp链表上是否有当前session可见的节点  
 static inline int
 __wt_txn_update_check(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {

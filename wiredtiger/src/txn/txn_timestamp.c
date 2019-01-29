@@ -188,9 +188,9 @@ __wt_txn_parse_timestamp(WT_SESSION_IMPL *session,
 /*
  * __txn_global_query_timestamp --
  *	Query a timestamp.
- */
+ */ //默认为read_timestamp和oldest_timestamp的较小值
 static int
-__txn_global_query_timestamp(
+__txn_global_query_timestamp( 
     WT_SESSION_IMPL *session, wt_timestamp_t *tsp, const char *cfg[])
 {
 	WT_CONFIG_ITEM cval;
@@ -202,6 +202,7 @@ __txn_global_query_timestamp(
 	conn = S2C(session);
 	txn_global = &conn->txn_global;
 
+    //默认配置是"get=pinned"
 	WT_RET(__wt_config_gets(session, cfg, "get", &cval));
 	if (WT_STRING_MATCH("all_committed", cval.str, cval.len)) {
 		if (!txn_global->has_commit_timestamp)
@@ -228,7 +229,8 @@ __txn_global_query_timestamp(
 			return (WT_NOTFOUND);
 		WT_WITH_TIMESTAMP_READLOCK(session, &txn_global->rwlock,
 		    __wt_timestamp_set(&ts, &txn_global->oldest_timestamp));
-	} else if (WT_STRING_MATCH("pinned", cval.str, cval.len)) {
+	} else if (WT_STRING_MATCH("pinned", cval.str, cval.len)) { //默认走这个分支
+	    //该分支默认为read_timestamp和oldest_timestamp的较小值
 		if (!txn_global->has_oldest_timestamp)
 			return (WT_NOTFOUND);
 		__wt_readlock(session, &txn_global->rwlock);
@@ -236,7 +238,7 @@ __txn_global_query_timestamp(
 
 		/* Check for a running checkpoint */
 		txn = txn_global->checkpoint_txn;
-		if (txn_global->checkpoint_state.pinned_id != WT_TXN_NONE &&
+		if (txn_global->checkpoint_state.pinned_id != WT_TXN_NONE && //有session在做checkpoint操作
 		    !__wt_timestamp_iszero(&txn->read_timestamp) &&
 		    __wt_timestamp_cmp(&txn->read_timestamp, &ts) < 0)
 			__wt_timestamp_set(&ts, &txn->read_timestamp);
@@ -299,7 +301,7 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
 	wt_timestamp_t active_timestamp, last_pinned_timestamp;
 	wt_timestamp_t oldest_timestamp, pinned_timestamp;
 	const char *query_cfg[] = { WT_CONFIG_BASE(session,
-	    WT_CONNECTION_query_timestamp), "get=pinned", NULL };
+	    WT_CONNECTION_query_timestamp), "get=pinned", NULL };  //默认为pinned
 
 	txn_global = &S2C(session)->txn_global;
 
@@ -307,31 +309,38 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
 	if (txn_global->oldest_is_pinned)
 		return (0);
 
+    //获取oldest_timestamp
 	WT_WITH_TIMESTAMP_READLOCK(session, &txn_global->rwlock,
 	    __wt_timestamp_set(
 		&oldest_timestamp, &txn_global->oldest_timestamp));
 
 	/* Scan to find the global pinned timestamp. */
-	if ((ret = __txn_global_query_timestamp(
+	//获取pinned_timestamp,如果已经设置直接使用，正常情况下不会返回
+	//active_timestamp默认为read_timestamp和oldest_timestamp的较小值
+	if ((ret = __txn_global_query_timestamp( 
 	    session, &active_timestamp, query_cfg)) != 0)
 		return (ret == WT_NOTFOUND ? 0 : ret);
 
+    //pinned_timestamp必须是oldest_timestamp和active_timestamp中的较小值
 	if (__wt_timestamp_cmp(&oldest_timestamp, &active_timestamp) < 0) {
 		__wt_timestamp_set(&pinned_timestamp, &oldest_timestamp);
 	} else
 		__wt_timestamp_set(&pinned_timestamp, &active_timestamp);
 
-	if (txn_global->has_pinned_timestamp && !force) {
+	if (txn_global->has_pinned_timestamp && !force) { //txn_global已经有pinned_timestamp
 		WT_WITH_TIMESTAMP_READLOCK(session, &txn_global->rwlock,
 		    __wt_timestamp_set(
 			&last_pinned_timestamp, &txn_global->pinned_timestamp));
 
+        //如果已有的pinned_timestamp小于等于oldest_timestamp，则直接返回
 		if (__wt_timestamp_cmp(
 		    &pinned_timestamp, &last_pinned_timestamp) <= 0)
 			return (0);
 	}
 
 	__wt_writelock(session, &txn_global->rwlock);
+	//如果还没有设置pinned_timestamp，或者已经有pinned_timestamp但是本次获取的pinned_timestamp比之前的大，则更新
+	//从这里可以看出txn_global->pinned_timestamp实际上就是当前多个session中最大的pinned_timestamp
 	if (!txn_global->has_pinned_timestamp || force || __wt_timestamp_cmp(
 	    &txn_global->pinned_timestamp, &pinned_timestamp) < 0) {
 		__wt_timestamp_set(
@@ -339,7 +348,7 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
 		txn_global->has_pinned_timestamp = true;
 		txn_global->oldest_is_pinned = __wt_timestamp_cmp(
 		    &txn_global->pinned_timestamp,
-		    &txn_global->oldest_timestamp) == 0;
+		    &txn_global->oldest_timestamp) == 0; //如果pinned_timestamp就是oldest_timestamp
 		__wt_verbose_timestamp(session,
 		    &pinned_timestamp, "Updated pinned timestamp");
 	}
@@ -352,7 +361,18 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
 /*
  * __wt_txn_global_set_timestamp --
  *	Set a global transaction timestamp.
- */ //注意__wt_txn_global_set_timestamp和__wt_txn_set_commit_timestamp的区别
+ */ 
+/*
+Parameters
+connection	the connection handle
+config	Configuration string, see Configuration Strings. Permitted values:
+Name	Effect	Values
+commit_timestamp	reset the maximum commit timestamp tracked by WiredTiger. This will cause future calls to WT_CONNECTION::query_timestamp to ignore commit timestamps greater than the specified value until the next commit moves the tracked commit timestamp forwards. This is only intended for use where the application is rolling back locally committed transactions. The supplied value should not be older than the current oldest and stable timestamps. See Application-specified Transaction Timestamps.	a string; default empty.
+force	set timestamps even if they violate normal ordering requirements. For example allow the oldest_timestamp to move backwards.	a boolean flag; default false.
+oldest_timestamp	future commits and queries will be no earlier than the specified timestamp. Supplied values must be monotonically increasing, any attempt to set the value to older than the current is silently ignored. The supplied value should not be newer than the current stable timestamp. See Application-specified Transaction Timestamps.	a string; default empty.
+stable_timestamp	checkpoints will not include commits that are newer than the specified timestamp in tables configured with log=(enabled=false). Supplied values must be monotonically increasing, any attempt to set the value to older than the current is silently ignored. The supplied value should not be older than the current oldest timestamp. See Application-specified Transaction Timestamps.	a string; default empty.
+*/
+//注意__wt_txn_global_set_timestamp和__wt_txn_set_commit_timestamp的区别
 int
 __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -388,7 +408,12 @@ __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
 	/*
 	 * Parsing will initialize the timestamp to zero even if
 	 * it is not configured.
-	 */
+	 */ 
+	/* 关系必须满足一下条件才会有效，见后面比较
+    oldest >= commit
+    stable >= commit
+    oldest >= stable
+	*/
 	WT_RET(__wt_txn_parse_timestamp(
 	    session, "commit", &commit_ts, &commit_cval));
 	WT_RET(__wt_txn_parse_timestamp(
@@ -416,6 +441,7 @@ __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
 	 * then compare against the system timestamp.  If we're
 	 * setting both then compare the passed in values.
 	 */
+	//例如本次配置没有指定commit_timestamp配置，则使用上次的commit_timestamp配置，上次的配置存到txn_global->has_commit_timestamp中的
 	if (!has_commit && txn_global->has_commit_timestamp)
 		__wt_timestamp_set(&commit_ts, &txn_global->commit_timestamp);
 	if (!has_oldest && txn_global->has_oldest_timestamp)
@@ -423,10 +449,18 @@ __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
 	if (!has_stable && txn_global->has_stable_timestamp)
 		__wt_timestamp_set(&stable_ts, &last_stable_ts);
 
+    
 	/*
 	 * If a commit timestamp was supplied, check that it is no older than
 	 * either the stable timestamp or the oldest timestamp.
 	 */
+	/* 关系必须满足一下条件才会有效，见后面比较
+    oldest <= commit
+    stable <= commit
+    oldest <= stable
+
+    也就是oldest <= stable <= commit
+	*/
 	if (has_commit && (has_oldest || txn_global->has_oldest_timestamp) &&
 	    __wt_timestamp_cmp(&oldest_ts, &commit_ts) > 0) {
 		__wt_readunlock(session, &txn_global->rwlock);
@@ -490,6 +524,7 @@ set:	__wt_writelock(session, &txn_global->rwlock);
 		    "Updated global commit timestamp");
 	}
 
+    //例如有多个线程，每个线程的session在调用该函数进行oldest_timestamp设置，则txn_global->oldest_timestamp是这些设置中的最大值
 	if (has_oldest && (!txn_global->has_oldest_timestamp ||
 	    force || __wt_timestamp_cmp(
 	    &oldest_ts, &txn_global->oldest_timestamp) > 0)) {
@@ -500,6 +535,7 @@ set:	__wt_writelock(session, &txn_global->rwlock);
 		    "Updated global oldest timestamp");
 	}
 
+    //例如有多个线程，每个线程的session在调用该函数进行stable_timestamp设置，则txn_global->stable_timestamp是这些设置中的最大值
 	if (has_stable && (!txn_global->has_stable_timestamp ||
 	    force || __wt_timestamp_cmp(
 	    &stable_ts, &txn_global->stable_timestamp) > 0)) {
@@ -526,7 +562,7 @@ set:	__wt_writelock(session, &txn_global->rwlock);
  * __wt_timestamp_validate --
  *	Validate a timestamp to be not older than the global oldest and/or
  *	global stable and/or running transaction commit timestamp.
- */
+ */ //ts必须比oldest_timestamp和stable_timestamp大
 int
 __wt_timestamp_validate(WT_SESSION_IMPL *session, const char *name,
     wt_timestamp_t *ts, WT_CONFIG_ITEM *cval,
@@ -641,7 +677,7 @@ __wt_txn_set_commit_timestamp(WT_SESSION_IMPL *session)
 	 * fixed.
 	 */
 	__wt_timestamp_set(&ts, &txn->commit_timestamp);
-	__wt_timestamp_set(&txn->first_commit_timestamp, &ts);
+	__wt_timestamp_set(&txn->first_commit_timestamp, &ts); //commit_timestamph队列的第一个成员
 
 	__wt_writelock(session, &txn_global->commit_timestamp_rwlock);
 	for (prev = TAILQ_LAST(&txn_global->commit_timestamph, __wt_txn_cts_qh);
@@ -690,7 +726,7 @@ __wt_txn_clear_commit_timestamp(WT_SESSION_IMPL *session)
  * __wt_txn_set_read_timestamp --
  *	Publish a transaction's read timestamp.
  */ //__wt_txn_set_read_timestamp和__wt_txn_clear_read_timestamp对应
-void
+void //__wt_txn_begin->__wt_txn_config->__wt_txn_set_read_timestamp
 __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session)
 {
 	WT_TXN *prev, *txn;

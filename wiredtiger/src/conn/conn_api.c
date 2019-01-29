@@ -1280,7 +1280,7 @@ err:	API_END_RET(session, ret);
 /*
  * __conn_rollback_to_stable --
  *	WT_CONNECTION->rollback_to_stable method.
- */
+ */ // Setting a stable location provides the ability, if needed, to rollback to this location by placing a call to WT_CONNECTION::rollback_to_stable
 static int
 __conn_rollback_to_stable(WT_CONNECTION *wt_conn, const char *config)
 {
