@@ -8,6 +8,7 @@
 
 #include "wt_internal.h"
 
+//wiredtiger事务官方文档:https://source.wiredtiger.com/3.0.0/transactions.html#transaction_timestamps
 /*
  * __snapsort_partition --
  *	Custom quick sort partitioning for snapshots.
@@ -141,14 +142,14 @@ __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 	 * metadata.  We don't have to keep the checkpoint's changes pinned so
 	 * don't including it in the published pinned ID.
 	 */
-	//凡是transaction_id不等于WT_TNX_NONE都认为是在执行中且有修改操作的事务
+	//当前session对应的事务id也就是checkpoint id，则当前session在做checkpoint操作
 	if ((id = txn_global->checkpoint_state.id) != WT_TXN_NONE) {
 		txn->snapshot[n++] = id;
 		txn_state->metadata_pinned = id;
 	}
 
 	/* For pure read-only workloads, avoid scanning. */
-	if (prev_oldest_id == current_id) {
+	if (prev_oldest_id == current_id) { //表示当前session id就是txn_global->oldest_id，也就是当前id处在id窗口最左端
 		txn_state->pinned_id = current_id;
 		/* Check that the oldest ID has not moved in the meantime. */
 		WT_ASSERT(session, prev_oldest_id == txn_global->oldest_id);
@@ -173,7 +174,7 @@ __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
 		    (id = s->id) != WT_TXN_NONE &&
 		    WT_TXNID_LE(prev_oldest_id, id)) {
 			txn->snapshot[n++] = id;
-			if (WT_TXNID_LT(id, pinned_id))
+			if (WT_TXNID_LT(id, pinned_id)) //比txn_global->current小的最小id，也就是离oldest id最近的未提交事务id
 				pinned_id = id;
 		}
 	}
@@ -217,21 +218,23 @@ __txn_oldest_scan(WT_SESSION_IMPL *session,
 	last_running = oldest_id = txn_global->current;
 	if ((metadata_pinned = txn_global->checkpoint_state.id) == WT_TXN_NONE)
 		metadata_pinned = oldest_id;
+    s = txn_global->states;
 
 	/* Walk the array of concurrent transactions. */
 	WT_ORDERED_READ(session_cnt, conn->session_cnt);
 	for (i = 0, s = txn_global->states; i < session_cnt; i++, s++) {
+
 		/* Update the last running transaction ID. */
 		//也就是获取所有session对应的事务中，大于等于prev_oldest_id，并且小于current的事务id
 		if ((id = s->id) != WT_TXN_NONE &&
 		    WT_TXNID_LE(prev_oldest_id, id) &&
 		    WT_TXNID_LT(id, last_running)) //在所有session对应的事务中(每个session->txn都有对应的事务,每个事务有个id)
-			last_running = id;
+			last_running = id; //last_running也就是所有session中大于last_running还未提交的事务的最小id
 
 		/* Update the metadata pinned ID. */
-		if ((id = s->metadata_pinned) != WT_TXN_NONE &&
+		if ((id = s->metadata_pinned) != WT_TXN_NONE && //注意这里前提是s->metadata_pinned
 		    WT_TXNID_LT(id, metadata_pinned))
-			metadata_pinned = id;
+			metadata_pinned = id; //所有session中metadata_pinned为还未提交的事务的最小id
 
 		/*
 		 * !!!
@@ -241,8 +244,8 @@ __txn_oldest_scan(WT_SESSION_IMPL *session,
 		 * table.  See the comment in __wt_txn_cursor_op for more
 		 * details.
 		 */
-		if ((id = s->pinned_id) != WT_TXN_NONE &&
-		    WT_TXNID_LT(id, oldest_id)) {
+		if ((id = s->pinned_id) != WT_TXN_NONE &&  //注意这里前提是s->pinned_id
+		    WT_TXNID_LT(id, oldest_id)) {  //所有session中pinned_id为还未提交状态的事务的最小id
 			oldest_id = id;
 			oldest_session = &conn->sessions[i];
 		}
@@ -339,7 +342,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
 	/*
 	 * If the oldest ID has been updated while we waited, don't bother
 	 * scanning.
-	 */
+	 */ //多个session做事务操作，可能其他session算出的txn_global->oldest_id比本session算出的大，
 	if (WT_TXNID_LE(oldest_id, txn_global->oldest_id) &&
 	    WT_TXNID_LE(last_running, txn_global->last_running) &&
 	    WT_TXNID_LE(metadata_pinned, txn_global->metadata_pinned))
@@ -399,7 +402,7 @@ done:	__wt_writeunlock(session, &txn_global->rwlock);
 /*
  * __wt_txn_config --
  *	Configure a transaction.
- */
+ */ //__wt_txn_begin->__wt_txn_config
 int
 __wt_txn_config(WT_SESSION_IMPL *session, const char *cfg[])
 {
