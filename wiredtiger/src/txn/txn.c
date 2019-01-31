@@ -453,6 +453,7 @@ __wt_txn_config(WT_SESSION_IMPL *session, const char *cfg[])
 
 	WT_RET(__wt_config_gets_def(session, cfg, "read_timestamp", 0, &cval));
 	if (cval.len > 0) {
+	    printf("yang test ................ read_timestamp\r\n");
 #ifdef HAVE_TIMESTAMPS
 		wt_timestamp_t ts;
 		WT_TXN_GLOBAL *txn_global;
@@ -797,7 +798,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 			if (F_ISSET(txn, WT_TXN_HAS_TS_COMMIT))
 				__wt_timestamp_set(
 				    &op->u.ref->page_del->timestamp,
-				    &txn->commit_timestamp);
+				    &txn->commit_timestamp); 
 #endif
 			break;
 
@@ -840,7 +841,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 	 * If it looks like we need to move the global commit timestamp,
 	 * write lock and re-check.
 	 */
-	if (update_timestamp) {
+	if (update_timestamp) { //从这里可以看出txn_global->commit_timestamp实际上是多个session中txn->commit_timestamp的最大值
 #if WT_TIMESTAMP_SIZE == 8
 		while (__wt_timestamp_cmp(
 		    &txn->commit_timestamp, &prev_commit_timestamp) > 0) {

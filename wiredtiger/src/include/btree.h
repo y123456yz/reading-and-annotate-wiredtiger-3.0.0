@@ -55,7 +55,7 @@
 #define	WT_BTREE_MAX_ADDR_COOKIE	255	/* Maximum address cookie */
 
 /* Evict pages if we see this many consecutive deleted records. */
-#define	WT_BTREE_DELETE_THRESHOLD	1000
+#define	WT_BTREE_DELETE_THRESHOLD	1000 //1个leaf page上的脏KV数达到该上限，该page就需要清理淘汰
 
 /*
  * Minimum size of the chunks (in percentage of the page size) a page gets split

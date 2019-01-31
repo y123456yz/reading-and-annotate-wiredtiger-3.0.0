@@ -328,7 +328,7 @@ __wt_txn_oldest_id(WT_SESSION_IMPL *session)
  *	Check if a given transaction ID is "globally visible".	This is, if
  *	all sessions in the system will see the transaction ID including the
  *	ID that belongs to a running checkpoint.
- */
+ */ //注意__txn_visible_all_id(该事务id全局可见)和__txn_visible_id(该id本事务可见)区别
 static inline bool
 __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
 {
@@ -349,8 +349,8 @@ __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
 //WiredTiger(WT) 事务会打开一个快照，而快照的存在的 WiredTiger cache evict 是有影响的。一个 WT page 上，
 //有N个版本的修改，如果这些修改没有全局可见（参考 __wt_txn_visible_all），这个 page 是不能 evict 的
 //（参考 __wt_page_can_evict）。
-static inline bool
-__wt_txn_visible_all(
+static inline bool   //注意__wt_txn_visible(本事务可见)和__wt_txn_visible_all(全局事务可见)的区别
+__wt_txn_visible_all( //全局可见一般和evict相关
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)
 {
 	if (!__txn_visible_all_id(session, id))
@@ -393,7 +393,7 @@ __wt_txn_visible_all(
 /*
  * __wt_txn_upd_visible_all --
  *	Is the given update visible to all (possible) readers?
- */
+ */ //和evict 或者 checkpoint相关的page清理
 static inline bool
 __wt_txn_upd_visible_all(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
@@ -410,7 +410,7 @@ __wt_txn_upd_visible_all(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 可以结合 MongoDB新存储引擎WiredTiger实现(事务篇) https://www.jianshu.com/p/f053e70f9b18参考事务隔离级别
 */
 //__wt_txn_read->__wt_txn_upd_visible->__wt_txn_visible->__txn_visible_id
-static inline bool
+static inline bool //注意__txn_visible_all_id(该事务id全局可见)和__txn_visible_id(该id本事务可见)区别
 __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 {
 	WT_TXN *txn;
@@ -484,7 +484,7 @@ WT_SESSION::timestamp_transaction 接口显式的给 WiredTiger 事务分配 commit timest
 /*检查事务id是否对当前session对应事务可见*/ 
 //__wt_txn_read->__wt_txn_upd_visible->__wt_txn_visible
 static inline bool
-__wt_txn_visible(
+__wt_txn_visible( //注意__wt_txn_visible(本事务可见)和__wt_txn_visible_all(全局事务可见)的区别
     WT_SESSION_IMPL *session, uint64_t id, const wt_timestamp_t *timestamp)
 {
 	if (!__txn_visible_id(session, id))
@@ -495,8 +495,12 @@ __wt_txn_visible(
 	WT_TXN *txn = &session->txn;
 
 	/* Timestamp check. */
-	if (!F_ISSET(txn, WT_TXN_HAS_TS_READ) || timestamp == NULL)
+	if (!F_ISSET(txn, WT_TXN_HAS_TS_READ) || timestamp == NULL) //没有设置read_timestamp直接返回
 		return (true);
+
+    
+    //如果设置了WT_TXN_HAS_TS_READ(__wt_txn_set_read_timestamp)并且timestamp != NULL
+    //也就是只有设置了read_timestamp才会走这里
 		
     //如果timestamp小于txn->read_timestamp，则可见
 	return (__wt_timestamp_cmp(timestamp, &txn->read_timestamp) <= 0);
