@@ -268,7 +268,7 @@ done:	__wt_timestamp_set(tsp, &ts);
 /*
  * __wt_txn_global_query_timestamp --
  *	Query a timestamp.
- */
+ */ //mongodb中的conn->query_timestamp()调用
 int
 __wt_txn_global_query_timestamp(
     WT_SESSION_IMPL *session, char *hex_timestamp, const char *cfg[])
@@ -306,7 +306,9 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
 	txn_global = &S2C(session)->txn_global;
 
 	/* Skip locking and scanning when the oldest timestamp is pinned. */
-	if (txn_global->oldest_is_pinned)
+//如果pinned_timestamp就是oldest_timestamp，在更新oldest_timestamp前都不会走后面的
+//流程进行pinned_timestamp更新
+	if (txn_global->oldest_is_pinned) 
 		return (0);
 
     //获取oldest_timestamp
@@ -518,7 +520,8 @@ set:	__wt_writelock(session, &txn_global->rwlock);
 	 * assigned timestamps).
 	 */
 	if (has_commit) {
-		__wt_timestamp_set(&txn_global->commit_timestamp, &commit_ts);
+	    //这里直接赋值，没有和之前的txn_global->commit_timestamp做比较
+		__wt_timestamp_set(&txn_global->commit_timestamp, &commit_ts); 
 		txn_global->has_commit_timestamp = true;
 		__wt_verbose_timestamp(session, &commit_ts,
 		    "Updated global commit timestamp");
@@ -656,8 +659,10 @@ __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
  * __wt_txn_set_commit_timestamp --
  *	Publish a transaction's commit timestamp.
  */ 
- //只要mongodb有调用WT_SESSION->timestamp_transaction或者调用session->commit_transaction(并且
+ //只要mongodb有调用WT_SESSION->timestamp_transaction(指定commit_timestamp配置项)或者调用session->commit_transaction(并且
  //指定commit_timestamp配置项)接口的时候都会执行该函数,向全局队列txn_global->commit_timestamph中添加该txn
+
+
 void //__wt_txn_set_commit_timestamp和__wt_txn_clear_commit_timestamp对应
 __wt_txn_set_commit_timestamp(WT_SESSION_IMPL *session)
 {//注意__wt_txn_global_set_timestamp和__wt_txn_set_commit_timestamp的区别
@@ -676,10 +681,13 @@ __wt_txn_set_commit_timestamp(WT_SESSION_IMPL *session)
 	 * transaction is running) into the first_commit_timestamp, which is
 	 * fixed.
 	 */
+	//把本次session的上一次操作的commit_timestamp保存到first_commit_timestamp
 	__wt_timestamp_set(&ts, &txn->commit_timestamp);
-	__wt_timestamp_set(&txn->first_commit_timestamp, &ts); //commit_timestamph队列的第一个成员
+	__wt_timestamp_set(&txn->first_commit_timestamp, &ts);  
 
+    //下面添加到全局队列中，真正生效的地方在__txn_global_query_timestamp
 	__wt_writelock(session, &txn_global->commit_timestamp_rwlock);
+	//找到这个新的ts应该放到列表中的那个位置，也就是该队列是从小到大排序的
 	for (prev = TAILQ_LAST(&txn_global->commit_timestamph, __wt_txn_cts_qh);
 	    prev != NULL &&
 	    __wt_timestamp_cmp(&prev->first_commit_timestamp, &ts) > 0;
@@ -690,7 +698,7 @@ __wt_txn_set_commit_timestamp(WT_SESSION_IMPL *session)
 		    &txn_global->commit_timestamph, txn, commit_timestampq);
 		//增加统计，往头部添加的次数，也就是txn_global->commit_timestamph为空的时候添加的次数
 		WT_STAT_CONN_INCR(session, txn_commit_queue_head);
-	} else
+	} else //插入到前面查找定位的位置
 		TAILQ_INSERT_AFTER(&txn_global->commit_timestamph,
 		    prev, txn, commit_timestampq);
 	++txn_global->commit_timestampq_len;
@@ -739,6 +747,7 @@ __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session)
 		return;
 
 	__wt_writelock(session, &txn_global->read_timestamp_rwlock);
+	//找到这个新的ts应该放到列表中的那个位置，也就是该队列是从小到大排序的
 	for (prev = TAILQ_LAST(&txn_global->read_timestamph, __wt_txn_rts_qh);
 	    prev != NULL && __wt_timestamp_cmp(
 	    &prev->read_timestamp, &txn->read_timestamp) > 0;
@@ -748,7 +757,7 @@ __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session)
 		TAILQ_INSERT_HEAD(
 		    &txn_global->read_timestamph, txn, read_timestampq);
 		WT_STAT_CONN_INCR(session, txn_read_queue_head);
-	 } else
+	 } else //插入指定位置
 		TAILQ_INSERT_AFTER(
 		    &txn_global->read_timestamph, prev, txn, read_timestampq);
 	++txn_global->read_timestampq_len;

@@ -102,8 +102,10 @@ struct __wt_txn_global {
 	 //未提交事务中最小的一个事务id，只有小于该值的id事务才是可见的，见__txn_visible_all_id
 	volatile uint64_t oldest_id; //赋值见__wt_txn_update_oldest
 
-    /* timestamp相关的赋值见__wt_txn_global_set_timestamp */
+    /* timestamp相关的赋值见__wt_txn_global_set_timestamp __wt_txn_commit*/
 	//WT_DECL_TIMESTAMP(commit_timestamp)
+	//实际上是所有session对应事务中commit_timestamp最大的，见__wt_txn_commit
+	//生效判断在__wt_txn_update_pinned_timestamp->__txn_global_query_timestamp，实际上是通过影响pinned_timestamp(__wt_txn_visible_all)来影响可见性的
 	wt_timestamp_t commit_timestamp;
 	/*
     WiredTiger 提供设置 oldest timestamp 的功能，允许由 MongoDB 来设置该时间戳，含义是Read as of a timestamp 
@@ -139,7 +141,7 @@ struct __wt_txn_global {
 	bool has_oldest_timestamp;
 	bool has_pinned_timestamp; //为true表示pinned_timestamp等于oldest_timestamp，见__wt_txn_update_pinned_timestamp
 	bool has_stable_timestamp;
-	bool oldest_is_pinned;
+	bool oldest_is_pinned; //pinned_timestamp就是oldest_timestamp
 	bool stable_is_pinned;
 
 	WT_SPINLOCK id_lock;
@@ -280,6 +282,12 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 	 * running.
 	 */
 	//WT_DECL_TIMESTAMP(commit_timestamp)
+/*
+真正生效是在__wt_txn_commit中影响全局txn_global->commit_timestamp，
+以及在__wt_txn_set_commit_timestamp中影响全局队列txn_global->commit_timestamph
+最终因为影响全局commit_timestamp和commit_timestamph从而影响__wt_txn_update_pinned_timestamp->
+__txn_global_query_timestamp，实际上是通过影响pinned_timestamp(__wt_txn_visible_all)来影响可见性的
+*/
 	wt_timestamp_t commit_timestamp;
 
 	/*
@@ -287,16 +295,15 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 	 * while the transaction is on the public list of committed timestamps.
 	 */
 	//WT_DECL_TIMESTAMP(first_commit_timestamp)
-	//commit_timestampq队列的第一个成员__wt_txn_set_commit_timestamp
-	wt_timestamp_t first_commit_timestamp; //生效见__wt_timestamp_validate
+	// __wt_txn_set_commit_timestamp
+	//把本次session的上一次操作的commit_timestamp保存到first_commit_timestamp
+	wt_timestamp_t first_commit_timestamp; //有效性检查见__wt_timestamp_validate
 
 	/* Read updates committed as of this timestamp. */
 	//生效参考__wt_txn_visible，赋值见__wt_txn_config
 	//WT_DECL_TIMESTAMP(read_timestamp)
-	//赋值检查见__wt_timestamp_validate
-	//生效判断在__wt_txn_update_pinned_timestamp->__txn_global_query_timestamp，实际上是通过影响pinned_timestamp(__wt_txn_visible_all)来影响可见性的
-	wt_timestamp_t read_timestamp; //实际上mongodb只有wiredtiger_snapshot_manager才会设置该参数
-
+	//生效判断在__wt_txn_visible
+	wt_timestamp_t read_timestamp;  
 	TAILQ_ENTRY(__wt_txn) commit_timestampq;
 	TAILQ_ENTRY(__wt_txn) read_timestampq;
 
@@ -343,6 +350,7 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 //__wt_txn_set_commit_timestamp中置位
 #define	WT_TXN_HAS_TS_COMMIT	0x00010
 /* Are we using a read timestamp for this checkpoint transaction? */
+//__wt_txn_config->__wt_txn_set_read_timestamp中赋值
 #define	WT_TXN_HAS_TS_READ	0x00020
 #define	WT_TXN_NAMED_SNAPSHOT	0x00040
 //__wt_txn_set_commit_timestamp中置位

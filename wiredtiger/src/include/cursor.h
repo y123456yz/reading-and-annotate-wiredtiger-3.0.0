@@ -114,6 +114,7 @@ struct __wt_cursor_btree {//__wt_cursor_bulk.cbt  cbt = (WT_CURSOR_BTREE *)curso
 					/* Next item(s) found during search */
 	WT_INSERT	*next_stack[WT_SKIP_MAXDEPTH];
 
+    //表明某个page的脏KV数量，超过一定值就需要evict该page,参考__wt_btcur_next
 	uint32_t page_deleted_count;	/* Deleted items on the page */
 
 	uint64_t recno;			/* Record number */

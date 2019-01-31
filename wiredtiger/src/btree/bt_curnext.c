@@ -314,7 +314,7 @@ __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage)
 new_insert:	if ((ins = cbt->ins) != NULL) {
 			if ((upd = __wt_txn_read(session, ins->upd)) == NULL)
 				continue;
-			if (upd->type == WT_UPDATE_DELETED) {
+			if (upd->type == WT_UPDATE_DELETED) { //该行KV已经删除了，跳过
 				if (__wt_txn_upd_visible_all(session, upd))
 					++cbt->page_deleted_count;
 				continue;
@@ -666,7 +666,7 @@ __wt_btcur_next(WT_CURSOR_BTREE *cbt, bool truncating)
 		    (cbt->page_deleted_count > WT_BTREE_DELETE_THRESHOLD ||
 		    (newpage && cbt->page_deleted_count > 0)))
 			__wt_page_evict_soon(session, cbt->ref);
-		cbt->page_deleted_count = 0;
+		cbt->page_deleted_count = 0; //立马清0，开始下一个page扫描检查
 
         /*btree cursor跳转到下一个page上*/
 		WT_ERR(__wt_tree_walk(session, &cbt->ref, flags));
