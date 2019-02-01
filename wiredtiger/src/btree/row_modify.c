@@ -106,7 +106,8 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 
 		if (upd_arg == NULL) { //update和insert udp_arg都是等于NULL
 			/* Make sure the update can proceed. */
-			WT_ERR(__wt_txn_update_check(
+			//查询事务生效的地方在这里 
+			WT_ERR(__wt_txn_update_check( //检查该session对应的事务id是否可见，不可见直接返回
 			    session, old_upd = *upd_entry)); //old_upd现在变为更新前之前的udp了
 
 			/* Allocate a WT_UPDATE structure and transaction ID. */
@@ -184,7 +185,7 @@ __wt_row_modify(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt,
 		cbt->ins_head = ins_head;
 		cbt->ins = ins;
 
-		if (upd_arg == NULL) { /*通过value构建upd对象*/
+		if (upd_arg == NULL) { //查询的时候默认为NLL，
 		    //value存入upd
 			WT_ERR(__wt_update_alloc(session,
 			    value, &upd, &upd_size, modify_type));
