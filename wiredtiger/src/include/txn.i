@@ -515,8 +515,8 @@ __wt_txn_visible( //×¢Òâ__wt_txn_visible(±¾ÊÂÎñ¿É¼û)ºÍ__wt_txn_visible_all(È«¾ÖÊ
  * __wt_txn_upd_visible --
  *	Can the current transaction see the given update.
  */ /*¼ì²éÊÂÎñidÊÇ·ñ¶Ôµ±Ç°session¶ÔÓ¦ÊÂÎñ¿É¼û*/ 
-//__wt_txn_read->__wt_txn_upd_visible
-//__wt_txn_update_check->__wt_txn_upd_visible
+//__wt_txn_read->__wt_txn_upd_visible(ÀýÈç±éÀúcusor»ñÈ¡kv¹ý³Ì)
+//__wt_row_modify->__wt_txn_update_check->__wt_txn_upd_visible (¸ù¾Ýkey²éÑ¯µÄÁ÷³Ì£¬ÊÂÎñÉúÐ§¹ý³Ì)
 static inline bool
 __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
@@ -754,7 +754,7 @@ __wt_txn_update_check(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 
 	txn = &session->txn;
 	if (txn->isolation == WT_ISO_SNAPSHOT)
-		while (upd != NULL && !__wt_txn_upd_visible(session, upd)) {
+		while (upd != NULL && !__wt_txn_upd_visible(session, upd)) { //udp¶ÔÓ¦µÄidÊÂÎñ¿É¼û£¬ÍË³öwhile
 			if (upd->txnid != WT_TXN_ABORTED) {
 				WT_STAT_CONN_INCR(
 				    session, txn_update_conflict);
