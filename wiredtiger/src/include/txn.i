@@ -235,6 +235,7 @@ __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 		if (!F_ISSET(session, WT_SESSION_LOGGING_INMEM))
 			op->type = WT_TXN_OP_BASIC_TS;
 	} else if (F_ISSET(txn, WT_TXN_HAS_TS_COMMIT)) {
+	     //也就是该session在读取数据之前，该session调用__wt_txn_set_commit_timestamp进行了commit_timestamp社招
 		__wt_timestamp_set(&upd->timestamp, &txn->commit_timestamp);
 		if (!F_ISSET(session, WT_SESSION_LOGGING_INMEM))
 			op->type = WT_TXN_OP_BASIC_TS;
@@ -527,7 +528,7 @@ __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __wt_txn_read --
  *	Get the first visible update in a list (or NULL if none are visible).
- */ //从udp链表头部开始遍历，获取第一个获取upd链表的
+ */ //从udp链表头部开始遍历，获取第一个获取upd链表的   搜索过程会调用这里__wt_btcur_search->__wt_cursor_valid->__wt_txn_read
 static inline WT_UPDATE *   //所有的读操作都会走这里，
 __wt_txn_read(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
