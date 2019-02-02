@@ -221,7 +221,7 @@ err:	__wt_scr_free(session, &a);
  * __curbulk_insert_row --
  *	Row-store bulk cursor insert, with key-sort checks.
  */ //__curbulk_insert_row_skip_check : __curbulk_insert_row;
-static int
+static int  //bulk功能生效在这里，实际上是为了减少btree insert写入时候的查找，但该功能前提是所有insert的key在插入的时候已经是有序的
 __curbulk_insert_row(WT_CURSOR *cursor)
 {
 	WT_BTREE *btree;
@@ -299,8 +299,10 @@ err:	API_END_RET(session, ret);
 /*
  * __wt_curbulk_init --
  *	Initialize a bulk cursor.
- */
-int
+ */ //"bulk"功能会重新给insert赋值
+//bulk功能生效在这里，实际上是为了减少btree insert写入时候的查找，但该功能前提是所有insert的key在插入的时候已经是有序的       
+//参考http://source.wiredtiger.com/2.2.0/bulk_load.html
+int  //mongo中bulk功能见openBulkCursor
 __wt_curbulk_init(WT_SESSION_IMPL *session,
     WT_CURSOR_BULK *cbulk, bool bitmap, bool skip_sort_check)
 {

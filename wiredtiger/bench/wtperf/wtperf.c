@@ -1053,8 +1053,8 @@ static WT_THREAD_RET
 	}
 
 	/* Do bulk loads if populate is single-threaded. */
-//	cursor_config =
-//	    (opts->populate_threads == 1 && !opts->index) ? "bulk" : NULL;
+//	cursor_config =  //bulk配置加上后，生效在__curfile_create
+//	    (opts->populate_threads == 1 && !opts->index) ? "bulk" : NULL; //mongod中的openBulkCursor也会使用
 	/* Create the cursors. */
 	cursors = dcalloc(opts->table_count, sizeof(WT_CURSOR *));
 	//获取每个//table:table_name%d的curosr
@@ -1107,7 +1107,7 @@ static WT_THREAD_RET
 
 		//__wt_cursor_set_key
 		//printf("yang test .....cccccccccccc..........set key... \r\n");
-		cursor->set_key(cursor, key_buf);
+		cursor->set_key(cursor, key_buf); //key是自增的
 		if (opts->random_value)
 			randomize_value(thread, value_buf);
 		//__wt_cursor_set_value

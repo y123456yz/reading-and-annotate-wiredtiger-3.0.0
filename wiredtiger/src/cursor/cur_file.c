@@ -522,7 +522,8 @@ __curfile_create(WT_SESSION_IMPL *session,
 	if (session->dhandle->checkpoint != NULL)
 		F_SET(cbt, WT_CBT_NO_TXN);
 
-	if (bulk) {
+	if (bulk) { 
+	//bulk功能生效在这里，实际上是为了减少btree insert写入时候的查找，但该功能前提是所有insert的key在插入的时候已经是有序的
 		F_SET(cursor, WT_CURSTD_BULK);
 
 		cbulk = (WT_CURSOR_BULK *)cbt;

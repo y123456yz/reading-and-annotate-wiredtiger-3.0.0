@@ -167,8 +167,8 @@ __cursor_fix_implicit(WT_BTREE *btree, WT_CURSOR_BTREE *cbt)
  * __wt_cursor_valid --
  *	Return if the cursor references an valid key/value pair.
  */  //ins不为NULL，直接获取ins->udp,如果为NULL则从mod_row_update表中根据cbt->slot定位获取
-bool  //获取cbt对应的KV，通过updp返回   __wt_btcur_insert调用
-__wt_cursor_valid(WT_CURSOR_BTREE *cbt, WT_UPDATE **updp)
+bool  //获取cbt对应的KV，通过updp返回  __wt_btcur_search   __wt_btcur_insert调用
+__wt_cursor_valid(WT_CURSOR_BTREE *cbt, WT_UPDATE **updp) //事务可见性判断在__wt_txn_read
 {
 	WT_BTREE *btree;
 	WT_CELL *cell;
@@ -485,6 +485,7 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
 		WT_ERR(btree->type == BTREE_ROW ?
 		    __cursor_row_search(session, cbt, NULL, false) :
 		    __cursor_col_search(session, cbt, NULL));
+		//__wt_cursor_valid会进行事务的有效性判断
 		valid = cbt->compare == 0 && __wt_cursor_valid(cbt, &upd); /*记录找到了，进行value返回*/
 	}
 

@@ -1071,7 +1071,9 @@ struct __wt_update {
     //赋值见__wt_txn_modify 该操作属于哪个事务
 	volatile uint64_t txnid;	/* transaction ID */
 #if WT_TIMESTAMP_SIZE == 8
-	WT_DECL_TIMESTAMP(timestamp)	/* aligned uint64_t timestamp */
+	//WT_DECL_TIMESTAMP(timestamp)	/* aligned uint64_t timestamp */
+	//赋值在__wt_txn_modify  等于txn->commit_timestamp
+	wt_timestamp_t timestamp; //生效的地方见__wt_txn_upd_visible  __wt_txn_upd_visible_all
 #endif
 
 	WT_UPDATE *next;		/* forward-linked list */
