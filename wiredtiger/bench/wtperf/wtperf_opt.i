@@ -102,6 +102,7 @@ DEF_OPT_AS_BOOL(compact, 0, "post-populate compact for LSM merging activity")
 DEF_OPT_AS_STRING(compression, "none",
     "compression extension.  Allowed configuration values are: "
     "'none', 'lz4', 'snappy', 'zlib', 'zstd'")
+//#必须先创建好相应的table和数据后才能使用，也就是说要先跑500m-btree-populate.wtperf配置生成数据后，才能跑500m-btree-50r50u.wtperf脚本
 DEF_OPT_AS_BOOL(create, 1,
     "do population phase; false to use existing database")
 DEF_OPT_AS_UINT32(database_count, 1,

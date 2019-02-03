@@ -513,6 +513,7 @@ err:		lprintf(wtperf, ret, 0, "Pre-workload traverse error");
 	return (ret);
 }
 
+//多个线程的worker回调  execute_workload
 static WT_THREAD_RET
 worker(void *arg)
 {
@@ -791,13 +792,13 @@ op_err:			if (ret == WT_ROLLBACK && ops_per_txn != 0) {
 				lprintf(wtperf, ret, 1,
 				    "%s for: %s, range: %"PRIu64, op_name(op),
 				    key_buf, wtperf_value_range(wtperf));
-				if ((ret = session->rollback_transaction(
+				if ((ret = session->rollback_transaction( //回滚
 				    session, NULL)) != 0) {
 					lprintf(wtperf, ret, 0,
 					     "Failed rollback_transaction");
 					goto err;
 				}
-				if ((ret = session->begin_transaction(
+				if ((ret = session->begin_transaction( //下一个循环的begain
 				    session, NULL)) != 0) {
 					lprintf(wtperf, ret, 0,
 					    "Worker begin transaction failed");
@@ -854,14 +855,14 @@ op_err:			if (ret == WT_ROLLBACK && ops_per_txn != 0) {
 		 * or tracking changes in our log table.
 		 */
 		if ((opts->log_like_table && ops_per_txn == 0) ||
-		    (ops_per_txn != 0 && ops++ % ops_per_txn == 0)) {
-			if ((ret = session->commit_transaction(
+		    (ops_per_txn != 0 && ops++ % ops_per_txn == 0)) { //某个线程各种操作的计数达到ops_per_txn进行事务提交
+			if ((ret = session->commit_transaction( //commit操作
 			    session, NULL)) != 0) {
 				lprintf(wtperf, ret, 0,
 				    "Worker transaction commit failed");
 				goto err;
 			}
-			if ((ret = session->begin_transaction(
+			if ((ret = session->begin_transaction( //下一个循环的begin
 			    session, NULL)) != 0) {
 				lprintf(wtperf, ret, 0,
 				    "Worker begin transaction failed");
@@ -1349,7 +1350,7 @@ monitor(void *arg)
 	    "read ops per second,"
 	    "insert ops per second,"
 	    "update ops per second,"
-	    "checkpoints,"
+	    "checkpoints,"  
 	    "read average latency(uS),"
 	    "read minimum latency(uS),"
 	    "read maximum latency(uS),"
@@ -1530,7 +1531,7 @@ err:		wtperf->error = wtperf->stop = true;
 	return (WT_THREAD_RET_VALUE);
 }
 
-//填充表
+//填充表     //execute_workload执行workload, execute_populate执行populate
 static int
 execute_populate(WTPERF *wtperf)
 {
@@ -1569,7 +1570,7 @@ execute_populate(WTPERF *wtperf)
 	} else
 		pfunc = populate_thread; 
 		
-	start_threads(wtperf, NULL,
+	start_threads(wtperf, NULL,   //populate_thread在这里面执行
 	    wtperf->popthreads, opts->populate_threads, pfunc);
 
 	__wt_epoch(NULL, &start);
@@ -1731,6 +1732,7 @@ close_reopen(WTPERF *wtperf)
 	return (0);
 }
 
+//execute_workload执行workload, execute_populate执行populate
 static int
 execute_workload(WTPERF *wtperf)
 {
@@ -1748,7 +1750,7 @@ execute_workload(WTPERF *wtperf)
 	int ret;
 
 	opts = wtperf->opts;
-
+    printf("yang test ......................... work load\r\n");
 	wtperf->insert_key = 0;
 	wtperf->insert_ops = wtperf->read_ops = wtperf->truncate_ops = 0;
 	wtperf->update_ops = 0;
@@ -1789,6 +1791,8 @@ execute_workload(WTPERF *wtperf)
 			}
 	}
 	/* Start each workload. */
+	//例如threads=((count=10,reads=1),(count=10,updates=1))表示有两个分组，第一个分组创建十个线程，全部是读
+	//第二个分组10个线程，全部是update更新，也就是纵膈20个线程，10个线程读，10个线程update
 	for (threads = wtperf->workers, i = 0,
 	    workp = wtperf->workload; i < wtperf->workload_cnt; ++i, ++workp) {
 		lprintf(wtperf, 0, 1,
@@ -1806,6 +1810,7 @@ execute_workload(WTPERF *wtperf)
 		/* Start the workload's threads. */
 		start_threads(
 		    wtperf, workp, threads, (u_int)workp->threads, pfunc);
+		printf("yang test ..............1.......... workp->threads:%d\r\n", workp->threads);
 		threads += workp->threads;
 	}
 
@@ -2219,6 +2224,7 @@ start_all_runs(WTPERF *wtperf)
 	wtperfs = NULL;
 	ret = 0;
 
+    printf("yang test ..................start_all_runs  %d\r\n", opts->database_count );
 	if (opts->database_count == 1)
 		return (start_run(wtperf));
 
@@ -2298,7 +2304,7 @@ start_run(WTPERF *wtperf)
 
 	if ((ret = setup_log_file(wtperf)) != 0)
 		goto err;
-
+    printf("yang test .......2....1.............. create  %d\r\n", opts->create);
 	if ((ret = wiredtiger_open(	/* Open the real connection. */
 	    wtperf->home, NULL, opts->conn_config, &wtperf->conn)) != 0) {
 		lprintf(wtperf, ret, 0, "Error connecting to %s", wtperf->home);
@@ -2312,18 +2318,20 @@ start_run(WTPERF *wtperf)
 	//默认为1
 	if (opts->create != 0 && (ret = create_tables(wtperf)) != 0)
 		goto err;
-
+    printf("yang test ...........1.............. create  %d\r\n", opts->create);
 	/* Start the monitor thread. */
 	if (opts->sample_interval != 0) {
 		testutil_check(__wt_thread_create(
 		    NULL, &monitor_thread, monitor, wtperf));
 		monitor_created = 1;
 	}
-
+     printf("yang test .............3............ create  %d\r\n", opts->create);
 	/* If creating, populate the table. */
-	if (opts->create != 0 && execute_populate(wtperf) != 0)
+	if (opts->create != 0 && execute_populate(wtperf) != 0) //执行populate
 		goto err;
 
+    //execute_workload执行workload, execute_populate执行populate
+    //#必须先创建好相应的table和数据后才能使用，也就是说要先跑500m-btree-populate.wtperf配置生成数据后，才能跑500m-btree-50r50u.wtperf脚本
 	/* Optional workload. */
 	if (wtperf->workers_cnt != 0 &&
 	    (opts->run_time != 0 || opts->run_ops != 0)) {
@@ -2728,7 +2736,8 @@ main(int argc, char *argv[])
 		goto err;
 
 	/* If creating, remove and re-create the home directory. */
-	if (opts->create != 0)
+	//#必须先创建好相应的table和数据后才能使用，也就是说要先跑500m-btree-populate.wtperf配置生成数据后，才能跑500m-btree-50r50u.wtperf脚本
+	if (opts->create != 0) //配置文件中create=false
 		recreate_dir(wtperf->home);
 
 	/* Write a copy of the config. */
@@ -2847,6 +2856,7 @@ recreate_dir(const char *name)
 {
 	char *buf;
 	size_t len;
+    printf("yang test .......222222222........... recreate_dir\r\n");
 
 	len = strlen(name) * 2 + 100;
 	buf = dmalloc(len);
@@ -2854,6 +2864,7 @@ recreate_dir(const char *name)
 	    buf, len, "rm -rf %s && mkdir %s", name, name));
 	testutil_checkfmt(system(buf), "system: %s", buf);
 	free(buf);
+	printf("yang test .................. recreate_dir\r\n");
 }
 
 static int

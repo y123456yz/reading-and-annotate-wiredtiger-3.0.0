@@ -166,7 +166,7 @@ config_unescape(char *orig)
 /*
  * config_threads --
  *	Parse the thread configuration.
- */
+ */ //配置文件中的threads=((count=10,reads=1),(count=10,updates=1))解析
 static int
 config_threads(WTPERF *wtperf, const char *config, size_t len)
 {
@@ -881,7 +881,7 @@ config_consolidate(CONFIG_OPTS *opts)
 /*
  * config_opt_log --
  *	Write the final config used in this execution to a file.
- */
+ */ //注意:#必须先创建好相应的table和数据后才能使用，也就是说要先跑500m-btree-populate.wtperf配置生成数据后，才能跑500m-btree-50r50u.wtperf脚本
 void
 config_opt_log(CONFIG_OPTS *opts, const char *path)
 {

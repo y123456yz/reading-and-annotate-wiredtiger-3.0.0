@@ -58,6 +58,13 @@ typedef struct __truncate_queue_entry TRUNCATE_QUEUE_ENTRY;
 #define	ZSTD_EXT							\
 	EXT_PFX EXTPATH "zstd/.libs/libwiredtiger_zstd.so" EXT_SFX
 
+//threads=((count=10,reads=1),(count=10,updates=1))相关解析
+//#必须先创建好相应的table和数据后才能使用，也就是说要先跑500m-btree-populate.wtperf配置生成数据后，才能跑500m-btree-50r50u.wtperf脚本
+//'threads=((count=2,reads=1)(count=8,reads=1,inserts=2,updates=1))'配置的意思是:
+//创建2个线程，这两个线程只进行read操作，同时创建8个线程，25%(1/1+2+1)负责read, 25%(1/1+2+1)负责inserts,, 25%(1/1+2+1)负责updates
+
+//例如threads=((count=10,reads=1),(count=10,updates=1))表示有两个分组，第一个分组创建十个线程，全部是读
+//第二个分组10个线程，全部是update更新，也就是纵膈20个线程，10个线程读，10个线程update
 typedef struct {
 	int64_t threads;		/* Thread count */
 	int64_t insert;			/* Insert ratio */
@@ -65,7 +72,7 @@ typedef struct {
 	int64_t update;			/* Update ratio */
 	uint64_t throttle;		/* Maximum operations/second */
 		/* Number of operations per transaction. Zero for autocommit */
-	int64_t ops_per_txn;
+	int64_t ops_per_txn; //事务相关 //worker线程各种操作的计数达到ops_per_txn进行事务提交
 	int64_t pause;			/* Time between scans */
 	int64_t read_range;		/* Range of reads */
 	int32_t table_index;		/* Table to focus ops on */
@@ -124,7 +131,7 @@ struct __wtperf {			/* Per-database structure */
     //wiredtiger_open中获取的conn
 	WT_CONNECTION *conn;		/* Database connection */
 
-    //赋值见setup_log_file
+    //赋值见setup_log_file   WT_TEST/test.stat  文件
 	FILE *logf;			/* Logging handle */
 
 	char	*async_config;		/* Config string for async */
@@ -138,11 +145,15 @@ struct __wtperf {			/* Per-database structure */
 	WTPERF_THREAD *popthreads;	/* Populate threads */
 
 #define	WORKLOAD_MAX	50
+    //workload线程全部这里管理，是所有threads=((count=10,reads=1),(count=10,updates=1))的总线程数，这里就是20(10+10)
 	WTPERF_THREAD	*workers;	/* Worker threads */
 	u_int		 workers_cnt;
 
+    //线程分组全部在这里面，例如
+   	//例如threads=((count=10,reads=1),(count=10,updates=1))表示有两个分组，第一个分组创建十个线程，全部是读
+	//第二个分组10个线程，全部是update更新，也就是纵膈20个线程，10个线程读，10个线程update
 	WORKLOAD	*workload;	/* Workloads */
-	u_int		 workload_cnt;
+	u_int		 workload_cnt; //分组数，如threads=((count=10,reads=1),(count=10,updates=1))为2
 
 	/* State tracking variables. */
 	uint64_t ckpt_ops;		/* checkpoint operations */

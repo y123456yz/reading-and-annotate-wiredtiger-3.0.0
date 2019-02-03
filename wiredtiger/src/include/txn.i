@@ -493,7 +493,7 @@ __wt_txn_visible( //×¢Òâ__wt_txn_visible(±¾ÊÂÎñ¿É¼û)ºÍ__wt_txn_visible_all(È«¾ÖÊ
 
 #ifdef HAVE_TIMESTAMPS
 	{
-	WT_TXN *txn = &session->txn;
+	WT_TXN *txn = &session->txn; 
 
 	/* Timestamp check. */
 	if (!F_ISSET(txn, WT_TXN_HAS_TS_READ) || timestamp == NULL) //Ã»ÓĞÉèÖÃread_timestampÖ±½Ó·µ»Ø
@@ -532,6 +532,8 @@ __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 static inline WT_UPDATE *   //ËùÓĞµÄ¶Á²Ù×÷¶¼»á×ßÕâÀï£¬
 __wt_txn_read(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
+    WT_TXN *txn = &session->txn; 
+
 	/* Skip reserved place-holders, they're never visible. */
 	//¸ù¾İ²»Í¬µÄ¸ôÀë¼¶±ğÒªÇó£¬±éÀúudpÁ´±íÖĞµÄËùÓĞWT_UPDATE³ÉÔ±
 	for (; upd != NULL; upd = upd->next)
@@ -753,6 +755,7 @@ __wt_txn_update_check(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
 	WT_TXN *txn;
 
+    
 	txn = &session->txn;
 	if (txn->isolation == WT_ISO_SNAPSHOT)
 		while (upd != NULL && !__wt_txn_upd_visible(session, upd)) { //udp¶ÔÓ¦µÄidÊÂÎñ¿É¼û£¬ÍË³öwhile

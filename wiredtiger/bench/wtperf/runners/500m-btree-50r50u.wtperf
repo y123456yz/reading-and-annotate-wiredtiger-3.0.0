@@ -6,7 +6,9 @@
 # Set cache to half of memory of AWS perf instance.  Enable logging and
 # checkpoints.  Collect wiredtiger stats for ftdc.
 conn_config="cache_size=2G,checkpoint=(wait=60,log_size=2GB),session_max=20000,log=(enabled),eviction=(threads_max=8)"
-create=false
+#必须先创建好相应的table和数据后才能使用，也就是说要先跑500m-btree-populate.wtperf配置生成数据后，才能跑500m-btree-50r50u.wtperf脚本:Q
+create=true
+#verbose=2
 #compression="snappy"
 #sess_config="isolation=snapshot"
 table_count=2
