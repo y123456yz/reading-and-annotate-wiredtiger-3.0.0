@@ -323,8 +323,10 @@ thread_run(void *arg)
 		cur_oplog->set_value(cur_oplog, &data);
 		testutil_check(cur_oplog->insert(cur_oplog));
 		if (use_ts) { //从这里看出每个事务操作都更新了commit_timestamp
+		    //最终会影响upd->timestamp 见__wt_txn_upd_visible  __wt_txn_upd_visible_all
 			testutil_check(__wt_snprintf(tscfg, sizeof(tscfg),
-			    "commit_timestamp=%" PRIx64, stable_ts));
+			    "commit_timestamp=%" PRIx64, stable_ts)); 
+			
 			testutil_check(
 			    session->commit_transaction(session, tscfg));
 			/*

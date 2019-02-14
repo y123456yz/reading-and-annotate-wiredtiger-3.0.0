@@ -758,7 +758,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 	/* Note: we're going to commit: nothing can fail after this point. */
 
 	/* Process and free updates. */
-	for (i = 0, op = txn->mod; i < txn->mod_count; i++, op++) {
+	for (i = 0, op = txn->mod; i < txn->mod_count; i++, op++) { //把该事务中的各种操作的read timestamp时间撮进行更新
 		switch (op->type) {
 		case WT_TXN_OP_BASIC:
 		case WT_TXN_OP_BASIC_TS:

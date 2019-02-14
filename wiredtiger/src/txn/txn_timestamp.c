@@ -619,7 +619,7 @@ __wt_timestamp_validate(WT_SESSION_IMPL *session, const char *name,
 /*
  * __wt_txn_set_timestamp --
  *	Set a transaction's timestamp.
- */
+ */ //WT_SESSION->timestamp_transactionÖĞµ÷ÓÃ
 int
 __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
 {

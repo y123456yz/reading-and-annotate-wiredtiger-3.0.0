@@ -1496,7 +1496,7 @@ err:	API_END_RET(session, ret);
 /*
  * __session_timestamp_transaction --
  *	WT_SESSION->timestamp_transaction method.
- */
+ */ //session->timestamp_transaction
 static int
 __session_timestamp_transaction(WT_SESSION *wt_session, const char *config)
 {

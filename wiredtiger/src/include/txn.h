@@ -287,7 +287,8 @@ struct __wt_txn {//WT_SESSION_IMPL.txn成员，每个session都有对应的txn
 以及在__wt_txn_set_commit_timestamp中影响全局队列txn_global->commit_timestamph
 最终因为影响全局commit_timestamp和commit_timestamph从而影响__wt_txn_update_pinned_timestamp->
 __txn_global_query_timestamp，实际上是通过影响pinned_timestamp(__wt_txn_visible_all)来影响可见性的
-*/
+*/   
+//调用session->commit_transaction->__wt_txn_commit->__wt_txn_set_commit_timestamp进行commit_timestamp设置
 	wt_timestamp_t commit_timestamp;  
 
 	/*

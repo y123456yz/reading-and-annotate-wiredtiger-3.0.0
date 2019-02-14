@@ -235,7 +235,17 @@ __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 		if (!F_ISSET(session, WT_SESSION_LOGGING_INMEM))
 			op->type = WT_TXN_OP_BASIC_TS;
 	} else if (F_ISSET(txn, WT_TXN_HAS_TS_COMMIT)) {
-	     //“≤æÕ «∏√session‘⁄∂¡»° ˝æ›÷Æ«∞£¨∏√sessionµ˜”√__wt_txn_set_commit_timestampΩ¯––¡Àcommit_timestamp…Á’–
+	     //‘⁄begin_transaction∫ÛÕ®π˝session->timestamp_transaction…Ë÷√ ±º‰¥È£¨ΩÙΩ”◊≈Ω¯––∏˜÷÷≤Ÿ◊˜£¨’‚–©≤Ÿ◊˜ª·÷¥––∏√∫Ø ˝£¨’‚ ±∫Úª·¬˙◊„∏√Ãıº˛£¨º¥:
+	     /*
+         session->begin_transaction()
+         session->timestamp_transaction()
+         insert()
+         INSERT()
+         update()
+         °£°£°£
+         session->commit_transaction()  ∏√ƒ£–Õ«Èøˆœ¬ª·◊ﬂµΩ’‚¿Ô
+	     */
+	     //◊Ó÷’”∞œÏ∏√udpµƒ ¬ŒÒø…º˚–‘£¨º˚__wt_txn_upd_visible  __wt_txn_upd_visible_all
 		__wt_timestamp_set(&upd->timestamp, &txn->commit_timestamp);
 		if (!F_ISSET(session, WT_SESSION_LOGGING_INMEM))
 			op->type = WT_TXN_OP_BASIC_TS;
@@ -461,7 +471,7 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 
 
     //Œ Ã‚: »Áπ˚snap_min < id < snap_max,µ´ «≤ª « ˝◊È÷–µƒ≥…‘±£¨ ≤√¥«Èøˆœ¬ª·¬˙◊„∏√Ãıº˛£¨Œ™ ≤√¥¬˙◊„∏√Ãıº˛ª·∑µªÿtrue±Ì æø…º˚????
-    //?????????????????????????
+    //?????????????????????????  ƒ—µ¿¥˙±Ìµƒ «‘⁄’‚∏ˆ∑∂Œßƒ⁄“—æ≠Ã·Ωªµƒ ¬ŒÒ?  
 	WT_BINARY_SEARCH(id, txn->snapshot, txn->snapshot_count, found);
 	return (!found);
 }
@@ -504,6 +514,10 @@ __wt_txn_visible( //◊¢“‚__wt_txn_visible(±æ ¬ŒÒø…º˚)∫Õ__wt_txn_visible_all(»´æ÷ 
     //“≤æÕ «÷ª”–…Ë÷√¡Àread_timestamp≤≈ª·◊ﬂ’‚¿Ô
 		
     //»Áπ˚timestamp–°”⁄txn->read_timestamp£¨‘Úø…º˚
+/*
+timestamp:∂‘”¶upd¡¥±Ì…œ∏˜∏ˆValueΩ⁄µ„µƒtimestamp(“≤æÕ «∏√value∂‘”¶op≤Ÿ◊˜À˘‘⁄ ¬ŒÒcommit_transaction() ±∫Úµƒcommit_timestamp ±º‰)
+txn->read_timestamp:∂¡≤Ÿ◊˜∂‘”¶session÷∏∂®µƒread_timestamp£¨“ª∞„‘⁄∂¡µƒ ±∫Ú”…mongodb÷∏∂®
+*/
 	return (__wt_timestamp_cmp(timestamp, &txn->read_timestamp) <= 0);
 	}
 #else
@@ -521,6 +535,7 @@ __wt_txn_visible( //◊¢“‚__wt_txn_visible(±æ ¬ŒÒø…º˚)∫Õ__wt_txn_visible_all(»´æ÷ 
 static inline bool
 __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 {
+    //µ±Õ¨“ª ±øÃ”–∂‡∏ˆsession∂‘∏√upd∂‘”¶µƒkeyΩ¯––∏¸–¬µƒ ±∫Ú£¨√ø∏ˆsession∂‘”¶µƒ∏¸–¬µƒtimestamp «≤ª“ª—˘µƒ
 	return (__wt_txn_visible(session,
 	    upd->txnid, WT_TIMESTAMP_NULL(&upd->timestamp)));
 }
