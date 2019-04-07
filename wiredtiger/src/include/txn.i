@@ -340,7 +340,7 @@ __wt_txn_oldest_id(WT_SESSION_IMPL *session)
  *	all sessions in the system will see the transaction ID including the
  *	ID that belongs to a running checkpoint.
  */ //注意__txn_visible_all_id(该事务id全局可见)和__txn_visible_id(该id本事务可见)区别
-static inline bool
+static inline bool //id对应的update节点如果是已提交的事务节点，并且小于oldest_id，则肯定返回ture，否则false
 __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
 {
 	uint64_t oldest_id;
@@ -480,6 +480,10 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
  * __wt_txn_visible --
  *	Can the current transaction see the given ID / timestamp?
  */
+/*
+检查事务id是否对当前session对应事务可见
+可以结合 MongoDB新存储引擎WiredTiger实现(事务篇) https://www.jianshu.com/p/f053e70f9b18参考事务隔离级别
+*/
 /*
 WiredTiger 很早就支持事务，在 3.x 版本里，MongoDB 就通过 WiredTiger 事务，来保证一条修改操作，
 对数据、索引、oplog 三者修改的原子性。但实际上 MongoDB 经过多个版本的迭代，才提供了事务接口，核心难点就是时序问题。
@@ -692,7 +696,7 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 	 * atomic reads of the current ID to create snapshots, so for unlocked
 	 * reads to be well defined, we must use an atomic increment here.
 	 */ /*分配事务ID，这里采用了cas进行多线程竞争生成ID，虽然该函数加了自旋锁，但是读线程不会加锁，并且可以范围current，因此这里采用原子操作*/
-	(void)__wt_atomic_addv64(&txn_global->current, 1);
+	(void)__wt_atomic_addv64(&txn_global->current, 1); //理论上原子操作不需要加锁，这里加锁的原因是读线程会用到该current
 	__wt_spin_unlock(session, &txn_global->id_lock);
 	return (id);
 }
@@ -710,7 +714,15 @@ __wt_txn_id_check(WT_SESSION_IMPL *session)
 
 	WT_ASSERT(session, F_ISSET(txn, WT_TXN_RUNNING));
 
-	if (F_ISSET(txn, WT_TXN_HAS_ID))
+        /*
+        例如以下场景,该场景只会生成一个id，第一次insert 1生成后，后面的操作不需要再生成了，所有该事务中的操作都是同一个id
+        begin_transaction()
+        insert 1
+        insert 2
+        ......
+        commit_transaction()
+        */
+	if (F_ISSET(txn, WT_TXN_HAS_ID))  //保证同一个事务的多个op操作其事务id一致
 		return (0);
 		
     /*在事务开始前先检查cache的内存占用率，确保cache有足够的内存运行事务*/

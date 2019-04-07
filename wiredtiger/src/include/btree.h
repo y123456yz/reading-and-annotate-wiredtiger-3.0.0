@@ -68,10 +68,12 @@
  *	A btree handle.
  btree spliete:
 
- btree图解参考:https://blog.csdn.net/xu_flash/article/details/62216969
- BTREE简单代码例子:https://blog.csdn.net/cyongxue/article/details/16971337
  图解B+树的插入和删除(一看就懂）https://yq.aliyun.com/articles/9280
  Mongodb的索引的实现算法---B-tree/B+tree/B*tree  http://lib.csdn.net/article/mongodb/53952
+
+ 大数据索引技术 - B+ tree vs LSM tree: http://www.cnblogs.com/fxjwind/archive/2012/06/09/2543357.html
+ LSM-tree 基本原理及应用:https://cloud.tencent.com/developer/news/340271
+ LSM存储组织结构介绍:http://www.mamicode.com/info-detail-492282.html
 
  __wt_conn_dhandle_alloc中分配空间
  btree结构  S2BT(session)完成session到btree的转换   成员赋值__btree_conf

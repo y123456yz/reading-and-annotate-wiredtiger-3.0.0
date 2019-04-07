@@ -144,7 +144,7 @@ struct __wt_txn_global {
 	bool oldest_is_pinned; //pinned_timestamp就是oldest_timestamp
 	bool stable_is_pinned;
 
-	WT_SPINLOCK id_lock;
+	WT_SPINLOCK id_lock; //全局id生成的锁
 
 	/* Protects the active transaction states. */
 	WT_RWLOCK rwlock;
