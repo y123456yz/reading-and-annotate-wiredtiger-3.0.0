@@ -511,6 +511,9 @@ __wt_log_slot_destroy(WT_SESSION_IMPL *session)
 /*
  * __wt_log_slot_join --
  *	Join a consolidated logging slot.
+ 打破WiredTiger的Logjam（上篇）：预写式日志（The Write-Ahead Log）
+ https://cloud.tencent.com/developer/article/1405902
+ 打破WiredTiger的Logjam（下篇）：无等待解决方案
  */ 
 /*选取一个ready slot来进行log write，在这个函数中会确定写入的slot以及写入的位置*/
 void

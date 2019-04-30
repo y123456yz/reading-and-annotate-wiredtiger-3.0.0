@@ -201,6 +201,7 @@ take_full_backup(WT_SESSION *session, int i)
 				(void)snprintf(buf, sizeof(buf),
 				    "cp %s/%s %s/%s",
 				    home, filename, h, filename);
+				printf("yang test ...........take_full_backup %s\r\n", buf);
 				error_check(system(buf));
 			}
 		else {
@@ -234,11 +235,13 @@ take_incr_backup(WT_SESSION *session, int i)
 		(void)snprintf(h, sizeof(h), "%s.0", home_incr);
 		(void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s",
 		    home, filename, h, filename);
+		printf("yang test ............. buf:%s\r\n", buf);
 		error_check(system(buf));
 		for (j = i; j < MAX_ITERATIONS; j++) {
 			(void)snprintf(h, sizeof(h), "%s.%d", home_incr, j);
 			(void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s",
 			    home, filename, h, filename);
+			printf("yang test ...11.......... buf:%s\r\n", buf);
 			error_check(system(buf));
 		}
 	}
@@ -254,7 +257,7 @@ take_incr_backup(WT_SESSION *session, int i)
 }
 
 int
-main(int argc, char *argv[])
+main1(int argc, char *argv[])
 {
 	WT_CONNECTION *wt_conn;
 	WT_SESSION *session;
@@ -316,3 +319,68 @@ main(int argc, char *argv[])
 
 	return (EXIT_SUCCESS);
 }
+
+int
+main(int argc, char *argv[])
+{
+	WT_CONNECTION *wt_conn;
+	WT_SESSION *session;
+	int i;
+	char cmd_buf[256];
+
+	(void)argc;					/* Unused variable */
+	(void)testutil_set_progname(argv);
+
+	(void)snprintf(cmd_buf, sizeof(cmd_buf),
+	    "rm -rf %s && mkdir %s", home, home);
+	error_check(system(cmd_buf));
+	error_check(wiredtiger_open(home, NULL, CONN_CONFIG, &wt_conn));
+
+	setup_directories();
+	error_check(wt_conn->open_session(wt_conn, NULL, NULL, &session));
+	error_check(session->create(
+	    session, uri, "key_format=S,value_format=S"));
+	printf("Adding initial data\n");
+	add_work(session, 0);
+
+	printf("Taking initial backup\n");
+	take_full_backup(session, 0);
+
+	error_check(session->checkpoint(session, NULL));
+
+	for (i = 1; i < MAX_ITERATIONS; i++) {
+		printf("Iteration %d: adding data\n", i);
+		add_work(session, i);
+		error_check(session->checkpoint(session, NULL));
+		/*
+		 * The full backup here is only needed for testing and
+		 * comparison purposes.  A normal incremental backup
+		 * procedure would not include this.
+		 */
+		printf("Iteration %d: taking full backup\n", i);
+		take_full_backup(session, i);
+		/*
+		 * Taking the incremental backup also calls truncate
+		 * to archive the log files, if the copies were successful.
+		 * See that function for details on that call.
+		 */
+		printf("Iteration %d: taking incremental backup\n", i);
+		take_incr_backup(session, i);
+
+		printf("Iteration %d: dumping and comparing data\n", i);
+		error_check(compare_backups(i));
+	}
+
+	/*
+	 * Close the connection.  We're done and want to run the final
+	 * comparison between the incremental and original.
+	 */
+	error_check(wt_conn->close(wt_conn, NULL));
+
+	printf("Final comparison: dumping and comparing data\n");
+	error_check(compare_backups(0));
+
+	return (EXIT_SUCCESS);
+}
+
+
