@@ -32,6 +32,7 @@
 
 static const char *home;
 
+//It demonstrates how to pack three integer values into a buffer and then unpack them again.
 int
 main(int argc, char *argv[])
 {
