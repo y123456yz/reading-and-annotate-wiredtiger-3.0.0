@@ -1,0 +1,52 @@
+/*! @page transactions Transactional applications
+
+WiredTiger offers standard ACID-style transaction support where modifications happen
+at snapshot isolation and subsequently become durable. (Readers not
+already familiar with these concepts may wish to see @ref explain_acid for a brief
+discussion of ACID and @ref explain_isolation for a brief discussion of isolation
+levels.)
+
+There are three approaches to writing transactional programs in WiredTiger:
+-# Applications supporting \b checkpoint-level durability, intended for
+applications with simple transactions where updates become durable when
+the last reference to the object is closed or at the next database checkpoint.
+
+-# Applications supporting \b commit-level durability, which extends
+checkpoint-level durability, adding logging to the database so updates written
+on behalf of a transaction become durable as soon as the transaction's log
+records become durable.
+
+-# Applications using timestamps for fine-grained control of the database,
+extending checkpoint-level durability. This allows applications to do things
+like enforce a transactional commit order, read historical data and define
+stability points for the entire database. Use of timestamps changes both the
+consistency and durability models.
+
+The first two approaches are relatively simple and have APIs which will be
+familiar to database developers. The principal difference is that in the second
+approach, applications may need to enclose operations in explicit transactional
+API calls and must additionally configure and manage the log files required for
+commit-level durability. The third approach is complex, has non-standard APIs,
+and requires more database knowledge to successfully build applications. The
+functionality and programmatic changes in each approach are additive. If this is
+your first database application, building a complex application by starting at
+the first approach and iterating to a complete application is recommended.
+
+We will discuss these approaches in order, from the simplest to the most
+complex.
+
+If this is your first WiredTiger application, please read @ref durability_overview
+for a discussion of WiredTiger durability models, so you can select the application
+architecture that is appropriate for your needs.
+
+\warning
+Recovery is the process of restoring the database to a transactionally
+consistent state after failure. Recovery is automatically performed by
+WiredTiger, as necessary, when a database is opened. Recovery is required
+after the failure of any thread of control in the application, where the
+failed thread might have been executing inside of the WiredTiger library
+or open WiredTiger handles have been lost. If any application thread of
+control exits unexpectedly while holding any database resources of any kind,
+the application should close and re-open the database.
+
+*/

@@ -1,0 +1,98 @@
+/*! @page error_handling Error handling
+
+WiredTiger operations return a value of 0 on success and a non-zero
+value on error.  Error codes may be either positive or negative:
+positive error codes are standard error codes as described for
+POSIX-like systems (for example, \c EINVAL or \c EBUSY), negative error
+codes are WiredTiger-specific (for example, \c WT_ROLLBACK).
+
+@section error_ebusy EBUSY errors
+
+WiredTiger returns \c EBUSY for operations requiring exclusive access, when
+an object is not available for exclusive access. These operations include the
+WT_SESSION::alter, WT_SESSION::drop, WT_SESSION::rename, WT_SESSION::salvage,
+WT_SESSION::upgrade and WT_SESSION::verify methods, all of which will return
+\c EBUSY and fail if there are open cursors on the target object. Internal
+WiredTiger threads may temporarily open cursors on objects (for example,
+threads performing operations like statistics logging), and in that case
+operations may temporarily fail and return \c EBUSY when there are no
+application cursors open on the object. In this case, simply retrying the
+operation should be sufficient.
+
+Additionally, unwritten data in the WiredTiger cache will prevent exclusive
+access to objects. In this case, calling the WT_SESSION:checkpoint method to
+perform a database checkpoint should resolve the problem, allowing a subsequent
+retry of the operation requiring exclusive access to succeed. Further
+failures imply other threads of control simultaneously updating the object
+in cache. Repeatedly calling checkpoint will race with those threads,
+and it's unspecified when or even if exclusive access to the object will be
+granted. Generally, applications will not call WiredTiger methods requiring
+exclusive access when the objects might be in active use by other threads.
+
+@section error_list WiredTiger-specific errors
+
+WiredTiger-specific error codes are allocated from -31,800 to -31,999,
+inclusive. The following is a list of the WiredTiger-specific return values:
+
+@if IGNORE_BUILT_BY_API_ERR_BEGIN
+@endif
+
+@par \c WT_ROLLBACK
+This error is generated when an operation cannot be completed due to a conflict with concurrent
+operations. The operation may be retried; if a transaction is in progress, it should be rolled back
+and the operation retried in a new transaction.
+
+@par \c WT_DUPLICATE_KEY
+This error is generated when the application attempts to insert a record with the same key as an
+existing record without the 'overwrite' configuration to WT_SESSION::open_cursor.
+
+@par \c WT_ERROR
+This error is returned when an error is not covered by a specific error return. The operation may be
+retried; if a transaction is in progress, it should be rolled back and the operation retried in a
+new transaction.
+
+@par \c WT_NOTFOUND
+This error indicates an operation did not find a value to return. This includes cursor search and
+other operations where no record matched the cursor's search key such as WT_CURSOR::update or
+WT_CURSOR::remove.
+
+@par \c WT_PANIC
+This error indicates an underlying problem that requires a database restart. The application may
+exit immediately, no further WiredTiger calls are required (and further calls will themselves
+immediately fail).
+
+@par \c WT_RUN_RECOVERY
+This error is generated when ::wiredtiger_open is configured to return an error if recovery is
+required to use the database.
+
+@par \c WT_CACHE_FULL
+This error is generated when wiredtiger_open is configured to run in-memory, and a data modification
+operation requires more than the configured cache size to complete. The operation may be retried; if
+a transaction is in progress, it should be rolled back and the operation retried in a new
+transaction.
+
+@par \c WT_PREPARE_CONFLICT
+This error is generated when the application attempts to read an updated record which is part of a
+transaction that has been prepared but not yet resolved.
+
+@par \c WT_TRY_SALVAGE
+This error is generated when corruption is detected in an on-disk file. During normal operations,
+this may occur in rare circumstances as a result of a system crash. The application may choose to
+salvage the file or retry wiredtiger_open with the 'salvage=true' configuration setting.
+
+@if IGNORE_BUILT_BY_API_ERR_END
+@endif
+
+@section error_translation Translating errors
+
+The WT_SESSION::strerror and ::wiredtiger_strerror functions return the
+standard text message associated with any WiredTiger, ISO C, or POSIX
+standard API.
+
+@snippet ex_all.c Display an error thread safe
+
+@snippet ex_all.c Display an error
+
+Note that ::wiredtiger_strerror is not thread-safe.
+
+*/

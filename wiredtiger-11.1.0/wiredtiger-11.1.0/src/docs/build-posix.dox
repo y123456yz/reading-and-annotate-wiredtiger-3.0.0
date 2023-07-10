@@ -1,0 +1,207 @@
+/*! @page build-posix Building and installing WiredTiger on POSIX (Linux, *BSD, OS X):
+
+@section posix_github Building using Git and GitHub
+
+Skip this step if you are building from a WiredTiger release package,
+and proceed with @ref posix_building.
+
+To build from the WiredTiger GitHub repository, the following is required:
+<a href="http://git-scm.com/">git</a>,
+<a href="https://gcc.gnu.org/">GCC 8.5 or later</a> or
+<a href="https://clang.llvm.org/">Clang 7.01 or later</a>, and
+<a href="https://cmake.org/">CMake 3.10.0 or later</a>.
+
+To support the python API,
+<a href="https://python.org/">Python 3 or later</a>, and
+<a href="http://www.swig.org/">SWIG</a> and python3-dev are required.
+
+We also suggest <a href="https://ninja-build.org/">Ninja</a> and
+<a href="https://ccache.dev/">ccache</a> for improved incremental build times.
+
+First, clone the repository:
+
+@code
+git clone git://github.com/wiredtiger/wiredtiger.git
+@endcode
+
+Now proceed with @ref posix_building.
+
+@section posix_building Building WiredTiger
+
+To build the WiredTiger software on a POSIX system, change directory to
+the top-level directory, then configure and create a new directory to run
+your build from:
+
+@code
+cd wiredtiger
+mkdir build
+cd build
+@endcode
+
+Change into your newly created build directory and using CMake run the build configuration
+step to generate your build.
+@code
+cmake ../.
+# If using the Ninja build tool, you can additionally specify the generator '-G Ninja' to construct a
+# ninja build i.e 'cmake -G Ninja ../.'.
+@endcode
+
+Lastly, in the same directory you configured your build, start the build:
+@code
+make
+# Or 'ninja' if using the Ninja build tool.
+@endcode
+
+@section posix_installing Installing WiredTiger
+
+The WiredTiger software consists of a library and a single standalone utility.
+
+WiredTiger's distribution by default builds and installs the shared version library in <code>/usr/local/lib</code>.  For example:
+
+@code
+file /usr/local/lib/libwiredtiger*
+/usr/local/lib/libwiredtiger.so.10.0.1: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, not stripped
+/usr/local/lib/libwiredtiger.so:        symbolic link to `libwiredtiger.so.10.0.1'
+@endcode
+
+WiredTiger uses
+<a href="https://cmake.org/">CMake</a> to build and install the libraries.
+By default, the shared libraries are built. To build only static
+libraries, configure WiredTiger using the
+\c -DENABLE_STATIC=1 argument.
+
+In addition, WiredTiger installs a standalone utility program named
+<code>wt</code>.  By default, this utility is installed in
+<code>/usr/local/bin/wt</code>.
+
+To install WiredTiger:
+
+@code
+make install
+# Or 'ninja install' if using the Ninja build tool.
+@endcode
+
+To uninstall WiredTiger:
+
+@code
+xargs rm < install_manifest.txt
+@endcode
+
+The \c install_manifest.txt file is created when you run <code>ninja install</code>.
+
+To install WiredTiger's libraries or binaries into alternate locations,
+configure WiredTiger using the \c -DCMAKE_INSTALL_PREFIX=custom_path argument.
+For example, to install the libraries and binaries into a different location:
+
+@code
+cmake -DCMAKE_INSTALL_PREFIX=/c/wiredtiger -G Ninja ../.
+@endcode
+
+@section posix_configure Configuring WiredTiger
+
+The WiredTiger software supports some additional configuration options:
+
+@par \c -DHAVE_ATTACH=1
+Configure WiredTiger to sleep and wait for a debugger to attach on failure.
+<b>DO NOT</b> configure this option in production environments.
+
+@par \c -DHAVE_DIAGNOSTIC=1
+Configure WiredTiger to perform various run-time diagnostic tests (enabled by default for non Release build types).
+<b>DO NOT</b> configure this option in production environments.
+
+@par \c -DNON_BARRIER_DIAGNOSTIC_YIELDS=1
+Configure WiredTiger to not use memory barriers when yielding threads for diagnostic purposes.
+Requires that HAVE_DIAGNOSTIC is also enabled.
+<b>DO NOT</b> configure this option in production environments.
+
+@par \c -DENABLE_LZ4=1
+Configure WiredTiger for <a href="https://github.com/Cyan4973/lz4">LZ4</a>
+compression (enabled by default if the LZ4 library is present); see @ref compression for more information.
+
+@par \c -DENABLE_PYTHON=1
+Build the WiredTiger <a href="http://www.python.org">Python</a> API;
+requires <a href="http://swig.org">SWIG</a> (enabled by default if python is available).
+
+@par \c -DENABLE_SNAPPY=1
+Configure WiredTiger for <a href="http://code.google.com/p/snappy/">snappy</a>
+compression (enabled by default if the SNAPPY library is present); see @ref compression for more information.
+
+@par \c -DENABLE_ZLIB=1
+Configure WiredTiger for <a href="http://www.zlib.net/">zlib</a>
+compression (enabled by default if the ZLIB library is present); see @ref compression for more information.
+
+@par \c -DENABLE_ZSTD=1
+Configure WiredTiger for <a href="https://github.com/facebook/zstd">Zstd</a>
+compression (enabled by default if the ZSTD library is present); see @ref compression for more information.
+
+@par \c -DWT_STANDALONE_BUILD=0
+Configure WiredTiger to disable standalone build. Standalone build is enabled
+by default.
+
+@par \c -DHAVE_BUILTIN_EXTENSION_LZ4=1, \c -DHAVE_BUILTIN_EXTENSION_SNAPPY=1, \c -DHAVE_BUILTIN_EXTENSION_ZLIB=1, \c -DHAVE_BUILTIN_EXTENSION_ZSTD=1
+Configure WiredTiger to include support for extensions in the main library.
+This avoids requiring additional libraries for supported extensions. Currently
+supported builtin options are for \c lz4, \c snappy, \c zlib and \c zstd.
+
+@par \c -DSPINLOCK_TYPE[=pthread, pthread_adaptive, gcc]
+Configure WiredTiger to use a specific mutex type for serialization;
+options are \c pthread (the default, which configures WiredTiger to use
+POSIX 1003.1c pthread mutexes), \c pthread_adaptive (which configures
+WiredTiger to use POSIX 1003.1c pthread mutexes configured to be
+adaptive (where that functionality is available), or \c gcc (which
+configures WiredTiger to use gcc-based spinlocks).
+
+@section posix_compiler Changing compiler or loader options
+
+By default CMake will use your default system compiler (\c cc). If you want to use a specific toolchain you can pass a toolchain file. We have
+provided a toolchain file for both GCC (\c cmake/toolchains/gcc.cmake) and Clang (\c cmake/toolchains/clang.cmake). To use either
+toolchain you can pass the \c -DCMAKE_TOOLCHAIN_FILE= to the CMake configuration step. For example:
+
+For example, to explicitly specify the GCC toolchain:
+
+@code
+cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/gcc.cmake ../.
+@endcode
+
+To explicitly specify the Clang toolchain:
+
+@code
+cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/clang.cmake ../.
+@endcode
+
+By default, WiredTiger builds with the \c -O3 compiler optimization flag
+unless manually specified through the \c -DCC_OPTIMIZE_LEVEL configuration option. For example, to specify
+a different level of optimization:
+
+@code
+cmake -DCC_OPTIMIZE_LEVEL=-O1 ../.
+@endcode
+
+@section posix_ctest Running WiredTiger C/C++ Tests
+
+The WiredTiger CMake build makes available a suite of C/C++ based tests.
+To run the available tests you can use our smoke test alias (\c check). Ensure you're in the build directory and execute:
+
+@code
+ctest -j$(nproc) -L check
+@endcode
+
+Alternatively to just run all the tests available:
+
+@code
+ctest -j$(nproc)
+@endcode
+
+In addition, to get verbose output with your test run you can use the \c -VV flag:
+
+@code
+ctest -j$(nproc) -VV
+@endcode
+
+If you want to focus on running a specific test (i.e. run a test that may be failing) you can use the \c -R flag:
+
+@code
+# Note: -R specifies a regex, where any matching test will be run
+ctest -j$(nproc) -R test_name
+@endcode
+*/

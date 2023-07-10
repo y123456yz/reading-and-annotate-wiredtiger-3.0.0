@@ -1,0 +1,11 @@
+WiredTiger 11.1.0: (November  2, 2022)
+
+This is version 11.1.0 of WiredTiger.
+
+Instructions for configuring, building, and installing WiredTiger are available online.
+
+    For Linux, MacOS, and other POSIX systems:
+    https://source.wiredtiger.com/develop/build-posix.html
+
+    For Windows:
+    https://source.wiredtiger.com/develop/build-windows.html

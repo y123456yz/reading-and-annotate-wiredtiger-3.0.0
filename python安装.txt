@@ -1,0 +1,1 @@
+./configure --prefix=/usr/local/python-3.8.8  --enable-shared CFLAGS=-fPIC --enable-optimizations  升级python时候源码编译一定带上，否则高版本wiredtiger编译的时候会报错

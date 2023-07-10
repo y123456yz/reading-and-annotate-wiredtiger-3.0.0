@@ -1,0 +1,202 @@
+/*! @page cursor_ops Cursor operations
+
+Common operations in WiredTiger are performed using WT_CURSOR handles.
+A cursor includes:
+
+- a position within a data source
+- getter/setters for key and value fields
+- encoding of fields to store in the data source
+- methods to navigate within and iterate through the data
+
+@section cursor_opening Opening a cursor
+
+Cursors are created using the WT_SESSION::open_cursor method.  For
+example, from the program @ex_ref{ex_cursor.c}:
+
+@snippet ex_cursor.c open cursor #1
+
+Another example from the same program:
+
+@snippet ex_cursor.c open cursor #2
+
+In addition to traditional data sources, cursors in WiredTiger are used
+to access projections and even created data sources such as the run-time
+statistics:
+
+@snippet ex_cursor.c open cursor #3
+
+See @ref cursors for more information on available cursor types.
+
+@section cursor_closing Closing a cursor
+
+Cursors remain open until either WT_CURSOR::close is called or the cursor's
+session is closed, which may either be in WT_SESSION::close or
+WT_CONNECTION::close.
+
+@section cursor_position Positioning a cursor
+
+Cursors may be positioned at the beginning of the data source, the end of
+the data source, at an exact key within the data source, and near a key
+within the data source.
+
+To invalidate the position of a cursor so that subsequent iterations start
+from the beginning or end of the data source, use the WT_CURSOR::reset method:
+
+@snippet ex_cursor.c cursor reset
+
+To move a cursor forward in the data source, use the cursor WT_CURSOR::next
+method:
+
+@snippet ex_cursor.c cursor next
+
+If the WT_CURSOR::next method is called on a cursor without a position
+in the data source, it is positioned at the beginning of the data source.
+
+To move a cursor backward in the data source, use the cursor WT_CURSOR::prev
+method:
+
+@snippet ex_cursor.c cursor prev
+
+If the WT_CURSOR::prev method is called on a cursor without a position
+in the data source, it is positioned at the end of the data source.
+
+To position a cursor at a specific location in the data source, use the
+WT_CURSOR::search method:
+
+@snippet ex_cursor.c cursor search
+
+To position a cursor at or near a location in the data source, use the
+WT_CURSOR::search_near method:
+
+@snippet ex_cursor.c cursor search near
+
+The WT_CURSOR::search_near method can also be used with a prefix key by
+setting \c prefix_search=true in the cursor configuration options. This
+optimization ensures that search_near only traverses the relevant key
+range with the matching prefix. Limiting the key range that search_near
+can traverse through is particularly useful when there are a larger number
+of records present outside of the key range which are not visible to the
+search_near caller.
+
+After a transaction is successfully committed, cursors in the session retain
+their position, as well as any currently set keys or values they may have.
+If a transaction is rolled back for any reason, cursors in the session are
+reset (as if the WT_CURSOR::reset method was called), discarding any cursor
+position as well as any currently set keys or values.
+
+Cursors can be configured to move to a random position with WT_CURSOR::next
+is called, see @subpage cursor_random for details.
+
+@section cursor_writes Inserting, removing and updating
+
+To insert new data, and optionally update existing data, using a cursor,
+use the WT_CURSOR::insert method:
+
+@snippet ex_cursor.c cursor insert
+
+To update existing data using a cursor, use the WT_CURSOR::update method:
+
+@snippet ex_cursor.c cursor update
+
+The WT_SESSION::open_cursor \c overwrite configuration is \c true by default,
+causing WT_CURSOR::insert and WT_CURSOR::update to ignore the current state
+of the record, and these methods will succeed regardless of whether or not
+the record previously exists.  When an application configures \c overwrite to
+\c false, WT_CURSOR::insert will fail with ::WT_DUPLICATE_KEY if the record
+previously exists and WT_CURSOR::update will fail with ::WT_NOTFOUND if the
+record does not previously exist.
+
+To remove existing data using a cursor, use the WT_CURSOR::remove method:
+
+@snippet ex_cursor.c cursor remove
+
+@section cursor_largest Returning the largest key
+
+The WT_SESSION::largest_key \c gets the largest key in a table regardless of
+any underlying visibility considerations.
+
+@snippet ex_all.c Get the table's largest key
+
+Any following prev or next calls will behave as if they were invoked on an
+unpositioned cursor whether the largest key call is successful or not.
+
+@section cursor_error Cursor position after error
+
+After any cursor handle method failure, the cursor's position is
+undetermined.  For cursor operations that expect a key to be set before the
+operation begins (including WT_CURSOR::search, WT_CURSOR::insert,
+WT_CURSOR::update and WT_CURSOR::remove), the application's key and value
+will not be cleared by an error.
+
+Applications that cannot re-position the cursor after failure must
+duplicate the cursor by calling WT_SESSION::open_cursor and passing the
+cursor as the \c to_dup parameter before calling a cursor method that will
+attempt to re-position the cursor.  Cursor duplication is not supported
+for the backup, config and statistics cursor types.
+
+@section cursor_memory_scoping Cursor key/value memory scoping
+
+When applications pass a pointer (either to a WT_ITEM or a string), to
+WT_CURSOR::set_key or WT_CURSOR::set_value, WiredTiger does not copy the
+memory referenced by the pointer. For this reason, the application must
+keep the referenced memory unchanged and valid until the next operation
+that successfully positions the cursor, modifies the underlying data,
+or the cursor is reset or closed (discarding its resources).  The
+operations that position the cursor are WT_CURSOR::next, WT_CURSOR::prev,
+WT_CURSOR::search and WT_CURSOR::search_near; the operations that modify
+the underlying data are WT_CURSOR::insert, WT_CURSOR::update and
+WT_CURSOR::remove.
+
+If a cursor operation fails (for example, due to a ::WT_NOTFOUND error),
+it may be retried without calling WT_CURSOR::set_key or
+WT_CURSOR::set_value again.  That is, the cursor may still reference the
+application-supplied memory until the cursor is successfully positioned,
+underlying data is modified, or the cursor is closed or reset.
+
+Any pointers returned by WT_CURSOR::get_key or WT_CURSOR::get_value are
+only valid until a subsequent cursor call that successfully positions
+the cursor, modifies the underlying data, or the cursor is reset or
+closed. These pointers may reference private WiredTiger data structures
+that may not be modified or freed by the application.  If a longer scope
+is required, the application must make a copy of the memory before the
+cursor is re-used, closed or reset.
+
+@section cursor_bound Apply bounds to the cursor
+
+A cursor may have a set of bounds applied to it, this restricts the key range
+that the cursor operates within.
+
+Suppose we have a table with keys \c A to \c Z. We can restrict the cursor to only operate over
+keys \c L->Q. If the cursor walks past key \c Q, the cursor will enter an unpositioned state having
+walked off the "end" of the table from its perspective. Additionally should the cursor perform a
+search_near, it will only search within the key range of \c L->Q.  This can provide an application with a
+performance boost when operating within tables that have a large number of deleted or invisible records.
+This is because the key comparison with the bound occurs before we determine if the value associated
+with the key is visible or not. The cursor can have a lower bound set or an upper bound set, or both.
+
+@snippet ex_cursor.c cursor bound
+
+Both or either one of the lower and upper bounds can be set, if a bound is not set then the usual start or end of the file applies.
+Given our previous example had we set a lower bound of \c L and no upper bound then our key range would be \c L->Z. When setting the bounds,
+the relevant bound is set prior with \c cursor->set_key. This key does not have to exist or be visible in order for bounds setting to succeed.
+
+Cursor operations next, prev, search, search near, modify, insert, update, and remove support bounds. When performing a traversal such as
+\c cursor->next or \c cursor->prev, the cursor will only return keys that are within the bounds that have been set. For example, calling \c cursor->next
+on an unpositioned range bounded cursor will position it on the lower bound rather than the start of the key range.
+
+If search is called on a key that's not within bounds, this will result in returning a \c WT_NOTFOUND. Calling \c cursor->search_near with a key outside the range
+will always return a key within the range unless no keys are present. \c cursor->search_near can benefit from range bounded cursors, once the cursor
+traverses outside of the bounded range the \c search_near logic can early exit reducing the overall number of keys visited.
+
+Clearing the bounds can be done through resetting the cursor with \c cursor->reset or by passing a clear config to the bounds API call.
+This will unconditionally clear both bounds.
+
+Bounds API is supported with row-store and variable length column store. Bounds API is not supported with fixed length column store.
+
+The bounds API supports these cursor types:
+- File cursor
+- Table cursor
+- Datastore cursor
+- Dump cursor
+- Index cursor
+*/

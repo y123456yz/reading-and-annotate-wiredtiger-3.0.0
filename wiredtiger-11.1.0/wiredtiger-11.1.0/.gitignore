@@ -1,0 +1,6 @@
+**/tags
+*.swp
+build/
+dist/clang-format
+/docs/
+test-compatibility-run/
