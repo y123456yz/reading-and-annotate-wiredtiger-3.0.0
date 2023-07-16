@@ -61,6 +61,9 @@ access_example(void)
     cursor->set_key(cursor, "key1"); /* Insert a record. */
     cursor->set_value(cursor, "value1");
     error_check(cursor->insert(cursor));
+    cursor->set_key(cursor, "key2"); /* Insert a record. */
+    cursor->set_value(cursor, "value2");
+    error_check(cursor->insert(cursor));
     /*! [access example cursor insert] */
 
     /*! [access example cursor list] */

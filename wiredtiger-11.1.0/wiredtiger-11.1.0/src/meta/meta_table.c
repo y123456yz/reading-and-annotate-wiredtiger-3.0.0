@@ -11,7 +11,8 @@
 /*
  * __metadata_turtle --
  *     Return if a key's value should be taken from the turtle file.
- */
+ */ 
+//key内容和WiredTiger.turtl内容来判断是否读取WiredTiger.turtl元数据，WiredTiger.turtl第一行内容为WT_METADATA_COMPAT  WT_METAFILE_URI等
 static bool
 __metadata_turtle(const char *key)
 {
@@ -183,6 +184,8 @@ __wt_metadata_insert(WT_SESSION_IMPL *session, const char *key, const char *valu
     WT_CURSOR *cursor;
     WT_DECL_RET;
 
+    printf("yang test .....__wt_metadata_insert.......... S2C(session)->verbose[category]:%d\r\n\r\n", 
+        S2C(session)->verbose[WT_VERB_METADATA]);
     __wt_verbose_debug3(session, WT_VERB_METADATA,
       "Insert: key: %s, value: %s, tracking: %s, %s"
       "turtle",
@@ -297,7 +300,8 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
       "Search: key: %s, tracking: %s, %s"
       "turtle",
       key, WT_META_TRACKING(session) ? "true" : "false", __metadata_turtle(key) ? "" : "not ");
-
+      
+    //key内容和WiredTiger.turtl内容来判断是否读取WiredTiger.turtl元数据，WiredTiger.turtl第一行内容为WT_METADATA_COMPAT  WT_METAFILE_URI等
     if (__metadata_turtle(key)) {
         /*
          * The returned value should only be set if ret is non-zero, but Coverity is convinced

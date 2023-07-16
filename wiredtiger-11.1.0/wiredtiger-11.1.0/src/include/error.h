@@ -62,6 +62,7 @@
 /* Return WT_PANIC regardless of earlier return codes. */
 #define WT_ERR_PANIC(session, v, ...) WT_ERR(__wt_panic(session, v, __VA_ARGS__))
 
+//判断a是否=0,如果不等于0，则调用WT_RET的函数直接返回，否则继续执行后面的流程
 /* Return tests. */
 #define WT_RET(a)               \
     do {                        \

@@ -234,8 +234,18 @@ typedef TAILQ_HEAD(__wt_backuphash, __wt_backup_target) WT_BACKUPHASH;
 /*
  * WT_CONNECTION_IMPL --
  *	Implementation of WT_CONNECTION
- */
+
+ Internally, WiredTiger's cache state is represented by the WT_CACHE structure, which contains counters and parameter 
+ settings for tracking cache usage and controlling eviction policy. The WT_CACHE also includes state WiredTiger uses 
+ to track the progress of eviction. There is a single WT_CACHE for each connection, accessed via the WT_CONNECTION_IMPL 
+ structure.
+
+ //每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
+ */ 
+//__wt_cache_pool.cache_pool_qh: 思扑闼衏onn上面的内存情况及内存压力
+////__wt_process.connqh全局变量存储所有分配的conn,确保只有一个conn访问该DB
 struct __wt_connection_impl {
+    //对应connection的接口回调，参考wiredtiger_open
     WT_CONNECTION iface;
 
     /* For operations without an application-supplied session */
@@ -261,7 +271,8 @@ struct __wt_connection_impl {
     /* Cache pool queue */
     TAILQ_ENTRY(__wt_connection_impl) cpq;
 
-    const char *home;         /* Database home */
+    //__conn_home中赋值
+    const char *home;         /* Database home */ 
     const char *error_prefix; /* Database error prefix */
     uint64_t dh_hash_size;    /* Data handle hash bucket array size */
     uint64_t hash_size;       /* General hash bucket array size */
@@ -280,6 +291,7 @@ struct __wt_connection_impl {
     WT_EXTENSION_API extension_api; /* Extension API */
 
     /* Configuration */
+    //默认参考__wt_conn_config_init，config_entries中的配置信息
     const WT_CONFIG_ENTRY **config_entries;
 
     uint64_t operation_timeout_us; /* Maximum operation period before rollback */
@@ -338,7 +350,9 @@ struct __wt_connection_impl {
      * that way because we want an easy way for the server thread code to avoid walking the entire
      * array when only a few threads are running.
      */
+    //__wt_connection_open中提前分配内存
     WT_SESSION_IMPL *sessions; /* Session reference */
+    //__conn_session_size中初始化，从配置文件解析后赋值
     uint32_t session_size;     /* Session array size */
     uint32_t session_cnt;      /* Session count */
 

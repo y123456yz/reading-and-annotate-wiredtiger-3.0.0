@@ -98,6 +98,7 @@
  */
 #ifndef WT_VERBOSE_LEVEL_DEFAULT
 #define WT_VERBOSE_LEVEL_DEFAULT WT_VERBOSE_DEBUG_1
+//#define WT_VERBOSE_LEVEL_DEFAULT WT_VERBOSE_ERROR
 #endif
 
 /* Default category for messages that don't explicitly specify a category. */

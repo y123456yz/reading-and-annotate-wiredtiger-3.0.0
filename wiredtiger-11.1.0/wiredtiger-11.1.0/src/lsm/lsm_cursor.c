@@ -788,7 +788,7 @@ __clsm_compare(WT_CURSOR *a, WT_CURSOR *b, int *cmpp)
 
     /* There's no need to sync with the LSM tree, avoid WT_LSM_ENTER. */
     alsm = (WT_CURSOR_LSM *)a;
-    CURSOR_API_CALL(a, session, compare, NULL);
+    CURSOR_API_CALL(a, session, __clsm_compare, NULL);
 
     /*
      * Confirm both cursors refer to the same source and have keys, then compare the keys.
@@ -858,7 +858,7 @@ __clsm_next(WT_CURSOR *cursor)
 
     clsm = (WT_CURSOR_LSM *)cursor;
 
-    CURSOR_API_CALL(cursor, session, next, NULL);
+    CURSOR_API_CALL(cursor, session, __clsm_next, NULL);
     __cursor_novalue(cursor);
     WT_ERR(__clsm_enter(clsm, false, false));
 
@@ -965,7 +965,7 @@ __clsm_next_random(WT_CURSOR *cursor)
     c = NULL;
     clsm = (WT_CURSOR_LSM *)cursor;
 
-    CURSOR_API_CALL(cursor, session, next, NULL);
+    CURSOR_API_CALL(cursor, session, __clsm_next_random, NULL);
     __cursor_novalue(cursor);
     WT_ERR(__clsm_enter(clsm, false, false));
 
@@ -1015,7 +1015,7 @@ __clsm_prev(WT_CURSOR *cursor)
 
     clsm = (WT_CURSOR_LSM *)cursor;
 
-    CURSOR_API_CALL(cursor, session, prev, NULL);
+    CURSOR_API_CALL(cursor, session, __clsm_prev, NULL);
     __cursor_novalue(cursor);
     WT_ERR(__clsm_enter(clsm, false, false));
 
@@ -1119,7 +1119,7 @@ __clsm_reset(WT_CURSOR *cursor)
      * our position.
      */
     clsm = (WT_CURSOR_LSM *)cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, reset, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __clsm_reset, NULL);
     F_CLR(cursor, WT_CURSTD_KEY_SET | WT_CURSTD_VALUE_SET);
 
     WT_TRET(__clsm_reset_cursors(clsm, NULL));
@@ -1214,7 +1214,7 @@ __clsm_search(WT_CURSOR *cursor)
 
     clsm = (WT_CURSOR_LSM *)cursor;
 
-    CURSOR_API_CALL(cursor, session, search, NULL);
+    CURSOR_API_CALL(cursor, session, __clsm_search, NULL);
     WT_ERR(__cursor_needkey(cursor));
     __cursor_novalue(cursor);
     WT_ERR(__clsm_enter(clsm, true, false));
@@ -1248,7 +1248,7 @@ __clsm_search_near(WT_CURSOR *cursor, int *exactp)
     clsm = (WT_CURSOR_LSM *)cursor;
     exact = 0;
 
-    CURSOR_API_CALL(cursor, session, search_near, NULL);
+    CURSOR_API_CALL(cursor, session, __clsm_search_near, NULL);
     WT_ERR(__cursor_needkey(cursor));
     __cursor_novalue(cursor);
     WT_ERR(__clsm_enter(clsm, true, false));
@@ -1648,7 +1648,7 @@ __wt_clsm_close(WT_CURSOR *cursor)
      * never have been used.
      */
     clsm = (WT_CURSOR_LSM *)cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, close, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __wt_clsm_close, NULL);
 err:
 
     WT_TRET(__clsm_close_cursors(session, clsm, 0, clsm->nchunks));

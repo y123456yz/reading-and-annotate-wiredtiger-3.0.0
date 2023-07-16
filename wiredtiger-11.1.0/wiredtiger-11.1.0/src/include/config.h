@@ -26,7 +26,7 @@ struct __wt_config_check {
 };
 
 #define WT_CONFIG_REF(session, n) (S2C(session)->config_entries[WT_CONFIG_ENTRY_##n])
-struct __wt_config_entry {
+struct __wt_config_entry {//配置信息相关，参考config_entries
     const char *method; /* method name */
 
 #define WT_CONFIG_BASE(session, n) (WT_CONFIG_REF(session, n)->base)

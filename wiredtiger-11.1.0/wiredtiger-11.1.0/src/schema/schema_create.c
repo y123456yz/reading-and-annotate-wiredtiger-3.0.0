@@ -882,6 +882,7 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
     WT_ERR_NOTFOUND_OK(ret, false);
 
     WT_ERR(__wt_config_collapse(session, cfg, &tablecfg));
+    //不存在则写入到元数据表中
     WT_ERR(__wt_metadata_insert(session, uri, tablecfg));
 
     if (ncolgroups == 0) {
@@ -1237,6 +1238,8 @@ __schema_create_config_check(
  * __schema_create --
  *     Process a WT_SESSION::create operation for all supported types.
  */
+//The create schema operation is responsible for creating the underlying data objects on the filesystem and then 
+//creating required entries in the metadata. 
 static int
 __schema_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
 {
@@ -1288,6 +1291,7 @@ __schema_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
         }
     }
 
+    //参考https://source.wiredtiger.com/develop/data_sources.html
     if (WT_PREFIX_MATCH(uri, "colgroup:"))
         ret = __create_colgroup(session, uri, exclusive, config);
     else if (WT_PREFIX_MATCH(uri, "file:"))
@@ -1335,6 +1339,8 @@ err:
  * __wt_schema_create --
  *     Process a WT_SESSION::create operation for all supported types.
  */
+//The create schema operation is responsible for creating the underlying data objects on the filesystem and then 
+//creating required entries in the metadata. 
 int
 __wt_schema_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
 {

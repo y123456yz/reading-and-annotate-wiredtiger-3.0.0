@@ -8,6 +8,7 @@
 
 #include "wt_internal.h"
 
+//全局conn队列
 WT_PROCESS __wt_process;             /* Per-process structure */
 static int __wt_pthread_once_failed; /* If initialization failed */
 

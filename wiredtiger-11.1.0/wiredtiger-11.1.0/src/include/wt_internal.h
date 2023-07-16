@@ -98,8 +98,10 @@ typedef struct __wt_btree WT_BTREE;
 struct __wt_bucket_storage;
 typedef struct __wt_bucket_storage WT_BUCKET_STORAGE;
 struct __wt_cache;
-typedef struct __wt_cache WT_CACHE;
+//Internally, WiredTiger's cache state is represented by the WT_CACHE structure, which contains counters and parameter settings for tracking cache usage and controlling eviction policy. The WT_CACHE also includes state WiredTiger uses to track the progress of eviction. There is a single WT_CACHE for each connection, accessed via the WT_CONNECTION_IMPL structure.
+typedef struct __wt_cache WT_CACHE; //每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
 struct __wt_cache_pool;
+//__wt_process.cache_pool存入这个全局变量成员中
 typedef struct __wt_cache_pool WT_CACHE_POOL;
 struct __wt_capacity;
 typedef struct __wt_capacity WT_CAPACITY;
@@ -142,6 +144,7 @@ typedef struct __wt_config_entry WT_CONFIG_ENTRY;
 struct __wt_config_parser_impl;
 typedef struct __wt_config_parser_impl WT_CONFIG_PARSER_IMPL;
 struct __wt_connection_impl;
+//每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
 typedef struct __wt_connection_impl WT_CONNECTION_IMPL;
 struct __wt_connection_stats;
 typedef struct __wt_connection_stats WT_CONNECTION_STATS;
@@ -322,6 +325,7 @@ typedef struct __wt_save_upd WT_SAVE_UPD;
 struct __wt_scratch_track;
 typedef struct __wt_scratch_track WT_SCRATCH_TRACK;
 struct __wt_session_impl;
+//__open_session中获取session
 typedef struct __wt_session_impl WT_SESSION_IMPL;
 struct __wt_session_stash;
 typedef struct __wt_session_stash WT_SESSION_STASH;

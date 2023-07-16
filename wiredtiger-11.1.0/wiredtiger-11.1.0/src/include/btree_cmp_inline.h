@@ -143,6 +143,7 @@ __wt_prefix_match(const WT_ITEM *prefix, const WT_ITEM *tree_item)
  *     call and the key is checked against the upper bound. If upper is False, this indicates a prev
  *     call and the key is then checked against the lower bound.
  */
+//判断key是否比upper_bound大或者比lower_bound小
 static inline int
 __wt_compare_bounds(WT_SESSION_IMPL *session, WT_CURSOR *cursor, WT_ITEM *key, uint64_t recno,
   bool upper, bool *key_out_of_bounds)
@@ -174,7 +175,7 @@ __wt_compare_bounds(WT_SESSION_IMPL *session, WT_CURSOR *cursor, WT_ITEM *key, u
     } else {
         WT_ASSERT(session, WT_DATA_IN_ITEM(&cursor->lower_bound));
         if (CUR2BT(cursor)->type == BTREE_ROW)
-            WT_RET(
+            WT_RET(//比lower_bound小
               __wt_compare(session, CUR2BT(cursor)->collator, key, &cursor->lower_bound, &cmpp));
         else
             /* Unpack the raw recno buffer into integer variable. */

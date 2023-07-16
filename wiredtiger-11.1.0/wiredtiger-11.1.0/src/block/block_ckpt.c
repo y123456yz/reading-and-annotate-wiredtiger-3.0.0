@@ -53,7 +53,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
     ci = NULL;
 
     if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_1))
-        __wt_ckpt_verbose(session, block, "load", NULL, addr, addr_size);
+        __wt_ckpt_verbose(session, block, "__wt_block_checkpoint_load load", NULL, addr, addr_size);
 
     /*
      * There's a single checkpoint in the file that can be written, all of the others are read-only.

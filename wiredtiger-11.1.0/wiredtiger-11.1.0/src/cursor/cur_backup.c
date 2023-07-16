@@ -125,7 +125,7 @@ __curbackup_next(WT_CURSOR *cursor)
     WT_SESSION_IMPL *session;
 
     cb = (WT_CURSOR_BACKUP *)cursor;
-    CURSOR_API_CALL(cursor, session, next, NULL);
+    CURSOR_API_CALL(cursor, session, __curbackup_next, NULL);
     WT_CURSOR_BACKUP_CHECK_STOP(cb);
 
     if (cb->list == NULL || cb->list[cb->next] == NULL) {
@@ -155,7 +155,7 @@ __curbackup_reset(WT_CURSOR *cursor)
     WT_SESSION_IMPL *session;
 
     cb = (WT_CURSOR_BACKUP *)cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, reset, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curbackup_reset, NULL);
     WT_CURSOR_BACKUP_CHECK_STOP(cb);
 
     cb->next = 0;
@@ -198,7 +198,7 @@ __curbackup_close(WT_CURSOR *cursor)
     const char *cfg[3] = {NULL, NULL, NULL};
 
     cb = (WT_CURSOR_BACKUP *)cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, close, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curbackup_close, NULL);
 err:
 
     if (F_ISSET(cb, WT_CURBACKUP_FORCE_STOP)) {

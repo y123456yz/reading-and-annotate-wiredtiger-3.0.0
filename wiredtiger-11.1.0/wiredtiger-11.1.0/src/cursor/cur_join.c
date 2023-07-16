@@ -528,7 +528,7 @@ __curjoin_extract_insert(WT_CURSOR *cursor)
     if (cextract->ismember)
         return (0);
 
-    CURSOR_API_CALL(cursor, session, insert, NULL);
+    CURSOR_API_CALL(cursor, session, __curjoin_extract_insert, NULL);
 
     WT_ITEM_SET(ikey, cursor->key);
     /*

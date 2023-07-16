@@ -108,7 +108,7 @@ __curhs_compare(WT_CURSOR *a, WT_CURSOR *b, int *cmpp)
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
 
-    CURSOR_API_CALL(a, session, compare, NULL);
+    CURSOR_API_CALL(a, session, __curhs_compare, NULL);
 
     WT_ERR(__cursor_checkkey(a));
     WT_ERR(__cursor_checkkey(b));
@@ -240,7 +240,7 @@ __curhs_next(WT_CURSOR *cursor)
 
     hs_cursor = (WT_CURSOR_HS *)cursor;
     file_cursor = hs_cursor->file_cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, next, CUR2BT(file_cursor));
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curhs_next, CUR2BT(file_cursor));
 
     WT_ERR(__curhs_file_cursor_next(session, file_cursor));
     /*
@@ -275,7 +275,7 @@ __curhs_prev(WT_CURSOR *cursor)
 
     hs_cursor = (WT_CURSOR_HS *)cursor;
     file_cursor = hs_cursor->file_cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, prev, CUR2BT(file_cursor));
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curhs_prev, CUR2BT(file_cursor));
 
     WT_ERR(__curhs_file_cursor_prev(session, file_cursor));
     /*
@@ -311,7 +311,7 @@ __curhs_close(WT_CURSOR *cursor)
     hs_cursor = (WT_CURSOR_HS *)cursor;
     file_cursor = hs_cursor->file_cursor;
     CURSOR_API_CALL_PREPARE_ALLOWED(
-      cursor, session, close, file_cursor == NULL ? NULL : CUR2BT(file_cursor));
+      cursor, session, __curhs_close, file_cursor == NULL ? NULL : CUR2BT(file_cursor));
 err:
     __wt_scr_free(session, &hs_cursor->datastore_key);
     if (file_cursor != NULL)
@@ -336,7 +336,7 @@ __curhs_reset(WT_CURSOR *cursor)
 
     hs_cursor = (WT_CURSOR_HS *)cursor;
     file_cursor = hs_cursor->file_cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, reset, CUR2BT(file_cursor));
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curhs_reset, CUR2BT(file_cursor));
 
     ret = file_cursor->reset(file_cursor);
     WT_TIME_WINDOW_INIT(&hs_cursor->time_window);
@@ -720,7 +720,7 @@ __curhs_search_near(WT_CURSOR *cursor, int *exactp)
     file_cursor = hs_cursor->file_cursor;
     *exactp = 0;
 
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, search_near, CUR2BT(file_cursor));
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curhs_search_near, CUR2BT(file_cursor));
 
     WT_ERR(__wt_scr_alloc(session, 0, &datastore_key));
     WT_ERR(__wt_scr_alloc(session, 0, &srch_key));
@@ -954,7 +954,7 @@ __curhs_insert(WT_CURSOR *cursor)
     cbt = (WT_CURSOR_BTREE *)file_cursor;
     hs_tombstone = hs_upd = NULL;
 
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, insert, CUR2BT(file_cursor));
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curhs_insert, CUR2BT(file_cursor));
 
     /*
      * Disable bulk loads into history store. This would normally occur when updating a record with
@@ -1083,7 +1083,7 @@ __curhs_remove(WT_CURSOR *cursor)
     file_cursor = hs_cursor->file_cursor;
     cbt = (WT_CURSOR_BTREE *)file_cursor;
 
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, remove, CUR2BT(file_cursor));
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curhs_remove, CUR2BT(file_cursor));
 
     /* Remove must be called with cursor positioned. */
     WT_ASSERT(session, F_ISSET(file_cursor, WT_CURSTD_KEY_INT));
@@ -1124,7 +1124,7 @@ __curhs_update(WT_CURSOR *cursor)
     cbt = (WT_CURSOR_BTREE *)file_cursor;
     hs_tombstone = hs_upd = NULL;
 
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, update, CUR2BT(file_cursor));
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curhs_update, CUR2BT(file_cursor));
 
     /* Update must be called with cursor positioned. */
     WT_ASSERT(session, F_ISSET(file_cursor, WT_CURSTD_KEY_INT));

@@ -107,7 +107,7 @@ __curds_bound(WT_CURSOR *cursor, const char *config)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_API_CALL(cursor, session, bound, NULL);
+    CURSOR_API_CALL(cursor, session, __curds_bound, NULL);
 
     WT_ERR(__curds_key_set(cursor));
     ret = __curds_cursor_resolve(cursor, source->bound(source, config));
@@ -127,7 +127,7 @@ __curds_compare(WT_CURSOR *a, WT_CURSOR *b, int *cmpp)
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
 
-    CURSOR_API_CALL(a, session, compare, NULL);
+    CURSOR_API_CALL(a, session, __curds_compare, NULL);
 
     /*
      * Confirm both cursors refer to the same source and have keys, then compare them.
@@ -172,7 +172,7 @@ __curds_next(WT_CURSOR *cursor)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_API_CALL(cursor, session, next, NULL);
+    CURSOR_API_CALL(cursor, session, __curds_next, NULL);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_next);
 
@@ -196,7 +196,7 @@ __curds_prev(WT_CURSOR *cursor)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_API_CALL(cursor, session, prev, NULL);
+    CURSOR_API_CALL(cursor, session, __curds_prev, NULL);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_prev);
 
@@ -220,7 +220,7 @@ __curds_reset(WT_CURSOR *cursor)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, reset, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curds_reset, NULL);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_reset);
 
@@ -245,7 +245,7 @@ __curds_search(WT_CURSOR *cursor)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_API_CALL(cursor, session, search, NULL);
+    CURSOR_API_CALL(cursor, session, __curds_search, NULL);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_search);
 
@@ -269,7 +269,7 @@ __curds_search_near(WT_CURSOR *cursor, int *exact)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_API_CALL(cursor, session, search_near, NULL);
+    CURSOR_API_CALL(cursor, session, __curds_search_near, NULL);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_search_near);
 
@@ -293,7 +293,7 @@ __curds_insert(WT_CURSOR *cursor)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_UPDATE_API_CALL(cursor, session, insert);
+    CURSOR_UPDATE_API_CALL(cursor, session, __curds_insert);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_insert);
     WT_STAT_DATA_INCRV(session, cursor_insert_bytes, cursor->key.size + cursor->value.size);
@@ -321,7 +321,7 @@ __curds_update(WT_CURSOR *cursor)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_UPDATE_API_CALL(cursor, session, update);
+    CURSOR_UPDATE_API_CALL(cursor, session, __curds_update);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_update);
     WT_STAT_CONN_DATA_INCRV(session, cursor_update_bytes, cursor->value.size);
@@ -374,7 +374,7 @@ __curds_reserve(WT_CURSOR *cursor)
 
     source = ((WT_CURSOR_DATA_SOURCE *)cursor)->source;
 
-    CURSOR_UPDATE_API_CALL(cursor, session, reserve);
+    CURSOR_UPDATE_API_CALL(cursor, session, __curds_reserve);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_reserve);
 
@@ -398,7 +398,7 @@ __curds_close(WT_CURSOR *cursor)
     WT_SESSION_IMPL *session;
 
     cds = (WT_CURSOR_DATA_SOURCE *)cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, close, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curds_close, NULL);
 err:
 
     if (cds->source != NULL)

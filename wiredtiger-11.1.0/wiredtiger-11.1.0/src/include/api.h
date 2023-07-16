@@ -70,12 +70,22 @@
     do {                             \
     API_SESSION_INIT(s, h, n, dh)
 
+//s:session  h+n:config_entries中的内容  dh:(s)->dhandle   config:配置字符串  cfg:为组装后的数组=config_entrie数组每一行的第二个指标+config+NULL
+
 #define API_CALL(s, h, n, dh, config, cfg)                                \
     do {                                                                  \
         const char *(cfg)[] = {WT_CONFIG_BASE(s, h##_##n), config, NULL}; \
         API_SESSION_INIT(s, h, n, dh);                                    \
         if ((config) != NULL)                                             \
     WT_ERR(__wt_config_check((s), WT_CONFIG_REF(s, h##_##n), (config), 0))
+
+#define API_CALL2(s, h, n, fn, dh, config, cfg)                                \
+            do {                                                                  \
+                const char *(cfg)[] = {WT_CONFIG_BASE(s, h##_##n), config, NULL}; \
+                API_SESSION_INIT(s, h, fn, dh);                                    \
+                if ((config) != NULL)                                             \
+            WT_ERR(__wt_config_check((s), WT_CONFIG_REF(s, h##_##n), (config), 0))
+
 
 #define API_END(s, ret)                                                                    \
     if ((s) != NULL) {                                                                     \
@@ -100,10 +110,10 @@
     while (0)
 
 /* An API call wrapped in a transaction if necessary. */
-#define TXN_API_CALL(s, h, n, dh, config, cfg)                              \
+#define TXN_API_CALL(s, h, n, fn, dh, config, cfg)                              \
     do {                                                                    \
         bool __autotxn = false, __update = false;                           \
-        API_CALL(s, h, n, dh, config, cfg);                                 \
+        API_CALL2(s, h, n, fn, dh, config, cfg);                                 \
         __autotxn = !F_ISSET((s)->txn, WT_TXN_AUTOCOMMIT | WT_TXN_RUNNING); \
         if (__autotxn)                                                      \
             F_SET((s)->txn, WT_TXN_AUTOCOMMIT);                             \
@@ -191,22 +201,22 @@
 
 #define API_USER_ENTRY(s) (s)->api_call_counter == 1
 
-#define CONNECTION_API_CALL(conn, s, n, config, cfg) \
+#define CONNECTION_API_CALL(conn, s, n, fn, config, cfg) \
     s = (conn)->default_session;                     \
-    API_CALL(s, WT_CONNECTION, n, NULL, config, cfg)
+    API_CALL2(s, WT_CONNECTION, n, fn, NULL, config, cfg)
 
 #define CONNECTION_API_CALL_NOCONF(conn, s, n) \
     s = (conn)->default_session;               \
     API_CALL_NOCONF(s, WT_CONNECTION, n, NULL)
 
-#define SESSION_API_CALL_PREPARE_ALLOWED(s, n, config, cfg) \
-    API_CALL(s, WT_SESSION, n, NULL, config, cfg)
+#define SESSION_API_CALL_PREPARE_ALLOWED(s, n, fn, config, cfg) \
+    API_CALL2(s, WT_SESSION, n, fn, NULL, config, cfg)
 
 #define SESSION_API_CALL_PREPARE_ALLOWED_NOCONF(s, n) API_CALL_NOCONF(s, WT_SESSION, n, NULL)
 
-#define SESSION_API_CALL_PREPARE_NOT_ALLOWED(s, n, config, cfg) \
+#define SESSION_API_CALL_PREPARE_NOT_ALLOWED(s, n, fn, config, cfg) \
     SESSION_API_PREPARE_CHECK(s, WT_SESSION, n);                \
-    API_CALL(s, WT_SESSION, n, NULL, config, cfg)
+    API_CALL2(s, WT_SESSION, n, fn, NULL, config, cfg)
 
 #define SESSION_API_CALL_PREPARE_NOT_ALLOWED_NOCONF(s, n) \
     SESSION_API_PREPARE_CHECK(s, WT_SESSION, n);          \
@@ -223,15 +233,15 @@
         }                                                      \
     } while (0)
 
-#define SESSION_API_CALL(s, n, config, cfg)      \
+#define SESSION_API_CALL(s, n, fn, config, cfg)      \
     SESSION_API_PREPARE_CHECK(s, WT_SESSION, n); \
-    API_CALL(s, WT_SESSION, n, NULL, config, cfg)
+    API_CALL2(s, WT_SESSION, n, fn, NULL, config, cfg)
 
 #define SESSION_API_CALL_NOCONF(s, n) API_CALL_NOCONF(s, WT_SESSION, n, NULL)
 
-#define SESSION_TXN_API_CALL(s, n, config, cfg)  \
+#define SESSION_TXN_API_CALL(s, n, fn, config, cfg)  \
     SESSION_API_PREPARE_CHECK(s, WT_SESSION, n); \
-    TXN_API_CALL(s, WT_SESSION, n, NULL, config, cfg)
+    TXN_API_CALL(s, WT_SESSION, n, fn, NULL, config, cfg)
 
 #define CURSOR_API_CALL(cur, s, n, bt)                                                     \
     (s) = CUR2S(cur);                                                                      \
@@ -240,10 +250,10 @@
     if (F_ISSET(cur, WT_CURSTD_CACHED))                                                    \
     WT_ERR(__wt_cursor_cached(cur))
 
-#define CURSOR_API_CALL_CONF(cur, s, n, config, cfg, bt)                                         \
+#define CURSOR_API_CALL_CONF(cur, s, n, fn, config, cfg, bt)                                         \
     (s) = CUR2S(cur);                                                                            \
     SESSION_API_PREPARE_CHECK(s, WT_CURSOR, n);                                                  \
-    API_CALL(s, WT_CURSOR, n, ((bt) == NULL) ? NULL : ((WT_BTREE *)(bt))->dhandle, config, cfg); \
+    API_CALL2(s, WT_CURSOR, n, fn, ((bt) == NULL) ? NULL : ((WT_BTREE *)(bt))->dhandle, config, cfg); \
     if (F_ISSET(cur, WT_CURSTD_CACHED))                                                          \
     WT_ERR(__wt_cursor_cached(cur))
 
@@ -261,8 +271,8 @@
     CURSOR_API_CALL(cur, s, n, bt);             \
     JOINABLE_CURSOR_CALL_CHECK(cur)
 
-#define JOINABLE_CURSOR_API_CALL_CONF(cur, s, n, config, cfg, bt) \
-    CURSOR_API_CALL_CONF(cur, s, n, config, cfg, bt);             \
+#define JOINABLE_CURSOR_API_CALL_CONF(cur, s, n, fn, config, cfg, bt) \
+    CURSOR_API_CALL_CONF(cur, s, n, fn, config, cfg, bt);             \
     JOINABLE_CURSOR_CALL_CHECK(cur)
 
 #define JOINABLE_CURSOR_API_CALL_PREPARE_ALLOWED(cur, s, n, bt) \

@@ -328,7 +328,7 @@ __wt_session_compact(WT_SESSION *wt_session, const char *uri, const char *config
     ignore_cache_size_set = false;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, compact, config, cfg);
+    SESSION_API_CALL(session, compact, __wt_session_compact, config, cfg);
 
     WT_STAT_CONN_SET(session, session_table_compact_running, 1);
 

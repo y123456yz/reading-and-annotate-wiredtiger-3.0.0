@@ -587,7 +587,7 @@ struct __wt_cursor_version {
 };
 
 #define WT_CURSOR_PRIMARY(cursor) (((WT_CURSOR_TABLE *)(cursor))->cg_cursors[0])
-
+//
 #define WT_CURSOR_RECNO(cursor) WT_STREQ((cursor)->key_format, "r")
 
 #define WT_CURSOR_RAW_OK \

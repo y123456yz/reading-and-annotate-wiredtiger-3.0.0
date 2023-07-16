@@ -58,6 +58,13 @@ typedef enum __wt_cache_op {
 
 /*
  * WiredTiger cache structure.
+ Internally, WiredTiger's cache state is represented by the WT_CACHE structure, which contains counters and 
+ parameter settings for tracking cache usage and controlling eviction policy. The WT_CACHE also includes state 
+ WiredTiger uses to track the progress of eviction. There is a single WT_CACHE for each connection, accessed via 
+ the WT_CONNECTION_IMPL structure.
+
+//每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
+//WT_CONNECTION_IMPL->cache为该结构
  */
 struct __wt_cache {
     /*
@@ -245,7 +252,12 @@ struct __wt_cache {
 /*
  * WT_CACHE_POOL --
  *	A structure that represents a shared cache.
+
+ When shared caching is enabled, WiredTiger creates a cache pool server thread to manage the shared cache. It also 
+ allocates a global WT_CACHE_POOL structure, which stores settings and statistics for the shared cache. These settings 
+ include a minimum and maximum cache size for connections participating in the shared cache.
  */
+////__wt_process.cache_pool存入这个全局变量成员中
 struct __wt_cache_pool {
     WT_SPINLOCK cache_pool_lock;
     WT_CONDVAR *cache_pool_cond;
@@ -256,6 +268,7 @@ struct __wt_cache_pool {
     uint64_t currently_used;
     uint32_t refs; /* Reference count for structure. */
     /* Locked: List of connections participating in the cache pool. */
+    //为了计算所有conn上面的内存情况及内存压力
     TAILQ_HEAD(__wt_cache_pool_qh, __wt_connection_impl) cache_pool_qh;
 
     uint8_t pool_managed; /* Cache pool has a manager thread */

@@ -55,9 +55,10 @@ typedef TAILQ_HEAD(__wt_cursor_list, __wt_cursor) WT_CURSOR_LIST;
 /*
  * WT_SESSION_IMPL --
  *	Implementation of WT_SESSION.
- */
+ */  //__open_session中获取session
 struct __wt_session_impl {
-    WT_SESSION iface;
+    WT_SESSION iface;//__open_session赋值，确定session的各种回调
+    //如果不是自定义handle则使用默认handle  __wt_event_handler_set
     WT_EVENT_HANDLER *event_handler; /* Application's event handlers */
 
     void *lang_private; /* Language specific private storage */
@@ -69,6 +70,7 @@ struct __wt_session_impl {
 
     const char *name;   /* Name */
     const char *lastop; /* Last operation */
+    //标记在session桶中的位置
     uint32_t id;        /* UID, offset in session array */
 
     uint64_t cache_wait_us;        /* Wait time for cache for current operation */
@@ -235,16 +237,17 @@ struct __wt_session_impl {
     /*
      * The random number state persists past session close because we don't want to repeatedly use
      * the same values for skiplist depth when the application isn't caching sessions.
-     */
+     */ //随机数，初始化__wt_connection_init
     WT_RAND_STATE rnd; /* Random number generation state */
 
     /*
      * Hash tables are allocated lazily as sessions are used to keep the size of this structure from
      * growing too large.
      */
+    //__wt_cursor_cache中往桶中添加cursor
+    //一个session桶中包含多个cursor    __open_session中分配空间,遍历查找方法可以参考__wt_cursor_cache_get
     WT_CURSOR_LIST *cursor_cache; /* Hash table of cached cursors */
-
-    /* Hashed handle reference list array */
+    /* Hashed handle reference list array */ //handle to the session's cache.
     TAILQ_HEAD(__dhandles_hash, __wt_data_handle_cache) * dhhash;
 
 /* Generations manager */
@@ -290,6 +293,7 @@ struct __wt_session_impl {
     uint32_t hazard_size;  /* Hazard pointer array slots */
     uint32_t hazard_inuse; /* Hazard pointer array slots in-use */
     uint32_t nhazard;      /* Count of active hazard pointers */
+    //风险指针(Hazard Pointers)——用于无锁对象的安全内存回收
     WT_HAZARD *hazard;     /* Hazard pointer array */
 
     /*

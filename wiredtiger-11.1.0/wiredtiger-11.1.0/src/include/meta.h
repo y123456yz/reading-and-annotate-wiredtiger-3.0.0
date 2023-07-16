@@ -8,10 +8,14 @@
 
 #define WT_WIREDTIGER "WiredTiger"        /* Version file */
 #define WT_SINGLETHREAD "WiredTiger.lock" /* Locking file */
-
+//当创建WiredTiger数据库时，传递给wiredtiger_open的配置字符串被保存到名为WiredTiger的WiredTiger主目录文件中。
+//该配置文件将在随后打开数据库时读取。 参考https://source.wiredtiger.com/develop/database_config.html
+//记录wiredtiger_open函数的配置参数信息
 #define WT_BASECONFIG "WiredTiger.basecfg"         /* Base configuration */
 #define WT_BASECONFIG_SET "WiredTiger.basecfg.set" /* Base config temp */
 
+
+//https://source.wiredtiger.com/develop/database_config.html#config_order
 #define WT_USERCONFIG "WiredTiger.config" /* User configuration */
 
 /*
@@ -23,14 +27,20 @@
 #define WT_LOGINCR_BACKUP "WiredTiger.ibackup" /* Log incremental backup */
 #define WT_LOGINCR_SRC "WiredTiger.isrc"       /* Log incremental source */
 
+//明文得文件，不需要解析，cat即可，存放wiredtiger.wt元数据信息
 #define WT_METADATA_TURTLE "WiredTiger.turtle"         /* Metadata metadata */
 #define WT_METADATA_TURTLE_SET "WiredTiger.turtle.set" /* Turtle temp file */
 
 #define WT_METADATA_URI "metadata:"           /* Metadata alias */
+//WiredTiger.wt中的元数据捕获有关用户数据库的重要信息。元数据包括跟踪基本信息，例如数据库中存在的文件和表、它们的相关配置以
+//及最新的检查点。检查点信息告诉WiredTiger在访问文件时到哪里查找根页面和树的所有其他部分。WiredTiger中的主要元数据存储在
+//WiredTiger.wt中  参考https://source.wiredtiger.com/develop/arch-metadata.html
 #define WT_METAFILE "WiredTiger.wt"           /* Metadata table */
 #define WT_METAFILE_SLVG "WiredTiger.wt.orig" /* Metadata copy */
 #define WT_METAFILE_URI "file:WiredTiger.wt"  /* Metadata table URI */
 
+//Snapshot History Retention,MongoDB maintains the snapshot history in the WiredTigerHS.wt file
+//参考https://www.mongodb.com/docs/manual/core/wiredtiger/
 #define WT_HS_FILE "WiredTigerHS.wt"     /* History store table */
 #define WT_HS_URI "file:WiredTigerHS.wt" /* History store table URI */
 

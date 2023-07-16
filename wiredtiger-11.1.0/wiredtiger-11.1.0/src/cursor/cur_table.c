@@ -42,7 +42,7 @@ __curextract_insert(WT_CURSOR *cursor)
     WT_ITEM *key, ikey, pkey;
     WT_SESSION_IMPL *session;
 
-    CURSOR_API_CALL(cursor, session, insert, NULL);
+    CURSOR_API_CALL(cursor, session, __curextract_insert, NULL);
 
     cextract = (WT_CURSOR_EXTRACTOR *)cursor;
 
@@ -214,7 +214,7 @@ err:
 /*
  * __wt_curtable_set_key --
  *     WT_CURSOR->set_key implementation for tables.
- */
+ */ ////对应初始化赋值不通type类型不同，参考__session_open_cursor_int
 void
 __wt_curtable_set_key(WT_CURSOR *cursor, ...)
 {

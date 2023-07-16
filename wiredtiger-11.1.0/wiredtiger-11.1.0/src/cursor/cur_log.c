@@ -64,7 +64,7 @@ __curlog_compare(WT_CURSOR *a, WT_CURSOR *b, int *cmpp)
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
 
-    CURSOR_API_CALL(a, session, compare, NULL);
+    CURSOR_API_CALL(a, session, __curlog_compare, NULL);
 
     acl = (WT_CURSOR_LOG *)a;
     bcl = (WT_CURSOR_LOG *)b;
@@ -201,7 +201,7 @@ __curlog_next(WT_CURSOR *cursor)
 
     cl = (WT_CURSOR_LOG *)cursor;
 
-    CURSOR_API_CALL(cursor, session, next, NULL);
+    CURSOR_API_CALL(cursor, session, __curlog_next, NULL);
 
     /*
      * If we don't have a record, or went to the end of the record we have, or we are in the
@@ -241,7 +241,7 @@ __curlog_search(WT_CURSOR *cursor)
     raw = F_MASK(cursor, WT_CURSTD_RAW);
     F_CLR(cursor, WT_CURSTD_RAW);
 
-    CURSOR_API_CALL(cursor, session, search, NULL);
+    CURSOR_API_CALL(cursor, session, __curlog_search, NULL);
 
     /*
      * !!! We are ignoring the counter and only searching based on the LSN.
@@ -271,7 +271,7 @@ __curlog_reset(WT_CURSOR *cursor)
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
 
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, reset, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curlog_reset, NULL);
     cl = (WT_CURSOR_LOG *)cursor;
     cl->stepp = cl->stepp_end = NULL;
     cl->step_count = 0;
@@ -295,7 +295,7 @@ __curlog_close(WT_CURSOR *cursor)
     WT_SESSION_IMPL *session;
 
     cl = (WT_CURSOR_LOG *)cursor;
-    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, close, NULL);
+    CURSOR_API_CALL_PREPARE_ALLOWED(cursor, session, __curlog_close, NULL);
 err:
 
     conn = S2C(session);

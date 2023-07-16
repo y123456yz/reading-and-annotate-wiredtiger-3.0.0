@@ -11,7 +11,7 @@
 /*
  * __wt_buf_grow_worker --
  *     Grow a buffer that may be in-use, and ensure that all data is local to the buffer.
- */
+ */ //reallocÄÚ´æ
 int
 __wt_buf_grow_worker(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
   WT_GCC_FUNC_ATTRIBUTE((visibility("default")))

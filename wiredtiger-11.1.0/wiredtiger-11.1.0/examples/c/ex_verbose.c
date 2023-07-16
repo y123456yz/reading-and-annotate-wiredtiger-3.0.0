@@ -63,21 +63,44 @@ config_verbose(void)
     event_handler.handle_close = NULL;
     event_handler.handle_general = NULL;
 
-    /*! [Configure verbose_messaging] */
-    error_check(wiredtiger_open(
-      home, (WT_EVENT_HANDLER *)&event_handler, "create,verbose=[api:1,version,write:0]", &conn));
-    /*! [Configure verbose_messaging] */
+    fprintf(stderr, "WiredTiger Error: stderr\r\n");
 
+    //../wt dump file:verbose.wt获取文件内容
+     //__conn_reconfigure可以修改参数配置
+    /*! [Configure verbose_messaging] */
+    error_check(wiredtiger_open( //可以配合mongodb内核的WiredTigerKVEngine::WiredTigerKVEngine进行阅读
+    home, (WT_EVENT_HANDLER *)&event_handler, "create,verbose=[api=5,block=5,checkpoint=5,checkpoint_progress=5,compact=5,evict=5,evict_stuck=5,evictserver=5,fileops=5,handleops=5,log=5,lsm=5,lsm_manager=5,metadata=5,mutex=5,overflow=5,read=5,reconcile=5,reconcile=5,recovery=5,recovery_progress=5,salvage=5,shared_cache=5,split=5,thread_group=5,split=5,thread_group=5,timestamp=5,transaction=5,verify=5,version=5,write=5]", &conn));
+        
+        //home, (WT_EVENT_HANDLER *)&event_handler, "create,verbose=[api=1,block=1,checkpoint=1,checkpoint_progress=1,compact=1,evict=1,evict_stuck=1,evictserver=1,fileops=1,handleops=1,log=1,lsm=1,lsm_manager=1,metadata=1,mutex=1,overflow=1,read=1,reconcile=1,reconcile=1,recovery=1,recovery_progress=1,salvage=1,shared_cache=1,split=1,thread_group=1,split=1,thread_group=1,timestamp=1,transaction=1,verify=1,version=1,write=1]", &conn));
+     //home, (WT_EVENT_HANDLER *)&event_handler, "create,verbose=[api:1,version,write:0]", &conn));
+     // home, (WT_EVENT_HANDLER *)&event_handler, "create,verbose=[]", &conn));
+    /*! [Configure verbose_messaging] */
+    // usleep(30000000);
+
+    
     /* Make a series of API calls, to ensure verbose messages are produced. */
-    printf("ex_verbose: expect verbose messages to follow:\n");
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to follow: step1:\n");
+    //__conn_open_session  //从session hash桶中获取一个session
     error_check(conn->open_session(conn, NULL, NULL, &session));
+
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step2:\n");
+    //__session_create 
+    //Format types参考http://source.wiredtiger.com/3.2.1/schema.html
     error_check(session->create(session, "table:verbose", "key_format=S,value_format=S"));
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step3:\n");
+    //__session_open_cursor
     error_check(session->open_cursor(session, "table:verbose", NULL, NULL, &cursor));
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step4:\n");
+    //__wt_cursor_set_keyv
     cursor->set_key(cursor, "foo");
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step5:\n");
     cursor->set_value(cursor, "bar");
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step6:\n");
     error_check(cursor->insert(cursor));
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step7:\n");
     error_check(cursor->close(cursor));
-    printf("ex_verbose: end of verbose messages\n");
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step8:\n");
+    printf("\r\n\r\n\r\nex_verbose: end of verbose messages\n");
 
     error_check(conn->close(conn, NULL));
 }

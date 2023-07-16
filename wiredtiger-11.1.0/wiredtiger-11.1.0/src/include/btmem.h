@@ -549,6 +549,24 @@ struct __wt_col_fix_tw {
 #define WT_COL_FIX_TW_CELL(page, entry) ((WT_CELL *)((uint8_t *)(page)->dsk + (entry)->cell_offset))
 
 /*
+ * Macro to walk the list of references in an internal page.
+ */
+#define WT_INTL_FOREACH_BEGIN(session, page, ref)                                    \
+    do {                                                                             \
+        WT_PAGE_INDEX *__pindex;                                                     \
+        WT_REF **__refp;                                                             \
+        uint32_t __entries;                                                          \
+        WT_INTL_INDEX_GET(session, page, __pindex);                                  \
+        for (__refp = __pindex->index, __entries = __pindex->entries; __entries > 0; \
+             --__entries) {                                                          \
+            (ref) = *__refp++;
+
+#undef pg_intl_parent_ref
+#define pg_intl_parent_ref u.intl.parent_ref
+#undef pg_intl_split_gen
+#define pg_intl_split_gen u.intl.split_gen
+
+/*
  * WT_PAGE --
  *	The WT_PAGE structure describes the in-memory page information.
  */
@@ -584,10 +602,6 @@ struct __wt_page {
 
             WT_PAGE_INDEX *volatile __index; /* Collated children */
         } intl;
-#undef pg_intl_parent_ref
-#define pg_intl_parent_ref u.intl.parent_ref
-#undef pg_intl_split_gen
-#define pg_intl_split_gen u.intl.split_gen
 
 /*
  * Macros to copy/set the index because the name is obscured to ensure the field isn't read multiple
@@ -609,18 +623,7 @@ struct __wt_page {
         ((page)->u.intl.__index) = (v); \
     } while (0)
 
-/*
- * Macro to walk the list of references in an internal page.
- */
-#define WT_INTL_FOREACH_BEGIN(session, page, ref)                                    \
-    do {                                                                             \
-        WT_PAGE_INDEX *__pindex;                                                     \
-        WT_REF **__refp;                                                             \
-        uint32_t __entries;                                                          \
-        WT_INTL_INDEX_GET(session, page, __pindex);                                  \
-        for (__refp = __pindex->index, __entries = __pindex->entries; __entries > 0; \
-             --__entries) {                                                          \
-            (ref) = *__refp++;
+
 #define WT_INTL_FOREACH_REVERSE_BEGIN(session, page, ref)                                 \
     do {                                                                                  \
         WT_PAGE_INDEX *__pindex;                                                          \
@@ -911,6 +914,17 @@ struct __wt_ref_hist {
 /*
  * WT_REF --
  *	A single in-memory page and state information.
+ //To access a page in the B-Tree, we require a WT_REF which tracks whether the page has or has not been loaded from storage
+ //
+
+ //Each page in the cache is accessed via a WT_REF structure. When WiredTiger opens a Btree, it places a WT_REF for the 
+ //cached root page in the corresponding WT_BTREE structure. A WT_REF can represent either a page in the cache or one that 
+ //has not been loaded yet. The page itself is represented by a WT_PAGE structure. This includes a pointer to a buffer that
+ //contains the on-disk page image (decrypted and uncompressed). It also holds the supplemental structures that WiredTiger
+ //uses to access and update the page while it is cached.
+
+ An internal Btree page will have an array of WT_REF structures. A row-store leaf page will have an array of WT_ROW 
+ structures representing the KV pairs stored on the page.
  */
 struct __wt_ref {
     WT_PAGE *page; /* Page */

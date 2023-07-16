@@ -9,7 +9,7 @@
 /*
  * __wt_buf_grow --
  *     Grow a buffer that may be in-use, and ensure that all data is local to the buffer.
- */
+ *///realloc内存空间，保证buf中有size长度空间
 static inline int
 __wt_buf_grow(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
 {

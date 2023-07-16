@@ -276,7 +276,7 @@ __session_close(WT_SESSION *wt_session, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
 
-    SESSION_API_CALL_PREPARE_ALLOWED(session, close, config, cfg);
+    SESSION_API_CALL_PREPARE_ALLOWED(session, close, __session_close, config, cfg);
     WT_UNUSED(cfg);
 
     WT_TRET(__wt_session_close_internal(session));
@@ -395,7 +395,7 @@ __session_reconfigure(WT_SESSION *wt_session, const char *config)
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, reconfigure, config, cfg);
+    SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, reconfigure, __session_reconfigure, config, cfg);
     WT_UNUSED(cfg);
 
     WT_ERR(__wt_txn_context_check(session, false));
@@ -462,7 +462,7 @@ __session_reconfigure_notsup(WT_SESSION *wt_session, const char *config)
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, reconfigure);
+    SESSION_API_CALL_NOCONF(session, __session_reconfigure_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -636,7 +636,7 @@ __session_open_cursor(WT_SESSION *wt_session, const char *uri, WT_CURSOR *to_dup
     hash_value = 0;
     dup_backup = false;
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, open_cursor, config, cfg);
+    SESSION_API_CALL(session, open_cursor, __session_open_cursor, config, cfg);
 
     /*
      * Check for early usage of a user session to collect statistics. If the connection is not fully
@@ -717,7 +717,7 @@ __session_alter_internal(WT_SESSION_IMPL *session, const char *uri, const char *
 {
     WT_DECL_RET;
 
-    SESSION_API_CALL(session, alter, config, cfg);
+    SESSION_API_CALL(session, alter, __session_alter_internal, config, cfg);
 
     /* In-memory ignores alter operations. */
     if (F_ISSET(S2C(session), WT_CONN_IN_MEMORY))
@@ -781,6 +781,7 @@ __session_blocking_checkpoint(WT_SESSION_IMPL *session)
  * __session_alter --
  *     Alter a table setting.
  */
+//WT_SESSION::alter allows modification of some table settings after creation.
 static int
 __session_alter(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -818,7 +819,7 @@ __session_alter_readonly(WT_SESSION *wt_session, const char *uri, const char *co
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, alter);
+    SESSION_API_CALL_NOCONF(session, __session_alter_readonly);
 
     WT_STAT_CONN_INCR(session, session_table_alter_fail);
     ret = __wt_session_notsup(session);
@@ -843,7 +844,7 @@ __wt_session_create(WT_SESSION_IMPL *session, const char *uri, const char *confi
 /*
  * __session_create --
  *     WT_SESSION->create method.
- */
+ */ //
 static int
 __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -855,7 +856,8 @@ __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
     session = (WT_SESSION_IMPL *)wt_session;
     is_import = session->import_list != NULL ||
       (__wt_config_getones(session, config, "import.enabled", &cval) == 0 && cval.val != 0);
-    SESSION_API_CALL(session, create, config, cfg);
+    //对应日志WT_SESSION.create: [WT_VERB_API][DEBUG_1]: CALL: WT_SESSION:create
+    SESSION_API_CALL(session, create, __session_create, config, cfg);
     WT_UNUSED(cfg);
 
     /* Disallow objects in the WiredTiger name space. */
@@ -912,7 +914,7 @@ __session_create_readonly(WT_SESSION *wt_session, const char *uri, const char *c
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, create);
+    SESSION_API_CALL_NOCONF(session, __session_create_readonly);
 
     WT_STAT_CONN_INCR(session, session_table_create_fail);
     ret = __wt_session_notsup(session);
@@ -934,7 +936,7 @@ __session_log_flush(WT_SESSION *wt_session, const char *config)
     uint32_t flags;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, log_flush, config, cfg);
+    SESSION_API_CALL(session, log_flush, __session_log_flush, config, cfg);
     WT_STAT_CONN_INCR(session, log_flush);
 
     conn = S2C(session);
@@ -969,7 +971,7 @@ __session_log_flush_readonly(WT_SESSION *wt_session, const char *config)
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, log_flush);
+    SESSION_API_CALL_NOCONF(session, __session_log_flush_readonly);
 
     ret = __wt_session_notsup(session);
 err:
@@ -1013,7 +1015,7 @@ __session_log_printf_readonly(WT_SESSION *wt_session, const char *fmt, ...)
     WT_UNUSED(fmt);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, log_printf);
+    SESSION_API_CALL_NOCONF(session, __session_log_printf_readonly);
 
     ret = __wt_session_notsup(session);
 err:
@@ -1024,6 +1026,7 @@ err:
  * __session_rename --
  *     WT_SESSION->rename method.
  */
+//WT_SESSION::rename schema operation renames the underlying data objects on the filesystem and updates the metadata accordingly.
 static int
 __session_rename(WT_SESSION *wt_session, const char *uri, const char *newuri, const char *config)
 {
@@ -1031,7 +1034,7 @@ __session_rename(WT_SESSION *wt_session, const char *uri, const char *newuri, co
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, rename, config, cfg);
+    SESSION_API_CALL(session, rename, __session_rename, config, cfg);
 
     /* Disallow objects in the WiredTiger name space. */
     WT_ERR(__wt_str_name_check(session, uri));
@@ -1064,7 +1067,7 @@ __session_rename_readonly(
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, rename);
+    SESSION_API_CALL_NOCONF(session, __session_rename_readonly);
 
     WT_STAT_CONN_INCR(session, session_table_rename_fail);
     ret = __wt_session_notsup(session);
@@ -1116,7 +1119,7 @@ __session_reset_notsup(WT_SESSION *wt_session)
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, reset);
+    SESSION_API_CALL_NOCONF(session, __session_reset_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -1126,6 +1129,8 @@ err:
  * __session_drop --
  *     WT_SESSION->drop method.
  */
+//WT_SESSION::drop operation drops the specified uri. The method will delete all related files and metadata entries. 
+//It is possible to keep the underlying files by specifying "remove_files=false" in the config string.
 static int
 __session_drop(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -1135,7 +1140,7 @@ __session_drop(WT_SESSION *wt_session, const char *uri, const char *config)
     bool checkpoint_wait, lock_wait;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, drop, config, cfg);
+    SESSION_API_CALL(session, drop, __session_drop, config, cfg);
 
     /* Disallow objects in the WiredTiger name space. */
     WT_ERR(__wt_str_name_check(session, uri));
@@ -1193,7 +1198,7 @@ __session_drop_readonly(WT_SESSION *wt_session, const char *uri, const char *con
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, drop);
+    SESSION_API_CALL_NOCONF(session, __session_drop_readonly);
 
     WT_STAT_CONN_INCR(session, session_table_drop_fail);
     ret = __wt_session_notsup(session);
@@ -1224,7 +1229,7 @@ __session_join(
     bool nested;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, join, config, cfg);
+    SESSION_API_CALL(session, join, __session_join, config, cfg);
 
     firstcg = NULL;
     table = NULL;
@@ -1342,7 +1347,7 @@ __session_join_notsup(
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, join);
+    SESSION_API_CALL_NOCONF(session, __session_join_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -1373,7 +1378,7 @@ __session_salvage(WT_SESSION *wt_session, const char *uri, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
 
-    SESSION_API_CALL(session, salvage, config, cfg);
+    SESSION_API_CALL(session, salvage, __session_salvage, config, cfg);
 
     WT_ERR(__wt_inmem_unsupported_op(session, NULL));
 
@@ -1411,7 +1416,7 @@ __session_salvage_readonly(WT_SESSION *wt_session, const char *uri, const char *
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, salvage);
+    SESSION_API_CALL_NOCONF(session, __session_salvage_readonly);
 
     WT_STAT_CONN_INCR(session, session_table_salvage_fail);
     ret = __wt_session_notsup(session);
@@ -1572,6 +1577,11 @@ err:
  * __session_truncate --
  *     WT_SESSION->truncate method.
  */
+
+//WT_SESSION::truncate truncates a file, table, cursor range, or backup cursor. If start and stop cursors are not 
+//specified all the data stored in the uri will be wiped out. When a range truncate is in progress, and another 
+//transaction inserts a key into that range, the behavior is not well defined. It is best to avoid this type of 
+//situations. See Truncate Operation for more details.
 static int
 __session_truncate(
   WT_SESSION *wt_session, const char *uri, WT_CURSOR *start, WT_CURSOR *stop, const char *config)
@@ -1580,7 +1590,7 @@ __session_truncate(
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_TXN_API_CALL(session, truncate, config, cfg);
+    SESSION_TXN_API_CALL(session, truncate, __session_truncate, config, cfg);
     WT_STAT_CONN_INCR(session, cursor_truncate);
 
     /*
@@ -1653,7 +1663,7 @@ __session_truncate_readonly(
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, truncate);
+    SESSION_API_CALL_NOCONF(session, __session_truncate_readonly);
 
     WT_STAT_CONN_INCR(session, session_table_truncate_fail);
     ret = __wt_session_notsup(session);
@@ -1673,7 +1683,7 @@ __session_upgrade(WT_SESSION *wt_session, const char *uri, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
 
-    SESSION_API_CALL(session, upgrade, config, cfg);
+    SESSION_API_CALL(session, upgrade, __session_upgrade, config, cfg);
 
     WT_ERR(__wt_inmem_unsupported_op(session, NULL));
 
@@ -1701,7 +1711,7 @@ __session_upgrade_readonly(WT_SESSION *wt_session, const char *uri, const char *
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, upgrade);
+    SESSION_API_CALL_NOCONF(session, __session_upgrade_readonly);
 
     ret = __wt_session_notsup(session);
 err:
@@ -1719,7 +1729,7 @@ __session_verify(WT_SESSION *wt_session, const char *uri, const char *config)
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, verify, config, cfg);
+    SESSION_API_CALL(session, verify, __session_verify, config, cfg);
     WT_ERR(__wt_inmem_unsupported_op(session, NULL));
 
     /* Block out checkpoints to avoid spurious EBUSY errors. */
@@ -1750,7 +1760,7 @@ __session_verify_notsup(WT_SESSION *wt_session, const char *uri, const char *con
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, verify);
+    SESSION_API_CALL_NOCONF(session, __session_verify_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -1767,7 +1777,7 @@ __session_begin_transaction(WT_SESSION *wt_session, const char *config)
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, begin_transaction, config, cfg);
+    SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, begin_transaction, __session_begin_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_begin);
     WT_STAT_SESSION_SET(session, txn_bytes_dirty, 0);
 
@@ -1792,7 +1802,7 @@ __session_begin_transaction_notsup(WT_SESSION *wt_session, const char *config)
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, begin_transaction);
+    SESSION_API_CALL_NOCONF(session, __session_begin_transaction_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -1811,7 +1821,7 @@ __session_commit_transaction(WT_SESSION *wt_session, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
     txn = session->txn;
-    SESSION_API_CALL_PREPARE_ALLOWED(session, commit_transaction, config, cfg);
+    SESSION_API_CALL_PREPARE_ALLOWED(session, commit_transaction, __session_commit_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_commit);
 
     if (F_ISSET(txn, WT_TXN_PREPARE)) {
@@ -1863,7 +1873,7 @@ __session_commit_transaction_notsup(WT_SESSION *wt_session, const char *config)
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, commit_transaction);
+    SESSION_API_CALL_NOCONF(session, __session_commit_transaction_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -1880,7 +1890,7 @@ __session_prepare_transaction(WT_SESSION *wt_session, const char *config)
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL(session, prepare_transaction, config, cfg);
+    SESSION_API_CALL(session, prepare_transaction, __session_prepare_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_prepare);
     WT_STAT_CONN_INCR(session, txn_prepare_active);
 
@@ -1907,7 +1917,7 @@ __session_prepare_transaction_readonly(WT_SESSION *wt_session, const char *confi
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, prepare_transaction);
+    SESSION_API_CALL_NOCONF(session, __session_prepare_transaction_readonly);
 
     ret = __wt_session_notsup(session);
 err:
@@ -1926,7 +1936,7 @@ __session_rollback_transaction(WT_SESSION *wt_session, const char *config)
     WT_TXN *txn;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_PREPARE_ALLOWED(session, rollback_transaction, config, cfg);
+    SESSION_API_CALL_PREPARE_ALLOWED(session, rollback_transaction, __session_rollback_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_rollback);
 
     txn = session->txn;
@@ -1960,7 +1970,7 @@ __session_rollback_transaction_notsup(WT_SESSION *wt_session, const char *config
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, rollback_transaction);
+    SESSION_API_CALL_NOCONF(session, __session_rollback_transaction_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -1979,9 +1989,9 @@ __session_timestamp_transaction(WT_SESSION *wt_session, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
 #ifdef HAVE_DIAGNOSTIC
-    SESSION_API_CALL_PREPARE_ALLOWED(session, timestamp_transaction, config, cfg);
+    SESSION_API_CALL_PREPARE_ALLOWED(session, timestamp_transaction, __session_timestamp_transaction, config, cfg);
 #else
-    SESSION_API_CALL_PREPARE_ALLOWED(session, timestamp_transaction, NULL, cfg);
+    SESSION_API_CALL_PREPARE_ALLOWED(session, timestamp_transaction, __session_timestamp_transaction, NULL, cfg);
     cfg[1] = config;
 #endif
 
@@ -2003,7 +2013,7 @@ __session_timestamp_transaction_notsup(WT_SESSION *wt_session, const char *confi
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, timestamp_transaction);
+    SESSION_API_CALL_NOCONF(session, __session_timestamp_transaction_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -2042,7 +2052,7 @@ __session_timestamp_transaction_uint_notsup(
     WT_UNUSED(ts);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, timestamp_transaction_uint);
+    SESSION_API_CALL_NOCONF(session, __session_timestamp_transaction_uint_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -2059,7 +2069,7 @@ __session_query_timestamp(WT_SESSION *wt_session, char *hex_timestamp, const cha
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_PREPARE_ALLOWED(session, query_timestamp, config, cfg);
+    SESSION_API_CALL_PREPARE_ALLOWED(session, query_timestamp, __session_query_timestamp, config, cfg);
 
     ret = __wt_txn_query_timestamp(session, hex_timestamp, cfg, false);
 err:
@@ -2080,7 +2090,7 @@ __session_query_timestamp_notsup(WT_SESSION *wt_session, char *hex_timestamp, co
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, query_timestamp);
+    SESSION_API_CALL_NOCONF(session, __session_query_timestamp_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -2125,7 +2135,7 @@ __session_reset_snapshot_notsup(WT_SESSION *wt_session)
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, reset_snapshot);
+    SESSION_API_CALL_NOCONF(session, __session_reset_snapshot_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -2176,7 +2186,7 @@ __session_transaction_pinned_range_notsup(WT_SESSION *wt_session, uint64_t *pran
     WT_UNUSED(prange);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, transaction_pinned_range);
+    SESSION_API_CALL_NOCONF(session, __session_transaction_pinned_range_notsup);
     ret = __wt_session_notsup(session);
 err:
     API_END_RET(session, ret);
@@ -2208,7 +2218,7 @@ __session_checkpoint(WT_SESSION *wt_session, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
     WT_STAT_CONN_INCR(session, txn_checkpoint);
-    SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, checkpoint, config, cfg);
+    SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, checkpoint, __session_checkpoint, config, cfg);
 
     WT_ERR(__wt_inmem_unsupported_op(session, NULL));
 
@@ -2249,7 +2259,7 @@ __session_checkpoint_readonly(WT_SESSION *wt_session, const char *config)
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, checkpoint);
+    SESSION_API_CALL_NOCONF(session, __session_checkpoint_readonly);
 
     ret = __wt_session_notsup(session);
 err:
@@ -2283,7 +2293,7 @@ __session_flush_tier_readonly(WT_SESSION *wt_session, const char *config)
     WT_UNUSED(config);
 
     session = (WT_SESSION_IMPL *)wt_session;
-    SESSION_API_CALL_NOCONF(session, flush_tier);
+    SESSION_API_CALL_NOCONF(session, __session_flush_tier_readonly);
 
     ret = __wt_session_notsup(session);
 err:
@@ -2305,7 +2315,7 @@ __wt_session_breakpoint(WT_SESSION *wt_session)
 /*
  * __open_session --
  *     Allocate a session handle.
- */
+ */ //从session hash桶中获取一个session
 static int
 __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const char *config,
   WT_SESSION_IMPL **sessionp)
@@ -2363,6 +2373,7 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
     WT_ASSERT(session, !F_ISSET(conn, WT_CONN_CLOSING));
 
     /* Find the first inactive session slot. */
+    //获取一个可用session
     for (session_ret = conn->sessions, i = 0; i < conn->session_size; ++session_ret, ++i)
         if (!session_ret->active)
             break;
@@ -2398,7 +2409,7 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
     if (WT_SESSION_FIRST_USE(session_ret))
         __wt_random_init(&session_ret->rnd);
 
-    __wt_event_handler_set(
+    __wt_event_handler_set(//是否有自定义的handle, 没有则使用默认handle
       session_ret, event_handler == NULL ? session->event_handler : event_handler);
 
     TAILQ_INIT(&session_ret->cursors);
@@ -2485,7 +2496,7 @@ err:
 /*
  * __wt_open_session --
  *     Allocate a session handle.
- */
+ */ //从session hash桶中获取一个session
 int
 __wt_open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const char *config,
   bool open_metadata, WT_SESSION_IMPL **sessionp)
@@ -2495,7 +2506,7 @@ __wt_open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, con
 
     *sessionp = NULL;
 
-    /* Acquire a session. */
+    /* Acquire a session. */  //从session hash桶中获取一个session
     WT_RET(__open_session(conn, event_handler, config, &session));
 
     /*

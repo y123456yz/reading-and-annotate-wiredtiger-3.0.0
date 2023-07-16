@@ -47,7 +47,7 @@ __curbulk_insert_fix(WT_CURSOR *cursor)
      * Bulk cursor inserts are updates, but don't need auto-commit transactions because they are
      * single-threaded and not visible until the bulk cursor is closed.
      */
-    CURSOR_API_CALL(cursor, session, insert, btree);
+    CURSOR_API_CALL(cursor, session, __curbulk_insert_fix, btree); //yang add xxxxxx todo 这一页都需要改一下，注意是这一页
     WT_STAT_CONN_DATA_INCR(session, cursor_insert_bulk);
 
     /*
@@ -96,7 +96,7 @@ __curbulk_insert_fix_bitmap(WT_CURSOR *cursor)
      * Bulk cursor inserts are updates, but don't need auto-commit transactions because they are
      * single-threaded and not visible until the bulk cursor is closed.
      */
-    CURSOR_API_CALL(cursor, session, insert, btree);
+    CURSOR_API_CALL(cursor, session, __curbulk_insert_fix_bitmap, btree);
     WT_STAT_CONN_DATA_INCR(session, cursor_insert_bulk);
 
     WT_ERR(__cursor_checkvalue(cursor));
@@ -128,7 +128,7 @@ __curbulk_insert_var(WT_CURSOR *cursor)
      * Bulk cursor inserts are updates, but don't need auto-commit transactions because they are
      * single-threaded and not visible until the bulk cursor is closed.
      */
-    CURSOR_API_CALL(cursor, session, insert, btree);
+    CURSOR_API_CALL(cursor, session, __curbulk_insert_var, btree);
     WT_STAT_CONN_DATA_INCR(session, cursor_insert_bulk);
 
     /*
@@ -232,7 +232,7 @@ __curbulk_insert_row(WT_CURSOR *cursor)
      * Bulk cursor inserts are updates, but don't need auto-commit transactions because they are
      * single-threaded and not visible until the bulk cursor is closed.
      */
-    CURSOR_API_CALL(cursor, session, insert, btree);
+    CURSOR_API_CALL(cursor, session, __curbulk_insert_row, btree);
     WT_STAT_CONN_DATA_INCR(session, cursor_insert_bulk);
 
     WT_ERR(__cursor_checkkey(cursor));
@@ -277,7 +277,7 @@ __curbulk_insert_row_skip_check(WT_CURSOR *cursor)
      * Bulk cursor inserts are updates, but don't need auto-commit transactions because they are
      * single-threaded and not visible until the bulk cursor is closed.
      */
-    CURSOR_API_CALL(cursor, session, insert, btree);
+    CURSOR_API_CALL(cursor, session, __curbulk_insert_row_skip_check, btree);
     WT_STAT_CONN_DATA_INCR(session, cursor_insert_bulk);
 
     WT_ERR(__cursor_checkkey(cursor));

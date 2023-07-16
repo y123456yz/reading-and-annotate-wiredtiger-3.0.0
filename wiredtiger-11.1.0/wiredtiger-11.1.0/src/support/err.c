@@ -165,7 +165,7 @@ __wt_event_handler_set(WT_SESSION_IMPL *session, WT_EVENT_HANDLER *handler)
 /*
  * __eventv_stderr --
  *     Report a message on stderr.
- */
+ */ //输出到标准stderr，无法>进行重定向到文件
 static int
 __eventv_stderr(int error, const char *func, int line, const char *fmt, va_list ap)
 {
@@ -227,7 +227,7 @@ __eventv_append_error(const char *err, char *start, char *p, size_t *remainp)
 /*
  * __eventv --
  *     Report a message to an event handler.
- */
+ */ //例如config_verbose中自定义handler
 static int
 __eventv(WT_SESSION_IMPL *session, bool is_json, int error, const char *func, int line,
   WT_VERBOSE_CATEGORY category, WT_VERBOSE_LEVEL level, const char *fmt, va_list ap)

@@ -553,7 +553,7 @@ __posix_file_sync_nowait(WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session)
 /*
  * __posix_file_truncate --
  *     POSIX ftruncate.
- */
+ */ //ftruncate会将参数fd指定的文件大小改为参数length指定的大小
 static int
 __posix_file_truncate(WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session, wt_off_t len)
 {
@@ -573,6 +573,7 @@ __posix_file_truncate(WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session, wt_of
     if (remap)
         __wt_prepare_remap_resize_file(file_handle, wt_session);
 
+    //ftruncate会将参数fd指定的文件大小改为参数length指定的大小
     WT_SYSCALL_RETRY(ftruncate(pfh->fd, len), ret);
     if (remap) {
         if (ret == 0)

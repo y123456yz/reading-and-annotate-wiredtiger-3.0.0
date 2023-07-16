@@ -127,7 +127,7 @@ __conn_add_collator(
     ncoll = NULL;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, add_collator, config, cfg);
+    CONNECTION_API_CALL(conn, session, add_collator, __conn_add_collator, config, cfg);
     WT_UNUSED(cfg);
 
     if (strcmp(name, "none") == 0)
@@ -228,7 +228,7 @@ __conn_add_compressor(
     ncomp = NULL;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, add_compressor, config, cfg);
+    CONNECTION_API_CALL(conn, session, add_compressor, __conn_add_compressor, config, cfg);
     WT_UNUSED(cfg);
 
     if (strcmp(name, "none") == 0)
@@ -282,7 +282,7 @@ __wt_conn_remove_compressor(WT_SESSION_IMPL *session)
 /*
  * __conn_add_data_source --
  *     WT_CONNECTION->add_data_source method.
- */
+ */ // add_data_source
 static int
 __conn_add_data_source(
   WT_CONNECTION *wt_conn, const char *prefix, WT_DATA_SOURCE *dsrc, const char *config)
@@ -295,7 +295,7 @@ __conn_add_data_source(
     ndsrc = NULL;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, add_data_source, config, cfg);
+    CONNECTION_API_CALL(conn, session, add_data_source, __conn_add_data_source, config, cfg);
     WT_UNUSED(cfg);
 
     WT_ERR(__wt_calloc_one(session, &ndsrc));
@@ -460,7 +460,7 @@ __conn_add_encryptor(
     nenc = NULL;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, add_encryptor, config, cfg);
+    CONNECTION_API_CALL(conn, session, add_encryptor, __conn_add_encryptor, config, cfg);
     WT_UNUSED(cfg);
 
     if (strcmp(name, "none") == 0)
@@ -553,7 +553,7 @@ __conn_add_extractor(
     nextractor = NULL;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, add_extractor, config, cfg);
+    CONNECTION_API_CALL(conn, session, add_extractor, __conn_add_extractor, config, cfg);
     WT_UNUSED(cfg);
 
     if (strcmp(name, "none") == 0)
@@ -680,7 +680,7 @@ __conn_add_storage_source(
     nstorage = NULL;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, add_storage_source, config, cfg);
+    CONNECTION_API_CALL(conn, session, add_storage_source, __conn_add_storage_source, config, cfg);
     WT_UNUSED(cfg);
 
     WT_ERR(__wt_calloc_one(session, &nstorage));
@@ -1003,7 +1003,7 @@ __conn_load_extension(WT_CONNECTION *wt_conn, const char *path, const char *conf
     WT_SESSION_IMPL *session;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, load_extension, config, cfg);
+    CONNECTION_API_CALL(conn, session, load_extension, __conn_load_extension, config, cfg);
 
     ret = __conn_load_extension_int(session, path, cfg, false);
 
@@ -1105,7 +1105,7 @@ __conn_close(WT_CONNECTION *wt_conn, const char *config)
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
-    CONNECTION_API_CALL(conn, session, close, config, cfg);
+    CONNECTION_API_CALL(conn, session, close, __conn_close, config, cfg);
 err:
 
     /*
@@ -1233,7 +1233,7 @@ __conn_debug_info(WT_CONNECTION *wt_conn, const char *config)
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
-    CONNECTION_API_CALL(conn, session, debug_info, config, cfg);
+    CONNECTION_API_CALL(conn, session, debug_info, __conn_debug_info, config, cfg);
 
     WT_ERR(__wt_config_gets(session, cfg, "cache", &cval));
     if (cval.val != 0)
@@ -1266,7 +1266,7 @@ err:
  * __conn_reconfigure --
  *     WT_CONNECTION->reconfigure method.
  */
-static int
+static int //__conn_reconfigure修改参数配置
 __conn_reconfigure(WT_CONNECTION *wt_conn, const char *config)
 {
     WT_CONNECTION_IMPL *conn;
@@ -1275,7 +1275,7 @@ __conn_reconfigure(WT_CONNECTION *wt_conn, const char *config)
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
-    CONNECTION_API_CALL(conn, session, reconfigure, config, cfg);
+    CONNECTION_API_CALL(conn, session, reconfigure, __conn_reconfigure, config, cfg);
     ret = __wt_conn_reconfig(session, cfg);
 err:
     API_END_RET(session, ret);
@@ -1284,7 +1284,7 @@ err:
 /*
  * __conn_open_session --
  *     WT_CONNECTION->open_session method.
- */
+ */ //从session hash桶中获取一个session
 static int
 __conn_open_session(WT_CONNECTION *wt_conn, WT_EVENT_HANDLER *event_handler, const char *config,
   WT_SESSION **wt_sessionp)
@@ -1297,7 +1297,7 @@ __conn_open_session(WT_CONNECTION *wt_conn, WT_EVENT_HANDLER *event_handler, con
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
-    CONNECTION_API_CALL(conn, session, open_session, config, cfg);
+    CONNECTION_API_CALL(conn, session, open_session, __conn_open_session, config, cfg);
     WT_UNUSED(cfg);
 
     session_ret = NULL;
@@ -1321,7 +1321,7 @@ __conn_query_timestamp(WT_CONNECTION *wt_conn, char *hex_timestamp, const char *
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
-    CONNECTION_API_CALL(conn, session, query_timestamp, config, cfg);
+    CONNECTION_API_CALL(conn, session, query_timestamp, __conn_query_timestamp, config, cfg);
     ret = __wt_txn_query_timestamp(session, hex_timestamp, cfg, true);
 err:
     API_END_RET(session, ret);
@@ -1340,7 +1340,7 @@ __conn_set_timestamp(WT_CONNECTION *wt_conn, const char *config)
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
-    CONNECTION_API_CALL(conn, session, set_timestamp, config, cfg);
+    CONNECTION_API_CALL(conn, session, set_timestamp, __conn_set_timestamp, config, cfg);
     ret = __wt_txn_global_set_timestamp(session, cfg);
 err:
     API_END_RET(session, ret);
@@ -1359,7 +1359,7 @@ __conn_rollback_to_stable(WT_CONNECTION *wt_conn, const char *config)
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
-    CONNECTION_API_CALL(conn, session, rollback_to_stable, config, cfg);
+    CONNECTION_API_CALL(conn, session, rollback_to_stable, __conn_rollback_to_stable, config, cfg);
     WT_STAT_CONN_INCR(session, txn_rts);
     ret = __wt_rollback_to_stable(session, cfg, false);
 err:
@@ -2433,7 +2433,7 @@ __conn_set_file_system(WT_CONNECTION *wt_conn, WT_FILE_SYSTEM *file_system, cons
     WT_SESSION_IMPL *session;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;
-    CONNECTION_API_CALL(conn, session, set_file_system, config, cfg);
+    CONNECTION_API_CALL(conn, session, set_file_system, __conn_set_file_system, config, cfg);
     WT_UNUSED(cfg);
 
     /*
@@ -2642,6 +2642,7 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
     WT_RET(__wt_library_init());
 
     WT_RET(__wt_calloc_one(NULL, &conn));
+    //接口回调
     conn->iface = stdc;
 
     /*
@@ -3032,6 +3033,7 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
     }
 
     /* Initialize connection values from stored metadata. */
+    //加载"file:WiredTiger.wt"元数据
     WT_ERR(__wt_metadata_load_prior_state(session));
 
     WT_ERR(__wt_metadata_cursor(session, NULL));

@@ -23,7 +23,8 @@ typedef struct {
 /*
  * __btcur_bounds_contains_key --
  *     Determine if a given key is within the bounds set on a cursor.
- */
+ */ 
+//判断key是否比upper_bound大或者比lower_bound小
 static int
 __btcur_bounds_contains_key(WT_SESSION_IMPL *session, WT_CURSOR *cursor, WT_ITEM *key,
   uint64_t recno, bool *key_out_of_boundsp, bool *upperp)
@@ -1165,9 +1166,10 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
      * Check that the provided insert key is within bounds. If not, return WT_NOTFOUND and early
      * exit.
      */
+    //判断key是否比upper_bound大或者比lower_bound小
     WT_ERR(__btcur_bounds_contains_key(
       session, cursor, &cursor->key, cursor->recno, &key_out_of_bounds, NULL));
-    if (key_out_of_bounds)
+    if (key_out_of_bounds) //key超范围了
         WT_ERR(WT_NOTFOUND);
 
     /*
