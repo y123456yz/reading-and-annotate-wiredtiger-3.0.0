@@ -58,6 +58,7 @@ struct __wt_table {
     WT_DATA_HANDLE iface;
 
     const char *plan;
+    //参考__schema_open_table
     const char *key_format, *value_format;
 
     WT_CONFIG_ITEM cgconf, colconf;
@@ -66,8 +67,11 @@ struct __wt_table {
     WT_INDEX **indices;
     size_t idx_alloc;
 
-    bool cg_complete, idx_complete, is_simple;
-    u_int ncolgroups, nindices, nkey_columns;
+    bool cg_complete, 
+        idx_complete, 
+        is_simple; //默认1
+    u_int ncolgroups,  //默认不会有colgroups配置，值为0
+    nindices, nkey_columns;
 };
 
 /* Holds metadata entry name and the associated config string. */

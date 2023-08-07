@@ -1049,6 +1049,7 @@ __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], 
     if (cacheable && strcmp(WT_METAFILE_URI, cursor->internal_uri) != 0)
         F_SET(cursor, WT_CURSTD_CACHEABLE);
 
+     //cursor初始化，并添加到session->cursors链表中，也就是前面alloc的cbt添加到了session->cursors链表中
     WT_ERR(__wt_cursor_init(cursor, cursor->internal_uri, owner, cfg, cursorp));
 
     WT_STAT_CONN_DATA_INCR(session, cursor_create);

@@ -288,8 +288,9 @@ err:
 
 /*
  * __wt_session_close_internal --
+   __wt_session_close_internal和__open_session对应，一个创建session, 一个销毁session
  *     Internal function of WT_SESSION->close method.
- */
+ */  
 int
 __wt_session_close_internal(WT_SESSION_IMPL *session)
 {
@@ -2315,6 +2316,7 @@ __wt_session_breakpoint(WT_SESSION *wt_session)
 /*
  * __open_session --
  *     Allocate a session handle.
+  __wt_session_close_internal和__open_session对应，一个创建session, 一个销毁session
  */ //从session hash桶中获取一个session
 static int
 __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const char *config,
@@ -2409,7 +2411,7 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
     if (WT_SESSION_FIRST_USE(session_ret))
         __wt_random_init(&session_ret->rnd);
 
-    __wt_event_handler_set(//是否有自定义的handle, 没有则使用默认handle
+    __wt_event_handler_set(//是否有自定义的message handle, 没有则使用默认handle
       session_ret, event_handler == NULL ? session->event_handler : event_handler);
 
     TAILQ_INIT(&session_ret->cursors);
@@ -2466,6 +2468,7 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
     __wt_stat_session_init_single(&session_ret->stats);
 
     /* Set the default value for session flags. */
+    //使能cache_cursors配置
     if (F_ISSET(conn, WT_CONN_CACHE_CURSORS))
         F_SET(session_ret, WT_SESSION_CACHE_CURSORS);
 

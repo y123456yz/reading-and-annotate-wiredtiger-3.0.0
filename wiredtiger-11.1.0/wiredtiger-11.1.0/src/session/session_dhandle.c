@@ -11,7 +11,12 @@
 /*
  * __session_add_dhandle --
  *     Add a handle to the session's cache.
- */
+__session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc(alloc WT_DATA_HANDLE)
+__session_get_dhandle->__session_add_dhandle(alloc WT_DATA_HANDLE_CACHE)
+
+会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
+实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
+ */ //__session_get_dhandle->__session_add_dhandle
 static int
 __session_add_dhandle(WT_SESSION_IMPL *session)
 {
@@ -98,7 +103,7 @@ retry:
  *     a file while it is being bulk-loaded will fail), but internal or database-wide operations
  *     should not prevent application-initiated operations. For example, attempting to verify a file
  *     should not fail because the sweep server happens to be in the process of closing that file.
- */
+ */ 
 int
 __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_deadp)
 {
@@ -696,12 +701,21 @@ __session_dhandle_sweep(WT_SESSION_IMPL *session)
  * __session_find_shared_dhandle --
  *     Search for a data handle in the connection and add it to a session's cache. We must increment
  *     the handle's reference count while holding the handle list lock.
- */
-static int
+ __session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc(alloc WT_DATA_HANDLE)
+ __session_get_dhandle->__session_add_dhandle(alloc WT_DATA_HANDLE_CACHE)
+ 
+ 会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
+ 实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
+
+ */ 
+//__wt_cursor_cache  __session_find_shared_dhandle
+//先从conn->dhhash查找，找不到则alloc一个dhandle
+static int 
 __session_find_shared_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
 {
     WT_DECL_RET;
 
+    //先从conn->dhhash查找
     WT_WITH_HANDLE_LIST_READ_LOCK(session,
       if ((ret = __wt_conn_dhandle_find(session, uri, checkpoint)) == 0)
         WT_DHANDLE_ACQUIRE(session->dhandle));
@@ -709,6 +723,7 @@ __session_find_shared_dhandle(WT_SESSION_IMPL *session, const char *uri, const c
     if (ret != WT_NOTFOUND)
         return (ret);
 
+    //找不到则alloc一个dhandle
     WT_WITH_HANDLE_LIST_WRITE_LOCK(session,
       if ((ret = __wt_conn_dhandle_alloc(session, uri, checkpoint)) == 0)
         WT_DHANDLE_ACQUIRE(session->dhandle));
@@ -719,6 +734,12 @@ __session_find_shared_dhandle(WT_SESSION_IMPL *session, const char *uri, const c
 /*
  * __session_get_dhandle --
  *     Search for a data handle, first in the session cache, then in the connection.
+ __session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc(alloc WT_DATA_HANDLE)
+ __session_get_dhandle->__session_add_dhandle(alloc WT_DATA_HANDLE_CACHE)
+ 
+ 会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
+ 实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
+
  */
 static int
 __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
@@ -726,6 +747,7 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
     WT_DATA_HANDLE_CACHE *dhandle_cache;
     WT_DECL_RET;
 
+    //先从session->dhhash中查找
     __session_find_dhandle(session, uri, checkpoint, &dhandle_cache);
     if (dhandle_cache != NULL) {
         session->dhandle = dhandle_cache->dhandle;
@@ -739,12 +761,17 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
      * We didn't find a match in the session cache, search the shared handle list and cache the
      * handle we find.
      */
+    //先添加到__wt_connection_impl.dhhash+dhqh，然后添加到WT_SESSION_IMPL.dhandles+dhhash
+     
+    //再从conn->dhhash中查找
+    //先从conn->dhhash查找，找不到则alloc一个dhandle添加到__wt_connection_impl.dhhash+dhqh
     WT_RET(__session_find_shared_dhandle(session, uri, checkpoint));
 
     /*
      * Fixup the reference count on failure (we incremented the reference count while holding the
      * handle-list lock).
      */
+    //添加到WT_SESSION_IMPL.dhandles+dhhash
     if ((ret = __session_add_dhandle(session)) != 0) {
         WT_DHANDLE_RELEASE(session->dhandle);
         session->dhandle = NULL;

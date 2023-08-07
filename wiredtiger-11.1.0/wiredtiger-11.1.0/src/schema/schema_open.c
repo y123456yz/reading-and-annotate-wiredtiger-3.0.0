@@ -438,8 +438,10 @@ __schema_open_table(WT_SESSION_IMPL *session)
     table->ncolgroups = 0;
     while ((ret = __wt_config_next(&cparser, &ckey, &cval)) == 0)
         ++table->ncolgroups;
+
     WT_RET_NOTFOUND_OK(ret);
 
+    //默认不会有colgroups配置，
     if (table->ncolgroups > 0 && table->is_simple)
         WT_RET_MSG(session, EINVAL, "%s requires a table with named columns", tablename);
 

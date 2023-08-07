@@ -29,6 +29,7 @@ struct __wt_process {
 
     bool fast_truncate_2022; /* fast-truncate fix run-time configuration */
 
+    //shared_cache方式才会使用，mongodb的cache_size配置不会使用cache_pool
     WT_CACHE_POOL *cache_pool; /* shared cache information */
 
     /*
@@ -250,6 +251,7 @@ struct __wt_connection_impl {
 
     /* For operations without an application-supplied session */
     WT_SESSION_IMPL *default_session;
+    //wiredtiger_dummy_session_init
     WT_SESSION_IMPL dummy_session;
 
     const char *cfg; /* Connection configuration */
@@ -312,15 +314,21 @@ struct __wt_connection_impl {
      * maintain both a simple list and a hash table of lists. The hash table key is based on a hash
      * of the table URI.
      */
+    //__wt_data_handle对应hash桶  __wt_conn_dhandle_alloc中申请__wt_data_handle和WT_TREE添加到hash桶中
+    ////__session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc会同时添
+    //加到__wt_connection_impl.dhhash+dhqh和//WT_SESSION_IMPL.dhandles+dhhash
     /* Locked: data handle hash array */
     TAILQ_HEAD(__wt_dhhash, __wt_data_handle) * dhhash;
     /* Locked: data handle list */
     TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh;
+
+    
     /* Locked: dynamic library handle list */
     TAILQ_HEAD(__wt_dlh_qh, __wt_dlh) dlhqh;
     /* Locked: file list */
     TAILQ_HEAD(__wt_fhhash, __wt_fh) * fhhash;
     TAILQ_HEAD(__wt_fh_qh, __wt_fh) fhqh;
+    
     /* Locked: LSM handle list. */
     TAILQ_HEAD(__wt_lsm_qh, __wt_lsm_tree) lsmqh;
     /* Locked: Tiered system work queue. */
@@ -517,6 +525,7 @@ struct __wt_connection_impl {
      */
     bool modified;
 
+    //Sweep-Server Dhandle Sweep参考http://source.wiredtiger.com/11.1.0/arch-dhandle.html#dhandle_data_handle_creation
     WT_SESSION_IMPL *sweep_session; /* Handle sweep session */
     wt_thread_t sweep_tid;          /* Handle sweep thread */
     int sweep_tid_set;              /* Handle sweep thread set */

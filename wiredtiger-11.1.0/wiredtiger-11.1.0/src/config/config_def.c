@@ -1182,6 +1182,7 @@ static const WT_CONFIG_CHECK confchk_wiredtiger_open_usercfg[] = {
   {"write_through", "list", NULL, "choices=[\"data\",\"log\"]", NULL, 0},
   {NULL, NULL, NULL, NULL, NULL, 0}};
 
+//ÀýÈçWT_CONFIG_ENTRY_wiredtiger_open  ÀýÈçcfg[0] = WT_CONFIG_BASE(session, wiredtiger_open);
 static const WT_CONFIG_ENTRY config_entries[] = {{"WT_CONNECTION.add_collator", "", NULL, 0},
   {"WT_CONNECTION.add_compressor", "", NULL, 0}, {"WT_CONNECTION.add_data_source", "", NULL, 0},
   {"WT_CONNECTION.add_encryptor", "", NULL, 0}, {"WT_CONNECTION.add_extractor", "", NULL, 0},
@@ -1479,6 +1480,8 @@ static const WT_CONFIG_ENTRY config_entries[] = {{"WT_CONNECTION.add_collator", 
     "name=,object_target_size=0),tiers=,value_format=u,verbose=[],"
     "version=(major=0,minor=0),write_timestamp_usage=none",
     confchk_tiered_meta, 52},
+  //WT_CONFIG_ENTRY_wiredtiger_open
+  //WT_CONFIG_ENTRY_wiredtiger_open  ÀýÈçcfg[0] = WT_CONFIG_BASE(session, wiredtiger_open);
   {"wiredtiger_open",
     "backup_restore_target=,"
     "block_cache=(blkcache_eviction_aggression=1800,"
@@ -1520,6 +1523,8 @@ static const WT_CONFIG_ENTRY config_entries[] = {{"WT_CONNECTION.add_collator", 
     "method=fsync),use_environment=true,use_environment_priv=false,"
     "verbose=[],verify_metadata=false,write_through=",
     confchk_wiredtiger_open, 58},
+
+  //WT_CONFIG_ENTRY_wiredtiger_open_all
   {"wiredtiger_open_all",
     "backup_restore_target=,"
     "block_cache=(blkcache_eviction_aggression=1800,"

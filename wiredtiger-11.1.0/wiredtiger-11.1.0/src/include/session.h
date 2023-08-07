@@ -78,8 +78,57 @@ struct __wt_session_impl {
     uint64_t operation_timeout_us; /* Maximum operation period before rollback */
     u_int api_call_counter;        /* Depth of api calls */
 
+    //赋值见__wt_conn_dhandle_alloc
     WT_DATA_HANDLE *dhandle;           /* Current data handle */
     WT_BUCKET_STORAGE *bucket_storage; /* Current bucket storage and file system */
+
+//yang add 挪动位置
+    WT_COMPACT_STATE *compact; /* Compaction information */
+    enum { WT_COMPACT_NONE = 0, WT_COMPACT_RUNNING, WT_COMPACT_SUCCESS } compact_state;
+
+#ifdef HAVE_DIAGNOSTIC
+        /*
+         * Variables used to look for violations of the contract that a session is only used by a single
+         * session at once.
+         */
+        volatile uintmax_t api_tid;
+        volatile uint32_t api_enter_refcnt;
+        /*
+         * It's hard to figure out from where a buffer was allocated after it's leaked, so in diagnostic
+         * mode we track them; DIAGNOSTIC can't simply add additional fields to WT_ITEM structures
+         * because they are visible to applications, create a parallel structure instead.
+         */
+        struct __wt_scratch_track {
+            const char *func; /* Allocating function, line */
+            int line;
+        } * scratch_track;
+#endif
+
+    /* Generations manager */
+#define WT_GEN_CHECKPOINT 0 /* Checkpoint generation */
+#define WT_GEN_COMMIT 1     /* Commit generation */
+#define WT_GEN_EVICT 2      /* Eviction generation */
+#define WT_GEN_HAZARD 3     /* Hazard pointer */
+#define WT_GEN_SPLIT 4      /* Page splits */
+#define WT_GENERATIONS 5    /* Total generation manager entries */
+        volatile uint64_t generations[WT_GENERATIONS];
+    
+        /*
+         * Session memory persists past session close because it's accessed by threads of control other
+         * than the thread owning the session. For example, btree splits and hazard pointers can "free"
+         * memory that's still in use. In order to eventually free it, it's stashed here with its
+         * generation number; when no thread is reading in generation, the memory can be freed for real.
+         */
+        struct __wt_session_stash {
+            struct __wt_stash {
+                void *p; /* Memory, length */
+                size_t len;
+                uint64_t gen; /* Generation */
+            } * list;
+            size_t cnt;   /* Array entries */
+            size_t alloc; /* Allocated bytes */
+        } stash[WT_GENERATIONS];
+
 
     /*
      * Each session keeps a cache of data handles. The set of handles can grow quite large so we
@@ -88,10 +137,15 @@ struct __wt_session_impl {
      * session close - so it is declared further down.
      */
     /* Session handle reference list */
+    //__session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc会同时添
+    //加到__wt_connection_impl.dhhash+dhqh和//WT_SESSION_IMPL.dhandles+dhhash
+    //__session_get_dhandle->__session_add_dhandle
     TAILQ_HEAD(__dhandles, __wt_data_handle_cache) dhandles;
     uint64_t last_sweep;        /* Last sweep for dead handles */
     struct timespec last_epoch; /* Last epoch time returned */
 
+    //正在使用的cursors队列
+    //cursors和cursor_cache的区别，可以参考__wt_cursor_cache
     WT_CURSOR_LIST cursors;          /* Cursors closed with the session */
     u_int ncursors;                  /* Count of active file cursors. */
     uint32_t cursor_sweep_position;  /* Position in cursor_cache for sweep */
@@ -100,8 +154,7 @@ struct __wt_session_impl {
 
     WT_CURSOR_BACKUP *bkp_cursor; /* Hot backup cursor */
 
-    WT_COMPACT_STATE *compact; /* Compaction information */
-    enum { WT_COMPACT_NONE = 0, WT_COMPACT_RUNNING, WT_COMPACT_SUCCESS } compact_state;
+
 
     WT_IMPORT_LIST *import_list; /* List of metadata entries to import from file. */
 
@@ -122,23 +175,7 @@ struct __wt_session_impl {
     WT_ITEM **scratch;     /* Temporary memory for any function */
     u_int scratch_alloc;   /* Currently allocated */
     size_t scratch_cached; /* Scratch bytes cached */
-#ifdef HAVE_DIAGNOSTIC
-    /*
-     * Variables used to look for violations of the contract that a session is only used by a single
-     * session at once.
-     */
-    volatile uintmax_t api_tid;
-    volatile uint32_t api_enter_refcnt;
-    /*
-     * It's hard to figure out from where a buffer was allocated after it's leaked, so in diagnostic
-     * mode we track them; DIAGNOSTIC can't simply add additional fields to WT_ITEM structures
-     * because they are visible to applications, create a parallel structure instead.
-     */
-    struct __wt_scratch_track {
-        const char *func; /* Allocating function, line */
-        int line;
-    } * scratch_track;
-#endif
+
 
     WT_ITEM err; /* Error buffer */
 
@@ -181,6 +218,7 @@ struct __wt_session_impl {
     void *salvage_track;
 
     /* Sessions have an associated statistics bucket based on its ID. */
+    //该session在hash桶中的位置
     u_int stat_bucket;          /* Statistics bucket offset */
     uint64_t cache_max_wait_us; /* Maximum time an operation waits for space in cache */
 
@@ -244,36 +282,14 @@ struct __wt_session_impl {
      * Hash tables are allocated lazily as sessions are used to keep the size of this structure from
      * growing too large.
      */
+    //cursors和cursor_cache的区别，可以参考__wt_cursor_cache
     //__wt_cursor_cache中往桶中添加cursor
     //一个session桶中包含多个cursor    __open_session中分配空间,遍历查找方法可以参考__wt_cursor_cache_get
     WT_CURSOR_LIST *cursor_cache; /* Hash table of cached cursors */
     /* Hashed handle reference list array */ //handle to the session's cache.
+    //__session_get_dhandle->__session_add_dhandle
     TAILQ_HEAD(__dhandles_hash, __wt_data_handle_cache) * dhhash;
 
-/* Generations manager */
-#define WT_GEN_CHECKPOINT 0 /* Checkpoint generation */
-#define WT_GEN_COMMIT 1     /* Commit generation */
-#define WT_GEN_EVICT 2      /* Eviction generation */
-#define WT_GEN_HAZARD 3     /* Hazard pointer */
-#define WT_GEN_SPLIT 4      /* Page splits */
-#define WT_GENERATIONS 5    /* Total generation manager entries */
-    volatile uint64_t generations[WT_GENERATIONS];
-
-    /*
-     * Session memory persists past session close because it's accessed by threads of control other
-     * than the thread owning the session. For example, btree splits and hazard pointers can "free"
-     * memory that's still in use. In order to eventually free it, it's stashed here with its
-     * generation number; when no thread is reading in generation, the memory can be freed for real.
-     */
-    struct __wt_session_stash {
-        struct __wt_stash {
-            void *p; /* Memory, length */
-            size_t len;
-            uint64_t gen; /* Generation */
-        } * list;
-        size_t cnt;   /* Array entries */
-        size_t alloc; /* Allocated bytes */
-    } stash[WT_GENERATIONS];
 
 /*
  * Hazard pointers.
@@ -294,6 +310,7 @@ struct __wt_session_impl {
     uint32_t hazard_inuse; /* Hazard pointer array slots in-use */
     uint32_t nhazard;      /* Count of active hazard pointers */
     //风险指针(Hazard Pointers)——用于无锁对象的安全内存回收
+    //https://www.cnblogs.com/cobbliu/articles/8370746.html
     WT_HAZARD *hazard;     /* Hazard pointer array */
 
     /*

@@ -172,7 +172,12 @@ __conn_dhandle_destroy(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle, bool f
 /*
  * __wt_conn_dhandle_alloc --
  *     Allocate a new data handle and return it linked into the connection's list.
- */
+ __session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc(alloc WT_DATA_HANDLE)
+ __session_get_dhandle->__session_add_dhandle(alloc WT_DATA_HANDLE_CACHE)
+ 
+ 会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
+ 实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
+*/
 int
 __wt_conn_dhandle_alloc(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
 {
@@ -211,7 +216,7 @@ __wt_conn_dhandle_alloc(WT_SESSION_IMPL *session, const char *uri, const char *c
     /* Btree handles keep their data separate from the interface. */
     if (WT_DHANDLE_BTREE(dhandle)) {
         WT_ERR(__wt_calloc_one(session, &btree));
-        dhandle->handle = btree;
+        dhandle->handle = btree; 
         btree->dhandle = dhandle;
     }
 
@@ -239,6 +244,7 @@ __wt_conn_dhandle_alloc(WT_SESSION_IMPL *session, const char *uri, const char *c
      * soon, until they are cached by all sessions.
      */
     bucket = dhandle->name_hash & (S2C(session)->dh_hash_size - 1);
+    //dhandle添加到hash桶中
     WT_CONN_DHANDLE_INSERT(S2C(session), dhandle, bucket);
 
     session->dhandle = dhandle;

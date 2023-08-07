@@ -94,10 +94,11 @@ struct __wt_cursor_backup {
     (((WT_CURSOR_BTREE *)(c))->dhandle == NULL ? \
         NULL :                                   \
         (WT_BTREE *)((WT_CURSOR_BTREE *)(c))->dhandle->handle)
-
+//__curfile_create中分片空间
 struct __wt_cursor_btree {
     WT_CURSOR iface;
 
+    //CUR2BT可以通过这里获取WT_BTREE
     WT_DATA_HANDLE *dhandle; /* Data handle for the btree */
 
     /*

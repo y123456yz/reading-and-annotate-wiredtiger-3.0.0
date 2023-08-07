@@ -1663,6 +1663,7 @@ __conn_hash_config(WT_SESSION_IMPL *session, const char *cfg[])
         WT_RET_MSG(session, EINVAL, "Hash bucket size %" PRIu64 " invalid. Must be power of 2",
           (uint64_t)cval.val);
     conn->hash_size = (uint64_t)cval.val;
+    printf("yang test .........__conn_hash_config........ conn->hash_size:%lu\r\n", conn->hash_size);
     WT_RET(__wt_config_gets(session, cfg, "hash.dhandle_buckets", &cval));
     if (!__wt_ispo2((uint32_t)cval.val))
         WT_RET_MSG(session, EINVAL,
@@ -2675,7 +2676,7 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
      *
      * In other words, a configuration stack based on the application's
      * passed-in information and nothing else.
-     */
+     */ //WT_CONFIG_ENTRY_wiredtiger_open   config_entries[]数组的第54个成员
     cfg[0] = WT_CONFIG_BASE(session, wiredtiger_open);
     cfg[1] = config;
     WT_ERR(__wt_scr_alloc(session, 0, &i1));

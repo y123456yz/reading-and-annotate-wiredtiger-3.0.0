@@ -26,6 +26,7 @@ struct __wt_config_check {
 };
 
 #define WT_CONFIG_REF(session, n) (S2C(session)->config_entries[WT_CONFIG_ENTRY_##n])
+//config_entries[]数组为该类型
 struct __wt_config_entry {//配置信息相关，参考config_entries
     const char *method; /* method name */
 
@@ -33,7 +34,7 @@ struct __wt_config_entry {//配置信息相关，参考config_entries
     const char *base; /* configuration base */
 
     const WT_CONFIG_CHECK *checks; /* check array */
-    u_int checks_entries;
+    u_int checks_entries; //base中的配置项个数
 };
 
 struct __wt_config_parser_impl {

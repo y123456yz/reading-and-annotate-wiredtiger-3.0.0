@@ -92,7 +92,7 @@ typedef enum { /* Start position for eviction walk */
  * WT_BTREE --
  *	A btree handle.
  //参考http://source.wiredtiger.com/mongodb-5.0/arch-btree.html
- */
+ */ //btree内存分配__wt_conn_dhandle_alloc  //存储在WT_DATA_HANDLE.handle成员
 struct __wt_btree {
     WT_DATA_HANDLE *dhandle;
 

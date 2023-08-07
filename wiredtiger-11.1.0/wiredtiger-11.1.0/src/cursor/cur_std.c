@@ -1415,6 +1415,7 @@ __wt_cursor_dup_position(WT_CURSOR *to_dup, WT_CURSOR *cursor)
 /*
  * __wt_cursor_init --
  *     Default cursor initialization.
+ //cursor初始化，并添加到session->cursors链表中
  */
 int
 __wt_cursor_init(

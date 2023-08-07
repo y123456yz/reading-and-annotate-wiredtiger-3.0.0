@@ -40,7 +40,7 @@ static void __cache_pool_balance(WT_SESSION_IMPL *, bool);
 /*
  * __wt_cache_pool_config --
  *     Parse and setup the cache pool options.
- */
+ */ //cache_size and shared_cache  要么配置cache_size，要么配置shared_cache
 int
 __wt_cache_pool_config(WT_SESSION_IMPL *session, const char **cfg)
 {
@@ -57,6 +57,7 @@ __wt_cache_pool_config(WT_SESSION_IMPL *session, const char **cfg)
     pool_name = NULL;
     cp = NULL;
 
+    printf("yang test ................... __wt_cache_pool_config\r\n");
     if (F_ISSET(conn, WT_CONN_CACHE_POOL))
         updating = true;
     else {
@@ -74,7 +75,6 @@ __wt_cache_pool_config(WT_SESSION_IMPL *session, const char **cfg)
         if (__wt_config_gets(session, &cfg[1], "cache_size", &cval_cache_size) != WT_NOTFOUND)
             WT_RET_MSG(session, EINVAL,
               "Only one of cache_size and shared_cache can be in the configuration");
-
         /*
          * NOTE: The allocations made when configuring and opening a cache pool don't really belong
          * to the connection that allocates them. If a memory allocator becomes connection specific

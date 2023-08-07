@@ -173,6 +173,12 @@ __wt_cache_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 
     WT_ASSERT(session, conn->cache != NULL);
 
+ //   const char **cfg1;
+  //  for (cfg1 = cfg; *cfg1 != NULL; ++cfg1) {
+  //      if 
+        printf("yang test ................__wt_cache_config, config:\r\n");
+  //  }
+    
     WT_RET(__wt_config_gets_none(session, cfg, "shared_cache.name", &cval));
     now_shared = cval.len != 0;
     was_shared = F_ISSET(conn, WT_CONN_CACHE_POOL);
@@ -188,11 +194,13 @@ __wt_cache_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
          */
         conn->cache_size = 0;
 
+   
     /*
      * Always setup the local cache - it's used even if we are participating in a shared cache.
      */
+    //默认使用cache_size配置，默认不是使用shared
     WT_RET(__cache_config_local(session, now_shared, cfg));
-    if (now_shared) {
+    if (now_shared) {//默认不会进来
         WT_RET(__wt_cache_pool_config(session, cfg));
         WT_ASSERT(session, F_ISSET(conn, WT_CONN_CACHE_POOL));
         if (!was_shared)

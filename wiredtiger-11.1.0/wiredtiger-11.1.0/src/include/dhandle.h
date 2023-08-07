@@ -38,6 +38,7 @@
 /* The metadata cursor's data handle. */
 #define WT_SESSION_META_DHANDLE(s) (((WT_CURSOR_BTREE *)((s)->meta_cursor))->dhandle)
 
+////__wt_cursor_cache  __session_find_shared_dhandle调用
 #define WT_DHANDLE_ACQUIRE(dhandle) (void)__wt_atomic_add32(&(dhandle)->session_ref, 1)
 
 #define WT_DHANDLE_RELEASE(dhandle) (void)__wt_atomic_sub32(&(dhandle)->session_ref, 1)
@@ -72,12 +73,12 @@
 
 /*
  * WT_DATA_HANDLE --
+ 参考http://source.wiredtiger.com/11.1.0/arch-dhandle.html
  *	A handle for a generic named data source.
- */
+ */ //__wt_connection_impl.dhhash这个hash桶中存储该成员    //WT_SESSION_IMPL.dhandles为该类型
+ //__wt_conn_dhandle_alloc中分配节点内存    一个__wt_data_handle实际上对应一个BTREE，通过BTREE btree = (WT_BTREE *)dhandle->handle;获取
 struct __wt_data_handle {
     WT_RWLOCK rwlock; /* Lock for shared/exclusive ops */
-    TAILQ_ENTRY(__wt_data_handle) q;
-    TAILQ_ENTRY(__wt_data_handle) hashq;
 
     const char *name;         /* Object name as a URI */
     uint64_t name_hash;       /* Hash of name */
@@ -94,18 +95,25 @@ struct __wt_data_handle {
      * using a connection's data handle will have a non-zero in-use count. Instances of cached
      * cursors referencing the data handle appear in session_cache_ref.
      */
+    //总的，包括历史的和inuse的
+    //Both these counters are incremented by the session as the cursor is opened on this dhandle. session_inuse is decremented when the operation completes and the cursor is closed.
     uint32_t session_ref;          /* Sessions referencing this handle */
+    //当前正在用的，cursor关闭后会自减
+    //session_inuse is a count of the number of cursors opened and operating on this dhandle
     int32_t session_inuse;         /* Sessions using this handle */
     uint32_t excl_ref;             /* Refs of handle by excl_session */
     uint64_t timeofdeath;          /* Use count went to 0 */
     WT_SESSION_IMPL *excl_session; /* Session with exclusive use, if any */
 
     WT_DATA_SOURCE *dsrc; /* Data source for this handle */
+    //可以通过该handle找到数据源，例如BTREE btree = (WT_BTREE *)dhandle->handle;
+    //btree内存分配__wt_conn_dhandle_alloc   
     void *handle;         /* Generic handle */
 
+    //参考__wt_conn_dhandle_alloc
     enum {
-        WT_DHANDLE_TYPE_BTREE,
-        WT_DHANDLE_TYPE_TABLE,
+        WT_DHANDLE_TYPE_BTREE,  //file:
+        WT_DHANDLE_TYPE_TABLE,  //table:
         WT_DHANDLE_TYPE_TIERED,
         WT_DHANDLE_TYPE_TIERED_TREE
     } type;
@@ -131,15 +139,19 @@ struct __wt_data_handle {
  * flags when we need, for example, to pass both sets in a function call.
  */
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//__wt_conn_dhandle_close
 #define WT_DHANDLE_DEAD 0x001u         /* Dead, awaiting discard */
 #define WT_DHANDLE_DISCARD 0x002u      /* Close on release */
 #define WT_DHANDLE_DISCARD_KILL 0x004u /* Mark dead on release */
 #define WT_DHANDLE_DROPPED 0x008u      /* Handle is dropped */
 #define WT_DHANDLE_EVICTED 0x010u      /* Btree is evicted (advisory) */
-#define WT_DHANDLE_EXCLUSIVE 0x020u    /* Exclusive access */
+//独占访问 //__wt_curfile_open   __wt_session_lock_dhandle
+#define WT_DHANDLE_EXCLUSIVE 0x020u    /* Exclusive access */ //
 #define WT_DHANDLE_HS 0x040u           /* History store table */
+//__wt_conn_dhandle_alloc
 #define WT_DHANDLE_IS_METADATA 0x080u  /* Metadata handle */
 #define WT_DHANDLE_LOCK_ONLY 0x100u    /* Handle only used as a lock */
+//__wt_conn_dhandle_open 初始值
 #define WT_DHANDLE_OPEN 0x200u         /* Handle is open */
                                        /* AUTOMATIC FLAG VALUE GENERATION STOP 12 */
     uint32_t flags;
@@ -156,4 +168,7 @@ struct __wt_data_handle {
 #define WT_DHANDLE_LOCK_WRITE 0x1u /* Write lock is acquired. */
                                    /* AUTOMATIC FLAG VALUE GENERATION STOP 16 */
     uint16_t lock_flags;
+
+    TAILQ_ENTRY(__wt_data_handle) q; //yang add  挪动了位置
+    TAILQ_ENTRY(__wt_data_handle) hashq;
 };

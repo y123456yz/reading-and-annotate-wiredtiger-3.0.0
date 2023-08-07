@@ -94,6 +94,7 @@ typedef struct __wt_bloom_hash WT_BLOOM_HASH;
 struct __wt_bm;
 typedef struct __wt_bm WT_BM;
 struct __wt_btree;
+//btree内存分配__wt_conn_dhandle_alloc  //存储在WT_DATA_HANDLE.handle成员
 typedef struct __wt_btree WT_BTREE;
 struct __wt_bucket_storage;
 typedef struct __wt_bucket_storage WT_BUCKET_STORAGE;
@@ -138,8 +139,10 @@ typedef struct __wt_condvar WT_CONDVAR;
 struct __wt_config;
 typedef struct __wt_config WT_CONFIG;
 struct __wt_config_check;
+//每个配置项的一些限制检查
 typedef struct __wt_config_check WT_CONFIG_CHECK;
 struct __wt_config_entry;
+//config_entries[]数组为该类型
 typedef struct __wt_config_entry WT_CONFIG_ENTRY;
 struct __wt_config_parser_impl;
 typedef struct __wt_config_parser_impl WT_CONFIG_PARSER_IMPL;
@@ -311,6 +314,7 @@ typedef struct __wt_rec_kv WT_REC_KV;
 struct __wt_reconcile;
 typedef struct __wt_reconcile WT_RECONCILE;
 struct __wt_ref;
+
 typedef struct __wt_ref WT_REF;
 struct __wt_ref_hist;
 typedef struct __wt_ref_hist WT_REF_HIST;
