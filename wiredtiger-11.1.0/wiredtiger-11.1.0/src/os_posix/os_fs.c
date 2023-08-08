@@ -935,7 +935,7 @@ __posix_terminate(WT_FILE_SYSTEM *file_system, WT_SESSION *wt_session)
 /*
  * __wt_os_posix --
  *     Initialize a POSIX configuration.
- */
+ */  //wiredtiger_open
 int
 __wt_os_posix(WT_SESSION_IMPL *session)
 {
@@ -957,7 +957,7 @@ __wt_os_posix(WT_SESSION_IMPL *session)
     file_system->fs_size = __posix_fs_size;
     file_system->terminate = __posix_terminate;
 
-    /* Switch it into place. */
+    /* Switch it into place. */  
     conn->file_system = file_system;
 
     return (0);

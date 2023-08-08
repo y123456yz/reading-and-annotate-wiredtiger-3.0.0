@@ -1,0 +1,1 @@
+/usr/bin/cc  -D_GNU_SOURCE -DHAVE_X86INTRIN_H -Wl,-rpath,\$ORIGIN/../../ CMakeFiles/test_bloom.dir/test_bloom.c.o -o test_bloom  -Wl,-rpath,/root/reading-and-annotate-wiredtiger-3.0.0/wiredtiger-11.1.0/wiredtiger-11.1.0/build:/usr/local/lib ../utility/libtest_util.a ../../libwiredtiger.so.11.1.0 /usr/local/lib/libtcmalloc.so -lpthread /usr/lib64/librt.so /usr/lib64/libdl.so 

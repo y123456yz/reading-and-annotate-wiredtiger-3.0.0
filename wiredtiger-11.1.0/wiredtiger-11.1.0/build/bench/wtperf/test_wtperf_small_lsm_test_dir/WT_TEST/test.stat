@@ -1,0 +1,18 @@
+Starting 1 populate thread(s) for 500000 items
+Finished load of 500000 items
+Load time: 3.43
+load ops/sec: 145602
+Starting workload #1: 8 threads, inserts=0, modifies=0, reads=1, truncate=0, updates=0, throttle=0
+0 inserts, 0 modifies, 3081133 reads, 0 truncates, 0 updates, 0 backups, 0 checkpoints, 0 flush_tiers, 0 scans in 5 secs (5 total secs)
+0 inserts, 0 modifies, 2527469 reads, 0 truncates, 0 updates, 0 backups, 0 checkpoints, 0 flush_tiers, 0 scans in 5 secs (10 total secs)
+0 inserts, 0 modifies, 3165106 reads, 0 truncates, 0 updates, 0 backups, 0 checkpoints, 0 flush_tiers, 0 scans in 5 secs (15 total secs)
+Executed 0 insert operations (0%) 0 ops/sec
+Executed 0 modify operations (0%) 0 ops/sec
+Executed 12328376 read operations (100%) 616418 ops/sec
+Executed 0 truncate operations (0%) 0 ops/sec
+Executed 0 update operations (0%) 0 ops/sec
+Executed 0 backup operations
+Executed 0 checkpoint operations
+Executed 0 flush_tier operations
+Executed 0 scan operations
+Run completed: 20 seconds

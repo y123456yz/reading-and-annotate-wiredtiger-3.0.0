@@ -1,0 +1,505 @@
+[  1%] Built target wiredtiger_zlib
+[  1%] Built target wiredtiger_nop_compress
+[  1%] Built target wiredtiger_reverse_collator
+[  2%] Built target wiredtiger_revint_collator
+[  2%] Built target wiredtiger_nop_encrypt
+[  2%] Built target wiredtiger_csv_extractor
+[  2%] Built target wiredtiger_dir_store
+[  2%] Built target wiredtiger_rotn
+[  2%] Built target wiredtiger_python_swig_compilation
+[  2%] Built target workgen_swig_compilation
+[  3%] Built target create_dir_test_wtperf_small_lsm
+[  4%] Built target workgen_cxx
+[  4%] Built target create_dir_test_checkpoint_6_column_named
+[  4%] Built target create_dir_test_checkpoint_row_sweep_timestamps
+[  4%] Built target create_dir_test_checkpoint_6_row_named_prepare
+[  4%] Built target create_dir_test_checkpoint_6_row_prepare
+[  4%] Built target create_dir_test_checkpoint_6_row
+[  5%] Built target create_dir_test_checkpoint_6_row_named
+[  5%] Built target create_dir_test_checkpoint_row_stress_sweep_timestamps
+[  6%] Built target create_dir_test_checkpoint_column_sweep_timestamps
+[  6%] Built target create_dir_test_checkpoint_column_stress_sweep_timestamps
+[  6%] Built target create_dir_test_checkpoint_6_column_prepare
+[  6%] Built target create_dir_test_checkpoint_4_mixed_timestamps
+[  6%] Built target create_dir_test_checkpoint_6_column_named_prepare
+[  6%] Built target create_dir_test_checkpoint_4_mixed_sweep
+[  6%] Built target create_dir_test_checkpoint_4_runs_sweep
+Consolidate compiler generated dependencies of target wt_objs
+[  6%] Built target create_dir_test_checkpoint_4_mixed
+[  6%] Built target create_dir_test_checkpoint_6_column
+[  6%] Built target create_dir_test_checkpoint_6_fixed
+[  6%] Built target create_dir_test_checkpoint_6_lsm
+[  6%] Built target create_dir_test_checkpoint_8_mixed
+[  6%] Built target create_dir_test_checkpoint_6_fixed_prepare
+[  7%] Built target create_dir_test_checkpoint_6_fixed_named_prepare
+[ 17%] Built target create_dir_test_checkpoint_6_fixed_named
+[ 44%] Built target wt_objs
+[ 44%] Built target create_dir_test_checkpoint_fixed_stress_sweep_timestamps
+[ 45%] Built target create_dir_test_checkpoint_4_runs_timestamps
+[ 45%] Built target copy_file_test_checkpoint_recovery-test.sh
+[ 45%] Built target create_dir_test_cursor_order_fix
+[ 45%] Built target create_dir_test_checkpoint_fixed_sweep_timestamps
+[ 46%] Built target create_dir_test_cursor_order_row
+[ 46%] Built target create_dir_test_cursor_order_var
+[ 46%] Built target create_dir_test_huge_small
+[ 46%] Built target copy_file_test_wt6616_checkpoint_oldest_ts_smoke.sh
+[ 46%] Built target copy_file_test_timestamp_abort_smoke.sh
+[ 46%] Built target copy_file_test_wt6185_modify_ts_smoke.sh
+[ 46%] Built target copy_file_test_schema_abort_smoke.sh
+[ 46%] Built target copy_file_test_tiered_abort_smoke.sh
+[ 46%] Built target copy_file_test_rwlock_time_shift_test.sh
+[ 46%] Built target copy_file_test_wt4105_large_doc_small_upd_smoke.sh
+[ 46%] Built target copy_file_test_incr_backup_smoke.sh
+[ 47%] Built target copy_file_test_random_abort_smoke.sh
+[ 47%] Built target copy_file_test_random_directio_smoke.sh
+[ 47%] Built target copy_file_test_wt2535_insert_race_smoke.sh
+[ 47%] Generating test_wt2447_join_main_table_col_test_dir
+[ 47%] Built target copy_file_test_truncated_log_smoke.sh
+[ 47%] Generating test_wt2447_join_main_table_row_test_dir
+[ 47%] Built target create_dir_test_wt2447_join_main_table_col
+[ 48%] Built target copy_file_test_wt2909_checkpoint_integrity_smoke.sh
+[ 48%] Built target create_dir_test_wt2447_join_main_table_row
+[ 48%] Built target copy_file_test_format_smoke.sh
+[ 48%] Built target copy_file_test_format_CONFIG.stress
+[ 48%] Built target copy_file_test_format_format.sh
+[ 48%] Built target copy_file_test_readonly_smoke.sh
+[ 48%] Built target copy_file_test_wt2336_base_syscall.py
+[ 49%] Built target copy_file_test_thread_smoke.sh
+[ 49%] Built target sync_dir_test_wt2336_base_wt2336_base
+[ 49%] Linking C shared library libwiredtiger.so
+[ 49%] Built target sync_dir_run_configs
+[ 49%] Built target wiredtiger_shared
+Consolidate compiler generated dependencies of target wiredtiger_python
+[ 50%] Building C object lang/python/CMakeFiles/wiredtiger_python.dir/CMakeFiles/wiredtiger_python.dir/wiredtigerPYTHON_wrap.c.o
+Consolidate compiler generated dependencies of target test_util
+[ 51%] Building C object test/utility/CMakeFiles/test_util.dir/misc.c.o
+Consolidate compiler generated dependencies of target wt
+[ 51%] Building C object src/utilities/CMakeFiles/wt.dir/util_main.c.o
+[ 51%] Building C object test/utility/CMakeFiles/test_util.dir/modify.c.o
+[ 51%] Building C object src/utilities/CMakeFiles/wt.dir/util_alter.c.o
+[ 51%] Building C object test/utility/CMakeFiles/test_util.dir/parse_opts.c.o
+[ 51%] Building C object src/utilities/CMakeFiles/wt.dir/util_backup.c.o
+[ 51%] Building C object test/utility/CMakeFiles/test_util.dir/thread.c.o
+[ 51%] Building C object src/utilities/CMakeFiles/wt.dir/util_compact.c.o
+[ 51%] Building C object test/utility/CMakeFiles/test_util.dir/tiered.c.o
+[ 51%] Linking C shared library _wiredtiger.so
+[ 51%] Built target wiredtiger_python
+[ 51%] Linking CXX shared library _workgen.so
+[ 52%] Building C object src/utilities/CMakeFiles/wt.dir/util_cpyright.c.o
+[ 52%] Built target workgen
+[ 53%] Linking C static library libtest_util.a
+[ 53%] Building C object src/utilities/CMakeFiles/wt.dir/util_create.c.o
+[ 53%] Built target test_util
+Consolidate compiler generated dependencies of target wiredtiger_fail_fs
+[ 53%] Building C object ext/test/fail_fs/CMakeFiles/wiredtiger_fail_fs.dir/fail_fs.c.o
+[ 53%] Building C object src/utilities/CMakeFiles/wt.dir/util_downgrade.c.o
+[ 53%] Building C object src/utilities/CMakeFiles/wt.dir/util_drop.c.o
+[ 54%] Linking C shared module libwiredtiger_fail_fs.so
+[ 54%] Built target wiredtiger_fail_fs
+Consolidate compiler generated dependencies of target wtperf
+[ 54%] Building C object bench/wtperf/CMakeFiles/wtperf.dir/config.c.o
+[ 54%] Building C object src/utilities/CMakeFiles/wt.dir/util_dump.c.o
+[ 55%] Building C object src/utilities/CMakeFiles/wt.dir/util_list.c.o
+[ 55%] Building C object src/utilities/CMakeFiles/wt.dir/util_load.c.o
+[ 55%] Building C object bench/wtperf/CMakeFiles/wtperf.dir/idle_table_cycle.c.o
+[ 55%] Building C object src/utilities/CMakeFiles/wt.dir/util_load_json.c.o
+[ 56%] Building C object bench/wtperf/CMakeFiles/wtperf.dir/misc.c.o
+[ 56%] Building C object src/utilities/CMakeFiles/wt.dir/util_loadtext.c.o
+[ 56%] Building C object src/utilities/CMakeFiles/wt.dir/util_misc.c.o
+[ 56%] Building C object bench/wtperf/CMakeFiles/wtperf.dir/track.c.o
+[ 57%] Building C object src/utilities/CMakeFiles/wt.dir/util_printlog.c.o
+[ 57%] Building C object src/utilities/CMakeFiles/wt.dir/util_read.c.o
+[ 57%] Building C object src/utilities/CMakeFiles/wt.dir/util_rename.c.o
+[ 57%] Building C object bench/wtperf/CMakeFiles/wtperf.dir/wtperf.c.o
+[ 57%] Building C object src/utilities/CMakeFiles/wt.dir/util_salvage.c.o
+[ 57%] Building C object bench/wtperf/CMakeFiles/wtperf.dir/wtperf_throttle.c.o
+[ 57%] Building C object src/utilities/CMakeFiles/wt.dir/util_stat.c.o
+[ 57%] Building C object bench/wtperf/CMakeFiles/wtperf.dir/wtperf_truncate.c.o
+[ 57%] Building C object src/utilities/CMakeFiles/wt.dir/util_truncate.c.o
+[ 58%] Building C object src/utilities/CMakeFiles/wt.dir/util_upgrade.c.o
+[ 58%] Building C object src/utilities/CMakeFiles/wt.dir/util_verbose.c.o
+[ 59%] Linking C executable wtperf
+[ 59%] Building C object src/utilities/CMakeFiles/wt.dir/util_verify.c.o
+[ 59%] Built target wtperf
+Consolidate compiler generated dependencies of target test_wt2853_perf
+[ 59%] Building C object bench/wt2853_perf/CMakeFiles/test_wt2853_perf.dir/main.c.o
+[ 59%] Building C object src/utilities/CMakeFiles/wt.dir/util_write.c.o
+Consolidate compiler generated dependencies of target ex_thread
+[ 59%] Building C object examples/c/CMakeFiles/ex_thread.dir/ex_thread.c.o
+[ 59%] Linking C executable test_wt2853_perf
+[ 59%] Built target test_wt2853_perf
+[ 59%] Linking C executable ex_smoke/ex_smoke
+[ 59%] Built target ex_smoke
+Consolidate compiler generated dependencies of target ex_pack
+[ 59%] Building C object examples/c/CMakeFiles/ex_pack.dir/ex_pack.c.o
+[ 59%] Linking C executable ../../wt
+[ 59%] Built target wt
+Consolidate compiler generated dependencies of target ex_verbose
+[ 59%] Building C object examples/c/CMakeFiles/ex_verbose.dir/ex_verbose.c.o
+[ 59%] Linking C executable ex_thread/ex_thread
+[ 59%] Built target ex_thread
+Consolidate compiler generated dependencies of target ex_call_center
+[ 60%] Building C object examples/c/CMakeFiles/ex_call_center.dir/ex_call_center.c.o
+[ 60%] Linking C executable ex_pack/ex_pack
+[ 60%] Built target ex_pack
+Consolidate compiler generated dependencies of target ex_encrypt
+[ 60%] Building C object examples/c/CMakeFiles/ex_encrypt.dir/ex_encrypt.c.o
+[ 60%] Linking C executable ex_verbose/ex_verbose
+[ 60%] Built target ex_verbose
+Consolidate compiler generated dependencies of target ex_file_system
+[ 60%] Building C object examples/c/CMakeFiles/ex_file_system.dir/ex_file_system.c.o
+[ 60%] Linking C executable ex_call_center/ex_call_center
+[ 60%] Built target ex_call_center
+Consolidate compiler generated dependencies of target ex_backup_block
+[ 60%] Building C object examples/c/CMakeFiles/ex_backup_block.dir/ex_backup_block.c.o
+[ 61%] Linking C executable ex_encrypt/ex_encrypt
+[ 61%] Built target ex_encrypt
+Consolidate compiler generated dependencies of target ex_event_handler
+[ 61%] Building C object examples/c/CMakeFiles/ex_event_handler.dir/ex_event_handler.c.o
+[ 61%] Linking C executable ex_file_system/ex_file_system
+[ 61%] Built target ex_file_system
+Consolidate compiler generated dependencies of target ex_extractor
+[ 62%] Building C object examples/c/CMakeFiles/ex_extractor.dir/ex_extractor.c.o
+[ 62%] Linking C executable ex_backup_block/ex_backup_block
+[ 62%] Built target ex_backup_block
+Consolidate compiler generated dependencies of target ex_access
+[ 62%] Building C object examples/c/CMakeFiles/ex_access.dir/ex_access.c.o
+[ 62%] Linking C executable ex_event_handler/ex_event_handler
+[ 62%] Built target ex_event_handler
+Consolidate compiler generated dependencies of target ex_col_store
+[ 62%] Building C object examples/c/CMakeFiles/ex_col_store.dir/ex_col_store.c.o
+[ 62%] Linking C executable ex_extractor/ex_extractor
+[ 62%] Built target ex_extractor
+Consolidate compiler generated dependencies of target ex_all
+[ 62%] Building C object examples/c/CMakeFiles/ex_all.dir/ex_all.c.o
+[ 62%] Linking C executable ex_access/ex_access
+[ 62%] Built target ex_access
+Consolidate compiler generated dependencies of target ex_backup
+[ 62%] Building C object examples/c/CMakeFiles/ex_backup.dir/ex_backup.c.o
+[ 62%] Linking C executable ex_col_store/ex_col_store
+[ 62%] Built target ex_col_store
+Consolidate compiler generated dependencies of target ex_cursor
+[ 62%] Building C object examples/c/CMakeFiles/ex_cursor.dir/ex_cursor.c.o
+[ 63%] Linking C executable ex_all/ex_all
+[ 63%] Linking C executable ex_backup/ex_backup
+[ 63%] Built target ex_all
+Consolidate compiler generated dependencies of target ex_config_parse
+[ 63%] Built target ex_backup
+[ 63%] Building C object examples/c/CMakeFiles/ex_config_parse.dir/ex_config_parse.c.o
+Consolidate compiler generated dependencies of target ex_data_source
+[ 63%] Building C object examples/c/CMakeFiles/ex_data_source.dir/ex_data_source.c.o
+[ 63%] Linking C executable ex_cursor/ex_cursor
+[ 63%] Built target ex_cursor
+Consolidate compiler generated dependencies of target ex_hello
+[ 63%] Building C object examples/c/CMakeFiles/ex_hello.dir/ex_hello.c.o
+[ 64%] Linking C executable ex_config_parse/ex_config_parse
+[ 64%] Linking C executable ex_data_source/ex_data_source
+[ 64%] Built target ex_config_parse
+Consolidate compiler generated dependencies of target ex_stat
+[ 64%] Built target ex_data_source
+[ 65%] Building C object examples/c/CMakeFiles/ex_stat.dir/ex_stat.c.o
+Consolidate compiler generated dependencies of target ex_schema
+[ 65%] Building C object examples/c/CMakeFiles/ex_schema.dir/ex_schema.c.o
+[ 66%] Linking C executable ex_hello/ex_hello
+[ 66%] Built target ex_hello
+Consolidate compiler generated dependencies of target ex_process
+[ 66%] Building C object examples/c/CMakeFiles/ex_process.dir/ex_process.c.o
+[ 66%] Linking C executable ex_stat/ex_stat
+[ 66%] Linking C executable ex_schema/ex_schema
+[ 66%] Built target ex_stat
+Consolidate compiler generated dependencies of target ex_extending
+[ 66%] Building C object examples/c/CMakeFiles/ex_extending.dir/ex_extending.c.o
+[ 66%] Built target ex_schema
+Consolidate compiler generated dependencies of target ex_log
+[ 67%] Linking C executable ex_process/ex_process
+[ 67%] Building C object examples/c/CMakeFiles/ex_log.dir/ex_log.c.o
+[ 67%] Built target ex_process
+Consolidate compiler generated dependencies of target test_bloom
+[ 67%] Building C object test/bloom/CMakeFiles/test_bloom.dir/test_bloom.c.o
+[ 67%] Linking C executable ex_extending/ex_extending
+[ 67%] Built target ex_extending
+Consolidate compiler generated dependencies of target test_checkpoint
+[ 67%] Linking C executable ex_log/ex_log
+[ 68%] Building C object test/checkpoint/CMakeFiles/test_checkpoint.dir/checkpointer.c.o
+[ 68%] Linking C executable test_bloom
+[ 68%] Built target ex_log
+[ 68%] Building C object test/checkpoint/CMakeFiles/test_checkpoint.dir/workers.c.o
+[ 68%] Built target test_bloom
+Consolidate compiler generated dependencies of target test_cursor_order
+[ 68%] Building C object test/cursor_order/CMakeFiles/test_cursor_order.dir/cursor_order_file.c.o
+[ 68%] Building C object test/checkpoint/CMakeFiles/test_checkpoint.dir/test_checkpoint.c.o
+[ 69%] Building C object test/cursor_order/CMakeFiles/test_cursor_order.dir/cursor_order_ops.c.o
+Consolidate compiler generated dependencies of target test_fops
+[ 69%] Building C object test/fops/CMakeFiles/test_fops.dir/file.c.o
+[ 69%] Linking C executable test_checkpoint
+[ 69%] Built target test_checkpoint
+Consolidate compiler generated dependencies of target test_huge
+[ 69%] Building C object test/huge/CMakeFiles/test_huge.dir/huge.c.o
+[ 69%] Building C object test/cursor_order/CMakeFiles/test_cursor_order.dir/cursor_order.c.o
+[ 69%] Building C object test/fops/CMakeFiles/test_fops.dir/fops.c.o
+[ 69%] Linking C executable test_huge
+[ 69%] Building C object test/fops/CMakeFiles/test_fops.dir/t.c.o
+[ 69%] Linking C executable test_cursor_order
+[ 69%] Built target test_huge
+Consolidate compiler generated dependencies of target test_manydbs
+[ 69%] Building C object test/manydbs/CMakeFiles/test_manydbs.dir/manydbs.c.o
+[ 69%] Built target test_cursor_order
+Consolidate compiler generated dependencies of target test_wt8963_insert_stress
+[ 69%] Building C object test/csuite/CMakeFiles/test_wt8963_insert_stress.dir/wt8963_insert_stress/main.c.o
+[ 70%] Linking C executable test_fops
+[ 70%] Linking C executable test_manydbs
+[ 70%] Built target test_fops
+[ 70%] Linking C executable wt8963_insert_stress/test_wt8963_insert_stress
+Consolidate compiler generated dependencies of target test_wt8659_reconstruct_database_from_logs
+[ 71%] Building C object test/csuite/CMakeFiles/test_wt8659_reconstruct_database_from_logs.dir/wt8659_reconstruct_database_from_logs/main.c.o
+[ 71%] Built target test_manydbs
+Consolidate compiler generated dependencies of target test_wt8246_compact_rts_data_correctness
+[ 71%] Built target test_wt8963_insert_stress
+[ 71%] Building C object test/csuite/CMakeFiles/test_wt8246_compact_rts_data_correctness.dir/wt8246_compact_rts_data_correctness/main.c.o
+Consolidate compiler generated dependencies of target test_wt8057_compact_stress
+[ 71%] Building C object test/csuite/CMakeFiles/test_wt8057_compact_stress.dir/wt8057_compact_stress/main.c.o
+[ 71%] Linking C executable wt8659_reconstruct_database_from_logs/test_wt8659_reconstruct_database_from_logs
+[ 71%] Built target test_wt8659_reconstruct_database_from_logs
+[ 71%] Linking C executable wt8246_compact_rts_data_correctness/test_wt8246_compact_rts_data_correctness
+Consolidate compiler generated dependencies of target test_wt7989_compact_checkpoint
+[ 72%] Building C object test/csuite/CMakeFiles/test_wt7989_compact_checkpoint.dir/wt7989_compact_checkpoint/main.c.o
+[ 72%] Linking C executable wt8057_compact_stress/test_wt8057_compact_stress
+[ 72%] Built target test_wt8246_compact_rts_data_correctness
+Consolidate compiler generated dependencies of target test_wt6616_checkpoint_oldest_ts
+[ 72%] Building C object test/csuite/CMakeFiles/test_wt6616_checkpoint_oldest_ts.dir/wt6616_checkpoint_oldest_ts/main.c.o
+[ 72%] Built target test_wt8057_compact_stress
+Consolidate compiler generated dependencies of target test_wt4803_history_store_abort
+[ 72%] Building C object test/csuite/CMakeFiles/test_wt4803_history_store_abort.dir/wt4803_history_store_abort/main.c.o
+[ 72%] Linking C executable wt7989_compact_checkpoint/test_wt7989_compact_checkpoint
+[ 72%] Built target test_wt7989_compact_checkpoint
+Consolidate compiler generated dependencies of target test_wt4699_json
+[ 73%] Building C object test/csuite/CMakeFiles/test_wt4699_json.dir/wt4699_json/main.c.o
+[ 73%] Linking C executable wt4803_history_store_abort/test_wt4803_history_store_abort
+[ 73%] Linking C executable wt6616_checkpoint_oldest_ts/test_wt6616_checkpoint_oldest_ts
+[ 73%] Built target test_wt4803_history_store_abort
+[ 73%] Built target test_wt6616_checkpoint_oldest_ts
+Consolidate compiler generated dependencies of target test_wt4156_metadata_salvage
+Consolidate compiler generated dependencies of target test_wt4117_checksum
+[ 73%] Building C object test/csuite/CMakeFiles/test_wt4156_metadata_salvage.dir/wt4156_metadata_salvage/main.c.o
+[ 74%] Building C object test/csuite/CMakeFiles/test_wt4117_checksum.dir/wt4117_checksum/main.c.o
+[ 74%] Linking C executable wt4699_json/test_wt4699_json
+[ 74%] Built target test_wt4699_json
+Consolidate compiler generated dependencies of target test_wt3363_checkpoint_op_races
+[ 74%] Linking C executable wt4117_checksum/test_wt4117_checksum
+[ 74%] Building C object test/csuite/CMakeFiles/test_wt3363_checkpoint_op_races.dir/wt3363_checkpoint_op_races/main.c.o
+[ 74%] Linking C executable wt4156_metadata_salvage/test_wt4156_metadata_salvage
+[ 74%] Built target test_wt4117_checksum
+Consolidate compiler generated dependencies of target test_timestamp_abort
+[ 74%] Building C object test/csuite/CMakeFiles/test_timestamp_abort.dir/timestamp_abort/main.c.o
+[ 74%] Built target test_wt4156_metadata_salvage
+Consolidate compiler generated dependencies of target test_wt4891_meta_ckptlist_get_alloc
+[ 74%] Building C object test/csuite/CMakeFiles/test_wt4891_meta_ckptlist_get_alloc.dir/wt4891_meta_ckptlist_get_alloc/main.c.o
+[ 75%] Linking C executable wt3363_checkpoint_op_races/test_wt3363_checkpoint_op_races
+[ 75%] Built target test_wt3363_checkpoint_op_races
+Consolidate compiler generated dependencies of target test_wt4333_handle_locks
+[ 75%] Building C object test/csuite/CMakeFiles/test_wt4333_handle_locks.dir/wt4333_handle_locks/main.c.o
+[ 76%] Linking C executable wt4891_meta_ckptlist_get_alloc/test_wt4891_meta_ckptlist_get_alloc
+[ 76%] Built target test_wt4891_meta_ckptlist_get_alloc
+Consolidate compiler generated dependencies of target test_wt2323_join_visibility
+[ 76%] Building C object test/csuite/CMakeFiles/test_wt2323_join_visibility.dir/wt2323_join_visibility/main.c.o
+[ 76%] Linking C executable timestamp_abort/test_timestamp_abort
+[ 76%] Built target test_timestamp_abort
+Consolidate compiler generated dependencies of target test_wt9937_parse_opts
+[ 76%] Building C object test/csuite/CMakeFiles/test_wt9937_parse_opts.dir/wt9937_parse_opts/main.c.o
+[ 76%] Linking C executable wt4333_handle_locks/test_wt4333_handle_locks
+[ 76%] Built target test_wt4333_handle_locks
+Consolidate compiler generated dependencies of target test_scope
+[ 76%] Building C object test/csuite/CMakeFiles/test_scope.dir/scope/main.c.o
+[ 77%] Linking C executable wt2323_join_visibility/test_wt2323_join_visibility
+[ 77%] Built target test_wt2323_join_visibility
+Consolidate compiler generated dependencies of target test_wt6185_modify_ts
+[ 77%] Building C object test/csuite/CMakeFiles/test_wt6185_modify_ts.dir/wt6185_modify_ts/main.c.o
+[ 78%] Linking C executable wt9937_parse_opts/test_wt9937_parse_opts
+[ 78%] Built target test_wt9937_parse_opts
+Consolidate compiler generated dependencies of target test_schema_abort
+[ 78%] Building C object test/csuite/CMakeFiles/test_schema_abort.dir/schema_abort/main.c.o
+[ 78%] Linking C executable scope/test_scope
+[ 78%] Built target test_scope
+Consolidate compiler generated dependencies of target test_tiered_abort
+[ 78%] Building C object test/csuite/CMakeFiles/test_tiered_abort.dir/tiered_abort/main.c.o
+[ 78%] Linking C executable wt6185_modify_ts/test_wt6185_modify_ts
+[ 78%] Built target test_wt6185_modify_ts
+Consolidate compiler generated dependencies of target test_wt3184_dup_index_collator
+[ 79%] Building C object test/csuite/CMakeFiles/test_wt3184_dup_index_collator.dir/wt3184_dup_index_collator/main.c.o
+[ 79%] Linking C executable schema_abort/test_schema_abort
+[ 79%] Built target test_schema_abort
+Consolidate compiler generated dependencies of target test_rwlock
+[ 79%] Building C object test/csuite/CMakeFiles/test_rwlock.dir/rwlock/main.c.o
+[ 79%] Linking C executable wt3184_dup_index_collator/test_wt3184_dup_index_collator
+[ 80%] Linking C executable tiered_abort/test_tiered_abort
+[ 80%] Built target test_wt3184_dup_index_collator
+Consolidate compiler generated dependencies of target test_wt4105_large_doc_small_upd
+[ 80%] Built target test_tiered_abort
+[ 80%] Building C object test/csuite/CMakeFiles/test_wt4105_large_doc_small_upd.dir/wt4105_large_doc_small_upd/main.c.o
+Consolidate compiler generated dependencies of target test_incr_backup
+[ 80%] Building C object test/csuite/CMakeFiles/test_incr_backup.dir/incr_backup/main.c.o
+[ 80%] Linking C executable rwlock/test_rwlock
+[ 80%] Built target test_rwlock
+Consolidate compiler generated dependencies of target test_wt3338_partial_update
+[ 80%] Building C object test/csuite/CMakeFiles/test_wt3338_partial_update.dir/wt3338_partial_update/main.c.o
+[ 80%] Linking C executable wt4105_large_doc_small_upd/test_wt4105_large_doc_small_upd
+[ 80%] Built target test_wt4105_large_doc_small_upd
+Consolidate compiler generated dependencies of target test_random_abort
+[ 80%] Building C object test/csuite/CMakeFiles/test_random_abort.dir/random_abort/main.c.o
+[ 80%] Linking C executable incr_backup/test_incr_backup
+[ 80%] Built target test_incr_backup
+Consolidate compiler generated dependencies of target test_wt2695_checksum
+[ 80%] Building C object test/csuite/CMakeFiles/test_wt2695_checksum.dir/wt2695_checksum/main.c.o
+[ 80%] Linking C executable wt3338_partial_update/test_wt3338_partial_update
+[ 80%] Built target test_wt3338_partial_update
+Consolidate compiler generated dependencies of target test_random_directio
+[ 80%] Building C object test/csuite/CMakeFiles/test_random_directio.dir/random_directio/main.c.o
+[ 80%] Linking C executable random_abort/test_random_abort
+[ 80%] Built target test_random_abort
+[ 80%] Linking C executable wt2695_checksum/test_wt2695_checksum
+Consolidate compiler generated dependencies of target test_wt1965_col_efficiency
+[ 80%] Building C object test/csuite/CMakeFiles/test_wt1965_col_efficiency.dir/wt1965_col_efficiency/main.c.o
+[ 80%] Built target test_wt2695_checksum
+Consolidate compiler generated dependencies of target test_wt2403_lsm_workload
+[ 80%] Building C object test/csuite/CMakeFiles/test_wt2403_lsm_workload.dir/wt2403_lsm_workload/main.c.o
+[ 80%] Building C object test/csuite/CMakeFiles/test_random_directio.dir/random_directio/util.c.o
+[ 80%] Linking C executable wt1965_col_efficiency/test_wt1965_col_efficiency
+[ 80%] Built target test_wt1965_col_efficiency
+[ 80%] Linking C executable wt2403_lsm_workload/test_wt2403_lsm_workload
+Consolidate compiler generated dependencies of target test_wt2246_col_append
+[ 80%] Building C object test/csuite/CMakeFiles/test_wt2246_col_append.dir/wt2246_col_append/main.c.o
+[ 80%] Built target test_wt2403_lsm_workload
+Consolidate compiler generated dependencies of target test_wt2535_insert_race
+[ 80%] Building C object test/csuite/CMakeFiles/test_wt2535_insert_race.dir/wt2535_insert_race/main.c.o
+[ 81%] Linking C executable random_directio/test_random_directio
+[ 81%] Built target test_random_directio
+Consolidate compiler generated dependencies of target test_truncated_log
+[ 81%] Building C object test/csuite/CMakeFiles/test_truncated_log.dir/truncated_log/main.c.o
+[ 81%] Linking C executable wt2246_col_append/test_wt2246_col_append
+[ 81%] Linking C executable wt2535_insert_race/test_wt2535_insert_race
+[ 81%] Built target test_wt2246_col_append
+Consolidate compiler generated dependencies of target test_wt2999_join_extractor
+[ 82%] Building C object test/csuite/CMakeFiles/test_wt2999_join_extractor.dir/wt2999_join_extractor/main.c.o
+[ 82%] Built target test_wt2535_insert_race
+Consolidate compiler generated dependencies of target test_wt2447_join_main_table
+[ 83%] Building C object test/csuite/CMakeFiles/test_wt2447_join_main_table.dir/wt2447_join_main_table/main.c.o
+[ 83%] Linking C executable truncated_log/test_truncated_log
+[ 83%] Built target test_truncated_log
+Consolidate compiler generated dependencies of target test_wt2592_join_schema
+[ 83%] Building C object test/csuite/CMakeFiles/test_wt2592_join_schema.dir/wt2592_join_schema/main.c.o
+[ 83%] Linking C executable wt2999_join_extractor/test_wt2999_join_extractor
+[ 83%] Built target test_wt2999_join_extractor
+[ 83%] Linking C executable wt2447_join_main_table/test_wt2447_join_main_table
+Consolidate compiler generated dependencies of target test_wt2834_join_bloom_fix
+[ 83%] Building C object test/csuite/CMakeFiles/test_wt2834_join_bloom_fix.dir/wt2834_join_bloom_fix/main.c.o
+[ 83%] Built target test_wt2447_join_main_table
+Consolidate compiler generated dependencies of target test_wt2909_checkpoint_integrity
+[ 83%] Building C object test/csuite/CMakeFiles/test_wt2909_checkpoint_integrity.dir/wt2909_checkpoint_integrity/main.c.o
+[ 84%] Linking C executable wt2592_join_schema/test_wt2592_join_schema
+[ 84%] Built target test_wt2592_join_schema
+Consolidate compiler generated dependencies of target test_wt3874_pad_byte_collator
+[ 84%] Building C object test/csuite/CMakeFiles/test_wt3874_pad_byte_collator.dir/wt3874_pad_byte_collator/main.c.o
+[ 85%] Linking C executable wt2834_join_bloom_fix/test_wt2834_join_bloom_fix
+[ 85%] Built target test_wt2834_join_bloom_fix
+Consolidate compiler generated dependencies of target test_wt3135_search_near_collator
+[ 85%] Building C object test/csuite/CMakeFiles/test_wt3135_search_near_collator.dir/wt3135_search_near_collator/main.c.o
+[ 85%] Linking C executable wt2909_checkpoint_integrity/test_wt2909_checkpoint_integrity
+[ 85%] Built target test_wt2909_checkpoint_integrity
+Consolidate compiler generated dependencies of target test_wt2719_reconfig
+[ 85%] Building C object test/csuite/CMakeFiles/test_wt2719_reconfig.dir/wt2719_reconfig/main.c.o
+[ 85%] Linking C executable wt3874_pad_byte_collator/test_wt3874_pad_byte_collator
+[ 85%] Built target test_wt3874_pad_byte_collator
+Consolidate compiler generated dependencies of target test_wt3120_filesys
+[ 85%] Building C object test/csuite/CMakeFiles/test_wt3120_filesys.dir/wt3120_filesys/main.c.o
+[ 85%] Linking C executable wt3135_search_near_collator/test_wt3135_search_near_collator
+[ 85%] Built target test_wt3135_search_near_collator
+Consolidate compiler generated dependencies of target test_intpack
+[ 86%] Building C object test/packing/CMakeFiles/test_intpack.dir/intpack-test3.c.o
+[ 86%] Linking C executable wt2719_reconfig/test_wt2719_reconfig
+[ 86%] Built target test_wt2719_reconfig
+Consolidate compiler generated dependencies of target test_packing
+[ 86%] Building C object test/packing/CMakeFiles/test_packing.dir/packing-test.c.o
+[ 86%] Linking C executable wt3120_filesys/test_wt3120_filesys
+[ 86%] Built target test_wt3120_filesys
+Consolidate compiler generated dependencies of target test_format
+[ 86%] Building C object test/format/CMakeFiles/test_format.dir/alter.c.o
+[ 86%] Linking C executable intpack-test3
+[ 86%] Built target test_intpack
+Consolidate compiler generated dependencies of target test_readonly
+[ 86%] Building C object test/readonly/CMakeFiles/test_readonly.dir/readonly.c.o
+[ 87%] Linking C executable packing-test
+[ 87%] Building C object test/format/CMakeFiles/test_format.dir/backup.c.o
+[ 87%] Built target test_packing
+Consolidate compiler generated dependencies of target test_salvage
+[ 87%] Building C object test/salvage/CMakeFiles/test_salvage.dir/salvage.c.o
+[ 87%] Linking C executable t
+[ 87%] Built target test_readonly
+Consolidate compiler generated dependencies of target test_wt2336_base
+[ 87%] Building C object test/syscall/CMakeFiles/test_wt2336_base.dir/wt2336_base/main.c.o
+[ 87%] Building C object test/format/CMakeFiles/test_format.dir/bulk.c.o
+[ 88%] Linking C executable test_salvage
+[ 88%] Built target test_salvage
+Consolidate compiler generated dependencies of target test_thread
+[ 89%] Building C object test/thread/CMakeFiles/test_thread.dir/file.c.o
+[ 89%] Linking C executable test_wt2336_base
+[ 89%] Built target test_wt2336_base
+Consolidate compiler generated dependencies of target cppsuite_test_harness
+[ 89%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/bound/bound.cpp.o
+[ 89%] Building C object test/format/CMakeFiles/test_format.dir/checkpoint.c.o
+[ 89%] Building C object test/thread/CMakeFiles/test_thread.dir/rw.c.o
+[ 90%] Building C object test/format/CMakeFiles/test_format.dir/compact.c.o
+[ 90%] Building C object test/thread/CMakeFiles/test_thread.dir/stats.c.o
+[ 90%] Building C object test/format/CMakeFiles/test_format.dir/config.c.o
+[ 90%] Building C object test/thread/CMakeFiles/test_thread.dir/t.c.o
+[ 91%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/bound/bound_set.cpp.o
+[ 91%] Linking C executable t
+[ 91%] Built target test_thread
+[ 91%] Generating wt
+[ 91%] Building C object test/format/CMakeFiles/test_format.dir/config_compat.c.o
+[ 91%] Built target sym_wt_examples
+[ 91%] Building C object test/format/CMakeFiles/test_format.dir/config_def.c.o
+[ 91%] Building C object test/format/CMakeFiles/test_format.dir/hs.c.o
+[ 91%] Building C object test/format/CMakeFiles/test_format.dir/import.c.o
+[ 91%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/common/logger.cpp.o
+[ 92%] Building C object test/format/CMakeFiles/test_format.dir/kv.c.o
+[ 92%] Building C object test/format/CMakeFiles/test_format.dir/ops.c.o
+[ 92%] Building C object test/format/CMakeFiles/test_format.dir/random.c.o
+[ 92%] Building C object test/format/CMakeFiles/test_format.dir/salvage.c.o
+[ 92%] Building C object test/format/CMakeFiles/test_format.dir/snap.c.o
+[ 92%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/common/random_generator.cpp.o
+[ 93%] Building C object test/format/CMakeFiles/test_format.dir/t.c.o
+[ 93%] Building C object test/format/CMakeFiles/test_format.dir/trace.c.o
+[ 93%] Building C object test/format/CMakeFiles/test_format.dir/timestamp.c.o
+[ 93%] Building C object test/format/CMakeFiles/test_format.dir/util.c.o
+[ 93%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/component/metrics_monitor.cpp.o
+[ 93%] Building C object test/format/CMakeFiles/test_format.dir/verify.c.o
+[ 94%] Building C object test/format/CMakeFiles/test_format.dir/wts.c.o
+[ 94%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/component/operation_tracker.cpp.o
+[ 94%] Linking C executable t
+[ 94%] Built target test_format
+[ 94%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/component/statistics/cache_limit.cpp.o
+[ 95%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/component/statistics/database_size.cpp.o
+[ 95%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/component/statistics/statistics.cpp.o
+[ 95%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/component/timestamp_manager.cpp.o
+[ 95%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/component/workload_manager.cpp.o
+[ 96%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/configuration.cpp.o
+[ 96%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/database.cpp.o
+[ 96%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/database_operation.cpp.o
+[ 96%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/operation_configuration.cpp.o
+[ 96%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/test.cpp.o
+[ 96%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/thread_worker.cpp.o
+[ 97%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/transaction.cpp.o
+[ 97%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/main/validator.cpp.o
+[ 97%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/storage/connection_manager.cpp.o
+[ 97%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/storage/scoped_cursor.cpp.o
+[ 97%] Building CXX object test/cppsuite/CMakeFiles/cppsuite_test_harness.dir/src/storage/scoped_session.cpp.o
+[ 98%] Linking CXX static library libcppsuite_test_harness.a
+[ 99%] Built target cppsuite_test_harness
+Consolidate compiler generated dependencies of target run
+Consolidate compiler generated dependencies of target csuite_style_example_test
+[ 99%] Building CXX object test/cppsuite/CMakeFiles/csuite_style_example_test.dir/tests/csuite_style_example_test.cpp.o
+[100%] Building CXX object test/cppsuite/CMakeFiles/run.dir/tests/run.cpp.o
+[100%] Linking CXX executable csuite_style_example_test
+[100%] Built target csuite_style_example_test
+[100%] Linking CXX executable run
+[100%] Built target run

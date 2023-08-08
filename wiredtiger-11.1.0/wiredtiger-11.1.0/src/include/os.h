@@ -149,7 +149,7 @@ struct __wt_file_handle_posix {
     volatile uint32_t mmap_usecount;
 };
 #endif
-
+//__im_file_open中赋值初始化
 struct __wt_file_handle_inmem {
     WT_FILE_HANDLE iface;
 

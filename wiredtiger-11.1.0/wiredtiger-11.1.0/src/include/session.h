@@ -59,6 +59,7 @@ typedef TAILQ_HEAD(__wt_cursor_list, __wt_cursor) WT_CURSOR_LIST;
 struct __wt_session_impl {
     WT_SESSION iface;//__open_session赋值，确定session的各种回调
     //如果不是自定义handle则使用默认handle  __wt_event_handler_set
+    //参考__event_handler_default，对应message的输出，以什么方式输出
     WT_EVENT_HANDLER *event_handler; /* Application's event handlers */
 
     void *lang_private; /* Language specific private storage */

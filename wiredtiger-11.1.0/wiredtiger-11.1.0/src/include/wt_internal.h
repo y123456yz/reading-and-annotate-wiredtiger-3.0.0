@@ -329,7 +329,7 @@ typedef struct __wt_save_upd WT_SAVE_UPD;
 struct __wt_scratch_track;
 typedef struct __wt_scratch_track WT_SCRATCH_TRACK;
 struct __wt_session_impl;
-//__open_session中获取session
+//__open_session中获取session //session接口，赋值参考__open_session
 typedef struct __wt_session_impl WT_SESSION_IMPL;
 struct __wt_session_stash;
 typedef struct __wt_session_stash WT_SESSION_STASH;

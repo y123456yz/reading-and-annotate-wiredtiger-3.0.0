@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtest_util.a CMakeFiles/test_util.dir/misc.c.o CMakeFiles/test_util.dir/modify.c.o CMakeFiles/test_util.dir/parse_opts.c.o CMakeFiles/test_util.dir/thread.c.o CMakeFiles/test_util.dir/tiered.c.o
+/usr/bin/ranlib libtest_util.a

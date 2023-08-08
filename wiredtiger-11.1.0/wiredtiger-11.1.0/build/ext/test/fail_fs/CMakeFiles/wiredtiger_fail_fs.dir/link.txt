@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC  -D_GNU_SOURCE -DHAVE_X86INTRIN_H -shared  -o libwiredtiger_fail_fs.so CMakeFiles/wiredtiger_fail_fs.dir/fail_fs.c.o  -Wl,-rpath,/root/reading-and-annotate-wiredtiger-3.0.0/wiredtiger-11.1.0/wiredtiger-11.1.0/build ../../../test/utility/libtest_util.a ../../../libwiredtiger.so.11.1.0 -lpthread /usr/lib64/librt.so /usr/lib64/libdl.so 

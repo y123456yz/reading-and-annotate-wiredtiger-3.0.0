@@ -282,7 +282,7 @@ __wt_conn_remove_compressor(WT_SESSION_IMPL *session)
 /*
  * __conn_add_data_source --
  *     WT_CONNECTION->add_data_source method.
- */ // add_data_source
+ */ 
 static int
 __conn_add_data_source(
   WT_CONNECTION *wt_conn, const char *prefix, WT_DATA_SOURCE *dsrc, const char *config)

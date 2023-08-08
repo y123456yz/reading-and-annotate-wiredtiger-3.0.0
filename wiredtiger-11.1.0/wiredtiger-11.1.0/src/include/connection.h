@@ -12,7 +12,7 @@
 /*
  * WT_PROCESS --
  *	Per-process information for the library.
- */
+ */ //__wt_process全局变量
 struct __wt_process {
     WT_SPINLOCK spinlock; /* Per-process spinlock */
 
@@ -91,9 +91,10 @@ struct __wt_keyed_encryptor {
 /*
  * WT_NAMED_COLLATOR --
  *	A collator list entry
- */
+ */ //__wt_connection_impl.collqh为该类型，该列表中的成员
 struct __wt_named_collator {
     const char *name;                   /* Name of collator */
+    //赋值参考__conn_add_collator 
     WT_COLLATOR *collator;              /* User supplied object */
     TAILQ_ENTRY(__wt_named_collator) q; /* Linked list of collators */
 };
@@ -101,7 +102,7 @@ struct __wt_named_collator {
 /*
  * WT_NAMED_COMPRESSOR --
  *	A compressor list entry
- */
+ */ //__wt_connection_impl.compqh为该类型，该列表中的成员
 struct __wt_named_compressor {
     const char *name;          /* Name of compressor */
     WT_COMPRESSOR *compressor; /* User supplied callbacks */
@@ -112,10 +113,10 @@ struct __wt_named_compressor {
 /*
  * WT_NAMED_DATA_SOURCE --
  *	A data source list entry
- */
+ */ //__wt_connection_impl.dsrcqh为该类型，该列表中的成员
 struct __wt_named_data_source {
     const char *prefix;   /* Name of data source */
-    WT_DATA_SOURCE *dsrc; /* User supplied callbacks */
+    WT_DATA_SOURCE *dsrc; /* User supplied callbacks */  
     /* Linked list of data sources */
     TAILQ_ENTRY(__wt_named_data_source) q;
 };
@@ -123,7 +124,7 @@ struct __wt_named_data_source {
 /*
  * WT_NAMED_ENCRYPTOR --
  *	An encryptor list entry
- */
+ */ //__wt_connection_impl.encryptqh为该类型，该列表中的成员
 struct __wt_named_encryptor {
     const char *name;        /* Name of encryptor */
     WT_ENCRYPTOR *encryptor; /* User supplied callbacks */
@@ -137,7 +138,7 @@ struct __wt_named_encryptor {
 /*
  * WT_NAMED_EXTRACTOR --
  *	An extractor list entry
- */
+ */ //__wt_connection_impl.extractorqh为该类型，该列表中的成员
 struct __wt_named_extractor {
     const char *name;                    /* Name of extractor */
     WT_EXTRACTOR *extractor;             /* User supplied object */
@@ -147,7 +148,7 @@ struct __wt_named_extractor {
 /*
  * WT_NAMED_STORAGE_SOURCE --
  *	A storage source list entry
- */
+ */ //__wt_connection_impl.storagesrcqh为该类型，该列表中的成员
 struct __wt_named_storage_source {
     const char *name;                  /* Name of storage source */
     WT_STORAGE_SOURCE *storage_source; /* User supplied callbacks */
@@ -243,7 +244,7 @@ typedef TAILQ_HEAD(__wt_backuphash, __wt_backup_target) WT_BACKUPHASH;
 
  //每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
  */ 
-//__wt_cache_pool.cache_pool_qh: 思扑闼衏onn上面的内存情况及内存压力
+//__wt_cache_pool.cache_pool_qh:为了计算所有conn上面的内存情况及内存压力
 ////__wt_process.connqh全局变量存储所有分配的conn,确保只有一个conn访问该DB
 struct __wt_connection_impl {
     //对应connection的接口回调，参考wiredtiger_open
@@ -541,6 +542,7 @@ struct __wt_connection_impl {
     TAILQ_HEAD(__wt_comp_qh, __wt_named_compressor) compqh;
 
     /* Locked: data source list */
+    //参考__conn_add_data_source
     TAILQ_HEAD(__wt_dsrc_qh, __wt_named_data_source) dsrcqh;
 
     /* Locked: encryptor list */
