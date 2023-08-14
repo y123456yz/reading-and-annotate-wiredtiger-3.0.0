@@ -95,7 +95,7 @@ config_verbose(void)
     //https://source.wiredtiger.com/develop/data_sources.html
     //http://source.wiredtiger.com/3.2.1/devdoc-schema.html#schema_create
     error_check(session->create(session, "table:verbose", "key_format=S,value_format=S"));
-    printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step3:\n");
+    printf("\r\n\r\n\r\nex_verbose: expect verbose messageskey_format to step3:\n");
     //__session_open_cursor
     error_check(session->open_cursor(session, "table:verbose", NULL, NULL, &cursor));
     printf("\r\n\r\n\r\nex_verbose: expect verbose messages to step4:\n");

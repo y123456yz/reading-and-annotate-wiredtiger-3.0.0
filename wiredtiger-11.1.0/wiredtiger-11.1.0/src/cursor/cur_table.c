@@ -11,6 +11,7 @@
 static int __curtable_open_indices(WT_CURSOR_TABLE *ctable);
 static int __curtable_update(WT_CURSOR *cursor);
 
+//遍历cg_cursors列表，执行f操作
 #define APPLY_CG(ctable, f)                                                             \
     do {                                                                                \
         WT_CURSOR **__cp;                                                               \
@@ -474,6 +475,7 @@ __curtable_search(WT_CURSOR *cursor)
     ctable = (WT_CURSOR_TABLE *)cursor;
     JOINABLE_CURSOR_API_CALL(cursor, session, search, NULL);
     CURSOR_REPOSITION_ENTER(cursor, session);
+    //对cg_cursors数组遍历，然后执行search
     APPLY_CG(ctable, search);
 
 err:

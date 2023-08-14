@@ -184,8 +184,8 @@ __wt_metadata_insert(WT_SESSION_IMPL *session, const char *key, const char *valu
     WT_CURSOR *cursor;
     WT_DECL_RET;
 
-    printf("yang test .....__wt_metadata_insert.......... S2C(session)->verbose[category]:%d\r\n\r\n", 
-        S2C(session)->verbose[WT_VERB_METADATA]);
+   // printf("yang test .....__wt_metadata_insert.......... S2C(session)->verbose[category]:%d\r\n\r\n", 
+     //   S2C(session)->verbose[WT_VERB_METADATA]);
     __wt_verbose_debug3(session, WT_VERB_METADATA,
       "Insert: key: %s, value: %s, tracking: %s, %s"
       "turtle",

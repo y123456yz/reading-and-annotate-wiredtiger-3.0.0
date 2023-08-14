@@ -95,7 +95,7 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
         cfg[2] = "checkpoint_backup_info=()";
         cfg[3] = NULL;
         //config_entries[WT_CONFIG_ENTRY_file_meta], 默认配置存入dhandle->cfg[0]，也就是"file.meta"
-        //cfg[0]是config_entries[WT_CONFIG_ENTRY_file_meta]默认配置
+        //cfg[0]是config_entries[WT_CONFIG_ENTRY_file_meta]默认配置   "file.meta"
         //cfg[1]是从.wt元数据文件中读出的该BTREE的配置
         WT_ERR(__wt_strdup(session, WT_CONFIG_BASE(session, file_meta), &dhandle->cfg[0]));
         WT_ASSERT(session, dhandle->meta_base == NULL);
@@ -103,8 +103,8 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
         WT_ASSERT(session, dhandle->orig_meta_base == NULL);
 #endif
         WT_ERR(__wt_config_collapse(session, cfg, &tmp));
-        printf("yang test ...1111111111.... __conn_dhandle_config_set ...name:%s...cfg[0]:%s,\r\n tmp:%s\r\n\r\n\r\n\r\n", 
-            dhandle->name, cfg[0], tmp);
+       // printf("yang test ...1111111111.... __conn_dhandle_config_set ...name:%s...cfg[0]:%s,\r\n tmp:%s\r\n\r\n\r\n\r\n", 
+        //    dhandle->name, cfg[0], tmp);
 
         /*
          * Now strip out the checkpoint related items from the configuration string and that is now

@@ -441,7 +441,7 @@ __schema_open_table(WT_SESSION_IMPL *session)
 
     WT_RET_NOTFOUND_OK(ret);
 
-    printf("yang test ........__schema_open_table............ncolgroups:%u\r\n", table->ncolgroups);
+   // printf("yang test ........__schema_open_table............ncolgroups:%u\r\n", table->ncolgroups);
     //默认不会有colgroups配置，
     if (table->ncolgroups > 0 && table->is_simple)
         WT_RET_MSG(session, EINVAL, "%s requires a table with named columns", tablename);
@@ -470,17 +470,24 @@ __wt_schema_get_colgroup(
     *colgroupp = NULL;
 
     tablename = uri;
+    printf("yang test ..........tablename:%s, tablename:%s\r\n", tablename, tablename);
+    //app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=S,verbose=[],write_timestamp_usage=none
+    //mongodb默认不会指定colgroup，
     if (!WT_PREFIX_SKIP(tablename, "colgroup:"))
         return (__wt_bad_object_type(session, uri));
 
+    //tend为"colgroup:"后面的内容，也就是表明
     if ((tend = strchr(tablename, ':')) == NULL)
         tend = tablename + strlen(tablename);
 
+    printf("yang test ..........tend:%s, tablename:%s\r\n", tend, tablename);
     WT_RET(
       __wt_schema_get_table(session, tablename, WT_PTRDIFF(tend, tablename), false, 0, &table));
 
     for (i = 0; i < WT_COLGROUPS(table); i++) {
         colgroup = table->cgroups[i];
+        printf("yang test ..........uri:%s, colgroup->name:%s\r\n", uri, colgroup->name);
+    
         if (strcmp(colgroup->name, uri) == 0) {
             *colgroupp = colgroup;
             if (tablep != NULL)

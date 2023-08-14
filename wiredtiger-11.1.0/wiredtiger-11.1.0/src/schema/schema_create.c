@@ -321,7 +321,9 @@ err:
 /*
  * __wt_schema_colgroup_source --
  *     Get the URI of the data source for a column group.
- */
+ */  //__create_colgroup
+//获取colgroup source名称，存入buf
+//例如表名对应test/collection/18--5164326421294708085.wt，则buf内容为file:test/collection/18--5164326421294708085.wt
 int
 __wt_schema_colgroup_source(
   WT_SESSION_IMPL *session, WT_TABLE *table, const char *cgname, const char *config, WT_ITEM *buf)
@@ -456,19 +458,19 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
     if (session->import_list != NULL)
         WT_RET(__wt_find_import_metadata(session, name, &cfg[1]));
 
-    //__create_table中name=colgroup:表名，这里剔除"colgroup:"后就说表名
+    //__create_table中强制转换为name=colgroup:表名
     tablename = name;
     WT_PREFIX_SKIP_REQUIRED(session, tablename, "colgroup:");
     cgname = strchr(tablename, ':');
     if (cgname != NULL) {
         tlen = (size_t)(cgname - tablename);
-        ++cgname;
+        ++cgname; //
     } else
         tlen = strlen(tablename);
-    //到这里后cgname=表名
+    //到这里后cgname=表名，去除了"colgroup:"
 
-
-     //获取tablename对应的WT_TABLE存入table返回
+    //获取tablename对应的WT_TABLE存入table返回
+    //这里的tablename和tlen是去除了"colgroup:"前缀的内容
     if ((ret = __wt_schema_get_table(
            session, tablename, tlen, true, WT_DHANDLE_EXCLUSIVE, &table)) != 0)
         WT_RET_MSG(session, (ret == WT_NOTFOUND) ? ENOENT : ret,
@@ -488,6 +490,8 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
         WT_ERR_MSG(session, ret == WT_NOTFOUND ? EINVAL : ret,
           "Column group '%s' not found in table '%.*s'", cgname, (int)tlen, tablename);
 
+    printf("yang test ................cgname:%s, cgconf:%s\r\n", cgname, table->cgconf.str);
+    
     /* Check if the column group already exists. */
     //例如
     //   colgroup:access\00
@@ -505,10 +509,13 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
         ;
 
     /* Add the source to the colgroup config before collapsing. */
+    //如果有显示的指示source,则使用该source
     if (__wt_config_getones(session, config, "source", &cval) == 0 && cval.len != 0) {
         WT_ERR(__wt_buf_fmt(session, &namebuf, "%.*s", (int)cval.len, cval.str));
         source = namebuf.data;
-    } else {
+    } else {//默认走这里，__wt_schema_colgroup_source获取source
+        //获取colgroup source名称，存入buf
+        //例如表名对应test/collection/18--5164326421294708085.wt，则buf内容为file:test/collection/18--5164326421294708085.wt
         WT_ERR(__wt_schema_colgroup_source(session, table, cgname, config, &namebuf));
         source = namebuf.data;
         WT_ERR(__wt_buf_fmt(session, &confbuf, "source=\"%s\"", source));
@@ -533,12 +540,17 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
         sourcecfg[1] = fmt.data;
     }
 
+    //配置合并
     WT_ERR(__wt_config_merge(session, sourcecfg, NULL, &sourceconf));
     WT_ERR(__wt_schema_create(session, source, sourceconf));
 
     WT_ERR(__wt_config_collapse(session, cfg, &cgconf));
 
     if (!exists) {
+        //记录colgroup信息到元数据文件
+        //{"t":{"$date":"2023-08-14T19:24:48.928+08:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"conn1130","msg":"WiredTiger message","attr":{"message":"[1692012288:928674][6762:0x7fdeed888700], WT_SESSION.create: [WT_VERB_METADATA] 
+        //Insert: key: colgroup:test/collection/18--5164326421294708085, value: app_metadata=(formatVersion=1),assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,
+        //source=\"file:test/collection/18--5164326421294708085.wt\",type=file,verbose=[],write_timestamp_usage=none, tracking: true, not turtle"}}
         WT_ERR(__wt_metadata_insert(session, name, cgconf));
         //这里面创建WT_COLGROUP
         WT_ERR(__wt_schema_open_colgroups(session, table));
@@ -901,12 +913,14 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
     WT_ERR(__wt_config_collapse(session, cfg, &tablecfg));
     //不存在则写入到元数据表中
     WT_ERR(__wt_metadata_insert(session, uri, tablecfg));
-    printf("yang test ........... __create_table..........ncolgroups:%d, uri:%s, tablecfg:%s\r\n", ncolgroups, uri, tablecfg);
+   
     if (ncolgroups == 0) {
         len = strlen("colgroup:") + strlen(tablename) + 1;
         WT_ERR(__wt_calloc_def(session, len, &cgname));
-        //tablename=colgroup:表名
+        //即使配置是colgroup=,collator=,columns=,   这里也会默认转换为colgroup:"+表名
+        //tablename=colgroup:表名, 注意这里会把"colgroup:"变为"colgroup:"+表名
         WT_ERR(__wt_snprintf(cgname, len, "colgroup:%s", tablename));
+        //printf("yang test ........... __create_table..........ncolgroups:%d, cgname:%s, uri:%s, tablecfg:%s\r\n", ncolgroups, cgname, uri, tablecfg);
         if (import_repair) {
             len =
               strlen(tablecfg) + strlen(",import=(enabled,file_metadata=())") + strlen(filecfg) + 1;
@@ -1364,7 +1378,10 @@ err:
 //The create schema operation is responsible for creating the underlying data objects on the filesystem and then 
 //creating required entries in the metadata. 
 
-//__session_create->__wt_schema_create
+//__session_create->__wt_schema_create(最开始的table，也就是对应table:表名)
+//mongodb建table表: __session_create->__wt_schema_create->__schema_create->__create_table
+//  ->__create_colgroup->__wt_schema_create(后面的colgroup source，也就是对应file:表名)
+
 int
 __wt_schema_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
 {

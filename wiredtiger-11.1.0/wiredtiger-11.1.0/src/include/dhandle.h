@@ -82,7 +82,7 @@
 struct __wt_data_handle {
     WT_RWLOCK rwlock; /* Lock for shared/exclusive ops */
 
-    //也就说uri
+    //也就说uri  tabale:表名
     const char *name;         /* Object name as a URI */
     uint64_t name_hash;       /* Hash of name */
     const char *checkpoint;   /* Checkpoint name (or NULL) */
