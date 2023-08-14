@@ -56,7 +56,7 @@ typedef TAILQ_HEAD(__wt_cursor_list, __wt_cursor) WT_CURSOR_LIST;
  * WT_SESSION_IMPL --
  *	Implementation of WT_SESSION.
  */  //__open_session中获取session
-struct __wt_session_impl {
+struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     WT_SESSION iface;//__open_session赋值，确定session的各种回调
     //如果不是自定义handle则使用默认handle  __wt_event_handler_set
     //参考__event_handler_default，对应message的输出，以什么方式输出
@@ -67,8 +67,13 @@ struct __wt_session_impl {
     void (*format_private)(int, void *); /* Format test program private callback. */
     void *format_private_arg;
 
+    //WT_PUBLISH赋值为1，在__session_clear中把该结构内容全部清0
     u_int active; /* Non-zero if the session is in-use */
 
+    //__wt_open_internal_session:  wiredtieger内部使用的  name有名字
+    //__conn_open_session:  server层通过_conn->open_session调用  name为NULL
+
+    //内部ssesion通过__wt_open_internal_session赋值
     const char *name;   /* Name */
     const char *lastop; /* Last operation */
     //标记在session桶中的位置
@@ -80,6 +85,7 @@ struct __wt_session_impl {
     u_int api_call_counter;        /* Depth of api calls */
 
     //赋值见__wt_conn_dhandle_alloc
+    //一个__wt_data_handle实际上对应一个BTREE，通过BTREE btree = (WT_BTREE *)dhandle->handle;获取
     WT_DATA_HANDLE *dhandle;           /* Current data handle */
     WT_BUCKET_STORAGE *bucket_storage; /* Current bucket storage and file system */
 
@@ -146,7 +152,7 @@ struct __wt_session_impl {
     struct timespec last_epoch; /* Last epoch time returned */
 
     //正在使用的cursors队列
-    //cursors和cursor_cache的区别，可以参考__wt_cursor_cache
+    //cursors和cursor_cache的区别，可以参考__wt_cursor_cache  __wt_cursor_reopen
     WT_CURSOR_LIST cursors;          /* Cursors closed with the session */
     u_int ncursors;                  /* Count of active file cursors. */
     uint32_t cursor_sweep_position;  /* Position in cursor_cache for sweep */
@@ -179,7 +185,8 @@ struct __wt_session_impl {
 
 
     WT_ITEM err; /* Error buffer */
-
+    
+    //__open_session,默认WT_ISO_SNAPSHOT
     WT_TXN_ISOLATION isolation;
     WT_TXN *txn; /* Transaction state */
 
@@ -257,6 +264,7 @@ struct __wt_session_impl {
 #define WT_SESSION_IMPORT_REPAIR 0x00200u
 #define WT_SESSION_INTERNAL 0x00400u
 #define WT_SESSION_LOGGING_INMEM 0x00800u
+//wiredtiger_dummy_session_init 内部的dummy session
 #define WT_SESSION_NO_DATA_HANDLES 0x01000u
 #define WT_SESSION_NO_RECONCILE 0x02000u
 #define WT_SESSION_QUIET_CORRUPT_FILE 0x04000u

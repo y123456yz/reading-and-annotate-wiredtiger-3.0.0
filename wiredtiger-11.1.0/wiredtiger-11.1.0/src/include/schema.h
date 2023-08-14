@@ -53,7 +53,7 @@ struct __wt_index {
  *	groups, each of which holds some set of columns all sharing a primary
  *	key; and zero or more indices, each of which holds some set of columns
  *	in an index key that can be used to reconstruct the primary key.
- */
+ */ //__wt_cursor_table.table
 struct __wt_table {
     WT_DATA_HANDLE iface;
 
@@ -63,14 +63,21 @@ struct __wt_table {
 
     WT_CONFIG_ITEM cgconf, colconf;
 
+    //见WT_COLGROUPS  Tables without explicit column groups have a single default column group containing all of the columns.
+    //赋值见__wt_schema_open_colgroups
     WT_COLGROUP **cgroups;
     WT_INDEX **indices;
     size_t idx_alloc;
 
+    //__wt_schema_open_colgroups中置为true
+    //__wt_curtable_open->__curtable_complete中会做检查   Return failure if the table is not yet fully created.
     bool cg_complete, 
         idx_complete, 
         is_simple; //默认1
-    u_int ncolgroups,  //默认不会有colgroups配置，值为0
+    //Tables without explicit column groups have a single default column group containing all of the columns.
+    ////和__wt_cursor_table.cg_cursors配合
+    //WT_COLGROUPS
+    u_int ncolgroups,  //默认不会有colgroups配置，值为0,实际上在WT_COLGROUPS中会取1 #define WT_COLGROUPS(t) WT_MAX((t)->ncolgroups, 1)
     nindices, nkey_columns;
 };
 
@@ -101,8 +108,7 @@ struct __wt_import_list {
 };
 
 /*
- * Tables without explicit column groups have a single default column group containing all of the
- * columns.
+ * Tables without explicit column groups have a single default column group containing all of the columns.
  */
 #define WT_COLGROUPS(t) WT_MAX((t)->ncolgroups, 1)
 

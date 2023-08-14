@@ -11,7 +11,8 @@
 /*
  * __wt_connection_open --
  *     Open a connection.
- */
+ */ 
+//wiredtiger_openÖÐµ÷ÓÃ
 int
 __wt_connection_open(WT_CONNECTION_IMPL *conn, const char *cfg[])
 {
@@ -199,6 +200,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
  * __wt_connection_workers --
  *     Start the worker threads.
  */
+//wiredtiger_open
 int
 __wt_connection_workers(WT_SESSION_IMPL *session, const char *cfg[])
 {

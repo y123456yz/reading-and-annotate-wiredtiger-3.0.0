@@ -303,7 +303,7 @@ open:
     }
     config = p;
 
-    printf("yang test ......... wt config:%s\r\n", config);
+   ///printf("yang test ......... wt config:%s\r\n", config);
     if ((ret = wiredtiger_open(home, verbose ? verbose_handler : NULL, config, &conn)) != 0) {
         (void)util_err(NULL, ret, NULL);
         goto err;

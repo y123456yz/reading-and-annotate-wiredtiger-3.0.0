@@ -16,6 +16,7 @@
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_LOG_DSYNC 0x1u
+//"WT_SESSION.log_flush"≈‰÷√ƒ¨»œsync on __session_log_flush
 #define WT_LOG_FLUSH 0x2u
 #define WT_LOG_FSYNC 0x4u
 #define WT_LOG_SYNC_ENABLED 0x8u

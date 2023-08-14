@@ -22,6 +22,18 @@
  *     "key=(k4=v4)", as we search for and use the final value of "key", regardless of field overlap
  *     or missing fields in the nested value.
  */
+//同一个key，如果字符串中有重复的，则以后面的取值为准
+//对cfg[]中的配置信息做合并，例如:
+//cfg数组只有一个成员，cfg[0]="access_pattern_hint=none,allocation_size=4KB,allocation_size=8KB,allocation_size=18KB,app_metadata=,"，则运行该
+// __wt_config_collapse接口后，cfg[0]="access_pattern_hint=none,allocation_size=18KB,allocation_size=18KB,allocation_size=18KB,app_metadata=,"
+
+//cfg数组有2个成员:
+//cfg[0]="access_pattern_hint=none,allocation_size=4KB,allocation_size=8KB,allocation_size=18KB,app_metadata=,checkpoint=,checkpoint_backup_info="
+//cfg[1] = "checkpoint=()";
+//cfg[2] = "checkpoint_backup_info=()";
+//则调用__wt_config_collapse后的config_ret="access_pattern_hint=none,allocation_size=18KB,allocation_size=18KB,allocation_size=18KB,app_metadata=,checkpoint=(),checkpoint_backup_info=()"
+
+//参考__conn_dhandle_config_set
 int
 __wt_config_collapse(WT_SESSION_IMPL *session, const char **cfg, char **config_ret)
 {
@@ -320,9 +332,17 @@ __config_merge_cmp(const void *a, const void *b)
  *     configuration strings "key=(k1=v1,k2=v2)" and "key=(k1=v2)" appear, the result will be
  *     "key=(k1=v2,k2=v2)" because the nested values are merged.
  */
+//同一个配置的合并，合并cfg和cfg_trip到config_ret
+
+//例如:
+//  cfg[0]="access_pattern_hint=none,allocation_size=18KB,allocation_size=18KB,allocation_size=18KB,app_metadata=,checkpoint=(),checkpoint_backup_info=(),checkpoint_lsn=,checksum=on,collator=,"
+//  cfg[1]="checkpoint=,checkpoint_backup_info=,checkpoint_lsn="
+// __wt_config_merge后的结果为:access_pattern_hint=none,allocation_size=18KB,app_metadata=,checksum=on,collator="
+
+//可以参考__conn_dhandle_config_set
 int
 __wt_config_merge(WT_SESSION_IMPL *session, const char **cfg, const char *cfg_strip,
-  const char **config_ret) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+  const char **config_ret) //WT_GCC_FUNC_ATTRIBUTE((visibility("default"))) yang add change
 {
     WT_CONFIG_MERGE merge;
     WT_DECL_RET;

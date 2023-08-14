@@ -12,7 +12,8 @@
  * __cache_config_abs_to_pct --
  *     Cache configuration values can be either a percentage or an absolute size, this function
  *     converts an absolute size to a percentage.
- */
+ */ 
+//"eviction trigger"配置对应百分比解析
 static inline int
 __cache_config_abs_to_pct(
   WT_SESSION_IMPL *session, double *param, const char *param_name, bool shared)
@@ -49,7 +50,7 @@ __cache_config_abs_to_pct(
 /*
  * __cache_config_local --
  *     Configure the underlying cache.
- */
+ */ //获取cacheSize配置大小
 static int
 __cache_config_local(WT_SESSION_IMPL *session, bool shared, const char *cfg[])
 {
@@ -161,7 +162,7 @@ __cache_config_local(WT_SESSION_IMPL *session, bool shared, const char *cfg[])
 /*
  * __wt_cache_config --
  *     Configure or reconfigure the current cache and shared cache.
- */
+ */ //获取cacheSize大小
 int
 __wt_cache_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 {
@@ -176,7 +177,7 @@ __wt_cache_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
  //   const char **cfg1;
   //  for (cfg1 = cfg; *cfg1 != NULL; ++cfg1) {
   //      if 
-        printf("yang test ................__wt_cache_config, config:\r\n");
+   //     printf("yang test ................__wt_cache_config, config:\r\n");
   //  }
     
     WT_RET(__wt_config_gets_none(session, cfg, "shared_cache.name", &cval));
@@ -199,6 +200,7 @@ __wt_cache_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
      * Always setup the local cache - it's used even if we are participating in a shared cache.
      */
     //默认使用cache_size配置，默认不是使用shared
+    //默认这这个接口后就会返回
     WT_RET(__cache_config_local(session, now_shared, cfg));
     if (now_shared) {//默认不会进来
         WT_RET(__wt_cache_pool_config(session, cfg));
@@ -239,6 +241,7 @@ __wt_cache_create(WT_SESSION_IMPL *session, const char *cfg[])
     cache = conn->cache;
 
     /* Use a common routine for run-time configuration options. */
+    //获取cacheSize配置大小
     WT_RET(__wt_cache_config(session, cfg, false));
 
     /*

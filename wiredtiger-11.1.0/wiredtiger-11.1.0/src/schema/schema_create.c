@@ -428,7 +428,10 @@ __wt_find_import_metadata(WT_SESSION_IMPL *session, const char *uri, const char 
 /*
  * __create_colgroup --
  *     Create a column group.
- */
+ name类似 colgroup:test/collection/2--5164326421294708085
+ */ //mongodb table对应__create_table调用
+
+//mongodb建table表: __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup
 static int
 __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, const char *config)
 {
@@ -453,6 +456,7 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
     if (session->import_list != NULL)
         WT_RET(__wt_find_import_metadata(session, name, &cfg[1]));
 
+    //__create_table中name=colgroup:表名，这里剔除"colgroup:"后就说表名
     tablename = name;
     WT_PREFIX_SKIP_REQUIRED(session, tablename, "colgroup:");
     cgname = strchr(tablename, ':');
@@ -461,7 +465,10 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
         ++cgname;
     } else
         tlen = strlen(tablename);
+    //到这里后cgname=表名
 
+
+     //获取tablename对应的WT_TABLE存入table返回
     if ((ret = __wt_schema_get_table(
            session, tablename, tlen, true, WT_DHANDLE_EXCLUSIVE, &table)) != 0)
         WT_RET_MSG(session, (ret == WT_NOTFOUND) ? ENOENT : ret,
@@ -482,6 +489,10 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
           "Column group '%s' not found in table '%.*s'", cgname, (int)tlen, tablename);
 
     /* Check if the column group already exists. */
+    //例如
+    //   colgroup:access\00
+    //   app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source="file:access.wt",type=file,verbose=[],write_timestamp_usage=none\00
+    //name=colgroup:表名，读取元数据文件中的"colgroup:表名"内容
     if ((ret = __wt_metadata_search(session, name, &origconf)) == 0) {
         if (exclusive)
             WT_ERR(EEXIST);
@@ -529,6 +540,7 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
 
     if (!exists) {
         WT_ERR(__wt_metadata_insert(session, name, cgconf));
+        //这里面创建WT_COLGROUP
         WT_ERR(__wt_schema_open_colgroups(session, table));
     }
 
@@ -808,7 +820,8 @@ err:
 /*
  * __create_table --
  *     Create a table.
- */
+ */ //mongodb建表走这里
+ //mongodb建table表: __session_create->__wt_schema_create->__schema_create->__create_table
 static int
 __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const char *config)
 {
@@ -830,12 +843,15 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
     cgname = filename = NULL;
     table = NULL;
 
+    
     WT_ASSERT(session, FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_TABLE_WRITE));
 
     tablename = uri;
     WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:");
 
+    
     /* Check if the table already exists. */
+    //从wiredtiger.wt中读取table:xxxx的配置信息
     if ((ret = __wt_metadata_search(session, uri, &tablecfg)) != WT_NOTFOUND) {
         /*
          * Regardless of the 'exclusive' flag, we should raise an error if we try to import an
@@ -845,6 +861,7 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
             WT_TRET(EEXIST);
         goto err;
     }
+    
 
     if (import) {
         import_repair =
@@ -884,10 +901,11 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
     WT_ERR(__wt_config_collapse(session, cfg, &tablecfg));
     //不存在则写入到元数据表中
     WT_ERR(__wt_metadata_insert(session, uri, tablecfg));
-
+    printf("yang test ........... __create_table..........ncolgroups:%d, uri:%s, tablecfg:%s\r\n", ncolgroups, uri, tablecfg);
     if (ncolgroups == 0) {
         len = strlen("colgroup:") + strlen(tablename) + 1;
         WT_ERR(__wt_calloc_def(session, len, &cgname));
+        //tablename=colgroup:表名
         WT_ERR(__wt_snprintf(cgname, len, "colgroup:%s", tablename));
         if (import_repair) {
             len =
@@ -898,7 +916,8 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
             cfg[2] = importcfg;
             WT_ERR(__wt_config_collapse(session, &cfg[1], &cgcfg));
             WT_ERR(__create_colgroup(session, cgname, exclusive, cgcfg));
-        } else
+        } else //一般走这里
+            //
             WT_ERR(__create_colgroup(session, cgname, exclusive, config));
     }
 
@@ -906,6 +925,7 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
      * Open the table to check that it was setup correctly. Keep the handle exclusive until it is
      * released at the end of the call.
      */
+    //获取uri对应table
     WT_ERR(__wt_schema_get_table_uri(session, uri, true, WT_DHANDLE_EXCLUSIVE, &table));
     if (WT_META_TRACKING(session)) {
         WT_WITH_DHANDLE(session, &table->iface, ret = __wt_meta_track_handle_lock(session, true));
@@ -1240,6 +1260,8 @@ __schema_create_config_check(
  */
 //The create schema operation is responsible for creating the underlying data objects on the filesystem and then 
 //creating required entries in the metadata. 
+
+//mongodb建table表: __session_create->__wt_schema_create->__schema_create
 static int
 __schema_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
 {
@@ -1341,6 +1363,8 @@ err:
  */
 //The create schema operation is responsible for creating the underlying data objects on the filesystem and then 
 //creating required entries in the metadata. 
+
+//__session_create->__wt_schema_create
 int
 __wt_schema_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
 {

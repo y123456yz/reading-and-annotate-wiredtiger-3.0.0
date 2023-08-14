@@ -302,18 +302,22 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
       key, WT_META_TRACKING(session) ? "true" : "false", __metadata_turtle(key) ? "" : "not ");
       
     //key内容和WiredTiger.turtl内容来判断是否读取WiredTiger.turtl元数据，WiredTiger.turtl第一行内容为WT_METADATA_COMPAT  WT_METAFILE_URI等
-    if (__metadata_turtle(key)) {
+    if (__metadata_turtle(key)) {//读WiredTiger.turtl文件
         /*
          * The returned value should only be set if ret is non-zero, but Coverity is convinced
          * otherwise. The code path is used enough that Coverity complains a lot, add an error check
          * to get some peace and quiet.
          */
+        
+       // printf("yang test ........__wt_metadata_search......read turtle.........key:%s\r\n", key);
         WT_WITH_TURTLE_LOCK(session, ret = __wt_turtle_read(session, key, valuep));
+       // printf("yang test ........__wt_metadata_search......read turtle.......key:%s\r\n", key);
         if (ret != 0)
             __wt_free(session, *valuep);
         return (ret);
     }
 
+    //走到这里读"file:WiredTiger.wt"文件
     /*
      * All metadata reads are at read-uncommitted isolation. That's because once a schema-level
      * operation completes, subsequent operations must see the current version of checkpoint
@@ -321,12 +325,15 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
      * updates use non-transactional techniques (such as the schema and metadata locks) to protect
      * access to in-flight updates.
      */
+   // printf("yang test ........__wt_metadata_search......read wiredtiger.wt.........key:%s\r\n", key);
     WT_RET(__wt_metadata_cursor(session, &cursor));
     cursor->set_key(cursor, key);
     WT_WITH_TXN_ISOLATION(session, WT_ISO_READ_UNCOMMITTED, ret = cursor->search(cursor));
     WT_ERR(ret);
 
     WT_ERR(cursor->get_value(cursor, &value));
+   // printf("yang test ........__wt_metadata_search......read wiredtiger.wt.........uri:%s, key:%s\r\n", 
+    //    cursor->uri, key);
     WT_ERR(__wt_strdup(session, value, valuep));
 
 err:

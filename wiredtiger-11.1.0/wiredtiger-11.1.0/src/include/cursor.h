@@ -6,6 +6,36 @@
  * See the file LICENSE for redistribution information.
  */
 
+/*
+MongoDB server层调用的cursor接口:
+Wiredtiger_cursor.cpp (src\mongo\db\storage\wiredtiger):    invariantWTOK(_cursor->reset(_cursor));
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        _cursor->close(_cursor);
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        _cursor->set_value(_cursor, valueItem.Get());
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        _cursor->set_value(_cursor, valueItem.Get());
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        _cursor->set_value(_cursor, valueItem.Get());
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):                _cursor->reset();
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        invariant(WiredTigerRecoveryUnit::get(_opCtx)->getSession() == _cursor->getSession());
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        WT_CURSOR* c = _cursor->get();
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        WT_CURSOR* c = _cursor->get();
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        WT_CURSOR* c = _cursor->get();
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        WT_CURSOR* c = _cursor->get();
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):            WT_CURSOR* c = _cursor->get();
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        WT_CURSOR* c = _cursor->get();
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        WT_CURSOR* c = _cursor->get();
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):                return identToDrop.uri == std::string(i->_cursor->uri);
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):            wiredTigerPrepareConflictRetry(_opCtx, [&] { return _cursor->next(_cursor); });
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):            invariantWTOK(_cursor->get_key(_cursor, &item));
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):            invariantWTOK(_cursor->get_key(_cursor, &key));
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(_cursor->get_value(_cursor, &value));
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):                _cursor->reset(_cursor);
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):            invariantWTOK(_cursor->close(_cursor));
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    WT_CURSOR* c = _cursor->get();
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    WT_CURSOR* c = _cursor->get();
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    WT_CURSOR* c = _cursor->get();
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):            _cursor->reset();
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    invariant(WiredTigerRecoveryUnit::get(_opCtx)->getSession() == _cursor->getSession());
+Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    WT_CURSOR* c = _cursor->get();
+*/
 /* Get the session from any cursor. */
 #define CUR2S(c) ((WT_SESSION_IMPL *)((WT_CURSOR *)c)->session)
 
@@ -549,6 +579,9 @@ struct __wt_cursor_table {
 
     const char **cfg; /* Saved configuration string */
 
+    //Tables without explicit column groups have a single default column group containing all of the columns.
+    //配合WT_COLGROUPS
+    //即使没有设置colgroups配置，默认表cgroups[]会有一个成员，见__curtable_open_colgroups
     WT_CURSOR **cg_cursors;
     WT_ITEM *cg_valcopy; /*
                           * Copies of column group values, for
@@ -588,7 +621,7 @@ struct __wt_cursor_version {
 };
 
 #define WT_CURSOR_PRIMARY(cursor) (((WT_CURSOR_TABLE *)(cursor))->cg_cursors[0])
-//
+//代表行号
 #define WT_CURSOR_RECNO(cursor) WT_STREQ((cursor)->key_format, "r")
 
 #define WT_CURSOR_RAW_OK \

@@ -1,0 +1,96 @@
+1:access.wt内容
+
+WiredTiger Dump (WiredTiger Version 11.1.0)
+Format=print
+Header
+file:access.wt
+access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,colgroups=,collator=,columns=,dictionary=0,encryption=(keyid=,name=),exclusive=false,extractor=,format=btree,huffman_key=,huffman_value=,ignore_in_memory_cache_size=false,immutable=false,import=(compare_timestamp=oldest_timestamp,enabled=false,file_metadata=,metadata_file=,repair=false),internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),lsm=(auto_throttle=true,bloom=true,bloom_bit_count=16,bloom_config=,bloom_hash_count=8,bloom_oldest=false,chunk_count_limit=0,chunk_max=5GB,chunk_size=10MB,merge_custom=(prefix=,start_generation=0,suffix=),merge_max=15,merge_min=0),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,source=,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),type=file,value_format=S,verbose=[],write_timestamp_usage=none
+Data
+key1\00
+value1\00
+key2\00
+value2\00
+
+
+
+[root@localhost WT_HOME]# cat WiredTiger
+WiredTiger
+WiredTiger 11.1.0: (November  2, 2022)
+
+
+
+
+[root@localhost WT_HOME]# cat WiredTiger.basecfg
+# Do not modify this file.
+#
+# WiredTiger created this file when the database was created,
+# to store persistent database settings.  Instead of changing
+# these settings, set a WIREDTIGER_CONFIG environment variable
+# or create a WiredTiger.config file to override them.
+
+statistics=(all)
+version=(major=11,minor=1)
+[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]# 
+
+
+
+
+[root@localhost WT_HOME]# cat WiredTigerHS.wt.log 
+WiredTiger Dump (WiredTiger Version 11.1.0)
+Format=print
+Header
+file:WiredTigerHS.wt
+access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checksum=on,colgroups=,collator=,columns=,dictionary=0,encryption=(keyid=,name=),exclusive=false,extractor=,format=btree,huffman_key=,huffman_value=,ignore_in_memory_cache_size=false,immutable=false,import=(compare_timestamp=oldest_timestamp,enabled=false,file_metadata=,metadata_file=,repair=false),internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,log=(enabled=true),lsm=(auto_throttle=true,bloom=true,bloom_bit_count=16,bloom_config=,bloom_hash_count=8,bloom_oldest=false,chunk_count_limit=0,chunk_max=5GB,chunk_size=10MB,merge_custom=(prefix=,start_generation=0,suffix=),merge_max=15,merge_min=0),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,source=,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),type=file,value_format=QQQu,verbose=[],write_timestamp_usage=none
+Data
+[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]# 
+
+
+
+
+
+
+
+
+
+
+[root@localhost WT_HOME]# cat WiredTiger.turtle
+WiredTiger version string
+WiredTiger 11.1.0: (November  2, 2022)
+WiredTiger version
+major=11,minor=1,patch=0
+file:WiredTiger.wt
+access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=0,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.26=(addr="018181e4d2d478918281e41546bd168381e462c4ed02808080e25fc0cfc0",order=26,time=1691502638,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=2,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=67,run_write_gen=63)),checkpoint_backup_info=,checkpoint_lsn=(4294967295,2147483647)
+[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]# 
+
+
+
+
+
+
+[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]# cat WiredTiger.wt.log 
+WiredTiger Dump (WiredTiger Version 11.1.0)
+Format=print
+Header
+file:WiredTiger.wt
+access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,colgroups=,collator=,columns=,dictionary=0,encryption=(keyid=,name=),exclusive=false,extractor=,format=btree,huffman_key=,huffman_value=,ignore_in_memory_cache_size=false,immutable=false,import=(compare_timestamp=oldest_timestamp,enabled=false,file_metadata=,metadata_file=,repair=false),internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),lsm=(auto_throttle=true,bloom=true,bloom_bit_count=16,bloom_config=,bloom_hash_count=8,bloom_oldest=false,chunk_count_limit=0,chunk_max=5GB,chunk_size=10MB,merge_custom=(prefix=,start_generation=0,suffix=),merge_max=15,merge_min=0),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,source=,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),type=file,value_format=S,verbose=[],write_timestamp_usage=none
+Data
+colgroup:access\00
+app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source="file:access.wt",type=file,verbose=[],write_timestamp_usage=none\00
+file:WiredTigerHS.wt\00
+access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=1,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=QQQu,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.8=(addr="",order=8,time=1691502635,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=60,run_write_gen=60)),checkpoint_backup_info=,checkpoint_lsn=(4294967295,2147483647)\00
+file:access.wt\00
+access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr="018181e48be73aa08281e41546bd168381e42c952646808080e22fc0cfc0",order=1,time=1691502308,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(4294967295,2147483647)\00
+system:checkpoint_base_write_gen\00
+base_write_gen=61\00
+system:checkpoint_snapshot\00
+snapshot_min=1,snapshot_max=1,snapshot_count=0,checkpoint_time=1691502635,write_gen=61\00
+table:access\00
+app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=S,verbose=[],write_timestamp_usage=none\00
+[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]# 

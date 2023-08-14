@@ -48,6 +48,8 @@ handle_wiredtiger_message(WT_EVENT_HANDLER *handler, WT_SESSION *session, const 
     return (0);
 }
 
+// ./wt dump file:access.wt 
+
 //"ctx":"initandlisten","msg":"Opening WiredTiger","attr":{"config":"create,cache_size=512M,session_max=33000,eviction=(threads_min=4,
 //threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,archive=true,path=journal,compressor=snappy),builtin_extension_config=
 //(zstd=(compression_level=6)),file_manager=(close_idle_time=600,close_scan_interval=10,close_handle_minimum=250),statistics_log=(wait=0),

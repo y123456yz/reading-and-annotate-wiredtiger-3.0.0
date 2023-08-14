@@ -164,6 +164,7 @@ struct __wt_file_handle_inmem {
     u_int ref;   /* Reference count */
 };
 
+//©ирт╡н©╪__stdio_init
 struct __wt_fstream {
     const char *name; /* Stream name */
 

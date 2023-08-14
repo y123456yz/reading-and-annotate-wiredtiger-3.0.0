@@ -220,7 +220,7 @@ struct __wt_bm {
 /*
  * WT_BLOCK --
  *	Block manager handle, references a single file.
- */
+ */ //分配空间和赋值见__wt_block_open
 struct __wt_block {
     const char *name;  /* Name */
     uint32_t objectid; /* Object id */

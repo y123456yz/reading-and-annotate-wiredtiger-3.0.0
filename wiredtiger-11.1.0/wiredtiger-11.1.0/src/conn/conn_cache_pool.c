@@ -57,7 +57,7 @@ __wt_cache_pool_config(WT_SESSION_IMPL *session, const char **cfg)
     pool_name = NULL;
     cp = NULL;
 
-    printf("yang test ................... __wt_cache_pool_config\r\n");
+    //printf("yang test ................... __wt_cache_pool_config\r\n");
     if (F_ISSET(conn, WT_CONN_CACHE_POOL))
         updating = true;
     else {

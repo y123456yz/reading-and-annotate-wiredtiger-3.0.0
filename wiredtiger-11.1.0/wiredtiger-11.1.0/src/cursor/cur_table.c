@@ -948,7 +948,8 @@ __curtable_complete(WT_SESSION_IMPL *session, WT_TABLE *table)
 /*
  * __curtable_open_colgroups --
  *     Open cursors on column groups for a table cursor.
- */
+ //Tables without explicit column groups have a single default column group containing all of the columns.
+ */ //即使没有设置colgroups配置，默认表cgroups[]会有一个成员
 static int
 __curtable_open_colgroups(WT_CURSOR_TABLE *ctable, const char *cfg_arg[])
 {
@@ -1031,7 +1032,19 @@ err:
 /*
  * __wt_curtable_open --
  *     WT_SESSION->open_cursor method for table cursors.
- */
+//owner作用是是否需要把获取的cursor添加到session->cursors中节点owner的后面，参考__wt_cursor_init
+
+//mongodb建table表: 
+     __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup->__wt_schema_get_table
+     ->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle->__session_find_shared_dhandle
+     ->__wt_conn_dhandle_alloc(创建dhandle)
+
+mongodb创建cursor:
+内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，内部使用
+外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，外部WT_SESSION->open_cursor
+    ->__wt_schema_get_table_uri->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle(使用缓存的dhandle)
+*/
+//"table:"走这里
 int
 __wt_curtable_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, const char *cfg[],
   WT_CURSOR **cursorp)
@@ -1081,6 +1094,8 @@ __wt_curtable_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, 
         WT_RET(__wt_schema_get_table(session, tablename, size, false, 0, &table));
     }
 
+    //Return failure if the table is not yet fully created.
+    //确保表已经创建成功
     WT_RET(__curtable_complete(session, table)); /* completeness check */
 
     if (table->is_simple) {

@@ -38,7 +38,7 @@ __session_add_dhandle(WT_SESSION_IMPL *session)
 /*
  * __session_discard_dhandle --
  *     Remove a data handle from the session cache.
- */
+ */ //从session->dhhash中清除，但是conn->dhhash[bucket]桶中还在，conn->dhhash[bucket]桶中的可以不同session共享
 static void
 __session_discard_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE_CACHE *dhandle_cache)
 {
@@ -55,7 +55,7 @@ __session_discard_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE_CACHE *dhandl
 /*
  * __session_find_dhandle --
  *     Search for a data handle in the session cache.
- */
+ */ //从session->dhhash[bucket]桶中查找uri相同，或者uri相同并且checkpoint相同的dhandle
 static void
 __session_find_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint,
   WT_DATA_HANDLE_CACHE **dhandle_cachep)
@@ -104,6 +104,7 @@ retry:
  *     should not prevent application-initiated operations. For example, attempting to verify a file
  *     should not fail because the sweep server happens to be in the process of closing that file.
  */ 
+//如果flag带有WT_DHANDLE_EXCLUSIVE标记则加写锁，其他大部分情况加读锁
 int
 __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_deadp)
 {
@@ -146,6 +147,7 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
      */
     for (;;) {
         /* If the handle is dead, give up. */
+        //也就是已经关闭了__wt_conn_dhandle_close
         if (F_ISSET(dhandle, WT_DHANDLE_DEAD)) {
             *is_deadp = true;
             return (0);
@@ -165,7 +167,9 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
          * exclusive access and find the handle open once we get the read lock, give up: some other
          * thread has it locked for real.
          */
+        //如果是已经open的dhandle,并且lock busy
         if (F_ISSET(dhandle, WT_DHANDLE_OPEN) && (!want_exclusive || lock_busy)) {
+            //尝试加读锁
             WT_WITH_DHANDLE(session, dhandle, __wt_session_dhandle_readlock(session));
             if (F_ISSET(dhandle, WT_DHANDLE_DEAD)) {
                 *is_deadp = true;
@@ -173,8 +177,9 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
                 return (0);
             }
 
+            //dhandle可用，也就是已经创建好的btree
             is_open = F_ISSET(dhandle, WT_DHANDLE_OPEN);
-            if (is_open && !want_exclusive)
+            if (is_open && !want_exclusive) //加读锁，一般这里返回0，表示加读锁成功
                 return (0);
             WT_WITH_DHANDLE(session, dhandle, __wt_session_dhandle_readunlock(session));
         } else
@@ -203,6 +208,8 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
             }
 
             /* We have an exclusive lock, we're done. */
+            //获取写锁后置为该状态
+            //代表是否独占dhandle,dhandle加写锁后就代表独占
             F_SET(dhandle, WT_DHANDLE_EXCLUSIVE);
             WT_ASSERT(session, dhandle->excl_session == NULL && dhandle->excl_ref == 0);
             dhandle->excl_session = session;
@@ -223,7 +230,7 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
 /*
  * __wt_session_release_dhandle --
  *     Unlock a data handle.
- */
+ */ //释放session dhandle及其对应btree
 int
 __wt_session_release_dhandle(WT_SESSION_IMPL *session)
 {
@@ -656,7 +663,7 @@ __wt_session_close_cache(WT_SESSION_IMPL *session)
 /*
  * __session_dhandle_sweep --
  *     Discard any session dhandles that are not open.
- */
+Sweep the handle list to remove any dead handles. */
 static void
 __session_dhandle_sweep(WT_SESSION_IMPL *session)
 {
@@ -709,7 +716,7 @@ __session_dhandle_sweep(WT_SESSION_IMPL *session)
 
  */ 
 //__wt_cursor_cache  __session_find_shared_dhandle
-//先从conn->dhhash查找，找不到则alloc一个dhandle
+//先从conn->dhhash查找，找不到则alloc一个dhandle  
 static int 
 __session_find_shared_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
 {
@@ -740,7 +747,10 @@ __session_find_shared_dhandle(WT_SESSION_IMPL *session, const char *uri, const c
  会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
  实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
 
- */
+ */ 
+//__wt_session_get_dhandle调用
+//根据uri和checkpoint优先从自己的session->dhhash[bucket]中查找对应dhandle, 没找到则从共享conn->dhhash[bucket]中查找
+//如果两则都没有，则创建一个dhandle添加到session->dhhash[bucket]和conn->dhhash[bucket]
 static int
 __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
 {
@@ -748,6 +758,7 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
     WT_DECL_RET;
 
     //先从session->dhhash中查找
+    //从session->dhhash[bucket]桶中查找uri相同，或者uri相同并且checkpoint相同的dhandle
     __session_find_dhandle(session, uri, checkpoint, &dhandle_cache);
     if (dhandle_cache != NULL) {
         session->dhandle = dhandle_cache->dhandle;
@@ -765,6 +776,9 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
      
     //再从conn->dhhash中查找
     //先从conn->dhhash查找，找不到则alloc一个dhandle添加到__wt_connection_impl.dhhash+dhqh
+
+    //conn->dhhash[bucket]桶中是不同session的dhandle，实际上是所有session使用过的dhandle,
+    //conn->dhhash[bucket]桶中的可以不同session共享
     WT_RET(__session_find_shared_dhandle(session, uri, checkpoint));
 
     /*
@@ -773,6 +787,7 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
      */
     //添加到WT_SESSION_IMPL.dhandles+dhhash
     if ((ret = __session_add_dhandle(session)) != 0) {
+        //通过WT_DHANDLE_CAN_DISCARD来判断释放
         WT_DHANDLE_RELEASE(session->dhandle);
         session->dhandle = NULL;
     }
@@ -818,7 +833,7 @@ __wt_session_dhandle_writeunlock(WT_SESSION_IMPL *session)
 /*
  * __wt_session_dhandle_try_writelock --
  *     Try to acquire write lock for the session's current dhandle.
- */
+ */ //写锁可以用于独占exclusive
 int
 __wt_session_dhandle_try_writelock(WT_SESSION_IMPL *session)
 {
@@ -836,6 +851,7 @@ __wt_session_dhandle_try_writelock(WT_SESSION_IMPL *session)
  *     Get a data handle for the given name, set session->dhandle. Optionally if we opened a
  *     checkpoint return its checkpoint order number.
  */
+//获取一个dhandle赋值给session->dhandle，如果没有获取到dhandle
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint,
   const char *cfg[], uint32_t flags)
@@ -844,13 +860,18 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *
     WT_DECL_RET;
     bool is_dead;
 
+    //内部session不需要dhandle，不应该进来
     WT_ASSERT(session, !F_ISSET(session, WT_SESSION_NO_DATA_HANDLES));
 
     for (;;) {
+        //根据uri和checkpoint优先从自己的session->dhhash[bucket]中查找对应dhandle, 没找到则从共享conn->dhhash[bucket]中查找
+        //如果两则都没有，则创建一个dhandle添加到session->dhhash[bucket]和conn->dhhash[bucket]
+        //先从cache中查找，没找到则创建对应dhandle
         WT_RET(__session_get_dhandle(session, uri, checkpoint));
         dhandle = session->dhandle;
 
         /* Try to lock the handle. */
+        //如果flag带有WT_DHANDLE_EXCLUSIVE标记则加写锁，其他大部分情况加读锁
         WT_RET(__wt_session_lock_dhandle(session, flags, &is_dead));
         if (is_dead)
             continue;

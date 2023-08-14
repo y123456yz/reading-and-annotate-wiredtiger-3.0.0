@@ -125,6 +125,7 @@ struct __wt_cache {
      * Eviction threshold percentages use double type to allow for specifying percentages less than
      * one.
      */
+    //¸³Öµ²Î¿¼__cache_config_local
     double eviction_dirty_target;    /* Percent to allow dirty */
     double eviction_dirty_trigger;   /* Percent to trigger dirty eviction */
     double eviction_trigger;         /* Percent to trigger eviction */

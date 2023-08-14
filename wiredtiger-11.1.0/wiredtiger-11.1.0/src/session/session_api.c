@@ -6,6 +6,41 @@
  * See the file LICENSE for redistribution information.
  */
 
+/*
+MongoDB server层调用session的接口列表:
+Wiredtiger_begin_transaction_block.cpp (src\mongo\db\storage\wiredtiger):    invariantWTOK(_session->begin_transaction(_session, beginTxnConfigString.c_str()));
+Wiredtiger_begin_transaction_block.cpp (src\mongo\db\storage\wiredtiger):    invariantWTOK(_session->begin_transaction(_session, config));
+Wiredtiger_begin_transaction_block.cpp (src\mongo\db\storage\wiredtiger):        invariant(_session->rollback_transaction(_session, nullptr) == 0);
+Wiredtiger_begin_transaction_block.cpp (src\mongo\db\storage\wiredtiger):    return wtRCToStatus(_session->timestamp_transaction(_session, readTSConfigString.c_str()));
+Wiredtiger_cursor.cpp (src\mongo\db\storage\wiredtiger):    _cursor = _session->getCachedCursor(tableID, _config);
+Wiredtiger_cursor.cpp (src\mongo\db\storage\wiredtiger):        _cursor = _session->getNewCursor(uri, _config.c_str());
+Wiredtiger_cursor.cpp (src\mongo\db\storage\wiredtiger):    _session->releaseCursor(_tableID, _cursor, _config);
+Wiredtiger_index.cpp (src\mongo\db\storage\wiredtiger):        WT_SESSION* session = _session->getSession();
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        _backupSession->_session = nullptr;  // Prevent calling _session->close() in destructor.
+Wiredtiger_recovery_unit.cpp (src\mongo\db\storage\wiredtiger):    auto wtSession = _session->getSession();
+Wiredtiger_recovery_unit.cpp (src\mongo\db\storage\wiredtiger):    WT_SESSION* s = _session->getSession();
+Wiredtiger_recovery_unit.cpp (src\mongo\db\storage\wiredtiger):    WT_SESSION* session = _session->getSession();
+Wiredtiger_recovery_unit.cpp (src\mongo\db\storage\wiredtiger):    WT_SESSION* session = _session->getSession();
+Wiredtiger_recovery_unit.cpp (src\mongo\db\storage\wiredtiger):        _session->closeAllCursors("");
+Wiredtiger_recovery_unit.cpp (src\mongo\db\storage\wiredtiger):    WT_SESSION* s = _session->getSession();
+Wiredtiger_recovery_unit_test.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(wt_session->create(wt_session, wt_uri, wt_config));
+Wiredtiger_recovery_unit_test.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(wt_session->open_cursor(wt_session, wt_uri, nullptr, nullptr, cursor));
+Wiredtiger_session_cache.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(_session->close(_session, nullptr));
+Wiredtiger_session_cache.cpp (src\mongo\db\storage\wiredtiger):        session->_session = nullptr;  // Prevents calling _session->close() in de
+
+wiredtiger/wiredtiger_begin_transaction_block_bm.cpp:        invariant(wtRCToStatus(_wtSession->create(_wtSession, "table:mytable", nullptr)).isOK());
+wiredtiger/wiredtiger_index.cpp:    // Don't use the session from the recovery unit: create should not be used in a transaction
+wiredtiger/wiredtiger_kv_engine.cpp:    rc = session->create(session, uri, swMetadata.getValue().c_str());
+wiredtiger/wiredtiger_kv_engine.cpp:    uassertStatusOK(wtRCToStatus(session->create(session, uri.c_str(), config.c_str())));
+wiredtiger/wiredtiger_session_cache.cpp:        LOGV2_DEBUG(22418, 4, "created checkpoint (forced)");
+wiredtiger/wiredtiger_session_cache.cpp:        LOGV2_DEBUG(22420, 4, "created checkpoint");
+wiredtiger/wiredtiger_session_cache.h:     * The exact cursor config that was used to create the cursor must be provided or subsequent
+wiredtiger/wiredtiger_session_cache.h:        
+wiredtiger/wiredtiger_session_cache.h:     * Returns a smart pointer to a previously released session for reuse, or creates a new session.
+wiredtiger/wiredtiger_size_storer.cpp:        session.getSession()->create(session.getSession(), _storageUri.c_str(), config.c_str()));
+wiredtiger/wiredtiger_util.cpp:    invariantWTOK(session->open_cursor(session, "metadata:create", nullptr, "", &cursor));
+
+*/
 #include "wt_internal.h"
 
 static int __session_rollback_transaction(WT_SESSION *, const char *);
@@ -50,6 +85,7 @@ __wt_session_reset_cursors(WT_SESSION_IMPL *session, bool free_buffers)
 /*
  * __wt_session_cursor_cache_sweep --
  *     Sweep the cursor cache.
+ check to see if the cursor could be reopened and should be swept(清除).
  */
 int
 __wt_session_cursor_cache_sweep(WT_SESSION_IMPL *session)
@@ -95,10 +131,13 @@ __wt_session_cursor_cache_sweep(WT_SESSION_IMPL *session)
              * First check to see if the cursor could be reopened and should be swept.
              */
             ++nexamined;
+            //判断是否可以reopn
             t_ret = cursor->reopen(cursor, true);
-            if (t_ret != 0) {
+            if (t_ret != 0) {//可以清理该cursor
                 WT_TRET_NOTFOUND_OK(t_ret);
+                //__curfile_reopen
                 WT_TRET_NOTFOUND_OK(cursor->reopen(cursor, false));
+                //
                 WT_TRET(cursor->close(cursor));
                 ++nclosed;
             }
@@ -232,6 +271,7 @@ __session_close_cursors(WT_SESSION_IMPL *session, WT_CURSOR_LIST *cursors)
             /*
              * Put the cached cursor in an open state that allows it to be closed.
              */
+            //只有cur file采用reopen，cur table可以先跳过
             WT_TRET_NOTFOUND_OK(cursor->reopen(cursor, false));
         else if (session->event_handler->handle_close != NULL &&
           strcmp(cursor->internal_uri, WT_HS_URI) != 0)
@@ -242,6 +282,7 @@ __session_close_cursors(WT_SESSION_IMPL *session, WT_CURSOR_LIST *cursors)
             WT_TRET(session->event_handler->handle_close(
               session->event_handler, &session->iface, cursor));
 
+        //close cursor
         WT_TRET(cursor->close(cursor));
     }
     WT_TAILQ_SAFE_REMOVE_END
@@ -472,7 +513,13 @@ err:
 /*
  * __session_open_cursor_int --
  *     Internal version of WT_SESSION::open_cursor, with second cursor arg.
- */
+  //owner作用是是否需要把获取的cursor添加到session->cursors中节点owner的后面，参考__wt_cursor_init
+
+内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，内部使用
+外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，外部WT_SESSION->open_cursor
+*/
+//__session_open_cursor __wt_open_cursor中调用
+//获取cursor并保存uri
 static int
 __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner,
   WT_CURSOR *other, const char *cfg[], uint64_t hash_value, WT_CURSOR **cursorp)
@@ -496,7 +543,7 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *
      * Common cursor types.
      */
     case 't':
-        if (WT_PREFIX_MATCH(uri, "table:"))
+        if (WT_PREFIX_MATCH(uri, "table:"))//mongodb用这个
             WT_RET(__wt_curtable_open(session, uri, owner, cfg, cursorp));
         if (WT_PREFIX_MATCH(uri, "tiered:"))
             WT_RET(__wt_curfile_open(session, uri, owner, cfg, cursorp));
@@ -560,11 +607,13 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *
         break;
     }
 
+    //异常才会为NULL
     if (*cursorp == NULL && (dsrc = __wt_schema_get_source(session, uri)) != NULL)
         WT_RET(dsrc->open_cursor == NULL ?
             __wt_object_unsupported(session, uri) :
             __wt_curds_open(session, uri, owner, cfg, dsrc, cursorp));
 
+    //说明不支持
     if (*cursorp == NULL)
         return (__wt_bad_object_type(session, uri));
 
@@ -581,6 +630,7 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *
      * When opening simple tables, the table code calls this function on the underlying data source,
      * in which case the application's URI has been copied.
      */
+    //uri记录到cursorp uri
     if ((*cursorp)->uri == NULL && (ret = __wt_strdup(session, uri, &(*cursorp)->uri)) != 0) {
         WT_TRET((*cursorp)->close(*cursorp));
         *cursorp = NULL;
@@ -594,8 +644,11 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *
 
 /*
  * __wt_open_cursor --
- *     Internal version of WT_SESSION::open_cursor.
- */
+ *     Internal version of WT_SESSION::open_cursor.   
+ __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，内部使用
+ __session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，外部WT_SESSION->open_cursor
+ 
+ */ //先从cache中获取，如果没有则创建
 int
 __wt_open_cursor(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, const char *cfg[],
   WT_CURSOR **cursorp)
@@ -609,19 +662,24 @@ __wt_open_cursor(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, co
     WT_ASSERT(session, strcmp(uri, WT_HS_URI) == 0 || session->hs_cursor_counter == 0);
 
     /* We do not cache any subordinate tables/files cursors. */
-    if (owner == NULL) {
+    if (owner == NULL) {//先从cache中获取
         __wt_cursor_get_hash(session, uri, NULL, &hash_value);
+        //从session->cursor_cache[bucket]获取cache的cursor
         if ((ret = __wt_cursor_cache_get(session, uri, hash_value, NULL, cfg, cursorp)) == 0)
             return (0);
         WT_RET_NOTFOUND_OK(ret);
     }
 
+    //如果没获取到，也就是WT_NOTFOUND，则创建cursor
+    //owner作用是是否需要把获取的cursor添加到session->cursors中节点owner的后面，参考__wt_cursor_init
     return (__session_open_cursor_int(session, uri, owner, NULL, cfg, hash_value, cursorp));
 }
 
 /*
  * __session_open_cursor --
  *     WT_SESSION->open_cursor method.
+  __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，内部使用
+ __session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，外部WT_SESSION->open_cursor
  */
 static int
 __session_open_cursor(WT_SESSION *wt_session, const char *uri, WT_CURSOR *to_dup,
@@ -653,14 +711,16 @@ __session_open_cursor(WT_SESSION *wt_session, const char *uri, WT_CURSOR *to_dup
           session, EINVAL, "cannot open a non-statistics cursor before connection is opened");
 
     statjoin = (to_dup != NULL && uri != NULL && strcmp(uri, "statistics:join") == 0);
+    //先从cache中查找
     if (!statjoin) {
         if ((to_dup == NULL && uri == NULL) || (to_dup != NULL && uri != NULL))
             WT_ERR_MSG(session, EINVAL,
               "should be passed either a URI or a cursor to duplicate, but not both");
 
         __wt_cursor_get_hash(session, uri, to_dup, &hash_value);
+        //session->cursor_cache[bucket]中查找
         if ((ret = __wt_cursor_cache_get(session, uri, hash_value, to_dup, cfg, &cursor)) == 0)
-            goto done;
+            goto done;//找到直接返回
 
         /*
          * Detect if we're duplicating a backup cursor specifically. That needs special handling.
@@ -683,6 +743,7 @@ __session_open_cursor(WT_SESSION *wt_session, const char *uri, WT_CURSOR *to_dup
     if (config != NULL && (WT_PREFIX_MATCH(uri, "backup:") || to_dup != NULL))
         __wt_verbose(session, WT_VERB_BACKUP, "Backup cursor config \"%s\"", config);
 
+    //cache中没有，则创建新的cursor
     WT_ERR(__session_open_cursor_int(
       session, uri, NULL, statjoin || dup_backup ? to_dup : NULL, cfg, hash_value, &cursor));
 
@@ -712,6 +773,7 @@ err:
 /*
  * __session_alter_internal --
  *     Internal implementation of the WT_SESSION.alter method.
+ __session_alter 调用， allows modification of some table settings after creation.
  */
 static int
 __session_alter_internal(WT_SESSION_IMPL *session, const char *uri, const char *config)
@@ -783,6 +845,7 @@ __session_blocking_checkpoint(WT_SESSION_IMPL *session)
  *     Alter a table setting.
  */
 //WT_SESSION::alter allows modification of some table settings after creation.
+//修改表属性
 static int
 __session_alter(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -831,6 +894,7 @@ err:
 /*
  * __wt_session_create --
  *     Internal version of WT_SESSION::create.
+ //__session_create
  */
 int
 __wt_session_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
@@ -845,7 +909,7 @@ __wt_session_create(WT_SESSION_IMPL *session, const char *uri, const char *confi
 /*
  * __session_create --
  *     WT_SESSION->create method.
- */ //
+ */ //mongodb默认通过这里创建table:xxx，对应一个BTREE
 static int
 __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -926,7 +990,7 @@ err:
 /*
  * __session_log_flush --
  *     WT_SESSION->log_flush method.
- */
+ */ //可以先忽略,mongodb实际上没有调用该接口
 static int
 __session_log_flush(WT_SESSION *wt_session, const char *config)
 {
@@ -948,6 +1012,7 @@ __session_log_flush(WT_SESSION *wt_session, const char *config)
     if (!FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED))
         WT_ERR_MSG(session, EINVAL, "logging not enabled");
 
+    //参考"WT_SESSION.log_flush"配置，默认on
     WT_ERR(__wt_config_gets_def(session, cfg, "sync", 0, &cval));
     if (WT_STRING_MATCH("off", cval.str, cval.len))
         flags = WT_LOG_FLUSH;
@@ -1370,7 +1435,14 @@ __session_salvage_worker(WT_SESSION_IMPL *session, const char *uri, const char *
 /*
  * __session_salvage --
  *     WT_SESSION->salvage method.
- */
+ Recover data from a corrupted file.
+
+The salvage command salvages the specified data source, discarding any data that cannot be recovered. Underlying 
+files are re-written in place, overwriting the original file contents
+
+ http://source.wiredtiger.com/2.7.0/command_line.html  修复异常数据相关
+
+ */ //wiredtiger_open中调用
 static int
 __session_salvage(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -1577,8 +1649,17 @@ err:
 /*
  * __session_truncate --
  *     WT_SESSION->truncate method.
- */
+ Truncate Operation
+Truncate allows multiple records in a specified range to be deleted in a single operation. It is much faster and 
+more efficient than deleting each record individually. Fast-truncate is an optimization that WiredTiger makes 
+internally; whole pages are marked as deleted without having to first instantiate the page in memory or inspect 
+records individually. In situations where this is not possible, a slower truncate will walk keys individually,
+putting a tombstone onto each one to mark deletion. Truncation is also possible for log files but the focus here 
+will be on truncation for B-Tree data files (file: uri).
 
+参考https://source.wiredtiger.com/11.0.0/arch-btree.html#:~:text=Fast-truncate%20is%20an%20optimization%20that%20WiredTiger%20makes%20internally%3B,a%20tombstone%20onto%20each%20one%20to%20mark%20deletion.
+*/
+//数据范围删除更快
 //WT_SESSION::truncate truncates a file, table, cursor range, or backup cursor. If start and stop cursors are not 
 //specified all the data stored in the uri will be wiped out. When a range truncate is in progress, and another 
 //transaction inserts a key into that range, the behavior is not well defined. It is best to avoid this type of 
@@ -1675,7 +1756,7 @@ err:
 /*
  * __session_upgrade --
  *     WT_SESSION->upgrade method.
- */
+ */ //./wt upgrate用
 static int
 __session_upgrade(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -1722,7 +1803,7 @@ err:
 /*
  * __session_verify --
  *     WT_SESSION->verify method.
- */
+ */ //./wt verify
 static int
 __session_verify(WT_SESSION *wt_session, const char *uri, const char *config)
 {
@@ -2316,8 +2397,14 @@ __wt_session_breakpoint(WT_SESSION *wt_session)
 /*
  * __open_session --
  *     Allocate a session handle.
+  //__wt_open_internal_session->__wt_open_session:    wiredtieger内部使用的
+  //__conn_open_session->__wt_open_session:  server层通过_conn->open_session调用
+
+ 
   __wt_session_close_internal和__open_session对应，一个创建session, 一个销毁session
- */ //从session hash桶中获取一个session
+ */ 
+//从session hash桶中获取一个session
+//__wt_open_session
 static int
 __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const char *config,
   WT_SESSION_IMPL **sessionp)
@@ -2375,15 +2462,16 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
     WT_ASSERT(session, !F_ISSET(conn, WT_CONN_CLOSING));
 
     /* Find the first inactive session slot. */
-    //获取一个可用session
+    //从列表中获取一个可用session
     for (session_ret = conn->sessions, i = 0; i < conn->session_size; ++session_ret, ++i)
         if (!session_ret->active)
             break;
-    if (i == conn->session_size)
+    if (i == conn->session_size) //超限了，则直接抛异常
         WT_ERR_MSG(session, WT_ERROR,
           "out of sessions, configured for %" PRIu32 " (including internal sessions)",
           conn->session_size);
 
+    //对这个用了的session做标记
     /*
      * If the active session count is increasing, update it. We don't worry about correcting the
      * session count on error, as long as we don't mark this session as active, we'll clean it up on
@@ -2399,7 +2487,9 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
         session_ret->iface = F_ISSET(conn, WT_CONN_READONLY) ? stds_readonly : stds;
     session_ret->iface.connection = &conn->iface;
 
-    session_ret->name = NULL;
+    //__wt_open_internal_session->__wt_open_session->__open_session:    wiredtieger内部使用的
+    //__conn_open_session->__wt_open_session->__open_session:  server层通过_conn->open_session调用
+    session_ret->name = NULL; //实际上这里最后在最外层的__wt_open_internal_session或者__conn_open_session赋值
     session_ret->id = i;
 
     /*
@@ -2468,7 +2558,7 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
     __wt_stat_session_init_single(&session_ret->stats);
 
     /* Set the default value for session flags. */
-    //使能cache_cursors配置
+    //使能cache_cursors配置,默认true
     if (F_ISSET(conn, WT_CONN_CACHE_CURSORS))
         F_SET(session_ret, WT_SESSION_CACHE_CURSORS);
 
@@ -2500,6 +2590,9 @@ err:
  * __wt_open_session --
  *     Allocate a session handle.
  */ //从session hash桶中获取一个session
+ 
+//__wt_open_internal_session->__wt_open_session->__open_session:    wiredtieger内部使用的
+//__conn_open_session->__wt_open_session->__open_session:  server层通过_conn->open_session调用
 int
 __wt_open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const char *config,
   bool open_metadata, WT_SESSION_IMPL **sessionp)
@@ -2535,6 +2628,9 @@ __wt_open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, con
  * __wt_open_internal_session --
  *     Allocate a session for WiredTiger's use.
  */
+ 
+//__wt_open_internal_session:  wiredtieger内部使用的
+//__conn_open_session:  server层通过_conn->open_session调用
 int
 __wt_open_internal_session(WT_CONNECTION_IMPL *conn, const char *name, bool open_metadata,
   uint32_t session_flags, uint32_t session_lock_flags, WT_SESSION_IMPL **sessionp)
@@ -2558,3 +2654,4 @@ __wt_open_internal_session(WT_CONNECTION_IMPL *conn, const char *name, bool open
     *sessionp = session;
     return (0);
 }
+

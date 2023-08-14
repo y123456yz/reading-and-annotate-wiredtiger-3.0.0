@@ -383,6 +383,7 @@ __wt_cursor_set_raw_value(WT_CURSOR *cursor, WT_ITEM *value)
 /*
  * __wt_cursor_get_keyv --
  *     WT_CURSOR->get_key worker function.
+ key value格式参考http://source.wiredtiger.com/11.1.0/schema.html
  */
 int
 __wt_cursor_get_keyv(WT_CURSOR *cursor, uint64_t flags, va_list ap)
@@ -710,6 +711,7 @@ __wt_cursor_cache(WT_CURSOR *cursor, WT_DATA_HANDLE *dhandle)
  * __wt_cursor_reopen --
  *     Reopen this cursor from the cached state.
  */
+//cursor重新添加到cursor_cache和cursors
 void
 __wt_cursor_reopen(WT_CURSOR *cursor, WT_DATA_HANDLE *dhandle)
 {
@@ -803,7 +805,9 @@ __wt_cursor_get_hash(
 /*
  * __wt_cursor_cache_get --
  *     Open a matching cursor from the cache.
+ //cursor相关的配置参考confchk_WT_SESSION_open_cursor
  */ 
+//session->cursor_cache[bucket]中查找
 int
 __wt_cursor_cache_get(WT_SESSION_IMPL *session, const char *uri, uint64_t hash_value,
   WT_CURSOR *to_dup, const char *cfg[], WT_CURSOR **cursorp)
@@ -829,7 +833,7 @@ __wt_cursor_cache_get(WT_SESSION_IMPL *session, const char *uri, uint64_t hash_v
     } else
         overwrite_flag = WT_CURSTD_OVERWRITE;
 
-    if (have_config) {
+    if (have_config) {//cursor相关的配置参考confchk_WT_SESSION_open_cursor
         /*
          * Any cursors that have special configuration cannot be cached. There are some exceptions
          * for configurations that only differ by a cursor flag, which we can patch up if we find a
@@ -1415,6 +1419,7 @@ __wt_cursor_dup_position(WT_CURSOR *to_dup, WT_CURSOR *cursor)
 /*
  * __wt_cursor_init --
  *     Default cursor initialization.
+ //owner作用是是否需要把获取的cursor添加到session->cursors中节点owner的后面，参考__wt_cursor_init
  //cursor初始化，并添加到session->cursors链表中
  */
 int

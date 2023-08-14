@@ -441,6 +441,7 @@ __schema_open_table(WT_SESSION_IMPL *session)
 
     WT_RET_NOTFOUND_OK(ret);
 
+    printf("yang test ........__schema_open_table............ncolgroups:%u\r\n", table->ncolgroups);
     //默认不会有colgroups配置，
     if (table->ncolgroups > 0 && table->is_simple)
         WT_RET_MSG(session, EINVAL, "%s requires a table with named columns", tablename);

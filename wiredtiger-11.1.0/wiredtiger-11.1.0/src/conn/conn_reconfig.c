@@ -366,7 +366,8 @@ __wt_conn_statistics_config(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_conn_reconfig --
  *     Reconfigure a connection (internal version).
- */
+ */ 
+//例如mongodb重新配置evict cacheSize等都是走该接口
 int
 __wt_conn_reconfig(WT_SESSION_IMPL *session, const char **cfg)
 {
@@ -433,3 +434,4 @@ err:
 
     return (ret);
 }
+

@@ -45,7 +45,7 @@ extern WT_PROCESS __wt_process;
 /*
  * WT_BUCKET_STORAGE --
  *	A list entry for a storage source with a unique name (bucket, prefix).
- */
+ */ 
 struct __wt_bucket_storage {
     const char *bucket;                /* Bucket name */
     const char *bucket_prefix;         /* Bucket prefix */
@@ -105,6 +105,7 @@ struct __wt_named_collator {
  */ //__wt_connection_impl.compqh为该类型，该列表中的成员
 struct __wt_named_compressor {
     const char *name;          /* Name of compressor */
+    //默认snappy，初始化参考snappy_extension_init
     WT_COMPRESSOR *compressor; /* User supplied callbacks */
     /* Linked list of compressors */
     TAILQ_ENTRY(__wt_named_compressor) q;
@@ -161,7 +162,7 @@ struct __wt_named_storage_source {
 /*
  * WT_NAME_FLAG --
  *	Simple structure for name and flag configuration searches
- */
+ */ //参考__wt_verbose_config
 struct __wt_name_flag {
     const char *name;
     uint64_t flag;
@@ -251,6 +252,7 @@ struct __wt_connection_impl {
     WT_CONNECTION iface;
 
     /* For operations without an application-supplied session */
+    //default_session默认等于wiredtiger_open
     WT_SESSION_IMPL *default_session;
     //wiredtiger_dummy_session_init
     WT_SESSION_IMPL dummy_session;
@@ -279,6 +281,7 @@ struct __wt_connection_impl {
     const char *error_prefix; /* Database error prefix */
     uint64_t dh_hash_size;    /* Data handle hash bucket array size */
     uint64_t hash_size;       /* General hash bucket array size */
+    //是不是刚使用/data1/containers/211909456/db目录数据，第一次使用这里为true，如果是mongod关闭进程，重启，这里为false
     int is_new;               /* Connection created database */
 
     WT_VERSION recovery_version; /* Version of the database being recovered */
@@ -291,6 +294,7 @@ struct __wt_connection_impl {
     WT_VERSION compat_req_max; /* Maximum allowed version of WiredTiger for compatibility checks */
     WT_VERSION compat_req_min; /* Minimum allowed version of WiredTiger for compatibility checks */
 
+    //__conn_get_extension_api
     WT_EXTENSION_API extension_api; /* Extension API */
 
     /* Configuration */
@@ -308,6 +312,7 @@ struct __wt_connection_impl {
     size_t foc_cnt;  /* Array entries */
     size_t foc_size; /* Array size */
 
+    //wirdtiger.lock对应文件锁
     WT_FH *lock_fh; /* Lock file handle */
 
     /*
@@ -318,6 +323,8 @@ struct __wt_connection_impl {
     //__wt_data_handle对应hash桶  __wt_conn_dhandle_alloc中申请__wt_data_handle和WT_TREE添加到hash桶中
     ////__session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc会同时添
     //加到__wt_connection_impl.dhhash+dhqh和//WT_SESSION_IMPL.dhandles+dhhash
+
+    //WT_CONN_DHANDLE_INSERT中可以看出，一个是主队列，一个是hash队列
     /* Locked: data handle hash array */
     TAILQ_HEAD(__wt_dhhash, __wt_data_handle) * dhhash;
     /* Locked: data handle list */
@@ -336,12 +343,14 @@ struct __wt_connection_impl {
     TAILQ_HEAD(__wt_tiered_qh, __wt_tiered_work_unit) tieredqh;
 
     WT_SPINLOCK block_lock; /* Locked: block manager list */
+    //一个是主队列，一个是hash队列
     TAILQ_HEAD(__wt_blockhash, __wt_block) * blockhash;
     TAILQ_HEAD(__wt_block_qh, __wt_block) blockqh;
 
     WT_BLKCACHE blkcache; /* Block cache */
 
     /* Locked: handles in each bucket */
+    //connectio相关统计信息
     uint64_t *dh_bucket_count;
     uint64_t dhandle_count;        /* Locked: handles in the queue */
     u_int open_btree_count;        /* Locked: open writable btree count */
@@ -361,13 +370,14 @@ struct __wt_connection_impl {
      */
     //__wt_connection_open中提前分配内存
     WT_SESSION_IMPL *sessions; /* Session reference */
-    //__conn_session_size中初始化，从配置文件解析后赋值
+    //__conn_session_size中初始化，从配置文件解析后赋值 __conn_session_size
     uint32_t session_size;     /* Session array size */
     uint32_t session_cnt;      /* Session count */
 
     size_t session_scratch_max; /* Max scratch memory per session */
-
+    //__wt_cache_create
     WT_CACHE *cache;              /* Page cache */
+    //__cache_config_loca中解析cacheSize配置
     volatile uint64_t cache_size; /* Cache size (either statically
                                      configured or the current size
                                      within a cache pool). */
@@ -481,6 +491,7 @@ struct __wt_connection_impl {
     wt_timestamp_t flush_ts;         /* Timestamp of most recent flush_tier */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//mongodb 配置log=(enabled=true,archive=true,path=journal,compressor=snappy)
 #define WT_CONN_LOG_CONFIG_ENABLED 0x001u  /* Logging is configured */
 #define WT_CONN_LOG_DEBUG_MODE 0x002u      /* Debug-mode logging enabled */
 #define WT_CONN_LOG_DOWNGRADED 0x004u      /* Running older version */
@@ -494,6 +505,9 @@ struct __wt_connection_impl {
 #define WT_CONN_LOG_REMOVE 0x400u          /* Removal is enabled */
 #define WT_CONN_LOG_ZERO_FILL 0x800u       /* Manually zero files */
                                            /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
+
+                                           
+    //journal日志相关，默认mongod配置log=(enabled=true,archive=true,path=journal,compressor=snappy)
     uint32_t log_flags;                    /* Global logging configuration */
     WT_CONDVAR *log_cond;                  /* Log server wait mutex */
     WT_SESSION_IMPL *log_session;          /* Log server session */
@@ -507,17 +521,32 @@ struct __wt_connection_impl {
     WT_SESSION_IMPL *log_wrlsn_session;    /* Log write lsn thread session */
     wt_thread_t log_wrlsn_tid;             /* Log write lsn thread */
     bool log_wrlsn_tid_set;                /* Log write lsn thread set */
+    //__wt_logmgr_create
     WT_LOG *log;                           /* Logging structure */
+    //journal日志压缩算法
     WT_COMPRESSOR *log_compressor;         /* Logging compressor */
     uint32_t log_cursors;                  /* Log cursor count */
+    //"log.os_cache_dirty_pct"配置
     wt_off_t log_dirty_max;                /* Log dirty system cache max size */
+    //log.file_max配置
     wt_off_t log_file_max;                 /* Log file max size */
+    //"log.force_write_wait"配置
     uint32_t log_force_write_wait;         /* Log force write wait configuration */
+/*
+[user_00@TENCENT64 /data2/containers/175591266/db]$ cd journal/
+[user_00@TENCENT64 /data2/containers/175591266/db/journal]$ ls
+WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
+[user_00@TENCENT64 /data2/containers/175591266/db/journal]$ 
+*/ //journal日志目录
     const char *log_path;                  /* Logging path format */
+    //"log.prealloc"配置
     uint32_t log_prealloc;                 /* Log file pre-allocation */
     uint16_t log_req_max;                  /* Max required log version */
     uint16_t log_req_min;                  /* Min required log version */
+    //transaction_sync配置，参考__logmgr_sync_cfg
     uint32_t txn_logsync;                  /* Log sync configuration */
+
+
 
     WT_SESSION_IMPL *meta_ckpt_session; /* Metadata checkpoint session */
 
@@ -539,6 +568,7 @@ struct __wt_connection_impl {
     TAILQ_HEAD(__wt_coll_qh, __wt_named_collator) collqh;
 
     /* Locked: compressor list */
+    //__conn_add_compressor中添加
     TAILQ_HEAD(__wt_comp_qh, __wt_named_compressor) compqh;
 
     /* Locked: data source list */
@@ -636,13 +666,16 @@ struct __wt_connection_impl {
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
     uint32_t timing_stress_flags;
 
+//__wt_os_stdio
 #define WT_STDERR(s) (&S2C(s)->wt_stderr)
 #define WT_STDOUT(s) (&S2C(s)->wt_stdout)
+//__wt_os_stdio中默认初始化
     WT_FSTREAM wt_stderr, wt_stdout;
 
     /*
      * File system interface abstracted to support alternative file system implementations.
      */
+    //__wt_os_posix中赋值
     WT_FILE_SYSTEM *file_system;
 
 /*

@@ -5,7 +5,27 @@
  *
  * See the file LICENSE for redistribution information.
  */
-
+/*
+MongoDB server层用到的接口:
+Wiredtiger_begin_transaction_block_bm.cpp (src\mongo\db\storage\wiredtiger):        _conn->close(_conn, nullptr);
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):            invariantWTOK(_conn->close(_conn, nullptr));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(_conn->query_timestamp(_conn, buf, "get=recovery"));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        int ret = _conn->query_timestamp(_conn, buf, "get=oldest");
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    // these must be the last things we do before _conn->close();
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(_conn->close(_conn, closeConfig.c_str()));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(_conn->reconfigure(_conn, _fileVersion.getDowngradeString().c_str()));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    invariantWTOK(_conn->close(_conn, closeConfig.c_str()));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    return _conn->reconfigure(_conn, str);
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    invariantWTOK(_conn->set_timestamp(_conn, stableTSConfigString.c_str()));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(_conn->set_timestamp(_conn, oldestTSConfigString.c_str()));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        invariantWTOK(_conn->set_timestamp(_conn, oldestTSConfigString.c_str()));
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    int ret = _conn->rollback_to_stable(_conn, nullptr);
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    invariantWTOK(_conn->query_timestamp(_conn, buf, "get=last_checkpoint"));
+Wiredtiger_session_cache.cpp (src\mongo\db\storage\wiredtiger):            _conn->open_session(_conn, nullptr, "isolation=snapshot", &_waitUntilDurableSession));
+Wiredtiger_session_cache_test.cpp (src\mongo\db\storage\wiredtiger):        _conn->close(_conn, nullptr);
+Wiredtiger_standard_index_test.cpp (src\mongo\db\storage\wiredtiger):        _conn->close(_conn, nullptr);
+Wiredtiger_util_test.cpp (src\mongo\db\storage\wiredtiger):        _conn->close(_conn, nullptr);
+*/
 #include "wt_internal.h"
 
 /*
@@ -215,7 +235,7 @@ __wt_compressor_config(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval, WT_COMPRE
 /*
  * __conn_add_compressor --
  *     WT_CONNECTION->add_compressor method.
- */
+ */ //例如snappy算法在snappy_extension_init中初始化调用
 static int
 __conn_add_compressor(
   WT_CONNECTION *wt_conn, const char *name, WT_COMPRESSOR *compressor, const char *config)
@@ -282,7 +302,7 @@ __wt_conn_remove_compressor(WT_SESSION_IMPL *session)
 /*
  * __conn_add_data_source --
  *     WT_CONNECTION->add_data_source method.
- */ 
+ */ //实际没用
 static int
 __conn_add_data_source(
   WT_CONNECTION *wt_conn, const char *prefix, WT_DATA_SOURCE *dsrc, const char *config)
@@ -540,7 +560,7 @@ __wt_conn_remove_encryptor(WT_SESSION_IMPL *session)
 /*
  * __conn_add_extractor --
  *     WT_CONNECTION->add_extractor method.
- */
+ *///可以忽略
 static int
 __conn_add_extractor(
   WT_CONNECTION *wt_conn, const char *name, WT_EXTRACTOR *extractor, const char *config)
@@ -666,7 +686,7 @@ __wt_conn_remove_extractor(WT_SESSION_IMPL *session)
 /*
  * __conn_add_storage_source --
  *     WT_CONNECTION->add_storage_source method.
- */
+ */ //三方插件，可以忽略
 static int
 __conn_add_storage_source(
   WT_CONNECTION *wt_conn, const char *name, WT_STORAGE_SOURCE *storage_source, const char *config)
@@ -803,7 +823,7 @@ __conn_ext_file_system_get(
 /*
  * __conn_get_extension_api --
  *     WT_CONNECTION.get_extension_api method.
- */
+ */ //可以忽略，第三方api
 static WT_EXTENSION_API *
 __conn_get_extension_api(WT_CONNECTION *wt_conn)
 {
@@ -898,7 +918,7 @@ extern int zstd_extension_init(WT_CONNECTION *, WT_CONFIG_ARG *);
 /*
  * __conn_builtin_extensions --
  *     Load extensions that are enabled via --with-builtins
- */
+ */ //wiredtiger_open  builtins是Python中的一个模块。
 static int
 __conn_builtin_extensions(WT_CONNECTION_IMPL *conn, const char *cfg[])
 {
@@ -994,7 +1014,7 @@ err:
 /*
  * __conn_load_extension --
  *     WT_CONNECTION->load_extension method.
- */
+ */ //第三方工具，先忽略
 static int
 __conn_load_extension(WT_CONNECTION *wt_conn, const char *path, const char *config)
 {
@@ -1061,7 +1081,7 @@ __conn_get_home(WT_CONNECTION *wt_conn)
 /*
  * __conn_configure_method --
  *     WT_CONNECTION.configure_method method.
- */
+ */ //测试环境里面用，可忽略
 static int
 __conn_configure_method(WT_CONNECTION *wt_conn, const char *method, const char *uri,
   const char *config, const char *type, const char *check)
@@ -1082,7 +1102,7 @@ err:
 /*
  * __conn_is_new --
  *     WT_CONNECTION->is_new method.
- */
+ */ //可忽略
 static int
 __conn_is_new(WT_CONNECTION *wt_conn)
 {
@@ -1222,7 +1242,7 @@ err:
 /*
  * __conn_debug_info --
  *     WT_CONNECTION->debug_info method.
- */
+ */ //忽略
 static int
 __conn_debug_info(WT_CONNECTION *wt_conn, const char *config)
 {
@@ -1284,7 +1304,13 @@ err:
 /*
  * __conn_open_session --
  *     WT_CONNECTION->open_session method.
- */ //从session hash桶中获取一个session
+ MongoDB server层通过_conn->open_session调用
+ */ 
+
+//__wt_open_internal_session:  wiredtieger内部使用的
+//__conn_open_session:  server层通过_conn->open_session调用
+
+//从session hash桶中获取一个session   
 static int
 __conn_open_session(WT_CONNECTION *wt_conn, WT_EVENT_HANDLER *event_handler, const char *config,
   WT_SESSION **wt_sessionp)
@@ -1302,6 +1328,8 @@ __conn_open_session(WT_CONNECTION *wt_conn, WT_EVENT_HANDLER *event_handler, con
 
     session_ret = NULL;
     WT_ERR(__wt_open_session(conn, event_handler, config, true, &session_ret));
+    //set the open_session method's session name
+    session_ret->name = "connection-open-session";
     *wt_sessionp = &session_ret->iface;
 
 err:
@@ -1658,12 +1686,13 @@ __conn_hash_config(WT_SESSION_IMPL *session, const char *cfg[])
     uint64_t i;
 
     conn = S2C(session);
+    //如果没有显示配置，则使用WT_CONFIG_ENTRY_wiredtiger_open中的默认配置，默认512
     WT_RET(__wt_config_gets(session, cfg, "hash.buckets", &cval));
     if (!__wt_ispo2((uint32_t)cval.val))
         WT_RET_MSG(session, EINVAL, "Hash bucket size %" PRIu64 " invalid. Must be power of 2",
           (uint64_t)cval.val);
     conn->hash_size = (uint64_t)cval.val;
-    printf("yang test .........__conn_hash_config........ conn->hash_size:%lu\r\n", conn->hash_size);
+
     WT_RET(__wt_config_gets(session, cfg, "hash.dhandle_buckets", &cval));
     if (!__wt_ispo2((uint32_t)cval.val))
         WT_RET_MSG(session, EINVAL,
@@ -1712,7 +1741,22 @@ __conn_home(WT_SESSION_IMPL *session, const char *home, const char *cfg[])
 /*
  * __conn_single --
  *     Confirm that no other thread of control is using this database.
+
+ [user_00@TENCENT64 /data1/xxx/211909456]$ cd db/
+[user_00@TENCENT64 /data1/xxx/211909456/db]$ ls
+admin   db_recordtimeshift  journal  _mdb_catalog.wt  mongod.pid     storage.bson  WiredTigerHS.wt  WiredTiger.turtle
+config  diagnostic.data     local    mongod.lock      sizeStorer.wt  WiredTiger    WiredTiger.lock  WiredTiger.wt
+[user_00@TENCENT64 /data1/containers/211909456/db]$ ls db_recordtimeshift
+collection-127-5712598948713236855.wt  index-128-5712598948713236855.wt  index-131-5712598948713236855.wt  index-138-5712598948713236855.wt  index-145-5712598948713236855.wt
+collection-135-5712598948713236855.wt  index-129-5712598948713236855.wt  index-136-5712598948713236855.wt  index-139-5712598948713236855.wt  index-146-5712598948713236855.wt
+collection-143-5712598948713236855.wt  index-130-5712598948713236855.wt  index-137-5712598948713236855.wt  index-144-5712598948713236855.wt  index-147-5712598948713236855.wt
+[user_00@TENCENT64 /data1/xxx/211909456/db]$ 
  */
+//wiredtiger_open调用，判断是否已经有其他线程在使用home对应目录下的DB，
+//例如MONGODB数据目录/data1/containers/211909456/db, 一个进程例如mongod，只能拥有一个唯一的db，db下面是具体的实例数据，包括元数据
+
+//如果mongod进程第一次启动，这里主要是创建文件锁，并锁住文件，避免其他进程使用该数据目录，
+//另外就是WiredTiger文件内容记录wiredtiger版本信息，需要和wiredtiger.lock文件锁一起存在，实际上WiredTiger没啥用，但是这里需要检查
 static int
 __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -1725,6 +1769,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
     char buf[256];
     bool bytelock, empty, exist, is_create, is_salvage, match;
 
+    //该session对应的connection
     conn = S2C(session);
     fh = NULL;
 
@@ -1752,7 +1797,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
             match = true;
             break;
         }
-    if (match)
+    if (match) //冲突了
         WT_ERR_MSG(session, EBUSY,
           "WiredTiger database is already being managed by another thread in this process");
 
@@ -1786,6 +1831,9 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
      * file exists in the directory, create the lock file, covering the case
      * of a hot backup.
      */
+
+    //创建"WiredTiger.lock"文件锁，保证该db目录只会由一个conn唯一访问
+    //只有"WiredTiger"文件存在，"WiredTiger.lock"才会创建
     exist = false;
     if (!is_create)
         WT_ERR(__wt_fs_exist(session, WT_WIREDTIGER, &exist));
@@ -1810,7 +1858,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
      * directory, suggesting possible corruption if the WiredTiger file was deleted. Suggest running
      * salvage.
      */
-    if (ret == ENOENT) {
+    if (ret == ENOENT) {//"WiredTiger"文件不存在，返回异常
         WT_ERR(__wt_fs_exist(session, WT_WIREDTIGER, &exist));
         if (!exist) {
             F_SET(conn, WT_CONN_DATA_CORRUPTION);
@@ -1825,6 +1873,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
          * we're done. The file may be zero-length, and that's OK, the underlying call supports
          * locking past the end-of-file.
          */
+         //加文件锁，避免其他进程使用DB这个目录
         if (__wt_file_lock(session, conn->lock_fh, true) != 0)
             WT_ERR_MSG(
               session, EBUSY, "WiredTiger database is already being managed by another process");
@@ -1838,6 +1887,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
  * The test against the expected length is sheer paranoia (the length should be 0 or correct), but
  * it shouldn't hurt.
  */
+ //如果是第一次创建，则写入这些字符串
 #define WT_SINGLETHREAD_STRING "WiredTiger lock file\n"
         WT_ERR(__wt_filesize(session, conn->lock_fh, &size));
         if ((size_t)size != strlen(WT_SINGLETHREAD_STRING))
@@ -1853,6 +1903,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
      * doesn't exist, it's a create.
      */
     WT_ERR(__wt_turtle_exists(session, &exist));
+    //是不是刚使用/data1/containers/211909456/db目录数据，第一次使用这里为true，如果是mongod关闭进程，重启，这里为false
     conn->is_new = exist ? 0 : 1;
 
     /*
@@ -1862,6 +1913,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
     WT_ERR(__wt_config_gets(session, cfg, "salvage", &cval));
     is_salvage = cval.val != 0;
     if (!is_salvage && !conn->is_new) {
+        //如果是mongod重启，is_new=false，"WiredTiger"文件一定要存在
         WT_ERR(__wt_fs_exist(session, WT_WIREDTIGER, &exist));
         if (!exist) {
             F_SET(conn, WT_CONN_DATA_CORRUPTION);
@@ -1870,9 +1922,11 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
     }
 
     /* We own the lock file, optionally create the WiredTiger file. */
+    //如果是mongod第一次启用，则会创建"WiredTiger"文件
+    //注意这里已经是对"WiredTiger"文件操作，而不是"WiredTiger.lock"
     ret = __wt_open(session, WT_WIREDTIGER, WT_FS_OPEN_FILE_TYPE_REGULAR,
       is_create || is_salvage ? WT_FS_OPEN_CREATE : 0, &fh);
-
+      
     /*
      * If we're read-only, check for handled errors. Even if able to open the WiredTiger file
      * successfully, we do not try to lock it. The lock file test above is the only one we do for
@@ -1892,6 +1946,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
          * Lock the WiredTiger file (for backward compatibility reasons as described above).
          * Immediately release the lock, it's just a test.
          */
+        //对新创建的文件wiredtiger(注意不是wiredtiger.lock)加锁，然后解锁，确定文件锁正常使用
         if (__wt_file_lock(session, fh, true) != 0) {
             WT_ERR_MSG(
               session, EBUSY, "WiredTiger database is already being managed by another process");
@@ -1904,7 +1959,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
      * exists and we are not salvaging), write a message but don't fail.
      */
     empty = false;
-    if (fh != NULL) {
+    if (fh != NULL) {//新创建的wiredtiger文件锁，还没些数据，默认要为空
         WT_ERR(__wt_filesize(session, fh, &size));
         empty = size == 0;
         if (!is_salvage && !conn->is_new && empty)
@@ -1920,6 +1975,15 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
             WT_ERR_MSG(session, EINVAL,
               "The database directory is empty or needs recovery, cannot continue with a read only "
               "connection");
+        /*
+         [root@localhost ex_access]# cat WT_HOME/WiredTiger
+         WiredTiger
+         WiredTiger 11.1.0: (November  2, 2022)
+         [root@localhost ex_access]# 
+         [root@localhost ex_access]# 
+         [root@localhost ex_access]#
+         */
+        //向WiredTiger文件中写入wiredtiger版本信息
         WT_ERR(__wt_snprintf_len_set(
           buf, sizeof(buf), &len, "%s\n%s\n", WT_WIREDTIGER, WIREDTIGER_VERSION_STRING));
         WT_ERR(__wt_write(session, fh, (wt_off_t)0, len, buf));
@@ -2089,7 +2153,9 @@ __wt_json_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 /*
  * __wt_verbose_config --
  *     Set verbose configuration.
- */
+5代表WT_VERBOSE_DEBUG_5
+例如verbose=[api=5,block=5,checkpoint=5,checkpoint_progress=5,compact=5,evict=5,evict_stuck=5,evictserver=5,fileops=5,handleops=5,log=5,lsm=5,lsm_manager=5,metadata=5,mutex=5,overflow=5,read=5,reconcile=5,reconcile=5,recovery=5,recovery_progress=5,salvage=5,shared_cache=5,split=5,thread_group=5,split=5,thread_group=5,timestamp=5,transaction=5,verify=5,version=5,write=5]
+ */ //verbos日志打印级别相关解析
 int
 __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 {
@@ -2313,7 +2379,8 @@ __wt_timing_stress_config(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __conn_write_base_config --
  *     Save the base configuration used to create a database.
- */
+ */ 
+//默认false, 见WiredTigerKVEngine::WiredTigerKVEngine  实际上直接返回
 static int
 __conn_write_base_config(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -2339,6 +2406,7 @@ __conn_write_base_config(WT_SESSION_IMPL *session, const char *cfg[])
      */
     if (!S2C(session)->is_new)
         return (0);
+    //mongodb默认false
     WT_RET(__wt_config_gets(session, cfg, "config_base", &cval));
     if (!cval.val)
         return (0);
@@ -2425,7 +2493,8 @@ err:
 /*
  * __conn_set_file_system --
  *     Configure a custom file system implementation on database open.
- */
+  *     WT_CONNECTION.set_file_system method.        yang add xxxxxxxxx todo 接口风格
+ */ //第三方扩展
 static int
 __conn_set_file_system(WT_CONNECTION *wt_conn, WT_FILE_SYSTEM *file_system, const char *config)
 {
@@ -2456,12 +2525,15 @@ err:
 /*
  * __conn_session_size --
  *     Return the session count for this run.
- */
+ */ //计数默认的最大session数
 static int
 __conn_session_size(WT_SESSION_IMPL *session, const char *cfg[], uint32_t *vp)
 {
     WT_CONFIG_ITEM cval;
     int64_t v;
+
+//server层配置:"attr":{"config":"create,cache_size=512M,session_max=33000,eviction=(threads_min=4,
+//threads_max=4)
 
 /*
  * Start with 20 internal sessions to cover threads the application can't configure (for example,
@@ -2479,16 +2551,17 @@ __conn_session_size(WT_SESSION_IMPL *session, const char *cfg[], uint32_t *vp)
 
     WT_RET(__wt_config_gets(session, cfg, "session_max", &cval));
     v += cval.val;
-
+    
     *vp = (uint32_t)v;
 
+    //printf("yang test ............ __conn_session_size.........cfg[0]:%s, cfg[1]:%s\r\n", cfg[0], cfg[1]);
     return (0);
 }
 
 /*
  * __conn_chk_file_system --
  *     Check the configured file system.
- */
+ */ //file_system的接口回调必须赋值，linux见__wt_os_posix
 static int
 __conn_chk_file_system(WT_SESSION_IMPL *session, bool readonly)
 {
@@ -2874,6 +2947,7 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
         WT_ERR_MSG(session, EINVAL, "buffer_alignment requires posix_memalign");
 #endif
 
+    //"WT_CONNECTION.open_session"中的cache_cursors配置，默认true
     WT_ERR(__wt_config_gets(session, cfg, "cache_cursors", &cval));
     if (cval.val)
         F_SET(conn, WT_CONN_CACHE_CURSORS);

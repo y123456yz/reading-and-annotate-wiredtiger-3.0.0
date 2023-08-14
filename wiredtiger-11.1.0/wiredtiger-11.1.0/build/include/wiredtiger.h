@@ -75,6 +75,7 @@ struct __wt_config_parser;
 //__wt_connection_impl的回调接口,接口赋值见wiredtiger_open
 struct __wt_connection;	    typedef struct __wt_connection WT_CONNECTION;
 //对应初始化赋值不通type类型不同，参考__session_open_cursor_int
+//btree中对应__wt_cursor_table.iface为该类型
 struct __wt_cursor;	    typedef struct __wt_cursor WT_CURSOR;
 //实际上没用，只有example使用  //__wt_named_data_source.dsrc成员
 struct __wt_data_source;    typedef struct __wt_data_source WT_DATA_SOURCE;
@@ -93,6 +94,7 @@ struct __wt_modify;	    typedef struct __wt_modify WT_MODIFY;
 //session接口，赋值参考__open_session
 struct __wt_session;	    typedef struct __wt_session WT_SESSION;
 #if !defined(DOXYGEN)
+//storage_source参考https://source.wiredtiger.com/develop/arch-cloud-storage-extension.html
 struct __wt_storage_source; typedef struct __wt_storage_source WT_STORAGE_SOURCE;
 #endif
 
@@ -217,6 +219,7 @@ struct __wt_cursor {
 	 * The name of the data source for the cursor, matches the \c uri
 	 * parameter to WT_SESSION::open_cursor used to open the cursor.
 	 */
+	//__session_open_cursor_int中赋值
 	const char *uri;
 
 	/*!

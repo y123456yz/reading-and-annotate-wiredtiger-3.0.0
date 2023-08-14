@@ -253,6 +253,7 @@ struct __wt_btree {
  */
 /* AUTOMATIC FLAG VALUE GENERATION START 12 */
 #define WT_BTREE_ALTER 0x0001000u          /* Handle is for alter */
+///* Bulk handles require exclusive access. */ __wt_curfile_open
 #define WT_BTREE_BULK 0x0002000u           /* Bulk-load handle */
 #define WT_BTREE_CLOSED 0x0004000u         /* Handle closed */
 #define WT_BTREE_IGNORE_CACHE 0x0008000u   /* Cache-resident object */

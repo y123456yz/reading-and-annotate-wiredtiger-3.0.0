@@ -5,7 +5,7 @@
  *
  * See the file LICENSE for redistribution information.
  */
-
+//"WiredTiger"只是记录wiredtiger版本信息，实际上没啥用
 #define WT_WIREDTIGER "WiredTiger"        /* Version file */
 #define WT_SINGLETHREAD "WiredTiger.lock" /* Locking file */
 //当创建WiredTiger数据库时，传递给wiredtiger_open的配置字符串被保存到名为WiredTiger的WiredTiger主目录文件中。

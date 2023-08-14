@@ -721,6 +721,7 @@ __curfile_reopen_int(WT_CURSOR *cursor)
         F_SET(cursor, WT_CURSTD_DEAD);
         ret = WT_NOTFOUND;
     }
+    //cursor重新添加到cursor_cache和cursors
     __wt_cursor_reopen(cursor, dhandle);
 
     /*
@@ -745,7 +746,7 @@ __curfile_reopen_int(WT_CURSOR *cursor)
 /*
  * __curfile_reopen --
  *     WT_CURSOR->reopen method for the btree cursor type.
- */
+ */ /* Reopen a cached cursor */
 static int
 __curfile_reopen(WT_CURSOR *cursor, bool sweep_check_only)
 {
@@ -757,7 +758,7 @@ __curfile_reopen(WT_CURSOR *cursor, bool sweep_check_only)
     session = CUR2S(cursor);
     dhandle = ((WT_CURSOR_BTREE *)cursor)->dhandle;
 
-    if (sweep_check_only) {
+    if (sweep_check_only) {//是否可以清理该cursor,这个分支代表可清理
         /*
          * The sweep check returns WT_NOTFOUND if the cursor should be swept. Generally if the
          * associated data handle cannot be reopened it should be swept. But a handle being operated
@@ -929,6 +930,7 @@ err:
 /*
  * __curfile_create --
  *     Open a cursor for a given btree handle.
+ //__wt_curfile_open
  */
 static int
 __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], bool bulk,
@@ -1098,6 +1100,7 @@ __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, c
      * Decode the bulk configuration settings. In memory databases ignore bulk load.
      */
     if (!F_ISSET(S2C(session), WT_CONN_IN_MEMORY)) {
+        //默认为false
         WT_RET(__wt_config_gets_def(session, cfg, "bulk", 0, &cval));
         if (cval.type == WT_CONFIG_ITEM_BOOL ||
           (cval.type == WT_CONFIG_ITEM_NUM && (cval.val == 0 || cval.val == 1))) {
@@ -1202,3 +1205,4 @@ err:
     WT_TRET(__wt_session_release_dhandle(session));
     return (ret);
 }
+

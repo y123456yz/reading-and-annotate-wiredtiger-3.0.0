@@ -1360,6 +1360,8 @@ static const WT_CONFIG_ENTRY config_entries[] = {{"WT_CONNECTION.add_collator", 
     "cache_directory=,local_retention=300,name=,object_target_size=0)"
     ",value_format=u,verbose=[],write_timestamp_usage=none",
     confchk_file_config, 40},
+
+  //WT_CONFIG_ENTRY_file_meta
   {"file.meta",
     "access_pattern_hint=none,allocation_size=4KB,app_metadata=,"
     "assert=(commit_timestamp=none,durable_timestamp=none,"

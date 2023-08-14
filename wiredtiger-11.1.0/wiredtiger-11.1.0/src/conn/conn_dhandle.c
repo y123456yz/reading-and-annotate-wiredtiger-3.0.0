@@ -34,7 +34,8 @@ __conn_dhandle_config_clear(WT_SESSION_IMPL *session)
 /*
  * __conn_dhandle_config_set --
  *     Set up a btree handle's configuration information.
- */
+ */ 
+//从元数据文件中读取配置存入dhandle->cfg[]
 static int
 __conn_dhandle_config_set(WT_SESSION_IMPL *session)
 {
@@ -50,11 +51,14 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
     /*
      * Read the object's entry from the metadata file, we're done if we don't find one.
      */
+   // printf("yang test ........__conn_dhandle_config_set........begin...............\r\n");
     if ((ret = __wt_metadata_search(session, dhandle->name, &metaconf)) != 0) {
         if (ret == WT_NOTFOUND)
             ret = __wt_set_return(session, ENOENT);
         WT_RET(ret);
     }
+   // printf("yang test ........__conn_dhandle_config_set.........end......, name:%s, metaconf:%s\r\n",
+    //    dhandle->name, metaconf);
 
     /*
      * The defaults are included because persistent configuration information is stored in the
@@ -83,16 +87,25 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
          * an empty category to strip out since we don't know any backup ids. Set them empty and
          * call collapse to overwrite anything existing.
          */
+        // cfg[0] = 
+        //    "access_pattern_hint=none,allocation_size=4KB,allocation_size=8KB,allocation_size=18KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=0,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none";;
         cfg[0] = metaconf;
+        //metaconf="access_pattern_hint=none,allocation_size=4KB,allocation_size=8KB,allocation_size=18KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=0,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none";
         cfg[1] = "checkpoint=()";
         cfg[2] = "checkpoint_backup_info=()";
         cfg[3] = NULL;
+        //config_entries[WT_CONFIG_ENTRY_file_meta], 默认配置存入dhandle->cfg[0]，也就是"file.meta"
+        //cfg[0]是config_entries[WT_CONFIG_ENTRY_file_meta]默认配置
+        //cfg[1]是从.wt元数据文件中读出的该BTREE的配置
         WT_ERR(__wt_strdup(session, WT_CONFIG_BASE(session, file_meta), &dhandle->cfg[0]));
         WT_ASSERT(session, dhandle->meta_base == NULL);
 #ifdef HAVE_DIAGNOSTIC
         WT_ASSERT(session, dhandle->orig_meta_base == NULL);
 #endif
         WT_ERR(__wt_config_collapse(session, cfg, &tmp));
+        printf("yang test ...1111111111.... __conn_dhandle_config_set ...name:%s...cfg[0]:%s,\r\n tmp:%s\r\n\r\n\r\n\r\n", 
+            dhandle->name, cfg[0], tmp);
+
         /*
          * Now strip out the checkpoint related items from the configuration string and that is now
          * our base metadata string.
@@ -117,6 +130,8 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
     }
     dhandle->cfg[1] = metaconf;
     dhandle->meta_base = base;
+   // printf("yang test ...2222.... __conn_dhandle_config_set ...metaconf:%s,\r\n base:%s\r\n\r\n\r\n\r\n", 
+     //   metaconf, base);
     dhandle->meta_base_length = base == NULL ? 0 : strlen(base);
 #ifdef HAVE_DIAGNOSTIC
     /*  Save the original metadata value for further check to avoid writing corrupted data. */
@@ -259,6 +274,7 @@ err:
  * __wt_conn_dhandle_find --
  *     Find a previously opened data handle.
  */
+//从dhhash桶中查找uri相同，或者uri和checkpoint都相同的dhandle赋值给session->dhandle
 int
 __wt_conn_dhandle_find(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
 {
@@ -626,7 +642,7 @@ err:
 /*
  * __conn_btree_apply_internal --
  *     Apply a function to an open data handle.
- */
+ */ //__wt_conn_btree_apply
 static int
 __conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
   int (*file_func)(WT_SESSION_IMPL *, const char *[]),

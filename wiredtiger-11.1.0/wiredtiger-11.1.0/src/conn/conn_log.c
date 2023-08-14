@@ -11,7 +11,7 @@
 /*
  * __logmgr_sync_cfg --
  *     Interpret the transaction_sync config.
- */
+ */ //mongodb默认没有使用transaction_sync配置，因此会使用引擎的默认配置transaction_sync=(enabled=false,method=fsync)
 static int
 __logmgr_sync_cfg(WT_SESSION_IMPL *session, const char **cfg)
 {
@@ -190,7 +190,9 @@ __logmgr_version(WT_SESSION_IMPL *session, bool reconfig)
 /*
  * __wt_logmgr_config --
  *     Parse and setup the logging server options.
- */
+ */ 
+//mongodb 配置log=(enabled=true,archive=true,path=journal,compressor=snappy)及默认引擎配置transaction_sync=(enabled=false,method=fsync)
+ //wiredtiger_open
 int
 __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
 {

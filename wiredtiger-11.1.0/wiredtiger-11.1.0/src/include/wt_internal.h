@@ -77,7 +77,8 @@ struct __wt_blkcache_item;
 typedef struct __wt_blkcache_item WT_BLKCACHE_ITEM;
 struct __wt_blkincr;
 typedef struct __wt_blkincr WT_BLKINCR;
-struct __wt_block;
+
+struct __wt_block;  //分配空间和赋值见__wt_block_open
 typedef struct __wt_block WT_BLOCK;
 struct __wt_block_ckpt;
 typedef struct __wt_block_ckpt WT_BLOCK_CKPT;
@@ -192,6 +193,8 @@ typedef struct __wt_cursor_table WT_CURSOR_TABLE;
 struct __wt_cursor_version;
 typedef struct __wt_cursor_version WT_CURSOR_VERSION;
 struct __wt_data_handle;
+//一个__wt_data_handle实际上对应一个BTREE，通过BTREE btree = (WT_BTREE *)dhandle->handle;获取
+//__wt_conn_dhandle_alloc中分配节点内存    一个__wt_data_handle实际上对应一个BTREE，通过BTREE btree = (WT_BTREE *)dhandle->handle;获取
 typedef struct __wt_data_handle WT_DATA_HANDLE;
 struct __wt_data_handle_cache;
 typedef struct __wt_data_handle_cache WT_DATA_HANDLE_CACHE;
@@ -272,6 +275,7 @@ typedef struct __wt_multi WT_MULTI;
 struct __wt_myslot;
 typedef struct __wt_myslot WT_MYSLOT;
 struct __wt_name_flag;
+//参考__wt_verbose_config
 typedef struct __wt_name_flag WT_NAME_FLAG;
 struct __wt_named_collator;
 typedef struct __wt_named_collator WT_NAMED_COLLATOR;
