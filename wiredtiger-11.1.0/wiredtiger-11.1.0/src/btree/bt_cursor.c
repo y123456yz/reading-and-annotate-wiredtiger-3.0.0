@@ -544,7 +544,7 @@ __cursor_col_search(WT_CURSOR_BTREE *cbt, WT_REF *leaf, bool *leaf_foundp)
 /*
  * __cursor_row_search --
  *     Row-store search from a cursor.
- */
+ */ //查找cbt->iface.key在btree中是否存在，确定该srch_key应该在跳跃表那个位置
 static inline int
 __cursor_row_search(WT_CURSOR_BTREE *cbt, bool insert, WT_REF *leaf, bool *leaf_foundp)
 {
@@ -1218,6 +1218,7 @@ retry:
     WT_ERR(__wt_cursor_func_init(cbt, true));
 
     if (btree->type == BTREE_ROW) {
+        //查找cbt->iface.key在btree中是否存在，确定该srch_key应该在跳跃表那个位置
         WT_ERR(__cursor_row_search(cbt, true, NULL, NULL));
         /*
          * If not overwriting, fail if the key exists, else insert the key/value pair.

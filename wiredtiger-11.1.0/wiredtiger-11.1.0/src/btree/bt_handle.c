@@ -143,9 +143,9 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
          */
         WT_ERR(bm->checkpoint_load(bm, session, ckpt.raw.data, ckpt.raw.size, root_addr,
           &root_addr_size, F_ISSET(btree, WT_BTREE_READONLY)));
-        if (creation || root_addr_size == 0)
+        if (creation || root_addr_size == 0) //BTREE还没有任何数据，走这里
             WT_ERR(__btree_tree_open_empty(session, creation));
-        else {
+        else {//从磁盘加载了数据到BTREE走这里
             WT_ERR(__wt_btree_tree_open(session, root_addr, root_addr_size));
 
             /* Warm the cache, if possible. */
@@ -763,7 +763,7 @@ err:
 /*
  * __wt_btree_new_leaf_page --
  *     Create an empty leaf page.
- */
+ */ //如果REF对应page为NULL，则需要创建leaf page，见__page_read
 int
 __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_REF *ref)
 {

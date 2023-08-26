@@ -88,6 +88,7 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
  * __page_read --
  *     Read a page from the file.
  */
+//加载磁盘中的数据或者创建新的leaf page
 static int
 __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {
@@ -106,9 +107,11 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
     WT_CLEAR(tmp);
 
     /* Lock the WT_REF. */
+    //previous_state记录之前的状态
     switch (previous_state = ref->state) {
     case WT_REF_DISK:
     case WT_REF_DELETED:
+        //这里会重新赋值ref->state=WT_REF_LOCKED，并break继续后面流程
         if (WT_REF_CAS_STATE(session, ref, previous_state, WT_REF_LOCKED))
             break;
         return (0);
@@ -135,9 +138,10 @@ __page_read(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
      * delete information should expire and be removed before the original on-disk page is actually
      * discarded.
      */
-    if (!__wt_ref_addr_copy(session, ref, &addr)) {
+    if (!__wt_ref_addr_copy(session, ref, &addr)) {//如果ref对应page为NULL，则需要新建leaf page
         WT_ASSERT(session, previous_state == WT_REF_DELETED);
         WT_ASSERT(session, ref->page_del == NULL);
+        //创建该ref对应的leaf page
         WT_ERR(__wt_btree_new_leaf_page(session, ref));
         goto skip_read;
     }

@@ -140,7 +140,10 @@ struct __wt_cursor_btree {
     WT_REF *ref;   /* Current page */
     uint32_t slot; /* WT_COL/WT_ROW 0-based slot */
 
+    //__cursor_pos_clear中会清理掉
+    //__wt_row_modify赋值
     WT_INSERT_HEAD *ins_head; /* Insert chain head */
+    //__wt_search_insert赋值
     WT_INSERT *ins;           /* Current insert node */
     /* Search stack */
     WT_INSERT **ins_stack[WT_SKIP_MAXDEPTH];
@@ -234,7 +237,8 @@ struct __wt_cursor_btree {
      * The update structure allocated by the row- and column-store modify functions, used to avoid a
      * data copy in the WT_CURSOR.update call.
      */
-    WT_UPDATE_VALUE *modify_update, _modify_update;
+    //写入KV的value会零时记录到这里面，参考__wt_row_modify
+    WT_UPDATE_VALUE *modify_update, _modify_update;//__wt_cursor_btree.modify_update
 
     /* An intermediate structure to hold the update value to be assigned to the cursor buffer. */
     WT_UPDATE_VALUE *upd_value, _upd_value;
@@ -258,7 +262,7 @@ struct __wt_cursor_btree {
      * the space for it now than keep checking to see if we need to grow the buffer.
      */
     uint8_t v; /* Fixed-length return value */
-
+    //同一个cursor insert数据，第一次insert后会置为为1，见__wt_row_search
     uint8_t append_tree; /* Cursor appended to the tree */
 
     /*
@@ -274,6 +278,7 @@ struct __wt_cursor_btree {
 #endif
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//__wt_cursor_func_init
 #define WT_CBT_ACTIVE 0x001u             /* Active in the tree */
 #define WT_CBT_CACHEABLE_RLE_CELL 0x002u /* Col-store: value in RLE cell valid for its keys */
 #define WT_CBT_ITERATE_APPEND 0x004u     /* Col-store: iterating append list */

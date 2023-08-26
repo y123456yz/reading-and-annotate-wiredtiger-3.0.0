@@ -54,6 +54,7 @@ __wt_page_alloc(
          * Row-store leaf page: allocate memory to describe the page's contents with the initial
          * allocation.
          */
+        //leaf page上面存储的真实KV数据在这里
         size += alloc_entries * sizeof(WT_ROW);
         break;
     default:
@@ -104,6 +105,7 @@ err:
         page->entries = alloc_entries;
         break;
     case WT_PAGE_ROW_LEAF:
+         //leaf page上面存储的真实KV数据在这里，page末尾为真实KV数据
         page->pg_row = alloc_entries == 0 ? NULL : (WT_ROW *)((uint8_t *)page + sizeof(WT_PAGE));
         page->entries = alloc_entries;
         break;

@@ -311,7 +311,7 @@ struct __wt_ovfl_track {
 /*
  * WT_PAGE_MODIFY --
  *	When a page is modified, there's additional information to maintain.
- */
+ */ //__wt_page.modify 赋值见__wt_page_modify_init
 struct __wt_page_modify {
     /* The first unwritten transaction ID (approximate). */
     uint64_t first_dirty_txn;
@@ -431,12 +431,14 @@ struct __wt_page_modify {
 #define mod_col_split_recno u2.column_leaf.split_recno
         struct {
             /* Inserted items for row-store. */
+            //WT_PAGE_ALLOC_AND_SWAP分配空间
             WT_INSERT_HEAD **insert;
 
             /* Updated items for row-stores. */
             WT_UPDATE **update;
         } row_leaf;
 #undef mod_row_insert
+//WT_PAGE_ALLOC_AND_SWAP分配空间
 #define mod_row_insert u2.row_leaf.insert
 #undef mod_row_update
 #define mod_row_update u2.row_leaf.update
@@ -494,16 +496,25 @@ struct __wt_page_modify {
  *	binary search in this array, then an offset calculation to find the
  *	cell.
  */
-WT_PACKED_STRUCT_BEGIN(__wt_col_rle)
+//WT_PACKED_STRUCT_BEGIN(__wt_col_rle)
+//    uint64_t recno; /* Record number of first repeat. */
+//    uint64_t rle;   /* Repeat count. */
+//    uint32_t indx;  /* Slot of entry in col_var. */
+//WT_PACKED_STRUCT_END
+
+struct __wt_col_rle {
     uint64_t recno; /* Record number of first repeat. */
     uint64_t rle;   /* Repeat count. */
     uint32_t indx;  /* Slot of entry in col_var. */
-WT_PACKED_STRUCT_END
+};
+
 
 /*
  * WT_PAGE_INDEX --
  *	The page index held by each internal page.
- */
+ */ 
+//https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
+//__wt_page_alloc分配空间，通过WT_INTL_INDEX_GET(session, page, pindex);获取page对应的__wt_page_index
 struct __wt_page_index {
     uint32_t entries;
     uint32_t deleted_entries;
@@ -569,7 +580,7 @@ struct __wt_col_fix_tw {
 /*
  * WT_PAGE --
  *	The WT_PAGE structure describes the in-memory page information.
- */
+ */ //__wt_page_alloc分片空间和赋值
 struct __wt_page {
     /* Per page-type information. */
     union {
@@ -600,6 +611,7 @@ struct __wt_page {
             WT_REF *parent_ref; /* Parent reference */
             uint64_t split_gen; /* Generation of last split */
 
+            //index ref数组
             WT_PAGE_INDEX *volatile __index; /* Collated children */
         } intl;
 
@@ -639,8 +651,10 @@ struct __wt_page {
     while (0)
 
         /* Row-store leaf page. */
+        //指向该page存储的真实数据，见__wt_page_alloc
         WT_ROW *row; /* Key/value pairs */
 #undef pg_row
+//指向该page存储的真实数据，见__wt_page_alloc
 #define pg_row u.row
 
         /* Fixed-length column-store leaf page. */
@@ -715,7 +729,8 @@ struct __wt_page {
     const WT_PAGE_HEADER *dsk;
 
     /* If/when the page is modified, we need lots more information. */
-    WT_PAGE_MODIFY *modify;
+    //__wt_page.modify 赋值见__wt_page_modify_init
+    WT_PAGE_MODIFY *modify;//__wt_page.modify
 
     /*
      * !!!
@@ -925,7 +940,8 @@ struct __wt_ref_hist {
 
  An internal Btree page will have an array of WT_REF structures. A row-store leaf page will have an array of WT_ROW 
  structures representing the KV pairs stored on the page.
- */
+ BTREE图形化参考https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
+ */ //btree对应root page,赋值参考__btree_tree_open_empty
 struct __wt_ref {
     WT_PAGE *page; /* Page */
 
@@ -952,10 +968,13 @@ struct __wt_ref {
     uint8_t flags;
 
 #define WT_REF_DISK 0       /* Page is on disk */
+//__btree_tree_open_empty创建root page的时候初始化为该值
 #define WT_REF_DELETED 1    /* Page is on disk, but deleted */
 #define WT_REF_LOCKED 2     /* Page locked for exclusive access */
+//新创建的leaf page就会设置为该状态
 #define WT_REF_MEM 3        /* Page is in cache and valid */
 #define WT_REF_SPLIT 4      /* Parent page split (WT_REF dead) */
+    //WT_REF_SET_STATE WT_REF_CAS_STATE赋值
     volatile uint8_t state; /* Page state */
 
     /*
@@ -1268,7 +1287,9 @@ struct __wt_ikey {
  * page is updated, the WT_UPDATE array is allocated, with one slot for every existing element in
  * the page. A slot points to a WT_UPDATE structure; if more than one update is done for an entry,
  * WT_UPDATE structures are formed into a forward-linked list.
- */
+ */ //分配__wt_upd_alloc空间
+//分配__wt_upd_alloc空间 //KV中的key对应WT_INSERT，value对应WT_UPDATE(WT_INSERT.upd)
+//__wt_insert.upd为该类型
 struct __wt_update {
     /*
      * Transaction IDs are set when updates are created (before they become visible) and only change
@@ -1325,6 +1346,7 @@ struct __wt_update {
      * Zero or more bytes of value (the payload) immediately follows the WT_UPDATE structure. We use
      * a C99 flexible array member which has the semantics we want.
      */
+    //value数据在这里
     uint8_t data[]; /* start of the data */
 };
 
@@ -1350,7 +1372,7 @@ struct __wt_update {
  * The skip buffer flag is an optimization for callers of various read functions to communicate that
  * they just want to check that an update exists and not read its underlying value. This means that
  * the read functions can avoid the performance penalty of reconstructing modifies.
- */
+ */ //__wt_cursor_btree.modify_update为该类型
 struct __wt_update_value {
     WT_ITEM buf;
     WT_TIME_WINDOW tw;
@@ -1430,16 +1452,18 @@ struct __wt_update_vector {
  * into a column-store: only appends are allowed, as insert requires re-numbering subsequent
  * records. Berkeley DB did support mutable records, but it won't scale and it isn't useful enough
  * to re-implement, IMNSHO.)
- */
+ */ //__wt_row_insert_alloc  WT_INSERT头部+level空间+真实数据key
 struct __wt_insert {
-    WT_UPDATE *upd; /* value */
+    WT_UPDATE *upd; /* value */ //value在这里  __wt_insert.upd为该类型
 
     union {
         uint64_t recno; /* column-store record number */
         struct {
+            //真实key其实地址
             uint32_t offset; /* row-store key data start */
+            //key大小
             uint32_t size;   /* row-store key data size */
-        } key;
+        } key; //key记录到这里，value在upd中
     } u;
 
 #define WT_INSERT_KEY_SIZE(ins) (((WT_INSERT *)(ins))->u.key.size)
@@ -1477,7 +1501,7 @@ struct __wt_insert {
 /*
  * WT_INSERT_HEAD --
  * 	The head of a skiplist of WT_INSERT items.
- */
+ */ //WT_PAGE_ALLOC_AND_SWAP中会分配空间
 struct __wt_insert_head {
     WT_INSERT *head[WT_SKIP_MAXDEPTH]; /* first item on skiplists */
     WT_INSERT *tail[WT_SKIP_MAXDEPTH]; /* last item on skiplists */

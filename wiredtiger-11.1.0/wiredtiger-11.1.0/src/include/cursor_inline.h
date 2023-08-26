@@ -194,10 +194,13 @@ __cursor_pos_clear(WT_CURSOR_BTREE *cbt)
      */
     cbt->recno = WT_RECNO_OOB;
 
+    //新KV进来考这几个字段决定新KV在page中的位置，
     cbt->ins = NULL;
     cbt->ins_head = NULL;
     cbt->ins_stack[0] = NULL;
+    //yang add todo xxxx，这里是否需要把next_stack置为NULL  ???????????
 
+    //清理所有得POSTION标记
     F_CLR(cbt, WT_CBT_POSITION_MASK);
 }
 

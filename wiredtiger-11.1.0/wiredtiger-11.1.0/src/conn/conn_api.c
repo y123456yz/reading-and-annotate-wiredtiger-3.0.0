@@ -2230,6 +2230,20 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 }
 
 /*
+const char*
+__wt_get_session_name(WT_SESSION_IMPL *session)
+{
+    if (session->name)
+        return session->name;
+
+    if (!F_ISSET(session, WT_SESSION_INTERNAL)) {
+        return "user-open-session";
+    }
+
+    return "unknown";
+}*/
+
+/*
  * __wt_verbose_dump_sessions --
  *     Print out debugging information about sessions.
  */

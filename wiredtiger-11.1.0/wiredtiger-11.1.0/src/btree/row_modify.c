@@ -40,6 +40,9 @@ err:
  * __wt_row_modify --
  *     Row-store insert, update and delete.
  */
+//__search_insert_append: 如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
+//__wt_search_insert: leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
+//__wt_row_modify: 真正把KV添加到跳跃表中
 int
 __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, WT_UPDATE *upd_arg,
   u_int modify_type, bool exclusive
@@ -191,17 +194,21 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
         ins_head = *ins_headp;
 
         /* Choose a skiplist depth for this insert. */
+        //跳跃表level随机生成
         skipdepth = __wt_skip_choose_depth(session);
 
         /*
          * Allocate a WT_INSERT/WT_UPDATE pair and transaction ID, and update the cursor to
          * reference it (the WT_INSERT_HEAD might be allocated, the WT_INSERT was allocated).
          */
+        //给该key分配对应WT_INSERT空间
+        //KV中的key对应WT_INSERT，value对应WT_UPDATE    
         WT_ERR(__wt_row_insert_alloc(session, key, skipdepth, &ins, &ins_size));
         cbt->ins_head = ins_head;
         cbt->ins = ins;
 
-        if (upd_arg == NULL) {
+        if (upd_arg == NULL) {//value空间分配, 
+            //__wt_upd_alloc分配WT_UPDATE空间
             WT_ERR(__wt_upd_alloc(session, value, modify_type, &upd, &upd_size));
             WT_ERR(__wt_txn_modify(session, upd));
             added_to_txn = true;
@@ -223,6 +230,7 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
         }
 
         ins->upd = upd;
+        //整个KV消耗的总内存
         ins_size += upd_size;
 
         /*
@@ -323,6 +331,7 @@ __wt_row_insert_alloc(WT_SESSION_IMPL *session, const WT_ITEM *key, u_int skipde
      * Allocate the WT_INSERT structure, next pointers for the skip list, and room for the key. Then
      * copy the key into place.
      */
+    //WT_INSERT头部+level空间+真实数据key
     ins_size = sizeof(WT_INSERT) + skipdepth * sizeof(WT_INSERT *) + key->size;
     WT_RET(__wt_calloc(session, 1, ins_size, &ins));
 

@@ -757,6 +757,7 @@ struct __wt_cursor {
 	WT_ITEM lower_bound, upper_bound;
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//Ä¬ÈÏappendÎªfalse
 #define	WT_CURSTD_APPEND		0x000000001ull
 #define	WT_CURSTD_BULK			0x000000002ull
 #define	WT_CURSTD_CACHEABLE		0x000000004ull

@@ -233,8 +233,11 @@ typedef struct __wt_import_list WT_IMPORT_LIST;
 struct __wt_index;
 typedef struct __wt_index WT_INDEX;
 struct __wt_insert;
+//__wt_row_insert_alloc  //WT_INSERT头部+level空间+真实数据key
+//KV中的key对应WT_INSERT，value对应WT_UPDATE
 typedef struct __wt_insert WT_INSERT;
 struct __wt_insert_head;
+//WT_PAGE_ALLOC_AND_SWAP中会分配空间
 typedef struct __wt_insert_head WT_INSERT_HEAD;
 struct __wt_join_stats;
 typedef struct __wt_join_stats WT_JOIN_STATS;
@@ -298,14 +301,18 @@ typedef struct __wt_ovfl_reuse WT_OVFL_REUSE;
 struct __wt_ovfl_track;
 typedef struct __wt_ovfl_track WT_OVFL_TRACK;
 struct __wt_page;
+//__wt_page_alloc
 typedef struct __wt_page WT_PAGE;
 struct __wt_page_deleted;
 typedef struct __wt_page_deleted WT_PAGE_DELETED;
 struct __wt_page_header;
 typedef struct __wt_page_header WT_PAGE_HEADER;
 struct __wt_page_index;
+//https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
+//__wt_page_alloc分配空间，通过WT_INTL_INDEX_GET(session, page, pindex);获取page对应的__wt_page_index
 typedef struct __wt_page_index WT_PAGE_INDEX;
 struct __wt_page_modify;
+//__wt_page.modify 赋值见__wt_page_modify_init
 typedef struct __wt_page_modify WT_PAGE_MODIFY;
 struct __wt_process;
 typedef struct __wt_process WT_PROCESS;
@@ -318,7 +325,7 @@ typedef struct __wt_rec_kv WT_REC_KV;
 struct __wt_reconcile;
 typedef struct __wt_reconcile WT_RECONCILE;
 struct __wt_ref;
-
+//btree对应root page,赋值参考__btree_tree_open_empty
 typedef struct __wt_ref WT_REF;
 struct __wt_ref_hist;
 typedef struct __wt_ref_hist WT_REF_HIST;
@@ -376,8 +383,11 @@ typedef struct __wt_txn_printlog_args WT_TXN_PRINTLOG_ARGS;
 struct __wt_txn_shared;
 typedef struct __wt_txn_shared WT_TXN_SHARED;
 struct __wt_update;
+//分配__wt_upd_alloc空间 //KV中的key对应WT_INSERT，value对应WT_UPDATE
+//__wt_insert.upd为该类型
 typedef struct __wt_update WT_UPDATE;
 struct __wt_update_value;
+//__wt_cursor_btree.modify_update为该类型
 typedef struct __wt_update_value WT_UPDATE_VALUE;
 struct __wt_update_vector;
 typedef struct __wt_update_vector WT_UPDATE_VECTOR;

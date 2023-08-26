@@ -11,7 +11,13 @@
 /*
  * __search_insert_append --
  *     Fast append search of a row-store insert list, creating a skiplist stack as we go.
- */
+ */ 
+//__search_insert_append: 如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
+//__wt_search_insert: leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
+//__wt_row_modify: 真正把KV添加到跳跃表中
+
+
+////如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
 static inline int
 __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_INSERT_HEAD *ins_head,
   WT_ITEM *srch_key, bool *donep)
@@ -26,9 +32,11 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_INSERT
 
     btree = S2BT(session);
     collator = btree->collator;
-
-    if ((ins = WT_SKIP_LAST(ins_head)) == NULL)
+    
+    //ins为该page下跳跃表最后一个节点为NULL，说明该page跳跃表中还没有KV，第一个写入该跳跃表这里会直接返回
+    if ((ins = WT_SKIP_LAST(ins_head)) == NULL) {
         return (0);
+    }
     /*
      * Since the head of the skip list doesn't get mutated within this function, the compiler may
      * move this assignment above within the loop below if it needs to (and may read a different
@@ -41,7 +49,7 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_INSERT
     key.size = WT_INSERT_KEY_SIZE(ins);
 
     WT_RET(__wt_compare(session, collator, srch_key, &key, &cmp));
-    if (cmp >= 0) {
+    if (cmp >= 0) {//如果srch_key比调表中最大的key大，则记录最末尾KV的位置
         /*
          * !!!
          * We may race with another appending thread.
@@ -79,7 +87,10 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_INSERT
 /*
  * __wt_search_insert --
  *     Search a row-store insert list, creating a skiplist stack as we go.
- */
+ */ 
+//__search_insert_append: 如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
+//__wt_search_insert: leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
+//__wt_row_modify: 真正把KV添加到跳跃表中
 int
 __wt_search_insert(
   WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_INSERT_HEAD *ins_head, WT_ITEM *srch_key)
@@ -214,7 +225,7 @@ __check_leaf_key_range(
 /*
  * __wt_row_search --
  *     Search a row-store tree for a specific key.
- */
+ */ //查找srch_key在btree中是否存在，确定该srch_key应该在跳跃表那个位置
 int
 __wt_row_search(WT_CURSOR_BTREE *cbt, WT_ITEM *srch_key, bool insert, WT_REF *leaf, bool leaf_safe,
   bool *leaf_foundp)
@@ -263,6 +274,7 @@ __wt_row_search(WT_CURSOR_BTREE *cbt, WT_ITEM *srch_key, bool insert, WT_REF *le
      * Track if the descent is to the right-side of the tree, used to set the cursor's append
      * history.
      */
+    //如果一个cursor多次insert，第二次insert开始就会append_check=true
     append_check = insert && cbt->append_tree;
     descend_right = true;
 
@@ -273,7 +285,7 @@ __wt_row_search(WT_CURSOR_BTREE *cbt, WT_ITEM *srch_key, bool insert, WT_REF *le
      * (for example, when re-instantiating a page in memory, in that case we know the target must be
      * on the current page).
      */
-    if (leaf != NULL) {
+    if (leaf != NULL) {//如果是从指定得leaf page查找
         if (!leaf_safe) {
             WT_RET(__check_leaf_key_range(session, srch_key, leaf, cbt));
             *leaf_foundp = cbt->compare == 0;
@@ -286,7 +298,7 @@ __wt_row_search(WT_CURSOR_BTREE *cbt, WT_ITEM *srch_key, bool insert, WT_REF *le
     }
 
     if (0) {
-restart:
+restart://表示重新从root page开始查找
         /*
          * Discard the currently held page and restart the search from the root.
          */
@@ -295,13 +307,18 @@ restart:
     }
 
     /* Search the internal pages of the tree. */
+    //从根page开始查找
     current = &btree->root;
+    //这里从2开始，原因是需要加上leaf page那一层
     for (depth = 2, pindex = NULL;; ++depth) {
         parent_pindex = pindex;
         page = current->page;
-        if (page->type != WT_PAGE_ROW_INT)
+        if (page->type != WT_PAGE_ROW_INT)//找到了该srch_key对应的leaf page，直接break跳出循环
             break;
 
+        //internal page才会走下面的流程
+
+        //获取该internal page下面的index ref数组
         WT_INTL_INDEX_GET(session, page, pindex);
 
         /*
@@ -316,16 +333,23 @@ restart:
          * skip during the comparison). For these reasons, special-case the 0th key, and never pass
          * it to a collator.
          */
+       // printf("yang test ...................................append_check:%d\r\n", append_check);
         if (append_check) {
             descent = pindex->index[pindex->entries - 1];
-
+            //该internale page下面只有1个leaf page,那么我们数据肯定需要到这个leaf page
             if (pindex->entries == 1)
                 goto append;
+
+            //如果该internale page下面不止一个leaf page，则取该internale page下面最右边的leaf page
+           
+            //拷贝ref->ref_ikey到item
             __wt_ref_key(page, descent, &item->data, &item->size);
             WT_ERR(__wt_compare(session, collator, srch_key, item, &cmp));
+             //目的是判断该srch_key是否是该btree中最大的key, 如果是最大的key,则直接追加到该leaf page即可
             if (cmp >= 0)
                 goto append;
 
+            //说明这个srch_key不比btree中的最大key大，则需要通过后面的二分查找从internal page中找到该srch_key应该属于那个leaf page
             /* A failed append check turns off append checks. */
             append_check = false;
         }
@@ -340,6 +364,7 @@ restart:
          */
         base = 1;
         limit = pindex->entries - 1;
+        //小key比较，二分快速查找
         if (collator == NULL && srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
             for (; limit != 0; limit >>= 1) {
                 indx = base + (limit >> 1);
@@ -353,7 +378,7 @@ restart:
                 } else if (cmp == 0)
                     goto descend;
             }
-        else if (collator == NULL) {
+        else if (collator == NULL) {//大key比较
             /*
              * Reset the skipped prefix counts; we'd normally expect the parent's skipped prefix
              * values to be larger than the child's values and so we'd only increase them as we walk
@@ -383,6 +408,7 @@ restart:
                     goto descend;
             }
         } else
+        //自定义比较器走这里
             for (; limit != 0; limit >>= 1) {
                 indx = base + (limit >> 1);
                 descent = pindex->index[indx];
@@ -406,9 +432,11 @@ restart:
         /*
          * If we end up somewhere other than the last slot, it's not a right-side descent.
          */
+        //说明srch_key不在BTREE中所有leaf page的最右边
         if (pindex->entries != base)
             descend_right = false;
 
+       // printf("yang test ........entries:%u.....base:%u\r\n", pindex->entries, base);
         /*
          * If on the last slot (the key is larger than any key on the page), check for an internal
          * page split race.
@@ -416,6 +444,7 @@ restart:
         if (pindex->entries == base) {
 append:
             if (__wt_split_descent_race(session, current, parent_pindex))
+                //重新从根page查找
                 goto restart;
         }
 
@@ -435,21 +464,26 @@ descend:
         read_flags = WT_READ_RESTART_OK;
         if (F_ISSET(cbt, WT_CBT_READ_ONCE))
             FLD_SET(read_flags, WT_READ_WONT_NEED);
+        //如果BTREE中没数据，这时候写入一条数据，是第一次写入，这里面会创建leaf page存入&descent->page
         if ((ret = __wt_page_swap(session, current, descent, read_flags)) == 0) {
+            //把该internal page赋值给current，然后继续下一层internal page的遍历
             current = descent;
             continue;
         }
-        if (ret == WT_RESTART)
-            goto restart;
+    
+        if (ret == WT_RESTART) //重新从根page查找
+            goto restart; //?????????????????? 有没有可能会形成死循环，反复查找
         return (ret);
     }
 
     /* Track how deep the tree gets. */
+    //获取到leaf page的层数记录下来
     if (depth > btree->maximum_depth)
         btree->maximum_depth = depth;
 
 leaf_only:
     page = current->page;
+    //记录srch_key所属的leaf page
     cbt->ref = current;
 
     /*
@@ -472,8 +506,10 @@ leaf_only:
      * tree, we want to mark them all as appending, even if this test doesn't work.
      */
     if (insert && descend_right) {
+    //descend_right表示查找到的leaf page不在btree leaf page的最右边，在中间或者左边，就没必要append了
         cbt->append_tree = 1;
 
+        //获取最右边的leaf page
         if (page->entries == 0) {
             cbt->slot = WT_ROW_SLOT(page, page->pg_row);
 
@@ -484,6 +520,7 @@ leaf_only:
             ins_head = WT_ROW_INSERT_SLOT(page, cbt->slot);
         }
 
+        ///如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
         WT_ERR(__search_insert_append(session, cbt, ins_head, srch_key, &done));
         if (done)
             return (0);
@@ -494,6 +531,7 @@ leaf_only:
      * collation order, in long and short versions, and keys with an application-specified collation
      * order), because doing the tests and error handling inside the loop costs about 5%.
      */
+    //也就是二分查找定位到的pg_row数组位置
     base = 0;
     limit = page->entries;
     if (collator == NULL && srch_key->size <= WT_COMPARE_SHORT_MAXLEN)
@@ -556,6 +594,7 @@ leaf_only:
      */
     if (0) {
 leaf_match:
+        //btree中存在一个完全一样的key
         cbt->compare = 0;
         cbt->slot = WT_ROW_SLOT(page, rip);
         return (0);
@@ -576,6 +615,8 @@ leaf_match:
      * If inserting a key smaller than any key found in the WT_ROW array, use the extra slot of the
      * insert array, otherwise the insert array maps one-to-one to the WT_ROW array.
      */
+   // printf("yang test .......insert:%d......descend_right:%d.....page->entries:%u,....cbt->slot:%u, base:%u\r\n", 
+   //        insert, descend_right, page->entries, cbt->slot, base);
     if (base == 0) {
         cbt->compare = 1;
         cbt->slot = 0;
@@ -590,6 +631,7 @@ leaf_match:
     }
 
     /* If there's no insert list, we're done. */
+    //该page上跳跃表还没有KV数据直接返回
     if (WT_SKIP_FIRST(ins_head) == NULL)
         return (0);
 
@@ -598,11 +640,13 @@ leaf_match:
      * inserting at a single point, then search the insert list. If we find an exact match, copy the
      * key into the temporary buffer, our callers expect to find it there.
      */
-    if (insert) {
+    if (insert) {//如果srch_key比该page对应跳跃表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
         WT_ERR(__search_insert_append(session, cbt, ins_head, srch_key, &done));
         if (done)
             return (0);
     }
+
+    //leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
     WT_ERR(__wt_search_insert(session, cbt, ins_head, srch_key));
     if (cbt->compare == 0) {
         cbt->tmp->data = WT_INSERT_KEY(cbt->ins);

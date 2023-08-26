@@ -6,4 +6,5 @@
 # or create a WiredTiger.config file to override them.
 
 statistics=(all)
+verbose=(evict=5,evictserver=5,split=5)
 version=(major=11,minor=1)

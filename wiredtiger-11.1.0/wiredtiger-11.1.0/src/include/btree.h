@@ -105,6 +105,7 @@ struct __wt_btree {
     const char *value_format; /* Value format */
     uint8_t bitcnt;           /* Fixed-length field size in bits */
 
+    //如果没有显示指定比较器，则使用默认比较器，参考__wt_compare
     WT_COLLATOR *collator; /* Row-store comparator */
     int collator_owned;    /* The collator needs to be freed */
 
@@ -153,11 +154,14 @@ struct __wt_btree {
 
     WT_RWLOCK ovfl_lock; /* Overflow lock */
 
+    //btree层数
     int maximum_depth;        /* Maximum tree depth during search */
     u_int rec_multiblock_max; /* Maximum blocks written for a page */
 
     uint64_t last_recno; /* Column-store last record number */
 
+    //BTREE图形化参考https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
+    //btree对应root page,赋值参考__btree_tree_open_empty
     WT_REF root;      /* Root page reference */
     bool modified;    /* If the tree ever modified */
     uint8_t original; /* Newly created: bulk-load possible

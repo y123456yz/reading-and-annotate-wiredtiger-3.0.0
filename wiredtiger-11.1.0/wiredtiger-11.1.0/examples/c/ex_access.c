@@ -32,6 +32,20 @@
 
 static const char *home;
 
+static int
+cursor_search(WT_CURSOR *cursor)
+{
+    WT_ITEM value_item;
+    
+    cursor->set_key(cursor, 11);
+
+    error_check(cursor->search(cursor));
+    error_check(cursor->get_value(cursor, &value_item));
+    printf("Got cursor_search: %d : %s\n", 11, (char*)value_item.data);
+
+    return (0);
+}
+
 static void
 access_example(void)
 {
@@ -39,42 +53,75 @@ access_example(void)
     WT_CONNECTION *conn;
     WT_CURSOR *cursor;
     WT_SESSION *session;
-    const char *key, *value;
-    int ret;
+   // const char *key, *value;
+    //int ret;
+    //int key_item;
+    WT_ITEM value_item;
+    int i =0;
 
-    /* Open a connection to the database, creating it if necessary. */
-    error_check(wiredtiger_open(home, NULL, "create,statistics=(all)", &conn));
+    /* Open a connection to the database, creating it if necessary. */ 
+    error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[split=5,evictserver=5,evict=5]", &conn));
 
     /* Open a session handle for the database. */
     error_check(conn->open_session(conn, NULL, NULL, &session));
     /*! [access example connection] */
+    
 
     /*! [access example table create] */
-    error_check(session->create(session, "table:access", "key_format=S,value_format=S"));
+    error_check(session->create(session, "table:access", "key_format=q,value_format=u"));
     /*! [access example table create] */
 
     /*! [access example cursor open] */
     error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
     /*! [access example cursor open] */
 
-    /*! [access example cursor insert] */
-    cursor->set_key(cursor, "key1"); /* Insert a record. */
-    cursor->set_value(cursor, "value1");
+    
+    value_item.data =
+      "abcdefghijklmnopqrstuvwxyz"
+      "abcdefghijklmnopqrstuvwxyz"
+      "abcdefghijklmnopqrstuvwxyz\0";
+    value_item.size = strlen(value_item.data);
+
+    for (i=0;i<50000;i++) {
+        cursor->set_key(cursor, i); /* Insert a record. */
+        cursor->set_value(cursor, &value_item);
+        error_check(cursor->insert(cursor));
+    }
+
+    printf("yang test 111111111111111111111111111111111111111111111111\r\n");
+     /*! [access example cursor insert] */
+    cursor->set_key(cursor, 1111); /* Insert a record. */
+    cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));
-    cursor->set_key(cursor, "key2"); /* Insert a record. */
-    cursor->set_value(cursor, "value2");
+    printf("yang test 2222222222222222222222222222222222222222222222222\r\n");
+    cursor->set_key(cursor, 11); /* Insert a record. */
+    cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));
+    printf("yang test 333333333333333333333333333333333333333333333333\r\n");
+
+    cursor->set_key(cursor, 2222); /* Insert a record. */
+    cursor->set_value(cursor, &value_item);
+    error_check(cursor->insert(cursor));
+    printf("yang test 444444444444444444444444444444444444444444444444\r\n");
+
+        cursor->set_key(cursor, 11); /* Insert a record. */
+    cursor->set_value(cursor, &value_item);
+    error_check(cursor->insert(cursor));
+    printf("yang test 555555555555555555555555555555555555555555555555555555555555\r\n");
     /*! [access example cursor insert] */
+    error_check(cursor_search(cursor));
+    printf("yang test 66666666666666666666666666666666666666666\r\n");
 
     /*! [access example cursor list] */
     error_check(cursor->reset(cursor)); /* Restart the scan. */
-    while ((ret = cursor->next(cursor)) == 0) {
-        error_check(cursor->get_key(cursor, &key));
-        error_check(cursor->get_value(cursor, &value));
+    
+   // while ((ret = cursor->next(cursor)) == 0) {
+       // error_check(cursor->get_key(cursor, &key_item));
+       // error_check(cursor->get_value(cursor, &value_item));
 
-        printf("Got record: %s : %s\n", key, value);
-    }
-    scan_end_check(ret == WT_NOTFOUND); /* Check for end-of-table. */
+       // printf("Got record: %d : %s\n", key_item, (char*)value_item.data);
+   // }
+    //scan_end_check(ret == WT_NOTFOUND); /* Check for end-of-table. */
     /*! [access example cursor list] */
 
     /*! [access example close] */

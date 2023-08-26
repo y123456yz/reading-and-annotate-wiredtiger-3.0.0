@@ -1521,7 +1521,7 @@ __wt_ref_addr_copy(WT_SESSION_IMPL *session, WT_REF *ref, WT_ADDR_COPY *copy)
     WT_ORDERED_READ(addr, (WT_ADDR *)ref->addr);
 
     /* If NULL, there is no information. */
-    if (addr == NULL)
+    if (addr == NULL)//ref对应page为NULL则直接返回
         return (false);
 
     /* If off-page, the pointer references a WT_ADDR structure. */

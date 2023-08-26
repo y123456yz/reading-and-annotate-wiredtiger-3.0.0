@@ -489,8 +489,6 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
     if (cgname != NULL && (ret = __wt_config_subgets(session, &table->cgconf, cgname, &cval)) != 0)
         WT_ERR_MSG(session, ret == WT_NOTFOUND ? EINVAL : ret,
           "Column group '%s' not found in table '%.*s'", cgname, (int)tlen, tablename);
-
-    printf("yang test ................cgname:%s, cgconf:%s\r\n", cgname, table->cgconf.str);
     
     /* Check if the column group already exists. */
     //АэИз

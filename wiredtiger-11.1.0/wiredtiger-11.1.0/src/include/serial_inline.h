@@ -41,6 +41,7 @@ __insert_simple_func(
  * __insert_serial_func --
  *     Worker function to add a WT_INSERT entry to a skiplist.
  */
+//如果是第一个insert的KV到该page，则ins_head指向该insert, 同时ins_stack也指向该insert
 static inline int
 __insert_serial_func(WT_SESSION_IMPL *session, WT_INSERT_HEAD *ins_head, WT_INSERT ***ins_stack,
   WT_INSERT *new_ins, u_int skipdepth)
@@ -64,9 +65,11 @@ __insert_serial_func(WT_SESSION_IMPL *session, WT_INSERT_HEAD *ins_head, WT_INSE
      */
     for (i = 0; i < skipdepth; i++) {
         WT_INSERT *old_ins = *ins_stack[i];
+                                           //ins_stack指向新的insert
         if (old_ins != new_ins->next[i] || !__wt_atomic_cas_ptr(ins_stack[i], old_ins, new_ins))
             return (i == 0 ? WT_RESTART : 0);
         if (ins_head->tail[i] == NULL || ins_stack[i] == &ins_head->tail[i]->next[i])
+            //ins_head tail指向新的insert
             ins_head->tail[i] = new_ins;
     }
 
@@ -183,11 +186,12 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
         if (new_ins->next[i] == NULL)
             simple = false;
 
-    if (simple)
+    if (simple)  
         ret = __insert_simple_func(session, ins_stack, new_ins, skipdepth);
     else {
         if (!exclusive)
             WT_PAGE_LOCK(session, page);
+        //如果是第一个insert的KV到该page，则ins_head指向该insert, 同时ins_stack也指向该insert
         ret = __insert_serial_func(session, ins_head, ins_stack, new_ins, skipdepth);
         if (!exclusive)
             WT_PAGE_UNLOCK(session, page);
