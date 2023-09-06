@@ -81,6 +81,7 @@ __wt_epoch(WT_SESSION_IMPL *session, struct timespec *tsp)
      * simultaneously reading the time from seeing random time or time moving backwards (assigning
      * the time structure to the returned memory location implies multicycle writes to memory).
      */
+    //获取当前系统时间保存到tmp中
     __wt_epoch_raw(session, &tmp);
     __time_check_monotonic(session, &tmp);
     *tsp = tmp;

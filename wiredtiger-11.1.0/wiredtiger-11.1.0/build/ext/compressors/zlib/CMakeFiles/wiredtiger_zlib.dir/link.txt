@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC  -D_GNU_SOURCE -DHAVE_X86INTRIN_H -shared  -o libwiredtiger_zlib.so CMakeFiles/wiredtiger_zlib.dir/zlib_compress.c.o  /usr/lib64/libz.so 

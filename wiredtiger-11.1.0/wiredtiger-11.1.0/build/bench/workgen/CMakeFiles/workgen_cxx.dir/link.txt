@@ -1,2 +1,0 @@
-/usr/bin/ar qc libworkgen_cxx.a CMakeFiles/workgen_cxx.dir/workgen.cxx.o CMakeFiles/workgen_cxx.dir/workgen_func.c.o
-/usr/bin/ranlib libworkgen_cxx.a

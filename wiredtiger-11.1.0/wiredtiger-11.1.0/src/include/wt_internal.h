@@ -223,6 +223,7 @@ typedef struct __wt_file_handle_win WT_FILE_HANDLE_WIN;
 struct __wt_fstream;
 typedef struct __wt_fstream WT_FSTREAM;
 struct __wt_hazard;
+//__wt_hazard_set_func
 typedef struct __wt_hazard WT_HAZARD;
 struct __wt_ikey;
 typedef struct __wt_ikey WT_IKEY;
@@ -237,7 +238,7 @@ struct __wt_insert;
 //KV中的key对应WT_INSERT，value对应WT_UPDATE
 typedef struct __wt_insert WT_INSERT;
 struct __wt_insert_head;
-//WT_PAGE_ALLOC_AND_SWAP中会分配空间
+//WT_PAGE_ALLOC_AND_SWAP __wt_leaf_page_can_split分配空间
 typedef struct __wt_insert_head WT_INSERT_HEAD;
 struct __wt_join_stats;
 typedef struct __wt_join_stats WT_JOIN_STATS;
@@ -312,7 +313,7 @@ struct __wt_page_index;
 //__wt_page_alloc分配空间，通过WT_INTL_INDEX_GET(session, page, pindex);获取page对应的__wt_page_index
 typedef struct __wt_page_index WT_PAGE_INDEX;
 struct __wt_page_modify;
-//__wt_page.modify 赋值见__wt_page_modify_init
+//__wt_page.modify 赋值见__wt_page_modify_init  //例如leaf page中跳跃表中节点内容都在该modify中
 typedef struct __wt_page_modify WT_PAGE_MODIFY;
 struct __wt_process;
 typedef struct __wt_process WT_PROCESS;
@@ -508,6 +509,54 @@ typedef uint64_t wt_timestamp_t;
 #include "reconcile_inline.h"
 #include "serial_inline.h"
 #include "time_inline.h"
+
+#ifdef HAVE_DIAGNOSTIC  
+
+typedef struct __wt_dbg WT_DBG;
+struct __wt_dbg {
+    WT_CURSOR *hs_cursor;
+    WT_SESSION_IMPL *session; /* Enclosing session */
+
+    WT_ITEM *key;
+
+    WT_ITEM *hs_key; /* History store lookups */
+    WT_ITEM *hs_value;
+
+    /*
+     * When using the standard event handlers, the debugging output has to do its own message
+     * handling because its output isn't line-oriented.
+     */
+    FILE *fp;     /* Optional file handle */
+    WT_ITEM *msg; /* Buffered message */
+
+    int (*f)(WT_DBG *, const char *, ...) /* Function to write */
+      WT_GCC_FUNC_DECL_ATTRIBUTE((format(printf, 2, 3)));
+
+    const char *key_format;
+    const char *value_format;
+
+    WT_ITEM *t1, *t2; /* Temporary space */
+};
+
+ int __debug_item_key(WT_DBG *ds, const char *tag, const void *data_arg, size_t size);
+ int __debug_col_skip(WT_DBG *, WT_INSERT_HEAD *, const char *, bool, WT_CURSOR *);
+ int __debug_config(WT_SESSION_IMPL *, WT_DBG *, const char *);
+ int __debug_modify(WT_DBG *, const uint8_t *);
+ int __debug_page(WT_DBG *, WT_REF *, uint32_t);
+ int __debug_page_col_fix(WT_DBG *, WT_REF *);
+ int __debug_page_col_int(WT_DBG *, WT_PAGE *, uint32_t);
+ int __debug_page_col_var(WT_DBG *, WT_REF *);
+ int __debug_page_metadata(WT_DBG *, WT_REF *);
+ int __debug_page_row_int(WT_DBG *, WT_PAGE *, uint32_t);
+ int __debug_page_row_leaf(WT_DBG *, WT_PAGE *);
+ int __debug_ref(WT_DBG *, WT_REF *);
+ int __debug_row_skip(WT_DBG *, WT_INSERT_HEAD *);
+ int __debug_tree(WT_SESSION_IMPL *, WT_REF *, const char *, uint32_t);
+ int __debug_update(WT_DBG *, WT_UPDATE *, bool);
+ int __debug_wrapup(WT_DBG *);
+
+#endif
+
 
 #if defined(__cplusplus)
 }

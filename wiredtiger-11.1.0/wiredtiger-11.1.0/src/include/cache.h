@@ -96,6 +96,7 @@ struct __wt_cache {
     uint64_t pages_dirty_intl;
     uint64_t pages_dirty_leaf;
     uint64_t pages_evicted;
+    //__wt_page_alloc
     uint64_t pages_inmem;
 
     volatile uint64_t eviction_progress; /* Eviction progress count */

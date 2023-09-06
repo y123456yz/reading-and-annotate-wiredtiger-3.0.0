@@ -82,7 +82,7 @@ __wt_cell_type_string(uint8_t type)
 /*
  * __wt_key_string --
  *     Load a buffer with a printable, nul-terminated representation of a key.
- */
+ */ //key按照定义编码转换为字符串  //配合__wt_debug_tree_all打印一起分析
 const char *
 __wt_key_string(
   WT_SESSION_IMPL *session, const void *data_arg, size_t size, const char *key_format, WT_ITEM *buf)
@@ -90,6 +90,7 @@ __wt_key_string(
     WT_ITEM tmp;
 
 #ifdef HAVE_DIAGNOSTIC
+   // printf("yang test ..............__wt_key_string.................\r\n");
     if (session->dump_raw)
         return (__wt_buf_set_printable(session, data_arg, size, false, buf));
 #endif
@@ -107,6 +108,7 @@ __wt_key_string(
             size = sizeof(WT_ERR_STRING);
         }
     }
+    //printf("yang test ..........2222222....__wt_key_string.................\r\n");
     return (__wt_buf_set_printable_format(session, data_arg, size, key_format, false, buf));
 }
 
@@ -115,7 +117,7 @@ __wt_key_string(
  *     Return a string representing the page type.
  */
 const char *
-__wt_page_type_string(u_int type) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+__wt_page_type_string(u_int type) // WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     switch (type) {
     case WT_PAGE_INVALID:

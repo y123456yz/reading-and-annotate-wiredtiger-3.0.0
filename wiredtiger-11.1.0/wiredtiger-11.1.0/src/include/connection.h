@@ -591,9 +591,11 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
     /* If non-zero, all buffers used for I/O will be aligned to this. */
     size_t buffer_alignment;
 
+    //赋值参考__wt_stash_add
     uint64_t stashed_bytes; /* Atomic: stashed memory statistics */
     uint64_t stashed_objects;
     /* Generations manager */
+    //注意conn gen和session gen的区别
     volatile uint64_t generations[WT_GENERATIONS];
 
     wt_off_t data_extend_len; /* file_extend data length */
@@ -664,6 +666,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 #define WT_TIMING_STRESS_SPLIT_7 0x100000u
 #define WT_TIMING_STRESS_TIERED_FLUSH_FINISH 0x200000u
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
+    //__wt_timing_stress_config配置，如果配置了则不会进行随机sleep
     uint32_t timing_stress_flags;
 
 //__wt_os_stdio

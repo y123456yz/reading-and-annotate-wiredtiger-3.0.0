@@ -1,9 +1,0 @@
-# Warning: This config includes unwritten, implicit configuration defaults.
-# Changes to those values may cause differences in behavior.
-conn_config="cache_size=500MB"
-table_config="lsm=(chunk_size=10MB),type=lsm"
-icount=500000
-report_interval=5
-populate_threads=1
-threads=((count=8,reads=1))
-run_time=20

@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC  -D_GNU_SOURCE -DHAVE_X86INTRIN_H -shared  -o libwiredtiger_csv_extractor.so CMakeFiles/wiredtiger_csv_extractor.dir/csv_extractor.c.o 

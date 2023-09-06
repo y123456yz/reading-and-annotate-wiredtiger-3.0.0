@@ -1,14 +1,17 @@
 *.o
 **/tags
 *.swp
+**/build
 build/
 dist/clang-format
 /docs/
 test-compatibility-run/
 
+test
 # Python artifacts
 **/*.pyc
-
+*.[oa]
+build
 # CLion related files & directories
 .idea
 cmake-build-release

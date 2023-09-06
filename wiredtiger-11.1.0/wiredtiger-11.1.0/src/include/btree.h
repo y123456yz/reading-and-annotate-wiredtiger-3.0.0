@@ -111,13 +111,30 @@ struct __wt_btree {
 
     uint32_t id; /* File ID, for logging */
 
+
+/* https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
+internal_page_max - the maximum size we will let an on-disk internal page grow to when doing reconciliation.
+internal_key_max - the maximum size a key can be before we store it as an overflow item on an on-disk and in-memory internal page.
+leaf_key_max - the maximum size a key can be before we store it as an overflow item on an on disk and in memory leaf page.
+leaf_page_max - the maximum size for an on-disk leaf page.
+leaf_value_max - the maximum size a value can be before we store it as an overflow item on an on disk and in memory leaf page.
+memory_page_max - how large an in-memory page can grow before we evict it. It may be evicted before it grows. this large if the space it's using in cache is needed.
+split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to when doing reconciliation, if all of the content from the in-memory page doesn't fit into a single page.
+*/
+    //赋值参考__btree_page_sizes  
+    //allocation_size配置，默认allocation_size配置，默认值4K
     uint32_t allocsize;        /* Allocation size */
+    //internal_page_max配置，默认4K
     uint32_t maxintlpage;      /* Internal page max size */
+    //leaf_page_max配置 默认32K
     uint32_t maxleafpage;      /* Leaf page max size */
     uint32_t maxleafkey;       /* Leaf page max key size */
     uint32_t maxleafvalue;     /* Leaf page max value size */
+    //memory_page_max配置默认5M,取MIN(5M, (conn->cache->eviction_dirty_trigger * cache_size) / 1000) example测试也就是默认2M
     uint64_t maxmempage;       /* In-memory page max size */
+    //4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
     uint32_t maxmempage_image; /* In-memory page image max size */
+    //80% * maxmempage
     uint64_t splitmempage;     /* In-memory split trigger size */
 
     void *huffman_value; /* Value huffman encoding */
@@ -163,6 +180,7 @@ struct __wt_btree {
     //BTREE图形化参考https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
     //btree对应root page,赋值参考__btree_tree_open_empty
     WT_REF root;      /* Root page reference */
+    //__wt_tree_modify_set //标记tree被修改了
     bool modified;    /* If the tree ever modified */
     uint8_t original; /* Newly created: bulk-load possible
                          (want a bool but needs atomic cas) */
@@ -248,6 +266,7 @@ struct __wt_btree {
     u_int evict_walk_skips;       /* Number of walks skipped */
     int32_t evict_disabled;       /* Eviction disabled count */
     bool evict_disabled_open;     /* Eviction disabled on open */
+    //正在进行evict的线程数 __wt_page_release_evict
     volatile uint32_t evict_busy; /* Count of threads in eviction */
     WT_EVICT_WALK_TYPE evict_start_type;
 

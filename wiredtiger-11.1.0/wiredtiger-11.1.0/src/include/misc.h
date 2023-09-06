@@ -89,6 +89,7 @@
 #define WT_ELEMENTS(a) (sizeof(a) / sizeof((a)[0]))
 
 /* 10 level skip lists, 1/4 have a link to the next element. */
+//level 0 we have all the items, at level 1 we have 1/4 and at level 2 we have 1/16th
 #define WT_SKIP_MAXDEPTH 10
 #define WT_SKIP_PROBABILITY (UINT32_MAX >> 2)
 

@@ -42,13 +42,14 @@ __evict_exclusive(WT_SESSION_IMPL *session, WT_REF *ref)
         return (0);
 
     WT_STAT_CONN_DATA_INCR(session, cache_eviction_hazard);
+    //说明该page有被其他线程使用
     return (__wt_set_return(session, EBUSY));
 }
 
 /*
  * __wt_page_release_evict --
  *     Release a reference to a page, and attempt to immediately evict it.
- */
+ */ //强制evict ref对应的page
 int
 __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {
@@ -88,6 +89,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
         WT_RET(__wt_curhs_cache(session));
     }
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
+    printf("yang test ................................__wt_page_release_evict.............................................\r\n");
     ret = __wt_evict(session, ref, previous_state, evict_flags);
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
 
@@ -97,6 +99,8 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 /*
  * __wt_evict --
  *     Evict a page.
+ //当一个page消耗内存较高，用户线程主动强制eviect:  __wt_page_in_func->__wt_page_release_evict->__wt_evict
+ //
  */
 int
 __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32_t flags)
@@ -113,8 +117,10 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
     force_evict_hs = false;
     local_gen = false;
 
+    
     __wt_verbose(
-      session, WT_VERB_EVICT, "page %p (%s)", (void *)page, __wt_page_type_string(page->type));
+        session, WT_VERB_EVICT, "xxxxxxxxxxx page %p (%s)", (void *)page, __wt_page_type_string(page->type));
+      //session, WT_VERB_EVICT, "page %p (%s)", (void *)page, __wt_page_type_string(page->type));
 
     tree_dead = F_ISSET(session->dhandle, WT_DHANDLE_DEAD);
     if (tree_dead)
@@ -126,6 +132,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
      */
     if (__wt_session_gen(session, WT_GEN_EVICT) == 0) {
         local_gen = true;
+        //把当前的全局conn gen记录到session gen中
         __wt_session_gen_enter(session, WT_GEN_EVICT);
     }
 
@@ -158,6 +165,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
          * freeing the page memory or otherwise touching the reference because eviction paths assume
          * a non-NULL reference on the queue is pointing at valid memory.
          */
+        //在evict队列中摘除该ref对应的page
         __wt_evict_list_clear_page(session, ref);
     }
 
@@ -165,22 +173,27 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
      * Review the page for conditions that would block its eviction. If the check fails (for
      * example, we find a page with active children), quit. Make this check for clean pages, too:
      * while unlikely eviction would choose an internal page with children, it's not disallowed.
-     */
+     */ //判断是否可以进行mem split，结果存入inmem_split
     WT_ERR(__evict_review(session, ref, flags, &inmem_split));
 
     /*
      * If we decide to do an in-memory split. Do it now. If an in-memory split completes, the page
      * stays in memory and the tree is left in the desired state: avoid the usual cleanup.
      */
-    if (inmem_split) {
+    if (inmem_split) {//page内存超限，通过这里进行split
         WT_ERR(__wt_split_insert(session, ref));
         goto done;
     }
 
-    /* No need to reconcile the page if it is from a dead tree or it is clean. */
-    if (!tree_dead && __wt_page_is_modified(page))
-        WT_ERR(__evict_reconcile(session, ref, flags));
+    //page内存没有超限，继续走下面的流程
 
+    printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p..\r\n", 
+        page->modify->page_state, page);
+    /* No need to reconcile the page if it is from a dead tree or it is clean. */
+    if (!tree_dead && __wt_page_is_modified(page)) {
+        WT_ERR(__evict_reconcile(session, ref, flags));
+    }
+    
     /*
      * Fail 0.1% of the time after we have done reconciliation. We should always evict the page of a
      * dead tree.
@@ -606,7 +619,7 @@ __evict_child_check(WT_SESSION_IMPL *session, WT_REF *parent)
 /*
  * __evict_review --
  *     Review the page and its subtree for conditions that would block its eviction.
- */
+ */ //判断是否可以进行split，结果存入inmem_splitp
 static int
 __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool *inmem_splitp)
 {
@@ -662,6 +675,7 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
         if (modified)
             WT_RET(__wt_txn_update_oldest(session, WT_TXN_OLDEST_STRICT));
 
+        //ref对应page是否可以evict
         if (!__wt_page_can_evict(session, ref, inmem_splitp))
             return (__wt_set_return(session, EBUSY));
 
@@ -695,6 +709,8 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
     if (F_ISSET(session, WT_SESSION_NO_RECONCILE))
         return (__wt_set_return(session, EBUSY));
 
+    printf("yang test .........page->memory_footprint:%d......................__evict_review......closing:%d.............\r\n", 
+        (int)page->memory_footprint, closing);
     return (0);
 }
 
@@ -746,7 +762,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
         LF_SET(WT_REC_IN_MEMORY | WT_REC_SCRUB);
     /* For data store leaf pages, write the history to history store except for metadata. */
     else if (!WT_IS_METADATA(btree->dhandle)) {
-        LF_SET(WT_REC_HS);
+        LF_SET(WT_REC_HS);//如果是leaf page设置该标识
 
         /*
          * Scrub and we're supposed to or toss it in sometimes if we are in debugging mode.
@@ -771,6 +787,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
     use_snapshot_for_app_thread = !F_ISSET(session, WT_SESSION_INTERNAL) &&
       !WT_IS_METADATA(session->dhandle) && WT_SESSION_TXN_SHARED(session)->id != WT_TXN_NONE &&
       F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT);
+    //是否为"eviction-server"对应线程池中的线程在指向该函数
     is_eviction_thread = F_ISSET(session, WT_SESSION_EVICTION);
 
     /* Make sure that both conditions above are not true at the same time. */
@@ -829,3 +846,4 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
 
     return (0);
 }
+

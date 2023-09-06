@@ -1235,8 +1235,7 @@ static const char *const __stats_connection_desc[] = {
   "block-manager: bytes written via system call API",
   "block-manager: mapped blocks read",
   "block-manager: mapped bytes read",
-  "block-manager: number of times the file was remapped because it changed size via fallocate or "
-  "truncate",
+  "block-manager: number of times the file was remapped because it changed size via fallocate or truncate",
   "block-manager: number of times the region was remapped via write",
   "cache: application threads page read from disk to cache count",
   "cache: application threads page read from disk to cache time (usecs)",
@@ -1921,6 +1920,7 @@ __wt_stat_connection_clear_single(WT_CONNECTION_STATS *stats)
     stats->cache_eviction_force_dirty_time = 0;
     stats->cache_eviction_force_long_update_list = 0;
     stats->cache_eviction_force_delete = 0;
+    //__wt_evict
     stats->cache_eviction_force = 0;
     stats->cache_eviction_force_fail = 0;
     stats->cache_eviction_force_fail_time = 0;

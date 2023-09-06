@@ -19,7 +19,7 @@ WT_STAT_COMPR_RATIO_HIST_INCR_FUNC(ratio)
  */
 static int
 __blkcache_read_corrupt(WT_SESSION_IMPL *session, int error, const uint8_t *addr, size_t addr_size,
-  const char *fail_msg) WT_GCC_FUNC_ATTRIBUTE((cold))
+  const char *fail_msg) //WT_GCC_FUNC_ATTRIBUTE((cold))
 {
     WT_BM *bm;
     WT_BTREE *btree;

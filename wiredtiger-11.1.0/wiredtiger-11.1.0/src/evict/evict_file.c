@@ -89,6 +89,7 @@ __wt_evict_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
         switch (syncop) {
         case WT_SYNC_CLOSE:
             /* Evict the page. */
+            printf("yang test ................................__wt_evict_file.............................................\r\n");
             WT_ERR(__wt_evict(session, ref, ref->state, WT_EVICT_CALL_CLOSING));
             break;
         case WT_SYNC_DISCARD:

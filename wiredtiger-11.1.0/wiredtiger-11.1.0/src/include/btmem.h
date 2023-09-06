@@ -42,6 +42,7 @@
  * WT_PAGE_HEADER --
  *	Blocks have a common header, a WT_PAGE_HEADER structure followed by a
  * block-manager specific structure.
+ 参考reconcile官方文档:https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
  */
 struct __wt_page_header {
     /*
@@ -311,7 +312,9 @@ struct __wt_ovfl_track {
 /*
  * WT_PAGE_MODIFY --
  *	When a page is modified, there's additional information to maintain.
- */ //__wt_page.modify 赋值见__wt_page_modify_init
+ */ 
+//__wt_page.modify 赋值见__wt_page_modify_init
+//例如leaf page中跳跃表中节点内容都在该modify中
 struct __wt_page_modify {
     /* The first unwritten transaction ID (approximate). */
     uint64_t first_dirty_txn;
@@ -431,14 +434,15 @@ struct __wt_page_modify {
 #define mod_col_split_recno u2.column_leaf.split_recno
         struct {
             /* Inserted items for row-store. */
-            //WT_PAGE_ALLOC_AND_SWAP分配空间
+            //WT_PAGE_ALLOC_AND_SWAP __wt_leaf_page_can_split分配空间
             WT_INSERT_HEAD **insert;
 
             /* Updated items for row-stores. */
             WT_UPDATE **update;
         } row_leaf;
 #undef mod_row_insert
-//WT_PAGE_ALLOC_AND_SWAP分配空间
+//WT_PAGE_ALLOC_AND_SWAP、__split_insert分配空间   
+//WT_ROW_INSERT_SLOT获取对应的跳跃表，实际上insert是个数组，数组每个成员对应一个跳跃表，参考__wt_leaf_page_can_split
 #define mod_row_insert u2.row_leaf.insert
 #undef mod_row_update
 #define mod_row_update u2.row_leaf.update
@@ -457,6 +461,7 @@ struct __wt_page_modify {
     bool instantiated;        /* True if this is a newly instantiated page. */
     WT_UPDATE **inst_updates; /* Update list for instantiated page with unresolved truncate. */
 
+//获取page对应的page_lock锁
 #define WT_PAGE_LOCK(s, p) __wt_spin_lock((s), &(p)->modify->page_lock)
 #define WT_PAGE_TRYLOCK(s, p) __wt_spin_trylock((s), &(p)->modify->page_lock)
 #define WT_PAGE_UNLOCK(s, p) __wt_spin_unlock((s), &(p)->modify->page_lock)
@@ -477,6 +482,7 @@ struct __wt_page_modify {
 #define WT_PAGE_CLEAN 0
 #define WT_PAGE_DIRTY_FIRST 1
 #define WT_PAGE_DIRTY 2
+    //标识该page状态，是否是脏page，参考__wt_page_only_modify_set
     uint32_t page_state;
 
 #define WT_PM_REC_EMPTY 1      /* Reconciliation: no replacement */
@@ -562,6 +568,7 @@ struct __wt_col_fix_tw {
 /*
  * Macro to walk the list of references in an internal page.
  */
+//遍历获取internal page所包含的所有子ref page
 #define WT_INTL_FOREACH_BEGIN(session, page, ref)                                    \
     do {                                                                             \
         WT_PAGE_INDEX *__pindex;                                                     \
@@ -575,6 +582,7 @@ struct __wt_col_fix_tw {
 #undef pg_intl_parent_ref
 #define pg_intl_parent_ref u.intl.parent_ref
 #undef pg_intl_split_gen
+//记录该internal page分裂的次数  __split_parent中赋值
 #define pg_intl_split_gen u.intl.split_gen
 
 /*
@@ -651,6 +659,8 @@ struct __wt_page {
     while (0)
 
         /* Row-store leaf page. */
+        //An array of items that were on the page when it was loaded into memory (cache) from disk. 
+        //WT_PAGE::row::d aliased as WT_PAGE::pg_row_d
         //指向该page存储的真实数据，见__wt_page_alloc
         WT_ROW *row; /* Key/value pairs */
 #undef pg_row
@@ -713,9 +723,11 @@ struct __wt_page {
 #define WT_PAGE_COMPACTION_WRITE 0x002u   /* Writing the page for compaction */
 #define WT_PAGE_DISK_ALLOC 0x004u         /* Disk image in allocated memory */
 #define WT_PAGE_DISK_MAPPED 0x008u        /* Disk image in mapped memory */
+//__evict_push_candidate置位
 #define WT_PAGE_EVICT_LRU 0x010u          /* Page is on the LRU queue */
 #define WT_PAGE_EVICT_NO_PROGRESS 0x020u  /* Eviction doesn't count as progress */
 #define WT_PAGE_INTL_OVERFLOW_KEYS 0x040u /* Internal page has overflow keys (historic only) */
+//__split_insert置位
 #define WT_PAGE_SPLIT_INSERT 0x080u       /* A leaf page was split for append */
 #define WT_PAGE_UPDATE_IGNORE 0x100u      /* Ignore updates on page discard */
                                           /* AUTOMATIC FLAG VALUE GENERATION STOP 16 */
@@ -723,6 +735,8 @@ struct __wt_page {
 
     uint8_t unused; /* Unused padding */
 
+    //__wt_cache_page_inmem_decr中做减法，__wt_cache_page_inmem_incr中做加法
+    //该page对应的内存，包括写入磁盘的，可以参考__evict_force_check
     size_t memory_footprint; /* Memory attached to the page */
 
     /* Page's on-disk representation: NULL for pages created in memory. */
@@ -730,6 +744,7 @@ struct __wt_page {
 
     /* If/when the page is modified, we need lots more information. */
     //__wt_page.modify 赋值见__wt_page_modify_init
+    //例如leaf page中跳跃表中节点内容都在该modify中
     WT_PAGE_MODIFY *modify;//__wt_page.modify
 
     /*
@@ -971,7 +986,7 @@ struct __wt_ref {
 //__btree_tree_open_empty创建root page的时候初始化为该值
 #define WT_REF_DELETED 1    /* Page is on disk, but deleted */
 #define WT_REF_LOCKED 2     /* Page locked for exclusive access */
-//新创建的leaf page就会设置为该状态
+//新创建的leaf page就会设置为该状态  __wt_btree_new_leaf_page创建leaf page后，该leaf page对应状态为WT_REF_MEM
 #define WT_REF_MEM 3        /* Page is in cache and valid */
 #define WT_REF_SPLIT 4      /* Parent page split (WT_REF dead) */
     //WT_REF_SET_STATE WT_REF_CAS_STATE赋值
@@ -981,6 +996,7 @@ struct __wt_ref {
      * Address: on-page cell if read from backing block, off-page WT_ADDR if instantiated in-memory,
      * or NULL if page created in-memory.
      */
+    //数据对应的磁盘地址???????
     void *addr;
 
     /*
@@ -994,6 +1010,8 @@ struct __wt_ref {
 #undef ref_recno
 #define ref_recno key.recno
 #undef ref_ikey
+////WT_REF.ref_ikey ref对应的key，__wt_row_ikey  __wt_ref_key_onpage_set中赋值
+//记录的是对应page的最小key
 #define ref_ikey key.ikey
 
     /*
@@ -1261,7 +1279,7 @@ struct __wt_col {
  *  Normally, a row-store page in-memory key points to the on-page WT_CELL, but in some
  *  cases, we instantiate the key in memory, in which case the row-store page in-memory
  *  key points to a WT_IKEY structure.
- */
+ */ //__wt_row_ikey_alloc参考，ref存的真实page上最大数据key
 struct __wt_ikey {
     uint32_t size; /* Key length */
 
@@ -1501,6 +1519,7 @@ struct __wt_insert {
 /*
  * WT_INSERT_HEAD --
  * 	The head of a skiplist of WT_INSERT items.
+     配合WT_SKIP_FOREACH   WT_SKIP_LAST   WT_SKIP_FIRST阅读
  */ //WT_PAGE_ALLOC_AND_SWAP中会分配空间
 struct __wt_insert_head {
     WT_INSERT *head[WT_SKIP_MAXDEPTH]; /* first item on skiplists */

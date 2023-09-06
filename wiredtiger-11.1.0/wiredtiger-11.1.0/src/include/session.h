@@ -21,7 +21,14 @@ struct __wt_data_handle_cache {
 /*
  * WT_HAZARD --
  *	A hazard pointer.
- */
+
+ 在WiredTiger里面， 采用Hazard pointers来管理一个内存页是否可以被Evict， 
+ Hazard pointersHazard pointers是在多线程环境下实现资源无锁访问的一种方法， 它采用空间换时间的方法：
+ 为每一个资源分配一个Hazard指针数组，数组大小等于线程个数， 每一项里面包含一个指针指向某个资源或者为空；
+ 每当线程要访问资源的时候， 将该线程对应的Hazard pointer修改： 资源的指针赋给Hazard指针包含的资源指针；
+ 当一个线程完成访问， 将该线程的Hazard指针设定为空；
+ 当要删除资源， 遍历Hazard 指针数组， 看是否有其他线程的Hazard指针还在指向该资源， 如果没有就删除， 否则就不能删除；
+ */ //__wt_hazard_set_func
 struct __wt_hazard {
     WT_REF *ref; /* Page reference */
 #ifdef HAVE_DIAGNOSTIC
@@ -118,8 +125,9 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 #define WT_GEN_HAZARD 3     /* Hazard pointer */
 #define WT_GEN_SPLIT 4      /* Page splits */
 #define WT_GENERATIONS 5    /* Total generation manager entries */
+        //注意conn gen和session gen的区别
         volatile uint64_t generations[WT_GENERATIONS];
-    
+        
         /*
          * Session memory persists past session close because it's accessed by threads of control other
          * than the thread owning the session. For example, btree splits and hazard pointers can "free"
@@ -219,6 +227,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     u_int op_handle_next;       /* Next empty slot */
     size_t op_handle_allocated; /* Bytes allocated */
 
+    //__reconcile中赋值初始化
     void *reconcile; /* Reconciliation support */
     int (*reconcile_cleanup)(WT_SESSION_IMPL *);
 
@@ -258,6 +267,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 #define WT_SESSION_CAN_WAIT 0x00008u
 #define WT_SESSION_DEBUG_DO_NOT_CLEAR_TXN_ID 0x00010u
 #define WT_SESSION_DEBUG_RELEASE_EVICT 0x00020u
+//__wt_evict_thread_run
 #define WT_SESSION_EVICTION 0x00040u
 #define WT_SESSION_IGNORE_CACHE_SIZE 0x00080u
 #define WT_SESSION_IMPORT 0x00100u
@@ -266,6 +276,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 #define WT_SESSION_LOGGING_INMEM 0x00800u
 //wiredtiger_dummy_session_init 内部的dummy session
 #define WT_SESSION_NO_DATA_HANDLES 0x01000u
+//__wt_reconcile中临时设置该标识
 #define WT_SESSION_NO_RECONCILE 0x02000u
 #define WT_SESSION_QUIET_CORRUPT_FILE 0x04000u
 #define WT_SESSION_READ_WONT_NEED 0x08000u
@@ -313,6 +324,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 
 /*
  * The hazard pointer array grows as necessary, initialize with 250 slots.
+ https://blog.csdn.net/baijiwei/article/details/89705491
  */
 #define WT_SESSION_INITIAL_HAZARD_SLOTS 250
     uint32_t hazard_size;  /* Hazard pointer array slots */

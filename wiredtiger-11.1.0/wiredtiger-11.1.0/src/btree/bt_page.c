@@ -30,12 +30,15 @@ __wt_page_alloc(
     size_t size;
     uint32_t i;
     void *p;
+   //WT_DATA_HANDLE *dhandle;
 
     *pagep = NULL;
 
     cache = S2C(session)->cache;
     page = NULL;
+    //dhandle = session->dhandle;
 
+    //printf("yang test ...........__wt_page_alloc.........dhandle.name:%s.......page type:%s\r\n", dhandle->name, __wt_page_type_string(type));
     size = sizeof(WT_PAGE);
     switch (type) {
     case WT_PAGE_COL_FIX:
@@ -71,7 +74,7 @@ __wt_page_alloc(
         page->entries = alloc_entries;
         break;
     case WT_PAGE_COL_INT:
-    case WT_PAGE_ROW_INT:
+    case WT_PAGE_ROW_INT: //__btree_tree_open_empty一般都是通过这里进来获取internal page
         WT_ASSERT(session, alloc_entries != 0);
         /*
          * Internal pages have an array of references to objects so they can split. Allocate the
@@ -412,6 +415,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
     default:
         return (__wt_illegal_value(session, dsk->type));
     }
+    //printf("yang test.......................................__wt_page_inmem....................\r\n");
 
     /* Allocate and initialize a new WT_PAGE. */
     WT_RET(__wt_page_alloc(session, dsk->type, alloc_entries, true, &page));

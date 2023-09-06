@@ -8,54 +8,14 @@
 
 #include "wt_internal.h"
 
-#ifdef HAVE_DIAGNOSTIC
+#ifdef HAVE_DIAGNOSTIC  //yang add change 
 /*
  * We pass around a session handle and output information, group it together.
  */
-typedef struct __wt_dbg WT_DBG;
-struct __wt_dbg {
-    WT_CURSOR *hs_cursor;
-    WT_SESSION_IMPL *session; /* Enclosing session */
 
-    WT_ITEM *key;
-
-    WT_ITEM *hs_key; /* History store lookups */
-    WT_ITEM *hs_value;
-
-    /*
-     * When using the standard event handlers, the debugging output has to do its own message
-     * handling because its output isn't line-oriented.
-     */
-    FILE *fp;     /* Optional file handle */
-    WT_ITEM *msg; /* Buffered message */
-
-    int (*f)(WT_DBG *, const char *, ...) /* Function to write */
-      WT_GCC_FUNC_DECL_ATTRIBUTE((format(printf, 2, 3)));
-
-    const char *key_format;
-    const char *value_format;
-
-    WT_ITEM *t1, *t2; /* Temporary space */
-};
 
 static const /* Output separator */
   char *const sep = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n";
-
-static int __debug_col_skip(WT_DBG *, WT_INSERT_HEAD *, const char *, bool, WT_CURSOR *);
-static int __debug_config(WT_SESSION_IMPL *, WT_DBG *, const char *);
-static int __debug_modify(WT_DBG *, const uint8_t *);
-static int __debug_page(WT_DBG *, WT_REF *, uint32_t);
-static int __debug_page_col_fix(WT_DBG *, WT_REF *);
-static int __debug_page_col_int(WT_DBG *, WT_PAGE *, uint32_t);
-static int __debug_page_col_var(WT_DBG *, WT_REF *);
-static int __debug_page_metadata(WT_DBG *, WT_REF *);
-static int __debug_page_row_int(WT_DBG *, WT_PAGE *, uint32_t);
-static int __debug_page_row_leaf(WT_DBG *, WT_PAGE *);
-static int __debug_ref(WT_DBG *, WT_REF *);
-static int __debug_row_skip(WT_DBG *, WT_INSERT_HEAD *);
-static int __debug_tree(WT_SESSION_IMPL *, WT_REF *, const char *, uint32_t);
-static int __debug_update(WT_DBG *, WT_UPDATE *, bool);
-static int __debug_wrapup(WT_DBG *);
 
 /*
  * __wt_debug_set_verbose --
@@ -76,7 +36,7 @@ __wt_debug_set_verbose(WT_SESSION_IMPL *session, const char *v)
  * __debug_hex_byte --
  *     Output a single byte in hex.
  */
-static inline int
+ static int
 __debug_hex_byte(WT_DBG *ds, uint8_t v)
 {
     return (ds->f(ds, "#%c%c", __wt_hex((v & 0xf0) >> 4), __wt_hex(v & 0x0f)));
@@ -87,7 +47,7 @@ __debug_hex_byte(WT_DBG *ds, uint8_t v)
  *     Dump a single set of bytes.
  */
 static int
-__debug_bytes(WT_DBG *ds, const void *data_arg, size_t size)
+ __debug_bytes(WT_DBG *ds, const void *data_arg, size_t size)
 {
     size_t i;
     const uint8_t *data;
@@ -120,7 +80,7 @@ __debug_item(WT_DBG *ds, const char *tag, const void *data_arg, size_t size)
  * __debug_item_key --
  *     Dump a single data/size key item, with an optional tag.
  */
-static int
+ int
 __debug_item_key(WT_DBG *ds, const char *tag, const void *data_arg, size_t size)
 {
     WT_SESSION_IMPL *session;
@@ -235,7 +195,7 @@ __dmsg_file(WT_DBG *ds, const char *fmt, ...)
  * __debug_config --
  *     Configure debugging output.
  */
-static int
+ int
 __debug_config(WT_SESSION_IMPL *session, WT_DBG *ds, const char *ofile)
 {
     WT_BTREE *btree;
@@ -305,7 +265,7 @@ err:
  * __debug_wrapup --
  *     Flush any remaining output, release resources.
  */
-static int
+ int
 __debug_wrapup(WT_DBG *ds)
 {
     WT_DECL_RET;
@@ -1001,7 +961,7 @@ err:
  */
 int
 __wt_debug_cursor_page(void *cursor_arg, const char *ofile)
-  WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+ // WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     WT_CURSOR_BTREE *cbt;
     WT_DECL_RET;
@@ -1036,7 +996,7 @@ __wt_debug_cursor_page(void *cursor_arg, const char *ofile)
  */
 int
 __wt_debug_cursor_tree_hs(void *cursor_arg, const char *ofile)
-  WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+ // WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     WT_BTREE *hs_btree;
     WT_CURSOR *hs_cursor;
@@ -1055,8 +1015,8 @@ __wt_debug_cursor_tree_hs(void *cursor_arg, const char *ofile)
 /*
  * __debug_tree --
  *     Dump the in-memory information for a tree.
- */
-static int
+ */ 
+ int
 __debug_tree(WT_SESSION_IMPL *session, WT_REF *ref, const char *ofile, uint32_t flags)
 {
     WT_DBG *ds, _ds;
@@ -1079,8 +1039,11 @@ err:
 /*
  * __debug_page --
  *     Dump the in-memory information for an in-memory page.
- */
-static int
+ */ 
+
+//__wt_debug_tree_all->__debug_tree
+////__wt_debug_tree_all->__debug_tree->__debug_page_row_int->__debug_page这里会递归
+ int
 __debug_page(WT_DBG *ds, WT_REF *ref, uint32_t flags)
 {
     WT_DECL_RET;
@@ -1127,7 +1090,7 @@ err:
  * __debug_page_metadata --
  *     Dump an in-memory page's metadata.
  */
-static int
+ int
 __debug_page_metadata(WT_DBG *ds, WT_REF *ref)
 {
     WT_PAGE *page;
@@ -1171,7 +1134,10 @@ __debug_page_metadata(WT_DBG *ds, WT_REF *ref)
         return (__wt_illegal_value(session, page->type));
     }
 
-    WT_RET(ds->f(ds, ": %s\n", __wt_page_type_string(page->type)));
+    if (ref == &S2BT(session)->root)
+        WT_RET(ds->f(ds, " root: %s\n", __wt_page_type_string(page->type)));
+    else
+        WT_RET(ds->f(ds, ": %s\n", __wt_page_type_string(page->type)));
     WT_RET(__debug_ref(ds, ref));
 
     WT_RET(ds->f(ds,
@@ -1227,7 +1193,7 @@ __debug_page_metadata(WT_DBG *ds, WT_REF *ref)
  * __debug_page_col_fix --
  *     Dump an in-memory WT_PAGE_COL_FIX page.
  */
-static int
+ int
 __debug_page_col_fix(WT_DBG *ds, WT_REF *ref)
 {
     WT_BTREE *btree;
@@ -1293,7 +1259,7 @@ __debug_page_col_fix(WT_DBG *ds, WT_REF *ref)
  * __debug_page_col_int --
  *     Dump an in-memory WT_PAGE_COL_INT page.
  */
-static int
+ int
 __debug_page_col_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
 {
     WT_REF *ref;
@@ -1323,7 +1289,7 @@ __debug_page_col_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
  * __debug_page_col_var --
  *     Dump an in-memory WT_PAGE_COL_VAR page.
  */
-static int
+ int
 __debug_page_col_var(WT_DBG *ds, WT_REF *ref)
 {
     WT_CELL *cell;
@@ -1372,24 +1338,32 @@ __debug_page_col_var(WT_DBG *ds, WT_REF *ref)
 /*
  * __debug_page_row_int --
  *     Dump an in-memory WT_PAGE_ROW_INT page.
- */
-static int
+ */ //配合__wt_debug_tree_all打印一起分析，
+//internal page，在__debug_page会再次递归该接口，如果有多层internal page的话
+ int
 __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
 {
     WT_REF *ref;
     WT_SESSION_IMPL *session;
     size_t len;
     void *p;
+    char buf[1024];
 
     session = ds->session;
 
+    printf("\r\n\r\n\r\nyang test .............1111...............__debug_page_row_int...............................................\r\n");
+    //获取所有internal page的ref信息
     WT_INTL_FOREACH_BEGIN (session, page, ref) {
+        //获取一个page所属ref的key值和长度, 记录的是对应page的最小key
         __wt_ref_key(page, ref, &p, &len);
-        WT_RET(__debug_item_key(ds, "K", p, len));
+        memset(buf, 0, 1024);
+        snprintf(buf, sizeof(buf), "total entries:%d, local entries%d, REF K:", (int)__pindex->entries, (int)__entries);
+        WT_RET(__debug_item_key(ds, buf, p, len));
         WT_RET(__debug_ref(ds, ref));
     }
     WT_INTL_FOREACH_END;
-
+    printf("\r\n\r\n\r\nyang test .........222...................__debug_page_row_int...............................................\r\n");
+    //获取所有
     if (LF_ISSET(WT_DEBUG_TREE_WALK)) {
         WT_INTL_FOREACH_BEGIN (session, page, ref) {
             if (ref->state == WT_REF_MEM) {
@@ -1399,6 +1373,8 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
         }
         WT_INTL_FOREACH_END;
     }
+    printf("\r\n\r\n\r\nyang test .........3333...................__debug_page_row_int...............................................\r\n");
+    
     return (0);
 }
 
@@ -1406,18 +1382,19 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
  * __debug_page_row_leaf --
  *     Dump an in-memory WT_PAGE_ROW_LEAF page.
  */
-static int
+ int
 __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
 {
-    WT_CELL_UNPACK_KV *unpack, _unpack;
+   // WT_CELL_UNPACK_KV *unpack, _unpack;
     WT_INSERT_HEAD *insert;
     WT_ROW *rip;
     WT_SESSION_IMPL *session;
-    WT_UPDATE *upd;
+    //WT_UPDATE *upd;
     uint32_t i;
 
     session = ds->session;
-    unpack = &_unpack;
+   // unpack = &_unpack;
+    //return (0);//yang add test 
 
     /*
      * Dump any K/V pairs inserted into the page before the first from-disk key on the page.
@@ -1425,12 +1402,13 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
     if ((insert = WT_ROW_INSERT_SMALLEST(page)) != NULL)
         WT_RET(__debug_row_skip(ds, insert));
 
+    
     /* Dump the page's K/V pairs. */
     WT_ROW_FOREACH (page, rip, i) {
         WT_RET(__wt_row_leaf_key(session, page, rip, ds->key, false));
         WT_RET(__debug_item_key(ds, "K", ds->key->data, ds->key->size));
 
-        __wt_row_leaf_value_cell(session, page, rip, unpack);
+        /*__wt_row_leaf_value_cell(session, page, rip, unpack);
         WT_RET(__debug_cell_kv(ds, page, WT_PAGE_ROW_LEAF, "V", unpack));
 
         if ((upd = WT_ROW_UPDATE(page, rip)) != NULL)
@@ -1440,7 +1418,7 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
             WT_RET(__debug_hs_key(ds));
 
         if ((insert = WT_ROW_INSERT(page, rip)) != NULL)
-            WT_RET(__debug_row_skip(ds, insert));
+            WT_RET(__debug_row_skip(ds, insert));*/
     }
     return (0);
 }
@@ -1449,7 +1427,7 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
  * __debug_col_skip --
  *     Dump a column-store skiplist.
  */
-static int
+ int
 __debug_col_skip(
   WT_DBG *ds, WT_INSERT_HEAD *head, const char *tag, bool hexbyte, WT_CURSOR *hs_cursor)
 {
@@ -1477,7 +1455,7 @@ __debug_col_skip(
  * __debug_row_skip --
  *     Dump an insert list.
  */
-static int
+ int
 __debug_row_skip(WT_DBG *ds, WT_INSERT_HEAD *head)
 {
     WT_INSERT *ins;
@@ -1501,7 +1479,7 @@ __debug_row_skip(WT_DBG *ds, WT_INSERT_HEAD *head)
  * __debug_modify --
  *     Dump a modify update.
  */
-static int
+ int
 __debug_modify(WT_DBG *ds, const uint8_t *data)
 {
     size_t nentries, data_size, offset, size;
@@ -1529,7 +1507,7 @@ __debug_modify(WT_DBG *ds, const uint8_t *data)
  * __debug_update --
  *     Dump an update list.
  */
-static int
+ int
 __debug_update(WT_DBG *ds, WT_UPDATE *upd, bool hexbyte)
 {
     char ts_string[WT_TS_INT_STRING_SIZE];
@@ -1626,7 +1604,7 @@ __debug_ref_state(u_int state)
  * __debug_ref --
  *     Dump a WT_REF structure.
  */
-static int
+ int
 __debug_ref(WT_DBG *ds, WT_REF *ref)
 {
     WT_ADDR_COPY addr;

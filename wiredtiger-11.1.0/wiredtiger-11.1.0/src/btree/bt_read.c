@@ -12,6 +12,7 @@
  * __evict_force_check --
  *     Check if a page matches the criteria for forced eviction.
  */
+//判断ref page是否需要强制evict
 static bool
 __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -52,7 +53,7 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
     /*
      * If this session has more than one hazard pointer, eviction will fail and there is no point
      * trying.
-     */
+     */ //判断ref被hazard引用的总数，只有为0才可以做evict
     if (__wt_hazard_count(session, ref) > 1)
         return (false);
 
@@ -60,12 +61,23 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
      * If the page is less than the maximum size and can be split in-memory, let's try that first
      * without forcing the page to evict on release.
      */
-    if (footprint < btree->maxmempage) {
-        if (__wt_leaf_page_can_split(session, page))
+    //该page消耗的内存超过一定阈值才可以进入，一般这里面如果跳跃表中至少有5个KV，并且page消耗的总内存超过maxleafpage * 2就会返回true
+    //如果之前该page已经split过，在__split_insert中已经拆分过一次了直接返回
+
+    //内存消耗在maxleafpage级别的判断走这里
+    if (footprint < btree->maxmempage) { //这里面可能会决定是否需要进行page splite
+        if (__wt_leaf_page_can_split(session, page)) //
             return (true);
         return (false);
     }
 
+    //内存空间在maxmempage级别的情况走这里
+
+
+    
+    //到这里说明该page占用的内存已经超过btree->maxmempage，说明某个page太大了，消耗的内存
+
+    
     /* Bump the oldest ID, we're about to do some visibility checks. */
     WT_IGNORE_RET(__wt_txn_update_oldest(session, 0));
 
@@ -255,7 +267,7 @@ err:
  * __wt_page_in_func --
  *     Acquire a hazard pointer to a page; if the page is not in-memory, read it from the disk and
  *     build an in-memory version.
- */
+ */ //__wt_row_search->__wt_page_swap_func
 int
 __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 #ifdef HAVE_DIAGNOSTIC
@@ -283,7 +295,7 @@ __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
      * Ignore reads of pages already known to be in cache, otherwise the eviction server can
      * dominate these statistics.
      */
-    if (!LF_ISSET(WT_READ_CACHE))
+    if (!LF_ISSET(WT_READ_CACHE)) //对应"pages requested from the cache"统计
         WT_STAT_CONN_DATA_INCR(session, cache_pages_requested);
 
     for (evict_skip = stalled = wont_need = false, force_attempts = 0, sleep_usecs = yield_cnt = 0;
@@ -301,7 +313,7 @@ __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
             /* Optionally limit reads to cache-only. */
             if (LF_ISSET(WT_READ_CACHE))
                 return (WT_NOTFOUND);
-read:
+read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
             /*
              * The page isn't in memory, read it. If this thread respects the cache size, check for
              * space in the cache.

@@ -250,6 +250,10 @@ __tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, uint64_t *walkcntp
     uint8_t current_state;
     bool empty_internal, prev, skip;
 
+  //  WT_DATA_HANDLE *dhandle;
+  //  dhandle = session->dhandle;
+
+    //printf("yang test ............................__tree_walk_internal....................name:%s................\r\n", dhandle->name);
     btree = S2BT(session);
     pindex = NULL;
     restart_sleep = restart_yield = 0;

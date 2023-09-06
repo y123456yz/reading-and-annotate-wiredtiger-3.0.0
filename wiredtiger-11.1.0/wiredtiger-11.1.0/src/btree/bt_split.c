@@ -107,7 +107,7 @@ __split_verify_intl_key_order(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __split_verify_root --
  *     Verify a root page involved in a split.
- */
+ */ //HAVE_DIAGNOSTIC的时候才使用
 static int
 __split_verify_root(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -129,6 +129,7 @@ __split_verify_root(WT_SESSION_IMPL *session, WT_PAGE *page)
          * The page might be in transition, being read or evicted or something else. Acquire a
          * hazard pointer for the page so we know its state.
          */
+        //printf("yang test ............__split_verify_root.............................\r\n");
         if ((ret = __wt_page_in(session, ref, read_flags)) == WT_NOTFOUND)
             continue;
         WT_ERR(ret);
@@ -150,7 +151,7 @@ err:
 /*
  * __split_ovfl_key_cleanup --
  *     Handle cleanup for on-page row-store overflow keys.
- */
+ */ //ref key释放
 static int
 __split_ovfl_key_cleanup(WT_SESSION_IMPL *session, WT_PAGE *page, WT_REF *ref)
 {
@@ -167,7 +168,7 @@ __split_ovfl_key_cleanup(WT_SESSION_IMPL *session, WT_PAGE *page, WT_REF *ref)
      * A key being discarded (page split) or moved to a different page (page deepening) may be an
      * on-page overflow key. Clear any reference to an underlying disk image, and, if the key hasn't
      * been deleted, delete it along with any backing blocks.
-     */
+     */ //获取ref key
     if ((ikey = __wt_ref_key_instantiated(ref)) == NULL)
         return (0);
     if ((cell_offset = ikey->cell_offset) == 0)
@@ -454,7 +455,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
     /* Allocate child pages, and connect them into the new page index. */
     for (root_refp = pindex->index, alloc_refp = alloc_index->index, i = 0; i < children; ++i) {
         slots = i == children - 1 ? remain : chunk;
-
+        //printf("yang test.......................................__split_root....................\r\n");
         WT_ERR(__wt_page_alloc(session, root->type, slots, false, &child));
 
         /*
@@ -583,7 +584,7 @@ err:
 /*
  * __split_parent_discard_ref --
  *     Worker routine to discard WT_REFs for the split-parent function.
- */
+ */ //ref及对page资源释放
 static int
 __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *parent, size_t *decrp,
   uint64_t split_gen, bool exclusive)
@@ -631,6 +632,7 @@ __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *paren
 /*
  * __split_parent --
  *     Resolve a multi-page split, inserting new information into the parent.
+ //ref记录split之前的page,ref_new为split后的page
  */
 static int
 __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t new_entries,
@@ -692,6 +694,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
              * unless we update the internal page's start recno on the fly and restart the search,
              * which seems like asking for trouble.)
              */
+            //ref对应parent下面需要delete的page添加到deleted_refs中记录下来，在后面进行真正的page释放
             if (next_ref != ref && next_ref->state == WT_REF_DELETED &&
               (btree->type != BTREE_COL_VAR || i != 0) &&
               __wt_delete_page_skip(session, next_ref, true) &&
@@ -806,8 +809,11 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
     if (discard) {
         WT_ASSERT(session, exclusive || ref->state == WT_REF_LOCKED);
         WT_TRET(
+          //ref及对page资源释放
           __split_parent_discard_ref(session, ref, parent, &parent_decr, split_gen, exclusive));
     }
+
+    //把上层parent page下面所有的需要删除的page清理掉
     for (i = 0; i < deleted_entries; ++i) {
         next_ref = pindex->index[deleted_refs[i]];
         WT_ASSERT(session, next_ref->state == WT_REF_LOCKED);
@@ -846,6 +852,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
       "%p: split into parent, %" PRIu32 "->%" PRIu32 ", %" PRIu32 " deleted", (void *)ref,
       parent_entries, result_entries, deleted_entries);
 
+    //split gen自增，表示做了一次split操作
     __wt_gen_next(session, WT_GEN_SPLIT, NULL);
 err:
     /*
@@ -980,7 +987,7 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
     WT_ASSERT(session, page_refp == pindex->index + chunk);
     for (alloc_refp = alloc_index->index + 1, i = 1; i < children; ++i) {
         slots = i == children - 1 ? remain : chunk;
-
+        //printf("yang test.......................................__split_internal....................\r\n");
         WT_ERR(__wt_page_alloc(session, page->type, slots, false, &child));
 
         /*
@@ -1153,7 +1160,7 @@ err:
 /*
  * __split_internal_lock --
  *     Lock an internal page.
- */
+ */ //获取page对应的page_lock锁，也就是锁住ref->home这个internal page
 static int
 __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PAGE **parentp)
 {
@@ -1186,17 +1193,19 @@ __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PA
         parent = ref->home;
 
         /* Encourage races. */
+        //随机延迟，默认配置不会sleep
         __wt_timing_stress(session, WT_TIMING_STRESS_SPLIT_7, NULL);
 
         /* Page locks live in the modify structure. */
         WT_RET(__wt_page_modify_init(session, parent));
 
-        if (trylock)
+        if (trylock) //获取page对应的page_lock锁
             WT_RET(WT_PAGE_TRYLOCK(session, parent));
         else
             WT_PAGE_LOCK(session, parent);
         if (parent == ref->home)
-            break;
+            break;//这里break，也就是
+            
         WT_PAGE_UNLOCK(session, parent);
     }
 
@@ -1756,7 +1765,10 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
 /*
  * __split_insert --
  *     Split a page's last insert list entries into a separate page.
- */
+ 官方split文档说明: https://github.com/wiredtiger/wiredtiger/wiki/In-memory-Page-Splits
+ 把一个ref page拆分为多个page
+ */ 
+//__split_insert_lock
 static int
 __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -1769,6 +1781,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     uint8_t type;
     int i;
     void *key;
+    WT_DBG *ds, _ds;
 
     WT_STAT_CONN_DATA_INCR(session, cache_inmem_split);
 
@@ -1782,7 +1795,9 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      * otherwise the page might be evicted based on its last reconciliation which no longer matches
      * reality after the split.
      */
+    //page是否可以拆分
     WT_ASSERT(session, __wt_leaf_page_can_split(session, page));
+    //page中有脏数据
     WT_ASSERT(session, __wt_page_is_modified(page));
 
     F_SET_ATOMIC_16(page, WT_PAGE_SPLIT_INSERT); /* Only split in-memory once. */
@@ -1793,15 +1808,19 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
                                         WT_ROW_INSERT_SLOT(page, page->entries - 1);
     else
         ins_head = WT_COL_APPEND(page);
+    
+    //获取跳跃表中的最后一个成员KV, 也就是该page最大得K
     moved_ins = WT_SKIP_LAST(ins_head);
 
     /*
      * The first page in the split is almost identical to the current page, but we have to create a
      * replacement WT_REF, the original WT_REF will be set to split status and eventually freed.
      */
+    //创建一个新的ref, 并赋值为原始ref相关值
     WT_ERR(__wt_calloc_one(session, &split_ref[0]));
     parent_incr += sizeof(WT_REF);
     child = split_ref[0];
+    //split_ref[0]指向原来的page
     child->page = ref->page;
     child->home = ref->home;
     child->pindex_hint = ref->pindex_hint;
@@ -1809,6 +1828,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     child->state = WT_REF_MEM; /* Visible as soon as the split completes. */
     child->addr = ref->addr;
     if (type == WT_PAGE_ROW_LEAF) {
+        //获取一个page所属ref的key值和长度
         __wt_ref_key(ref->home, ref, &key, &key_size);
         WT_ERR(__wt_row_ikey(session, 0, key, key_size, child));
         parent_incr += sizeof(WT_IKEY) + key_size;
@@ -1829,6 +1849,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      * structure, so create it now.
      */
     WT_ERR(__wt_page_modify_init(session, right));
+     //标记该right这个page及其所在的btree有修改操作
     __wt_page_modify_set(session, right);
 
     if (type == WT_PAGE_ROW_LEAF) {
@@ -1841,9 +1862,12 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     right_incr += sizeof(WT_INSERT_HEAD);
     right_incr += sizeof(WT_INSERT_HEAD *);
 
+
+    //创建ref2
     WT_ERR(__wt_calloc_one(session, &split_ref[1]));
     parent_incr += sizeof(WT_REF);
     child = split_ref[1];
+    //split_ref[1]指向新的page
     child->page = right;
     F_SET(child, WT_REF_FLAG_LEAF);
     child->state = WT_REF_MEM; /* Visible as soon as the split completes. */
@@ -1854,6 +1878,10 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     } else
         child->ref_recno = WT_INSERT_RECNO(moved_ins);
 
+    
+    ds = &_ds; 
+    WT_ERR(__debug_config(session, ds, NULL));
+    WT_RET(__debug_item_key(ds, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nyang test __split_insert:", WT_INSERT_KEY(moved_ins), WT_INSERT_KEY_SIZE(moved_ins)));
     /*
      * Allocation operations completed, we're going to split.
      *
@@ -1868,6 +1896,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      * Calculate how much memory we're moving: figure out how deep the skip list stack is for the
      * element we are moving, and the memory used by the item's list of updates.
      */
+    //
     for (i = 0; i < WT_SKIP_MAXDEPTH && ins_head->tail[i] == moved_ins; ++i)
         ;
     WT_MEM_TRANSFER(page_decr, right_incr, sizeof(WT_INSERT) + (size_t)i * sizeof(WT_INSERT *));
@@ -1881,6 +1910,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      * First, update the item to the new child page. (Just append the entry for simplicity, the
      * previous skip list pointers originally allocated can be ignored.)
      */
+    //需要删除的moved_ins节点添加到第二个page
     tmp_ins_head = type == WT_PAGE_ROW_LEAF ? right->modify->mod_row_insert[0] :
                                               right->modify->mod_col_append[0];
     tmp_ins_head->head[0] = tmp_ins_head->tail[0] = moved_ins;
@@ -1916,6 +1946,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      *   4) If the tail is the item being moved, remove it.
      *   5) Drop down a level, and go to step 3 until at level 0.
      */
+    //从原page对应跳跃表中摘除moved_ins节点
     prev_ins = NULL; /* -Wconditional-uninitialized */
     for (i = WT_SKIP_MAXDEPTH - 1, insp = &ins_head->head[i]; i >= 0; i--, insp--) {
         /* Level empty, or a single element. */
@@ -1971,7 +2002,9 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     /*
      * Update the page accounting.
      */
+    //源page上面的内存减少
     __wt_cache_page_inmem_decr(session, page, page_decr);
+    //新page计数
     __wt_cache_page_inmem_incr(session, right, right_incr);
 
     /*
@@ -2070,7 +2103,7 @@ __split_insert_lock(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __wt_split_insert --
  *     Split a page's last insert list entries into a separate page.
- */
+ */ //__wt_evict
 int
 __wt_split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
 {

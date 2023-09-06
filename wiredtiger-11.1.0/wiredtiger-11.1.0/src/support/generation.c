@@ -63,6 +63,7 @@ __wt_gen_init(WT_SESSION_IMPL *session)
  * __wt_gen --
  *     Return the resource's generation.
  */
+//conn gen全局generations
 uint64_t
 __wt_gen(WT_SESSION_IMPL *session, int which)
 {
@@ -72,7 +73,7 @@ __wt_gen(WT_SESSION_IMPL *session, int which)
 /*
  * __wt_gen_next --
  *     Switch the resource to its next generation.
- */
+ */ //conn gen全局generations自增
 void
 __wt_gen_next(WT_SESSION_IMPL *session, int which, uint64_t *genp)
 {
@@ -282,7 +283,7 @@ __wt_session_gen(WT_SESSION_IMPL *session, int which)
 /*
  * __wt_session_gen_enter --
  *     Publish a thread's resource generation.
- */
+ */ //把当前的全局conn gen记录到session gen中
 void
 __wt_session_gen_enter(WT_SESSION_IMPL *session, int which)
 {

@@ -157,7 +157,7 @@ __evict_list_clear(WT_SESSION_IMPL *session, WT_EVICT_ENTRY *e)
  * __wt_evict_list_clear_page --
  *     Make sure a page is not in the LRU eviction list. This called from the page eviction code to
  *     make sure there is no attempt to evict a child page multiple times.
- */
+ */ //在evict队列中摘除该ref对应的page
 void
 __wt_evict_list_clear_page(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -1135,6 +1135,7 @@ __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
 
     WT_TRACK_OP_INIT(session);
     conn = S2C(session);
+   // printf("yang test ..................__evict_lru_pages...................................\r\n");
 
     /*
      * Reconcile and discard some pages: EBUSY is returned if a page fails eviction because it's
@@ -2324,7 +2325,7 @@ __evict_page(WT_SESSION_IMPL *session, bool is_server)
      * by the time we look at it.
      */
     __wt_cache_read_gen_bump(session, ref->page);
-
+    printf("yang test ................................__evict_page.............................................\r\n");
     WT_WITH_BTREE(session, btree, ret = __wt_evict(session, ref, previous_state, flags));
 
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
@@ -2356,6 +2357,7 @@ __wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly, d
     bool app_thread;
 
     WT_TRACK_OP_INIT(session);
+    //printf("yang test ..................__wt_cache_eviction_worker...................................\r\n");
 
     conn = S2C(session);
     cache = conn->cache;

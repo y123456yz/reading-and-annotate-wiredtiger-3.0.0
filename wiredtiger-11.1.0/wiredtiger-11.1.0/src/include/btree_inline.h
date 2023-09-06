@@ -140,6 +140,7 @@ __wt_page_evict_clean(WT_PAGE *page)
 /*
  * __wt_page_is_modified --
  *     Return if the page is dirty.
+ //也就是判断该page是否是dirty
  */
 static inline bool
 __wt_page_is_modified(WT_PAGE *page)
@@ -297,11 +298,13 @@ __wt_cache_page_inmem_incr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
           F_ISSET(session->txn, WT_TXN_RUNNING | WT_TXN_HAS_ID) &&
           __wt_session_gen(session, WT_GEN_EVICT) == 0)
             WT_STAT_SESSION_INCRV(session, txn_bytes_dirty, size);
+        //leaf page相关内存消耗统计
         if (!WT_PAGE_IS_INTERNAL(page) && !btree->lsm_primary) {
             (void)__wt_atomic_add64(&cache->bytes_updates, size);
             (void)__wt_atomic_add64(&btree->bytes_updates, size);
             (void)__wt_atomic_addsize(&page->modify->bytes_updates, size);
         }
+        
         if (__wt_page_is_modified(page)) {
             if (WT_PAGE_IS_INTERNAL(page)) {
                 (void)__wt_atomic_add64(&cache->bytes_dirty_intl, size);
@@ -678,6 +681,9 @@ __wt_page_modify_init(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_page_only_modify_set --
  *     Mark the page (but only the page) dirty.
+ 
+//__wt_tree_modify_set:        Mark the page (but only the page) dirty.Mark the tree dirty.
+//__wt_page_only_modify_set:   Mark the page (but only the page) dirty.
  */
 static inline void
 __wt_page_only_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
@@ -733,7 +739,9 @@ __wt_page_only_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_tree_modify_set --
  *     Mark the tree dirty.
- */
+ //__wt_tree_modify_set:        Mark the page (but only the page) dirty.Mark the tree dirty.
+ //__wt_page_only_modify_set:   Mark the page (but only the page) dirty.
+ */ //标记tree被修改了
 static inline void
 __wt_tree_modify_set(WT_SESSION_IMPL *session)
 {
@@ -798,6 +806,7 @@ __wt_page_modify_clear(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_page_modify_set --
  *     Mark the page and tree dirty.
+ //标记该page及其所在的btree有修改操作
  */
 static inline void
 __wt_page_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
@@ -875,7 +884,7 @@ __wt_off_page(WT_PAGE *page, const void *p)
 /*
  * __wt_ref_key --
  *     Return a reference to a row-store internal page key as cheaply as possible.
- */
+ */ //获取一个page所属ref的key值和长度, 记录的是对应page的最小key  //配合__wt_debug_tree_all打印一起分析
 static inline void
 __wt_ref_key(WT_PAGE *page, WT_REF *ref, void *keyp, size_t *sizep)
 {
@@ -938,7 +947,7 @@ __wt_ref_key_onpage_set(WT_PAGE *page, WT_REF *ref, WT_CELL_UNPACK_ADDR *unpack)
 /*
  * __wt_ref_key_instantiated --
  *     Return if a WT_REF key is instantiated.
- */
+ */ //获取ref key
 static inline WT_IKEY *
 __wt_ref_key_instantiated(WT_REF *ref)
 {
@@ -1718,6 +1727,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * Only split a page once, otherwise workloads that update in the middle of the page could
      * continually split without benefit.
      */
+    //之前该page在__split_insert中已经拆分过一次了直接返回
     if (F_ISSET_ATOMIC_16(page, WT_PAGE_SPLIT_INSERT))
         return (false);
 
@@ -1743,9 +1753,12 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * on the page. Split if there are enough items and the skiplist does not fit within a single
      * disk page.
      */
+    
     ins_head = page->type == WT_PAGE_ROW_LEAF ?
+      //行存
       (page->entries == 0 ? WT_ROW_INSERT_SMALLEST(page) :
                             WT_ROW_INSERT_SLOT(page, page->entries - 1)) :
+      //列存
       WT_COL_APPEND(page);
     if (ins_head == NULL)
         return (false);
@@ -1754,13 +1767,17 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
  * In the extreme case, where the page is much larger than the maximum size, split as soon as there
  * are 5 items on the page.
  */
+//page消耗的内存较高，大于maxleafpage * 2，并且至少有5个KV
 #define WT_MAX_SPLIT_COUNT 5
     if (page->memory_footprint > (size_t)btree->maxleafpage * 2) {
         for (count = 0, ins = ins_head->head[0]; ins != NULL; ins = ins->next[0]) {
             if (++count < WT_MAX_SPLIT_COUNT)
                 continue;
 
+            //当一个page使用内存较高的时候一般从这里返回
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
+            printf("yang test ......111111........page->entries:%d..........__wt_leaf_page_can_split......count:%d..........\r\n", 
+                (int)page->entries, count);
             return (true);
         }
 
@@ -1775,16 +1792,18 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
 #define WT_MIN_SPLIT_DEPTH 2
 #define WT_MIN_SPLIT_COUNT 30
 #define WT_MIN_SPLIT_MULTIPLIER 16 /* At level 2, we see 1/16th entries */
-
+    //通过level2大概算一下有多少KV及使用的内存,这样可以避免扫描所有KV影响性能
     for (count = 0, size = 0, ins = ins_head->head[WT_MIN_SPLIT_DEPTH]; ins != NULL;
          ins = ins->next[WT_MIN_SPLIT_DEPTH]) {
         count += WT_MIN_SPLIT_MULTIPLIER;
         size += WT_MIN_SPLIT_MULTIPLIER * (WT_INSERT_KEY_SIZE(ins) + WT_UPDATE_MEMSIZE(ins->upd));
         if (count > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
+            printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count:%d..........size:%d................\r\n", (int)count, (int)size);
             return (true);
         }
     }
+    printf("yang test ..__wt_leaf_page_can_split....11111111111111........count:%d..........size:%d................\r\n", (int)count, (int)size);
     return (false);
 }
 
@@ -1836,7 +1855,7 @@ __wt_page_evict_retry(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_page_can_evict --
  *     Check whether a page can be evicted.
- */
+ */ //ref对应page是否可以evict
 static inline bool
 __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 {
@@ -1868,6 +1887,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
      * remains until the next reconciliation, and nothing prevents that from occurring before the
      * transaction commits.
      */
+    //如果page中存在对指定KV做upate，则直接返回false，因为可能有些事务操作没用提交
     if (mod->inst_updates != NULL)
         return (false);
 
@@ -1925,7 +1945,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
     if (WT_IS_METADATA(S2BT(session)->dhandle) && !modified &&
       !__wt_txn_visible_all(session, mod->rec_max_txn, mod->rec_max_timestamp))
         return (false);
-
+        
     return (true);
 }
 
@@ -1985,6 +2005,9 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 /*
  * __wt_skip_choose_depth --
  *     Randomly choose a depth for a skiplist insert.
+
+10 level skip lists, 1/4 have a link to the next element. 
+for example: level 0 we have all the items, at level 1 we have 1/4 and at level 2 we have 1/16th
  */
 static inline u_int
 __wt_skip_choose_depth(WT_SESSION_IMPL *session)
@@ -2125,7 +2148,7 @@ __wt_split_descent_race(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX *sa
 /*
  * __wt_page_swap_func --
  *     Swap one page's hazard pointer for another one when hazard pointer coupling up/down the tree.
- */
+ */ //__wt_row_search->__wt_page_swap_func
 static inline int
 __wt_page_swap_func(WT_SESSION_IMPL *session, WT_REF *held, WT_REF *want, uint32_t flags
 #ifdef HAVE_DIAGNOSTIC
@@ -2149,6 +2172,7 @@ __wt_page_swap_func(WT_SESSION_IMPL *session, WT_REF *held, WT_REF *want, uint32
     if (held == want)
         return (0);
 
+    //printf("yang test .....................__wt_page_swap_func...................................\r\n");
     /* Get the wanted page. */
     ret = __wt_page_in_func(session, want, flags
 #ifdef HAVE_DIAGNOSTIC

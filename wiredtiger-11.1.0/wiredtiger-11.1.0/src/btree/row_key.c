@@ -360,7 +360,7 @@ next:
 /*
  * __wt_row_ikey_alloc --
  *     Instantiate a key in a WT_IKEY structure.
- */
+ */ //分配WT_IKEY+真实key数据
 int
 __wt_row_ikey_alloc(
   WT_SESSION_IMPL *session, uint32_t cell_offset, const void *key, size_t size, WT_IKEY **ikeyp)
@@ -384,6 +384,7 @@ __wt_row_ikey_alloc(
  * __wt_row_ikey_incr --
  *     Instantiate a key in a WT_IKEY structure and increment the page's memory footprint.
  */
+//ref->ref_ikey初始设置，例如root page初始值为""
 int
 __wt_row_ikey_incr(WT_SESSION_IMPL *session, WT_PAGE *page, uint32_t cell_offset, const void *key,
   size_t size, WT_REF *ref)
@@ -398,7 +399,8 @@ __wt_row_ikey_incr(WT_SESSION_IMPL *session, WT_PAGE *page, uint32_t cell_offset
 /*
  * __wt_row_ikey --
  *     Instantiate a key in a WT_IKEY structure.
- */
+ __wt_row_ikey_incr进行ref->ref_ikey初始设置，例如root page初始值为""
+ */ //设置ref对应ref_ikey
 int
 __wt_row_ikey(
   WT_SESSION_IMPL *session, uint32_t cell_offset, const void *key, size_t size, WT_REF *ref)
@@ -423,7 +425,8 @@ __wt_row_ikey(
         WT_ASSERT(session, __wt_atomic_cas_ptr(&ref->ref_ikey, (WT_IKEY *)oldv, ikey));
     }
 #else
-    ref->ref_ikey = ikey;
+    ref->ref_ikey = ikey; //WT_REF.ref_ikey
+    printf("yang test ..................__wt_row_ikey...................\r\n");
 #endif
     return (0);
 }

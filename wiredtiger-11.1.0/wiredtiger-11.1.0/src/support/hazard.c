@@ -82,7 +82,7 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
      * re-check it after a barrier to make sure we have a valid reference.
      */
     current_state = ref->state;
-    if (current_state != WT_REF_MEM) {
+    if (current_state != WT_REF_MEM) {//说明page被lock住了
         *busyp = true;
         return (0);
     }
@@ -114,6 +114,7 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
          * is expensive. If we reach the end of the array, continue the search from the beginning of
          * the array.
          */
+        //找到可用的没被引用的hazard
         for (hp = session->hazard + session->nhazard;; ++hp) {
             if (hp >= session->hazard + session->hazard_inuse)
                 hp = session->hazard;
@@ -167,6 +168,7 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
      * We don't bother publishing this update: the worst case is we prevent some random page from
      * being evicted.
      */
+    //yang add todo xxxxxxxxxxxxxxxxxxxxx 这里的hazard_inuse是否应该--，实际上这个hp没用，但是前面自增了
     hp->ref = NULL;
     *busyp = true;
     return (0);
@@ -288,6 +290,7 @@ hazard_get_reference(WT_SESSION_IMPL *session, WT_HAZARD **hazardp, uint32_t *ha
 /*
  * __wt_hazard_check --
  *     Return if there's a hazard pointer to the page in the system.
+    Check for a hazard pointer indicating another thread is using the page, meaning the page cannot be evicted.
  */
 WT_HAZARD *
 __wt_hazard_check(WT_SESSION_IMPL *session, WT_REF *ref, WT_SESSION_IMPL **sessionp)
@@ -353,7 +356,7 @@ done:
 /*
  * __wt_hazard_count --
  *     Count how many hazard pointers this session has on the given page.
- */
+ */ //判断ref被hazard引用的总数，只有为0才可以做evict
 u_int
 __wt_hazard_count(WT_SESSION_IMPL *session, WT_REF *ref)
 {

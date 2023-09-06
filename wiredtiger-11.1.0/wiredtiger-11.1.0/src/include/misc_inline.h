@@ -178,14 +178,16 @@ __wt_spin_backoff(uint64_t *yield_count, uint64_t *sleep_usecs)
 /*
  * __wt_timing_stress --
  *     Optionally add delay to stress code paths.
- */
+ */ //随机延迟，如果
 static inline void
 __wt_timing_stress(WT_SESSION_IMPL *session, u_int flag, struct timespec *tsp)
 {
     /* Optionally only sleep when a specified configuration flag is set. */
+    //__wt_timing_stress_config配置，如果配置了则不会进行随机sleep
     if (flag != 0 && !FLD_ISSET(S2C(session)->timing_stress_flags, flag))
         return;
 
+    //默认不会到下面来
     /* If a delay is provided then use that delay otherwise sleep for a random time. */
     if (tsp != NULL)
         __wt_sleep((uint64_t)tsp->tv_sec, (uint64_t)tsp->tv_nsec / WT_THOUSAND);
@@ -199,7 +201,7 @@ __wt_timing_stress(WT_SESSION_IMPL *session, u_int flag, struct timespec *tsp)
 /*
  * __wt_timing_stress_sleep_random --
  *     Sleep for a random time, with a bias towards shorter sleeps.
- */
+ */ //随机sleep一定时间
 static inline void
 __wt_timing_stress_sleep_random(WT_SESSION_IMPL *session)
 {

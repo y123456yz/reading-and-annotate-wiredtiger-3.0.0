@@ -465,6 +465,9 @@ descend:
         if (F_ISSET(cbt, WT_CBT_READ_ONCE))
             FLD_SET(read_flags, WT_READ_WONT_NEED);
         //如果BTREE中没数据，这时候写入一条数据，是第一次写入，这里面会创建leaf page存入&descent->page
+        //internal page查找的时候都会到这里，这里面可能会创建leaf page
+
+        //current代表当前的internal page, descent代表对应的下一层page，可能是internal page也可能是leaf page
         if ((ret = __wt_page_swap(session, current, descent, read_flags)) == 0) {
             //把该internal page赋值给current，然后继续下一层internal page的遍历
             current = descent;

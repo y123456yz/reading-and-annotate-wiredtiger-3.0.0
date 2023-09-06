@@ -147,7 +147,7 @@ __wt_buf_set_printable(
  * __wt_buf_set_printable_format --
  *     Set the contents of the buffer to a printable representation of a byte string, based on a
  *     format.
- */
+ */ //把data_arg按照format进行转换为指定格式输出，  //配合__wt_debug_tree_all打印一起分析
 const char *
 __wt_buf_set_printable_format(WT_SESSION_IMPL *session, const void *buffer, size_t size,
   const char *format, bool hexonly, WT_ITEM *buf)

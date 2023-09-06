@@ -339,6 +339,7 @@ __wt_stats_clear(void *stats_arg, int slot)
  */
 #define WT_CONNECTION_STATS_BASE 1000
 struct __wt_connection_stats {
+    //
     int64_t lsm_work_queue_app;
     int64_t lsm_work_queue_manager;
     int64_t lsm_rows_merged;
@@ -349,6 +350,7 @@ struct __wt_connection_stats {
     int64_t lsm_work_units_done;
     int64_t lsm_work_units_created;
     int64_t lsm_work_queue_max;
+    //"block-cache"
     int64_t block_cache_blocks_update;
     int64_t block_cache_bytes_update;
     int64_t block_cache_blocks_evicted;
@@ -370,6 +372,8 @@ struct __wt_connection_stats {
     int64_t block_cache_bytes;
     int64_t block_cache_bytes_insert_read;
     int64_t block_cache_bytes_insert_write;
+
+    //"block-manager"
     int64_t block_preload;
     int64_t block_read;
     int64_t block_write;
@@ -384,6 +388,8 @@ struct __wt_connection_stats {
     int64_t block_byte_map_read;
     int64_t block_remap_file_resize;
     int64_t block_remap_file_write;
+
+    //"cache"
     int64_t cache_read_app_count;
     int64_t cache_read_app_time;
     int64_t cache_write_app_count;
@@ -451,6 +457,7 @@ struct __wt_connection_stats {
     int64_t cache_eviction_force_dirty_time;
     int64_t cache_eviction_force_long_update_list;
     int64_t cache_eviction_force_delete;
+    //__wt_evict 强制evict统计
     int64_t cache_eviction_force;
     int64_t cache_eviction_force_fail;
     int64_t cache_eviction_force_fail_time;
@@ -475,6 +482,7 @@ struct __wt_connection_stats {
     int64_t cache_hs_order_reinsert;
     int64_t cache_hs_write_squash;
     int64_t cache_inmem_splittable;
+    //__split_insert
     int64_t cache_inmem_split;
     int64_t cache_eviction_internal;
     int64_t cache_eviction_internal_pages_queued;
@@ -521,6 +529,8 @@ struct __wt_connection_stats {
     int64_t cache_bytes_dirty;
     int64_t cache_pages_dirty;
     int64_t cache_eviction_clean;
+
+    //"capacity"
     int64_t fsync_all_fh_total;
     int64_t fsync_all_fh;
     int64_t fsync_all_time;
@@ -535,13 +545,18 @@ struct __wt_connection_stats {
     int64_t capacity_time_evict;
     int64_t capacity_time_log;
     int64_t capacity_time_read;
+
+    //"checkpoint-cleanup"相关
     int64_t cc_pages_evict;
     int64_t cc_pages_removed;
     int64_t cc_pages_walk_skipped;
     int64_t cc_pages_visited;
+
+    //"connection"
     int64_t cond_auto_wait_reset;
     int64_t cond_auto_wait;
     int64_t cond_auto_wait_skipped;
+    //__time_check_monotonic
     int64_t time_travel;
     int64_t file_open;
     int64_t buckets_dh;
@@ -555,6 +570,8 @@ struct __wt_connection_stats {
     int64_t fsync_io;
     int64_t read_io;
     int64_t write_io;
+
+    //"cursor"
     int64_t cursor_next_skip_total;
     int64_t cursor_prev_skip_total;
     int64_t cursor_skip_hs_cur_position;
@@ -627,6 +644,8 @@ struct __wt_connection_stats {
     int64_t cursor_update_bytes_changed;
     int64_t cursor_reopen;
     int64_t cursor_open_count;
+
+    //"data-handle"
     int64_t dh_conn_handle_size;
     int64_t dh_conn_handle_count;
     int64_t dh_sweep_ref;
@@ -637,6 +656,8 @@ struct __wt_connection_stats {
     int64_t dh_sweep_skip_ckpt;
     int64_t dh_session_handles;
     int64_t dh_session_sweeps;
+
+    //"lock"
     int64_t lock_checkpoint_count;
     int64_t lock_checkpoint_wait_application;
     int64_t lock_checkpoint_wait_internal;
@@ -666,6 +687,8 @@ struct __wt_connection_stats {
     int64_t lock_txn_global_wait_internal;
     int64_t lock_txn_global_read_count;
     int64_t lock_txn_global_write_count;
+
+    //"log"
     int64_t log_slot_switch_busy;
     int64_t log_force_remove_sleep;
     int64_t log_bytes_payload;
@@ -712,6 +735,8 @@ struct __wt_connection_stats {
     int64_t log_compress_len;
     int64_t log_slot_coalesced;
     int64_t log_close_yields;
+
+    //"perf"
     int64_t perf_hist_fsread_latency_lt50;
     int64_t perf_hist_fsread_latency_lt100;
     int64_t perf_hist_fsread_latency_lt250;
@@ -734,6 +759,8 @@ struct __wt_connection_stats {
     int64_t perf_hist_opwrite_latency_lt1000;
     int64_t perf_hist_opwrite_latency_lt10000;
     int64_t perf_hist_opwrite_latency_gt10000;
+
+    //"reconciliation"
     int64_t rec_vlcs_emptied_pages;
     int64_t rec_time_window_bytes_ts;
     int64_t rec_time_window_bytes_txn;
@@ -769,6 +796,8 @@ struct __wt_connection_stats {
     int64_t rec_time_window_stop_txn;
     int64_t rec_split_stashed_bytes;
     int64_t rec_split_stashed_objects;
+
+    //"session"
     int64_t local_objects_inuse;
     int64_t flush_tier_fail;
     int64_t flush_tier;
@@ -805,9 +834,13 @@ struct __wt_connection_stats {
     int64_t tiered_work_units_removed;
     int64_t tiered_work_units_created;
     int64_t tiered_retention;
+
+    //"thread-state"
     int64_t thread_fsync_active;
     int64_t thread_read_active;
     int64_t thread_write_active;
+
+    //"thread-yield"
     int64_t application_evict_time;
     int64_t application_cache_time;
     int64_t txn_release_blocked;
@@ -822,6 +855,8 @@ struct __wt_connection_stats {
     int64_t page_sleep;
     int64_t page_del_rollback_blocked;
     int64_t child_modify_blocked_page;
+
+    //"transaction"
     int64_t txn_prepared_updates;
     int64_t txn_prepared_updates_committed;
     int64_t txn_prepared_updates_key_repeated;
