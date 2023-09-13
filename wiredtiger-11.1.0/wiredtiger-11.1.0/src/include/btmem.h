@@ -42,25 +42,32 @@
  * WT_PAGE_HEADER --
  *	Blocks have a common header, a WT_PAGE_HEADER structure followed by a
  * block-manager specific structure.
+ 1. A page header followed by a series of key/value pairs. The page header is broken into several sub-headers. 
+ 2. The page header is followed by a "block header". In WiredTiger each page is a block, and it is possible to plug 
+     in different "block managers" that manage the transition of pages to and from disk. The default block header is 
+     defined in src/include/block.h in the __wt_block_header structure. 
  参考reconcile官方文档:https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
  */
+//分片空间和赋值可以参考__wt_rec_cell_build_ovfl
 struct __wt_page_header {
     /*
      * The record number of the first record of the page is stored on disk so we can figure out
      * where the column-store leaf page fits into the key space during salvage.
-     */
+     */ //A uint64_t record number, used by column stores (since they don't maintain keys internally)
     uint64_t recno; /* 00-07: column-store starting recno */
 
     /*
      * We maintain page write-generations in the non-transactional case as that's how salvage can
      * determine the most recent page between pages overlapping the same key range.
      */
+    //__rec_set_page_write_gen
     uint64_t write_gen; /* 08-15: write generation */
 
     /*
      * The page's in-memory size isn't rounded or aligned, it's the actual number of bytes the
      * disk-image consumes when instantiated in memory.
      */
+    //header + data总长度
     uint32_t mem_size; /* 16-19: in-memory page size */
 
     union {
@@ -121,7 +128,9 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
  * WT_PAGE_HEADER_BYTE_SIZE --
  *	The first usable data byte on the block (past the combined headers).
  */
+//page header + block header
 #define WT_PAGE_HEADER_BYTE_SIZE(btree) ((u_int)(WT_PAGE_HEADER_SIZE + (btree)->block_header))
+//dsk开始跳过page header + block header
 #define WT_PAGE_HEADER_BYTE(btree, dsk) \
     ((void *)((uint8_t *)(dsk) + WT_PAGE_HEADER_BYTE_SIZE(btree)))
 
@@ -136,9 +145,9 @@ struct __wt_addr {
     uint8_t size;  /* Block-manager's cookie length */
 
 #define WT_ADDR_INT 1     /* Internal page */
-#define WT_ADDR_LEAF 2    /* Leaf page */
+#define WT_ADDR_LEAF 2    /* Leaf page */ //溢出的KEY，也就是大key,
 #define WT_ADDR_LEAF_NO 3 /* Leaf page, no overflow */
-    uint8_t type;
+    uint8_t type; //和WT_RECONCILE.ovfl_items对应
 
     /*
      * If an address is both as an address for the previous and the current multi-block
@@ -250,11 +259,12 @@ struct __wt_save_upd {
 /*
  * WT_MULTI --
  *	Replacement block information used during reconciliation.
- */
+ */ //一个page拆分为多个page时候用到，可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
 struct __wt_multi {
     /*
      * Block's key: either a column-store record number or a row-store variable length byte string.
      */
+    //page拆分后对应的ref key
     union {
         uint64_t recno;
         WT_IKEY *ikey;

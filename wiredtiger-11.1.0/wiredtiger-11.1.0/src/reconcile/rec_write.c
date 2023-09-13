@@ -806,6 +806,7 @@ __rec_destroy_session(WT_SESSION_IMPL *session)
  * __rec_write --
  *     Write a block, with optional diagnostic checks.
  */
+//buf数据内容 = 包括page header + block header + 实际数据
 static int
 __rec_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_sizep,
   size_t *compressed_sizep, bool checkpoint, bool checkpoint_io, bool compressed)
@@ -831,6 +832,7 @@ __rec_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_
      * We're passed a table's disk image. Decompress if necessary and verify the image. Always check
      * the in-memory length for accuracy.
      */
+    //数据内容，包括page header + block header + 实际数据
     dsk = buf->mem;
     if (compressed) {
         WT_ASSERT(session, __wt_scr_alloc(session, dsk->mem_size, &ctmp));
@@ -951,7 +953,7 @@ __wt_split_page_size(int split_pct, uint32_t maxpagesize, uint32_t allocsize)
      * outcome than having a split point that doesn't fall on an allocation size boundary in those
      * cases.
      */
-    if (split_size == 0 || split_size == maxpagesize)
+    if (split_size == 0 || split_size == maxpagesize) //yang add todo xxxx 这里是不是split_size可能会大于maxpagesize?
         split_size = (uint32_t)((a * (u_int)split_pct) / 100);
 
     return (split_size);
@@ -1114,6 +1116,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
      * give us 5x compression and gives us nothing at all.
      */
     corrected_page_size = r->page_size;
+    //__bm_write_size  //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据corrected_page_size
     WT_RET(bm->write_size(bm, session, &corrected_page_size));
     r->disk_img_buf_size = WT_ALIGN(WT_MAX(corrected_page_size, r->split_size), btree->allocsize);
 
@@ -1125,6 +1128,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
     /* Starting record number, entries, first free byte. */
     r->recno = recno;
     r->entries = 0;
+    //跳过PAGE_HEADER
     r->first_free = WT_PAGE_HEADER_BYTE(btree, r->cur_ptr->image.mem);
 
     if (page->type == WT_PAGE_COL_FIX) {
@@ -1854,6 +1858,7 @@ __rec_set_page_write_gen(WT_BTREE *btree, WT_PAGE_HEADER *dsk)
  * __rec_split_write_header --
  *     Initialize a disk page's header.
  */
+//__rec_split_write_header: page header初始化
 static void
 __rec_split_write_header(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk,
   WT_MULTI *multi, WT_PAGE_HEADER *dsk)
@@ -1896,6 +1901,7 @@ __rec_split_write_header(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK
  * __rec_split_write_reuse --
  *     Check if a previously written block can be reused.
  */
+//判断image数据是否可以复用已有的block
 static bool
 __rec_split_write_reuse(
   WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_MULTI *multi, WT_ITEM *image, bool last_block)
@@ -1939,6 +1945,7 @@ __rec_split_write_reuse(
     }
 
     /* Calculate the checksum for this block. */
+    //对这些数据进行crc校验
     multi->checksum = __wt_checksum(image->data, image->size);
 
     /*
@@ -1952,6 +1959,8 @@ __rec_split_write_reuse(
     /*
      * Pages are written in the same block order every time, only check the appropriate slot.
      */
+    printf("yang test ..............mod->rec_result:%d,mod->mod_multi_entries:%d,r->multi_next:%d....\r\n", 
+        mod->rec_result, (int)mod->mod_multi_entries, (int)r->multi_next);
     if (mod->rec_result != WT_PM_REC_MULTIBLOCK || mod->mod_multi_entries < r->multi_next)
         return (false);
 
@@ -1962,6 +1971,7 @@ __rec_split_write_reuse(
     }
 
     multi_match->addr.reuse = 1;
+    //复用的这块磁盘地址空间
     multi->addr = multi_match->addr;
 
     WT_STAT_DATA_INCR(session, rec_page_match);
@@ -2085,7 +2095,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
         break;
     case WT_PAGE_COL_VAR:
     case WT_PAGE_ROW_LEAF:
-        multi->addr.type = r->ovfl_items ? WT_ADDR_LEAF : WT_ADDR_LEAF_NO;
+        multi->addr.type = r->ovfl_items ? WT_ADDR_LEAF : WT_ADDR_LEAF_NO; 
         break;
     case WT_PAGE_COL_INT:
     case WT_PAGE_ROW_INT:
@@ -2100,6 +2110,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
+        //分配WT_IKEY+真实key数据
         WT_RET(__wt_row_ikey_alloc(session, 0, chunk->key.data, chunk->key.size, &multi->key.ikey));
     else
         multi->key.recno = chunk->recno;
@@ -2109,6 +2120,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
         WT_RET(__rec_split_write_supd(session, r, chunk, multi, last_block));
 
     /* Initialize the page header(s). */
+    //page header初始化
     __rec_split_write_header(session, r, chunk, multi, chunk->image.mem);
     if (r->page->type == WT_PAGE_COL_FIX)
         __wt_rec_col_fix_write_auxheader(session, chunk->entries, chunk->aux_start_offset,
@@ -2165,6 +2177,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
      * If we wrote this block before, re-use it. Prefer a checksum of the compressed image. It's an
      * identical test and should be faster.
      */
+    //判断image数据是否可以复用已有的block
     if (__rec_split_write_reuse(session, r, multi,
           compressed_image == NULL ? &chunk->image : compressed_image, last_block))
         goto copy_image;
@@ -2205,6 +2218,7 @@ copy_image:
      * If re-instantiating this page in memory (either because eviction wants to, or because we
      * skipped updates to build the disk image), save a copy of the disk image.
      */
+    //拷贝数据到multi->disk_image
     if (F_ISSET(r, WT_REC_SCRUB) || multi->supd_restore)
         WT_RET(__wt_memdup(session, chunk->image.data, chunk->image.size, &multi->disk_image));
 
@@ -2361,6 +2375,13 @@ __rec_split_discard(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __rec_split_dump_keys --
  *     Dump out the split keys in verbose mode.
+[1694002405:85563][14475:0x7f90f11f6800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_RECONCILE][DEBUG_1]: 0x17945a0 reconcile row-store leaf (evict, history store)
+[1694002405:90587][14475:0x7f90f11f6800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_RECONCILE][DEBUG_1]: 0x17945a0 reconciled into 71 pages
+[1694002405:90610][14475:0x7f90f11f6800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_SPLIT][DEBUG_2]: split: 71 pages
+[1694002405:90615][14475:0x7f90f11f6800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_SPLIT][DEBUG_2]: starting key \00
+[1694002405:90618][14475:0x7f90f11f6800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_SPLIT][DEBUG_2]: starting key \c5\de
+[1694002405:90621][14475:0x7f90f11f6800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_SPLIT][DEBUG_2]: starting key \c5\f7
+ 打印reconcile split相关信息
  */
 static int
 __rec_split_dump_keys(WT_SESSION_IMPL *session, WT_RECONCILE *r)
@@ -2726,19 +2747,24 @@ __wt_rec_cell_build_ovfl(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *k
      * write a new overflow record.
      */
     WT_RET(__wt_ovfl_reuse_search(session, page, &addr, &size, kv->buf.data, kv->buf.size));
-    if (addr == NULL) {
+    if (addr == NULL) {//如果page->modify->ovfl_track为NULL，则走该流程
         /* Allocate a buffer big enough to write the overflow record. */
         size = kv->buf.size;
+        //__bm_write_size
         WT_RET(bm->write_size(bm, session, &size));
         WT_RET(__wt_scr_alloc(session, size, &tmp));
 
         /* Initialize the buffer: disk header and overflow record. */
+        //header + 数据
         dsk = tmp->mem;
         memset(dsk, 0, WT_PAGE_HEADER_SIZE);
         dsk->type = WT_PAGE_OVFL;
         __rec_set_page_write_gen(btree, dsk);
         dsk->u.datalen = (uint32_t)kv->buf.size;
+
+        //拷贝真实数据，跳过page header + block header
         memcpy(WT_PAGE_HEADER_BYTE(btree, dsk), kv->buf.data, kv->buf.size);
+        //总长度 = page header + block header + 实际数据
         dsk->mem_size = WT_PAGE_HEADER_BYTE_SIZE(btree) + (uint32_t)kv->buf.size;
         tmp->size = dsk->mem_size;
 

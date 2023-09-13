@@ -1385,16 +1385,16 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
  int
 __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
 {
-   // WT_CELL_UNPACK_KV *unpack, _unpack;
+    WT_CELL_UNPACK_KV *unpack, _unpack;
     WT_INSERT_HEAD *insert;
     WT_ROW *rip;
     WT_SESSION_IMPL *session;
-    //WT_UPDATE *upd;
+    WT_UPDATE *upd;
     uint32_t i;
 
     session = ds->session;
-   // unpack = &_unpack;
-    //return (0);//yang add test 
+    unpack = &_unpack;
+   // return (0);//yang add test 
 
     /*
      * Dump any K/V pairs inserted into the page before the first from-disk key on the page.
@@ -1402,15 +1402,21 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
     if ((insert = WT_ROW_INSERT_SMALLEST(page)) != NULL)
         WT_RET(__debug_row_skip(ds, insert));
 
+
+    printf("yang test .......__debug_page_row_leaf..............(page)->entries:%d\r\n", (int)page->entries);
     
     /* Dump the page's K/V pairs. */
     WT_ROW_FOREACH (page, rip, i) {
         WT_RET(__wt_row_leaf_key(session, page, rip, ds->key, false));
-        WT_RET(__debug_item_key(ds, "K", ds->key->data, ds->key->size));
+        WT_RET(__debug_item_key(ds, "K-yangyazhou", ds->key->data, ds->key->size));
 
-        /*__wt_row_leaf_value_cell(session, page, rip, unpack);
-        WT_RET(__debug_cell_kv(ds, page, WT_PAGE_ROW_LEAF, "V", unpack));
+        __wt_row_leaf_value_cell(session, page, rip, unpack);
+        WT_RET(__debug_cell_kv(ds, page, WT_PAGE_ROW_LEAF, "V-yangyazhou", unpack));
 
+
+        //xxxxxxx
+        return 0;
+        
         if ((upd = WT_ROW_UPDATE(page, rip)) != NULL)
             WT_RET(__debug_update(ds, upd, false));
 
@@ -1418,7 +1424,7 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
             WT_RET(__debug_hs_key(ds));
 
         if ((insert = WT_ROW_INSERT(page, rip)) != NULL)
-            WT_RET(__debug_row_skip(ds, insert));*/
+            WT_RET(__debug_row_skip(ds, insert));
     }
     return (0);
 }
@@ -1465,7 +1471,7 @@ __debug_row_skip(WT_DBG *ds, WT_INSERT_HEAD *head)
 
     WT_SKIP_FOREACH (ins, head) {
         WT_RET(__debug_item_key(ds, "insert", WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins)));
-        WT_RET(__debug_update(ds, ins->upd, false));
+        //WT_RET(__debug_update(ds, ins->upd, false));
 
         if (!WT_IS_HS(session->dhandle) && ds->hs_cursor != NULL) {
             WT_RET(__wt_buf_set(session, ds->key, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins)));

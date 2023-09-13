@@ -228,6 +228,7 @@ err:
  * __wt_blkcache_write --
  *     Write a buffer into a block, returning the block's address cookie.
  */
+//buf数据内容 = 包括page header + block header + 实际数据
 int
 __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_sizep,
   size_t *compressed_sizep, bool checkpoint, bool checkpoint_io, bool compressed)
@@ -259,12 +260,13 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
      * Optionally stream-compress the data, but don't compress blocks that are already as small as
      * they're going to get.
      */
+    //不需要压缩
     if (btree->compressor == NULL || btree->compressor->compress == NULL || compressed)
         ip = buf;
-    else if (buf->size <= btree->allocsize) {
+    else if (buf->size <= btree->allocsize) {//内容不大，不需要压缩
         ip = buf;
         WT_STAT_DATA_INCR(session, compress_write_too_small);
-    } else {
+    } else {//需要对buf进行压缩
         /* Skip the header bytes of the source data. */
         src = (uint8_t *)buf->mem + WT_BLOCK_COMPRESS_SKIP;
         src_len = buf->size - WT_BLOCK_COMPRESS_SKIP;
@@ -328,7 +330,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
      * Optionally encrypt the data. We need to add in the original length, in case both compression
      * and encryption are done.
      */
-    if ((kencryptor = btree->kencryptor) != NULL) {
+    if ((kencryptor = btree->kencryptor) != NULL) {//加密相关
         /*
          * Get size needed for encrypted buffer.
          */
@@ -351,7 +353,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
     /* Determine if the data requires a checksum. */
     data_checksum = true;
     switch (btree->checksum) {
-    case CKSUM_ON:
+    case CKSUM_ON://默认走这里
         /* Set outside the switch to avoid compiler and analyzer complaints. */
         break;
     case CKSUM_OFF:
@@ -368,7 +370,9 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
     /* Call the block manager to write the block. */
     timer = WT_STAT_ENABLED(session) && !F_ISSET(session, WT_SESSION_INTERNAL);
     time_start = timer ? __wt_clock(session) : 0;
+                        //__bm_checkpoint
     WT_ERR(checkpoint ? bm->checkpoint(bm, session, ip, btree->ckpt, data_checksum) :
+                        //__bm_write
                         bm->write(bm, session, ip, addr, addr_sizep, data_checksum, checkpoint_io));
     if (timer) {
         time_stop = __wt_clock(session);

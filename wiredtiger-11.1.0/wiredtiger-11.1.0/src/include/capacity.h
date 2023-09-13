@@ -43,11 +43,14 @@ typedef enum {
 #define WT_CAP_LOG 30
 #define WT_CAP_READ 55
 
+//__wt_connection_impl.capacity为该类型  __wt_capacity_throttle中使用
+//io_capacity配置，也就是现在IO使用相关，赋值等参考__capacity_config
 struct __wt_capacity {
     uint64_t ckpt;      /* Bytes/sec checkpoint capacity */
     uint64_t evict;     /* Bytes/sec eviction capacity */
     uint64_t log;       /* Bytes/sec logging capacity */
     uint64_t read;      /* Bytes/sec read capacity */
+    //io_capacity配置，也就是现在IO使用
     uint64_t total;     /* Bytes/sec total capacity */
     uint64_t threshold; /* Capacity size period */
 

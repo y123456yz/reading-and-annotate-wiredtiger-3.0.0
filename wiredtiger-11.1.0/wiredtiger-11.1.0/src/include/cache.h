@@ -36,6 +36,7 @@ struct __wt_evict_entry {
 /*
  * WT_EVICT_QUEUE --
  *	Encapsulation of an eviction candidate queue.
+ Eviction is managed using WT_EVICT_QUEUE structures, each of which contains a list of WT_EVICT_ENTRY structures.
  */
 struct __wt_evict_queue {
     WT_SPINLOCK evict_lock;        /* Eviction LRU queue */

@@ -139,14 +139,19 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
 
     void *huffman_value; /* Value huffman encoding */
 
+    //checksum默认配置on, CKSUM_ON
     WT_BTREE_CHECKSUM checksum; /* Checksum configuration */
 
     /*
      * Reconciliation...
      */
+    //dictionary配置，col存储才使用，row存储默认不用
     u_int dictionary;             /* Dictionary slots */
+    //internal_key_truncate配置，默认true
     bool internal_key_truncate;   /* Internal key truncate */
+    //prefix_compression配置，默认false
     bool prefix_compression;      /* Prefix compression */
+    //prefix_compression_min配置，默认为4
     u_int prefix_compression_min; /* Prefix compression min */
 
 #define WT_SPLIT_DEEPEN_MIN_CHILD_DEF 10000
@@ -155,6 +160,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     u_int split_deepen_per_child; /* Entries per child when deepened */
     int split_pct;                /* Split page percent */
 
+    //block_compressor=snappy配置，默认snappy
     WT_COMPRESSOR *compressor;    /* Page compressor */
                                   /*
                                    * When doing compression, the pre-compression in-memory byte size
@@ -162,6 +168,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
                                    * It's an 8B value because it's updated without a lock.
                                    */
     bool leafpage_compadjust;     /* Run-time compression adjustment */
+    //= btree->maxmempage_image, 也就是4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
     uint64_t maxleafpage_precomp; /* Leaf page pre-compression size */
     bool intlpage_compadjust;     /* Run-time compression adjustment */
     uint64_t maxintlpage_precomp; /* Internal page pre-compression size */
@@ -188,9 +195,11 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     bool hs_entries;  /* Has entries in the history store table */
     bool lsm_primary; /* Handle is/was the LSM primary */
 
-    WT_BM *bm;          /* Block manager reference */
+    //__wt_btree_open->__wt_blkcache_open
+    WT_BM *bm;          /* Block manager reference */  //__wt_btree.bm
     u_int block_header; /* WT_PAGE_HEADER_BYTE_SIZE */
 
+    //__rec_set_page_write_gen中自增
     uint64_t write_gen;      /* Write generation */
     uint64_t base_write_gen; /* Write generation on startup. */
     uint64_t run_write_gen;  /* Runtime write generation. */

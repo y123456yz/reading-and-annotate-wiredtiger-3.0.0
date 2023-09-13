@@ -132,7 +132,7 @@
 /*
  * WT_CELL --
  *	Variable-length, on-page cell header.
- */
+ */ //参考__wt_cell_pack_leaf_key，记录key编码方式
 struct __wt_cell {
     /*
      * Maximum of 98 bytes:

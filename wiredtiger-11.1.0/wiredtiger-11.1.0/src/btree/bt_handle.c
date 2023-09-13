@@ -439,6 +439,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt, bool is_ckpt)
         btree->checksum = CKSUM_UNENCRYPTED;
 
     /* Huffman encoding */
+    //Ìø¹ý
     WT_RET(__wt_btree_huffman_open(session));
 
     /*

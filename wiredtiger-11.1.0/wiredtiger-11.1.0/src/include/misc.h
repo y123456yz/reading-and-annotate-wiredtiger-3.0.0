@@ -76,9 +76,9 @@
 /*
  * Align an unsigned value of any type to a specified power-of-2, including the offset result of a
  * pointer subtraction; do the calculation using the largest unsigned integer type available.
- */
+ */ //n按照v字节对齐
 #define WT_ALIGN(n, v) ((((uintmax_t)(n)) + ((v)-1)) & ~(((uintmax_t)(v)) - 1))
-
+//n最解决v字节的一个数
 #define WT_ALIGN_NEAREST(n, v) ((((uintmax_t)(n)) + ((v) / 2)) & ~(((uintmax_t)(v)) - 1))
 
 /* Min, max. */

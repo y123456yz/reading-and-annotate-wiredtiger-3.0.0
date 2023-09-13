@@ -162,7 +162,7 @@ __wt_block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_FH *fh, wt_off_t
 /*
  * __wt_block_write_size --
  *     Return the buffer size required to write a block.
- */
+ */ //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据sizep
 int
 __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
 {
@@ -184,6 +184,7 @@ __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
 /*
  * __wt_block_write --
  *     Write a buffer into a block, returning the block's address cookie.
+ //buf数据内容 = 包括page header + block header + 实际数据
  */
 int
 __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_t *addr,
@@ -206,6 +207,7 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_
 /*
  * __block_write_off --
  *     Write a buffer into a block, returning the block's offset, size and checksum.
+ //数据写入磁盘
  */
 static int
 __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint32_t *objectidp,
@@ -247,6 +249,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
      * the reasons the btree layer must find out from the block-manager layer the maximum size of
      * the eventual write.
      */
+    //buf数据线性化对齐
     align_size = WT_ALIGN(buf->size, block->allocsize);
     if (align_size > buf->memsize) {
         WT_ASSERT(session, align_size <= buf->memsize);
@@ -258,6 +261,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
     }
 
     /* Pre-allocate some number of extension structures. */
+    //提前分配辅助空间
     WT_RET(__wt_block_ext_prealloc(session, 5));
 
     /*

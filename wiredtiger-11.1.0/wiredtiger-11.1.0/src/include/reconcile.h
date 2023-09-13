@@ -9,11 +9,15 @@
 /*
  * WT_REC_KV--
  *	An on-page key/value item we're building.
- */
+ */ //参考__rec_cell_build_leaf_key
 struct __wt_rec_kv {
+    //真正的key内容
     WT_ITEM buf;  /* Data */
+    //头部长度编码后的内容记录到这里面
     WT_CELL cell; /* Cell and cell's length */
+    //记录key编码方式，返回编码后的key长度占用字节数
     size_t cell_len;
+    //编码后的key占用的总字节数=长度部分+实际内容
     size_t len; /* Total length of cell + data */
 };
 
@@ -36,6 +40,8 @@ struct __wt_rec_dictionary {
  * WT_REC_CHUNK --
  *	Reconciliation split chunk.
  */
+//__wt_reconcile.chunk_A chunk_B cur_ptr为该类型
+//__rec_split_chunk_init中初始化
 struct __wt_rec_chunk {
     /*
      * The recno and entries fields are the starting record number of the split chunk (for
@@ -44,9 +50,13 @@ struct __wt_rec_chunk {
      * The key for a row-store page; no column-store key is needed because the page's recno, stored
      * in the recno field, is the column-store key.
      */
+    //__wt_rec_split_finish当前reconcile处理的page上面的K和V总数
     uint32_t entries;
+    //colum才用，row store不用该字段
     uint64_t recno;
+    //对应的ref key，赋值参考__wt_rec_split_init
     WT_ITEM key;
+    //WT_TIME_AGGREGATE_UPDATE中统计赋值
     WT_TIME_AGGREGATE ta;
 
     /* Saved minimum split-size boundary information. */
@@ -57,6 +67,7 @@ struct __wt_rec_chunk {
 
     size_t min_offset; /* byte offset */
 
+    //磁盘中的数据信息，参考__rec_split_write
     WT_ITEM image; /* disk-image */
 
     /* For fixed-length column store, track where the time windows start and how many we have. */
@@ -82,7 +93,7 @@ struct __wt_delete_hs_upd {
  *
  * WT_RECONCILE --
  *	Information tracking a single page reconciliation.
- */
+ */ //WT_SESSION_IMPL.reconcile为该类型    __rec_init分片空间
 struct __wt_reconcile {
     WT_REF *ref; /* Page being reconciled */
     WT_PAGE *page;
@@ -113,6 +124,7 @@ struct __wt_reconcile {
      * a case, the page size stays the same and considering it a success could force the page
      * through eviction repeatedly.
      */
+    //标记是否有update
     bool update_used;
 
     /*
@@ -135,6 +147,7 @@ struct __wt_reconcile {
      * compression couldn't do better, now that raw compression has been removed, we should do
      * better.
      */
+    //标识当前操作的K或者V是否超过page size大小
     bool ovfl_items;
 
     /*
@@ -156,12 +169,14 @@ struct __wt_reconcile {
      * First, the target size of the page we're building. In FLCS, this is the size of both the
      * primary and auxiliary portions.
      */
+    //__wt_rec_split_init
     uint32_t page_size; /* Page size */
 
     /*
      * Second, the split size: if we're doing the page layout, split to a smaller-than-maximum page
      * size when a split is required so we don't repeatedly split a packed page.
      */
+    //__wt_rec_split_init
     uint32_t split_size;     /* Split page size */
     uint32_t min_split_size; /* Minimum split page size */
 
@@ -190,8 +205,13 @@ struct __wt_reconcile {
      * pointers to stack locations around the code.
      */
     uint64_t recno;         /* Current record number */
+    //__wt_rec_incr计数统计，K 和 V各加1
     uint32_t entries;       /* Current number of entries */
+    //r->first_free = WT_PAGE_HEADER_BYTE(btree, r->cur_ptr->image.mem);
+    //__wt_rec_image_copy中会拷贝数据到该空间
     uint8_t *first_free;    /* Current first free byte */
+
+    //__wt_rec_split_init
     size_t space_avail;     /* Remaining space in this chunk */
     size_t min_space_avail; /* Remaining space in this chunk to put a minimum size boundary */
 
@@ -233,6 +253,7 @@ struct __wt_reconcile {
      * page, we save WT_UPDATE lists here, and then move them to per-block areas as the blocks are
      * defined.
      */
+    //__rec_update_save中对下面几个值赋值
     WT_SAVE_UPD *supd; /* Saved updates */
     uint32_t supd_next;
     size_t supd_allocated;
@@ -248,7 +269,9 @@ struct __wt_reconcile {
     size_t delete_hs_upd_allocated;
 
     /* List of pages we've written so far. */
+    //可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
     WT_MULTI *multi;
+    //__rec_split_write中自增, 也就是该page拆分为了多少个新page，可以参考__rec_split_dump_keys的打印
     uint32_t multi_next;
     size_t multi_allocated;
 
@@ -277,8 +300,11 @@ struct __wt_reconcile {
                                              /* Skiplist head. */
     WT_REC_DICTIONARY *dictionary_head[WT_SKIP_MAXDEPTH];
 
+    //经过__rec_cell_build_leaf_key编码后的KV存入这两个遍历
     WT_REC_KV k, v; /* Key/Value being built */
 
+    //__rec_cell_build_leaf_key中会拷贝需要操作的K或者V内容到这个变量
+    //__rec_row_leaf_insert中拷贝insert的数据到该cur中
     WT_ITEM *cur, _cur;   /* Key/Value being built */
     WT_ITEM *last, _last; /* Last key/value built */
 

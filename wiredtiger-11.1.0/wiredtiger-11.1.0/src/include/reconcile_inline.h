@@ -208,7 +208,7 @@ __wt_rec_need_split(WT_RECONCILE *r, size_t len)
 /*
  * __wt_rec_incr --
  *     Update the memory tracking structure for a set of new entries.
- */
+ */ //记录可用空间相关统计信息
 static inline void
 __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size)
 {
@@ -220,6 +220,7 @@ __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size
     WT_ASSERT(session,
       WT_BLOCK_FITS(r->first_free, size, r->cur_ptr->image.mem, r->cur_ptr->image.memsize));
 
+    //计数统计，代表当前处理的page上面的K和V数 
     r->entries += v;
     r->space_avail -= size;
     r->first_free += size;
@@ -240,6 +241,7 @@ __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size
  * __wt_rec_image_copy --
  *     Copy a key/value cell and buffer pair into the new image.
  */
+//拷贝k或者v数据到r->first_free对应内存空间
 static inline void
 __wt_rec_image_copy(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *kv)
 {
@@ -253,14 +255,17 @@ __wt_rec_image_copy(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *kv)
      *
      * WT_CELLs are typically small, 1 or 2 bytes -- don't call memcpy, do the copy in-line.
      */
+    //先拷贝数据长度部分到page header后面
     for (p = r->first_free, t = (uint8_t *)&kv->cell, len = kv->cell_len; len > 0; --len)
         *p++ = *t++;
 
     /* The data can be quite large -- call memcpy. */
+    //在拷贝真实数据
     if (kv->buf.size != 0)
         memcpy(p, kv->buf.data, kv->buf.size);
 
     WT_ASSERT(session, kv->len == kv->cell_len + kv->buf.size);
+    //记录可用空间相关统计信息
     __wt_rec_incr(session, r, 1, kv->len);
 }
 

@@ -191,7 +191,7 @@ __huffman_confchk(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *v)
 /*
  * __wt_btree_huffman_open --
  *     Configure Huffman encoding for the tree.
- */
+ */ //默认不启用，跳过
 int
 __wt_btree_huffman_open(WT_SESSION_IMPL *session)
 {

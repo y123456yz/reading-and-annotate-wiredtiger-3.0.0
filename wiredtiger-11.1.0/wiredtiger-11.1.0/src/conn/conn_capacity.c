@@ -272,7 +272,7 @@ __capacity_reserve(
  *     so that we can fit reservations for exactly the configured capacity in a second. Reservation
  *     times are in nanoseconds since the epoch.
  */
-void
+void //io容量限制等，跳过
 __wt_capacity_throttle(WT_SESSION_IMPL *session, uint64_t bytes, WT_THROTTLE_TYPE type)
 {
     struct timespec now;

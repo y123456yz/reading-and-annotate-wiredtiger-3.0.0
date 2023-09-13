@@ -12,6 +12,7 @@
  * __rec_update_save --
  *     Save a WT_UPDATE list for later restoration.
  */
+//r->supd相关统计及赋值
 static inline int
 __rec_update_save(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, WT_ROW *rip,
   WT_UPDATE *onpage_upd, WT_UPDATE *tombstone, bool supd_restore, size_t upd_memsize)
@@ -479,6 +480,7 @@ __rec_calc_upd_memsize(WT_UPDATE *onpage_upd, WT_UPDATE *tombstone, size_t upd_m
  */
 static int
 __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd,
+  //first_upd链表中最新的update数据   //first_upd链表中第一个update数据
   WT_UPDATE_SELECT *upd_select, WT_UPDATE **first_txn_updp, bool *has_newer_updatesp,
   size_t *upd_memsizep)
 {
@@ -494,6 +496,7 @@ __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd
     session_txnid = WT_SESSION_TXN_SHARED(session)->id;
     seen_prepare = false;
 
+    //遍历upd链表
     for (upd = first_upd; upd != NULL; upd = upd->next) {
         if ((txnid = upd->txnid) == WT_TXN_ABORTED)
             continue;
@@ -502,6 +505,7 @@ __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd
          * Track the first update in the chain that is not aborted and the maximum transaction ID.
          */
         if (*first_txn_updp == NULL)
+            //记录upd链表中的第一个成员到first_txn_updp
             *first_txn_updp = upd;
         if (WT_TXNID_LT(max_txn, txnid))
             max_txn = txnid;
@@ -585,11 +589,11 @@ __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd
         }
 
         /* Track the first update with non-zero timestamp. */
-        if (upd->start_ts > max_ts)
+        if (upd->start_ts > max_ts) //记录upd链表中节点最大的时间戳
             max_ts = upd->start_ts;
 
         /* Always select the newest committed update to write to disk */
-        if (upd_select->upd == NULL)
+        if (upd_select->upd == NULL) //获取最新的一条upd数据，记录到upd_select->upd
             upd_select->upd = upd;
 
         /*
@@ -753,7 +757,7 @@ __rec_fill_tw_from_upd_select(
 /*
  * __wt_rec_upd_select --
  *     Return the update in a list that should be written (or NULL if none can be written).
- */
+ */ //获取该ins对应的update链表中最新的V
 int
 __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, WT_ROW *rip,
   WT_CELL_UNPACK_KV *vpack, WT_UPDATE_SELECT *upd_select)
@@ -911,6 +915,7 @@ __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, W
           (has_newer_updates || F_ISSET(S2C(session), WT_CONN_IN_MEMORY));
 
         upd_memsize = __rec_calc_upd_memsize(onpage_upd, upd_select->tombstone, upd_memsize);
+        //r->supd相关统计及赋值
         WT_RET(__rec_update_save(
           session, r, ins, rip, onpage_upd, upd_select->tombstone, supd_restore, upd_memsize));
 

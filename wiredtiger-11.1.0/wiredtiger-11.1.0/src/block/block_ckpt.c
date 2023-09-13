@@ -213,6 +213,14 @@ __wt_block_checkpoint_start(WT_SESSION_IMPL *session, WT_BLOCK *block)
 /*
  * __wt_block_checkpoint --
  *     Create a new checkpoint.
+
+Take the live_lock, to stop updates to the live checkpoint we are checkpointing.
+Write the allocated and discard extent lists, and the root page into a checkpoint. Move the available extent list contents into a temporary ckpt_avail extent list.
+Release the live_lock
+Wait for another piece of code to update the metadata
+Take the live_lock
+Merge the ckpt_avail extent list into the avail extent list for the new live checkpoint.
+Release the live_lock
  */
 int
 __wt_block_checkpoint(
@@ -916,6 +924,12 @@ __ckpt_update(
 /*
  * __wt_block_checkpoint_resolve --
  *     Resolve a checkpoint.
+
+ When deleting a checkpoint it's extent lists are merged into the next most recent checkpoints extent lists. 
+ Any blocks that are no longer needed (i.e those that are on the allocate list of the earlier checkpoint and the discard 
+ list of the newer checkpoint) are moved onto a special available list in the live checkpoint (called ckpt_avail). Once a 
+ checkpoint is really deleted, the ckpt_avail list is merged into the live checkpoints available list. The merge is 
+ implemented in the __wt_block_checkpoint_resolve method.
  */
 int
 __wt_block_checkpoint_resolve(WT_SESSION_IMPL *session, WT_BLOCK *block, bool failed)

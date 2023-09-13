@@ -707,11 +707,13 @@ __bm_verify_start(WT_BM *bm, WT_SESSION_IMPL *session, WT_CKPT *ckptbase, const 
 /*
  * __bm_write --
  *     Write a buffer into a block, returning the block's address cookie.
+ //buf数据内容 = 包括page header + block header + 实际数据
  */
 static int
 __bm_write(WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_sizep,
   bool data_checksum, bool checkpoint_io)
-{
+{   
+    //io容量限制等，跳过
     __wt_capacity_throttle(
       session, buf->size, checkpoint_io ? WT_THROTTLE_CKPT : WT_THROTTLE_EVICT);
 
@@ -743,6 +745,7 @@ __bm_write_readonly(WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *
 static int
 __bm_write_size(WT_BM *bm, WT_SESSION_IMPL *session, size_t *sizep)
 {
+    //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据sizep
     return (__wt_block_write_size(session, bm->block, sizep));
 }
 

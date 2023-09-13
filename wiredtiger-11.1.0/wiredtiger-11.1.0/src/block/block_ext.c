@@ -443,6 +443,7 @@ __wt_block_off_remove_overlap(
 /*
  * __block_extend --
  *     Extend the file to allocate space.
+ //block->size增加size长度，同时offp记录修改前block->size的长度
  */
 static inline int
 __block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off_t size)
@@ -469,6 +470,12 @@ __block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off
     block->size += size;
 
     WT_STAT_DATA_INCR(session, block_extension);
+
+//    [1694078097:748116][50315:0x7f6417db4800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 4096-32768
+//    [1694078097:748208][50315:0x7f6417db4800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 32768-61440
+//    [1694078097:748309][50315:0x7f6417db4800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 61440-90112
+//    [1694078097:748369][50315:0x7f6417db4800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 90112-118784
+//    [1694078097:748451][50315:0x7f6417db4800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 118784-147456
     __wt_verbose(session, WT_VERB_BLOCK, "file extend %" PRIdMAX "-%" PRIdMAX, (intmax_t)*offp,
       (intmax_t)(*offp + size));
 
@@ -510,7 +517,7 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
      */
     if (block->live.avail.bytes < (uint64_t)size)
         goto append;
-    if (block->allocfirst) {
+    if (block->allocfirst > 0) {  
         if (!__block_first_srch(block->live.avail.off, size, estack))
             goto append;
         ext = *estack[0];
@@ -518,6 +525,7 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
         __block_size_srch(block->live.avail.sz, size, sstack);
         if ((szp = *sstack[0]) == NULL) {
 append:
+            //block->size增加size长度，同时offp记录修改前block->size的长度
             WT_RET(__block_extend(session, block, offp, size));
             WT_RET(__block_append(session, block, &block->live.alloc, *offp, (wt_off_t)size));
             return (0);

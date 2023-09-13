@@ -44,7 +44,11 @@
 /*
  * WT_EXTLIST --
  *	An extent list.
- */
+ Internally, the block manager uses a data structure called an extent list or a WT_EXTLIST to track file usage. 
+ An extent list consists of a series of extents (or WT_EXT elements). Each extent uses a file offset and size to 
+ track a portion of the file.
+ */ 
+//__wt_block_ckpt的alloc avail discard为该类型
 struct __wt_extlist {
     char *name; /* Name */
 
@@ -137,7 +141,8 @@ struct __wt_size {
  * 14 packed 8B values.
  */
 #define WT_BLOCK_CHECKPOINT_BUFFER (1 + 14 * WT_INTPACK64_MAXSIZE)
-
+//官方文档参考https://github.com/wiredtiger/wiredtiger/wiki/Block-Manager-Overview#source-files-in-block-manager
+//__wt_block.live为该类型
 struct __wt_block_ckpt {
     uint8_t version; /* Version */
 
@@ -145,6 +150,14 @@ struct __wt_block_ckpt {
     wt_off_t root_offset; /* The root */
     uint32_t root_checksum, root_size;
 
+/*
+There are three extent lists that are maintained per checkpoint:
+    alloc: The file ranges allocated for a given checkpoint.
+    avail: The file ranges that are unused and available for allocation.
+    discard: The file ranges freed in the current checkpoint.
+The alloc and discard extent lists are maintained as a skiplist sorted by file offset. 
+The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
+*/
     WT_EXTLIST alloc;   /* Extents allocated */
     WT_EXTLIST avail;   /* Extents available */
     WT_EXTLIST discard; /* Extents discarded */
@@ -166,12 +179,16 @@ struct __wt_block_ckpt {
 /*
  * WT_BM --
  *	Block manager handle, references a single checkpoint in a file.
- */
+ */ 
+//__wt_btree_open->__wt_blkcache_open分片空间，__bm_method_set中进行接口定义
+//__wt_btree.bm为该类型
 struct __wt_bm {
     /* Methods */
     int (*addr_invalid)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
     int (*addr_string)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, const uint8_t *, size_t);
+    //__bm_block_header
     u_int (*block_header)(WT_BM *);
+    //__bm_checkpoint
     int (*checkpoint)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, WT_CKPT *, bool);
     int (*checkpoint_last)(WT_BM *, WT_SESSION_IMPL *, char **, char **, WT_ITEM *);
     int (*checkpoint_load)(
@@ -202,9 +219,11 @@ struct __wt_bm {
     int (*verify_addr)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
     int (*verify_end)(WT_BM *, WT_SESSION_IMPL *);
     int (*verify_start)(WT_BM *, WT_SESSION_IMPL *, WT_CKPT *, const char *[]);
+    //__bm_write
     int (*write)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, uint8_t *, size_t *, bool, bool);
     int (*write_size)(WT_BM *, WT_SESSION_IMPL *, size_t *);
 
+    //__wt_block_open  
     WT_BLOCK *block; /* Underlying file */
 
     void *map; /* Mapped region */
@@ -220,14 +239,15 @@ struct __wt_bm {
 /*
  * WT_BLOCK --
  *	Block manager handle, references a single file.
- */ //分配空间和赋值见__wt_block_open
+ */ 
+//分配空间和赋值见__wt_block_open，__wt_bm.block为该类型
 struct __wt_block {
     const char *name;  /* Name */
     uint32_t objectid; /* Object id */
     uint32_t ref;      /* References */
 
-    TAILQ_ENTRY(__wt_block) q;     /* Linked list of handles */
-    TAILQ_ENTRY(__wt_block) hashq; /* Hashed list of handles */
+//   TAILQ_ENTRY(__wt_block) q;     /* Linked list of handles */
+//   TAILQ_ENTRY(__wt_block) hashq; /* Hashed list of handles */
     bool linked;
 
     WT_SPINLOCK cache_lock;   /* Block cache layer lock */
@@ -244,10 +264,15 @@ struct __wt_block {
     bool created_during_backup; /* Created during incremental backup */
 
     /* Configuration information, set when the file is opened. */
+    //https://source.wiredtiger.com/develop/arch-block.html
     uint32_t allocfirst; /* Allocation is first-fit */
+    //allocation_size配置，默认4K  
+    //getconf PAGESIZE获取操作系统page
     uint32_t allocsize;  /* Allocation size */
     size_t os_cache;     /* System buffer cache flush max */
+    //os_cache_max配置，默认为0
     size_t os_cache_max;
+    //os_cache_dirty_max配置，默认为0
     size_t os_cache_dirty_max;
 
     u_int block_header; /* Header length */
@@ -257,7 +282,7 @@ struct __wt_block {
      * by one WT_BM handle.
      */
     WT_SPINLOCK live_lock; /* Live checkpoint lock */
-    WT_BLOCK_CKPT live;    /* Live checkpoint */
+    WT_BLOCK_CKPT live;    /* Live checkpoint */  //__wt_block.live
     bool live_open;        /* Live system is open */
     enum {                 /* Live checkpoint status */
         WT_CKPT_NONE = 0,
@@ -286,6 +311,10 @@ struct __wt_block {
     uint64_t frags;          /* Maximum frags in the file */
     uint8_t *fragfile;       /* Per-file frag tracking list */
     uint8_t *fragckpt;       /* Per-checkpoint frag tracking list */
+
+   //yang add change 挪动位置
+   TAILQ_ENTRY(__wt_block) q;     /* Linked list of handles */
+   TAILQ_ENTRY(__wt_block) hashq; /* Hashed list of handles */
 };
 
 /*
@@ -332,6 +361,12 @@ __wt_block_desc_byteswap(WT_BLOCK_DESC *desc)
  * WT_BLOCK_HEADER --
  *	Blocks have a common header, a WT_PAGE_HEADER structure followed by a
  * block-manager specific structure: WT_BLOCK_HEADER is WiredTiger's default.
+ https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
+
+ The page header is followed by a "block header". In WiredTiger each page is a block, and it is possible 
+   to plug in different "block managers" that manage the transition of pages to and from disk. 
+
+ 参考https://source.wiredtiger.com/develop/arch-block.html
  */
 struct __wt_block_header {
     /*

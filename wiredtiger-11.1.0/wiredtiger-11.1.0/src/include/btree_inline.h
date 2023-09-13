@@ -1436,6 +1436,7 @@ __wt_row_leaf_value(WT_PAGE *page, WT_ROW *rip, WT_ITEM *value)
         value->size = WT_KV_DECODE_VALUE_LEN(v);
         return (true);
     }
+    
     return (false);
 }
 
@@ -1741,6 +1742,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * correctness (the page must be reconciled again before being evicted after the split,
      * information from a previous reconciliation will be wrong, so we can't evict immediately).
      */
+    //这里是大阈值，如果page内存找过这个阈值，则不能进行memsplite,而是__evict_reconcile
     if (page->memory_footprint < btree->splitmempage)
         return (false);
     if (WT_PAGE_IS_INTERNAL(page))

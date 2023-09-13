@@ -78,9 +78,11 @@ typedef struct __wt_blkcache_item WT_BLKCACHE_ITEM;
 struct __wt_blkincr;
 typedef struct __wt_blkincr WT_BLKINCR;
 
-struct __wt_block;  //分配空间和赋值见__wt_block_open
+struct __wt_block;  
+//分配空间和赋值见__wt_block_open，__wt_bm.block为该类型
 typedef struct __wt_block WT_BLOCK;
 struct __wt_block_ckpt;
+//__wt_block.live为该类型
 typedef struct __wt_block_ckpt WT_BLOCK_CKPT;
 struct __wt_block_desc;
 typedef struct __wt_block_desc WT_BLOCK_DESC;
@@ -93,6 +95,8 @@ typedef struct __wt_bloom WT_BLOOM;
 struct __wt_bloom_hash;
 typedef struct __wt_bloom_hash WT_BLOOM_HASH;
 struct __wt_bm;
+//__wt_btree_open->__wt_blkcache_open分片空间，__bm_method_set中进行接口定义
+//__wt_btree.bm为该类型
 typedef struct __wt_bm WT_BM;
 struct __wt_btree;
 //btree内存分配__wt_conn_dhandle_alloc  //存储在WT_DATA_HANDLE.handle成员
@@ -106,6 +110,7 @@ struct __wt_cache_pool;
 //__wt_process.cache_pool存入这个全局变量成员中
 typedef struct __wt_cache_pool WT_CACHE_POOL;
 struct __wt_capacity;
+//__wt_connection_impl.capacity为该类型  __wt_capacity_throttle中使用
 typedef struct __wt_capacity WT_CAPACITY;
 struct __wt_cell;
 typedef struct __wt_cell WT_CELL;
@@ -211,6 +216,7 @@ typedef struct __wt_evict_queue WT_EVICT_QUEUE;
 struct __wt_ext;
 typedef struct __wt_ext WT_EXT;
 struct __wt_extlist;
+//__wt_block_ckpt的alloc avail discard为该类型
 typedef struct __wt_extlist WT_EXTLIST;
 struct __wt_fh;
 typedef struct __wt_fh WT_FH;
@@ -275,6 +281,7 @@ typedef struct __wt_lsm_worker_args WT_LSM_WORKER_ARGS;
 struct __wt_lsm_worker_cookie;
 typedef struct __wt_lsm_worker_cookie WT_LSM_WORKER_COOKIE;
 struct __wt_multi;
+//一个page拆分为多个page时候用到，可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
 typedef struct __wt_multi WT_MULTI;
 struct __wt_myslot;
 typedef struct __wt_myslot WT_MYSLOT;
@@ -318,12 +325,15 @@ typedef struct __wt_page_modify WT_PAGE_MODIFY;
 struct __wt_process;
 typedef struct __wt_process WT_PROCESS;
 struct __wt_rec_chunk;
+//__wt_reconcile.chunk_A chunk_B cur_ptr为该类型
+//__rec_split_chunk_init中初始化
 typedef struct __wt_rec_chunk WT_REC_CHUNK;
 struct __wt_rec_dictionary;
 typedef struct __wt_rec_dictionary WT_REC_DICTIONARY;
 struct __wt_rec_kv;
 typedef struct __wt_rec_kv WT_REC_KV;
 struct __wt_reconcile;
+//WT_SESSION_IMPL.reconcile为该类型  __rec_init分片空间
 typedef struct __wt_reconcile WT_RECONCILE;
 struct __wt_ref;
 //btree对应root page,赋值参考__btree_tree_open_empty

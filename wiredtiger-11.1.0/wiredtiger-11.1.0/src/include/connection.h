@@ -9,6 +9,7 @@
 /*******************************************
  * Global per-process structure.
  *******************************************/
+
 /*
  * WT_PROCESS --
  *	Per-process information for the library.
@@ -20,6 +21,7 @@ struct __wt_process {
     TAILQ_HEAD(__wt_connection_impl_qh, __wt_connection_impl) connqh;
 
 /* Checksum functions */
+//也就是wiredtiger_crc32c_func
 #define __wt_checksum(chunk, len) __wt_process.checksum(chunk, len)
     uint32_t (*checksum)(const void *, size_t);
 
@@ -445,7 +447,8 @@ struct __wt_connection_impl {
     WT_CONNECTION_STATS *stats[WT_COUNTER_SLOTS];
     WT_CONNECTION_STATS *stat_array;
 
-    WT_CAPACITY capacity;              /* Capacity structure */
+    //__wt_capacity_throttle中使用
+    WT_CAPACITY capacity;              /* Capacity structure */ 
     WT_SESSION_IMPL *capacity_session; /* Capacity thread session */
     wt_thread_t capacity_tid;          /* Capacity thread */
     bool capacity_tid_set;             /* Capacity thread set */

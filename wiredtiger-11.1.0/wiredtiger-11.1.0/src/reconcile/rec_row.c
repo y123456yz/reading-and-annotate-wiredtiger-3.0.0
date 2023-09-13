@@ -76,6 +76,7 @@ __rec_cell_build_int_key(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *
  *     Process a key and return a WT_CELL structure and byte string to be stored on a row-store leaf
  *     page.
  */
+//对key进行编码后存入r->k中
 static int
 __rec_cell_build_leaf_key(
   WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *data, size_t size, bool *is_ovflp)
@@ -89,10 +90,11 @@ __rec_cell_build_leaf_key(
     *is_ovflp = false;
 
     btree = S2BT(session);
+    //对key进行编码后存入r->k中
     key = &r->k;
 
     pfx = 0;
-    if (data == NULL)
+    if (data == NULL)  //如果没有指定data，则直接拷贝cur内容到&r->k
         /*
          * When data is NULL, our caller has a prefix compressed key they can't use (probably
          * because they just crossed a split point). Use the full key saved when last called,
@@ -143,6 +145,7 @@ __rec_cell_build_leaf_key(
         }
 
         /* Copy the non-prefix bytes into the key buffer. */
+        //data拷贝到key buf中
         WT_RET(__wt_buf_set(session, &key->buf, (uint8_t *)data + pfx, size - pfx));
     }
     r->key_pfx_last = pfx;
@@ -159,10 +162,15 @@ __rec_cell_build_leaf_key(
             *is_ovflp = true;
             return (__wt_rec_cell_build_ovfl(session, r, key, WT_CELL_KEY_OVFL, NULL, 0));
         }
+
+        //需要前缀压缩，继续递归调用，下次会进入上面的pfx == 0{}循环体中
+        //递归调用
         return (__rec_cell_build_leaf_key(session, r, NULL, 0, is_ovflp));
     }
 
+    //记录key编码方式，返回编码后的key头部长度
     key->cell_len = __wt_cell_pack_leaf_key(&key->cell, pfx, key->buf.size);
+    //编码后的key占用的总字节数=长度部分+实际内容
     key->len = key->cell_len + key->buf.size;
 
     return (0);
@@ -492,6 +500,7 @@ __rec_row_zero_len(WT_SESSION_IMPL *session, WT_TIME_WINDOW *tw)
  * __rec_row_leaf_insert --
  *     Walk an insert chain, writing K/V pairs.
  */
+//把这个KV数据添加到r->first_free对应内存空间
 static int
 __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 {
@@ -513,7 +522,8 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 
     upd = NULL;
 
-    for (; ins != NULL; ins = WT_SKIP_NEXT(ins)) {
+    for (; ins != NULL; ins = WT_SKIP_NEXT(ins)) {//遍历跳跃表
+         //获取该ins对应的update链表中最新的V
         WT_RET(__wt_rec_upd_select(session, r, ins, NULL, NULL, &upd_select));
         if ((upd = upd_select.upd) == NULL) {
             /*
@@ -527,6 +537,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
             if (!upd_select.upd_saved || !__wt_rec_need_split(r, 0))
                 continue;
 
+            //拷贝数据到r->cur中
             WT_RET(__wt_buf_set(session, r->cur, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins)));
             WT_RET(__wt_rec_split_crossing_bnd(session, r, 0));
 
@@ -575,6 +586,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
             WT_RET(__wt_illegal_value(session, upd->type));
         }
         /* Build key cell. */
+        //对key进行编码后存入r->k中，也就是前面的变量key
         WT_RET(__rec_cell_build_leaf_key(
           session, r, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins), &ovfl_key));
 
@@ -595,15 +607,18 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
         }
 
         /* Copy the key/value pair onto the page. */
+        //拷贝key数据到r->first_free对应空间
         __wt_rec_image_copy(session, r, key);
-        if (val->len == 0 && __rec_row_zero_len(session, &tw))
+        if (val->len == 0 && __rec_row_zero_len(session, &tw))//说明value为空
             r->any_empty_value = true;
         else {
             r->all_empty_value = false;
-            if (btree->dictionary)
+            if (btree->dictionary)//row存储不用
                 WT_RET(__wt_rec_dict_replace(session, r, &tw, 0, val));
+            //拷贝val数据到r->first_free对应空间
             __wt_rec_image_copy(session, r, val);
         }
+        //tw统计
         WT_TIME_AGGREGATE_UPDATE(session, &r->cur_ptr->ta, &tw);
 
         /* Update compression state. */
@@ -695,6 +710,7 @@ __wt_rec_row_leaf(
     /*
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
      */
+    //把这个KV数据添加到r->first_free对应内存空间
     if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT_SMALLEST(page))) != NULL)
         WT_RET(__rec_row_leaf_insert(session, r, ins));
 
@@ -713,6 +729,7 @@ __wt_rec_row_leaf(
     WT_ERR(__wt_scr_alloc(session, 0, &tmpkey));
 
     /* For each entry in the page... */
+    //遍历该page所有KV，然后把这个KV数据添加到r->first_free对应内存空间
     WT_ROW_FOREACH (page, rip, i) {
         /*
          * The salvage code, on some rare occasions, wants to reconcile a page but skip some leading
@@ -743,6 +760,7 @@ __wt_rec_row_leaf(
         __wt_row_leaf_value_cell(session, page, rip, vpack);
 
         /* Look for an update. */
+        //获取该ins对应的update链表中最新的V
         WT_ERR(__wt_rec_upd_select(session, r, NULL, rip, vpack, &upd_select));
         upd = upd_select.upd;
 
@@ -990,9 +1008,10 @@ slow:
 
 leaf_insert:
         /* Write any K/V pairs inserted into the page after this key. */
+        //把这个KV数据添加到r->first_free对应内存空间
         if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT(page, rip))) != NULL)
             WT_ERR(__rec_row_leaf_insert(session, r, ins));
-    }
+    } ////遍历该page所有KV，然后把这个KV数据添加到r->first_free对应内存空间,整个page数据遍历完成退出该for循环
 
     /* Write the remnant page. */
     ret = __wt_rec_split_finish(session, r);

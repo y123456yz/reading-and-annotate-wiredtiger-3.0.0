@@ -448,7 +448,8 @@ __wt_cell_pack_int_key(WT_CELL *cell, size_t size)
 /*
  * __wt_cell_pack_leaf_key --
  *     Set a row-store leaf page key's WT_CELL contents.
- */
+ */ 
+//记录key编码方式，返回编码后的key头部编码长度
 static inline size_t
 __wt_cell_pack_leaf_key(WT_CELL *cell, uint8_t prefix, size_t size)
 {
@@ -456,21 +457,24 @@ __wt_cell_pack_leaf_key(WT_CELL *cell, uint8_t prefix, size_t size)
 
     /* Short keys have 6 bits of data length in the descriptor byte. */
     if (size <= WT_CELL_SHORT_MAX) {
-        if (prefix == 0) {
+        if (prefix == 0) {//小key + 非前缀压缩
             byte = (uint8_t)size; /* Type + length */
             cell->__chunk[0] = (uint8_t)((byte << WT_CELL_SHORT_SHIFT) | WT_CELL_KEY_SHORT);
             return (1);
         }
+
+        //小key + 前缀压缩
         byte = (uint8_t)size; /* Type + length */
         cell->__chunk[0] = (uint8_t)((byte << WT_CELL_SHORT_SHIFT) | WT_CELL_KEY_SHORT_PFX);
         cell->__chunk[1] = prefix; /* Prefix */
         return (2);
     }
 
+    //大key + 非前缀压缩
     if (prefix == 0) {
         cell->__chunk[0] = WT_CELL_KEY; /* Type */
         p = cell->__chunk + 1;
-    } else {
+    } else {//大key + 前缀压缩
         cell->__chunk[0] = WT_CELL_KEY_PFX; /* Type */
         cell->__chunk[1] = prefix;          /* Prefix */
         p = cell->__chunk + 2;

@@ -11,10 +11,14 @@
 /*
  * Per session handle cached block manager information.
  */
+//__wt_block_ext_prealloc 
+//session->block_manager为该类型
 typedef struct {
+    //参考__block_ext_prealloc初始化
     WT_EXT *ext_cache;   /* List of WT_EXT handles */
     u_int ext_cache_cnt; /* Count */
 
+    //参考__block_size_prealloc初始化
     WT_SIZE *sz_cache;  /* List of WT_SIZE handles */
     u_int sz_cache_cnt; /* Count */
 } WT_BLOCK_MGR_SESSION;

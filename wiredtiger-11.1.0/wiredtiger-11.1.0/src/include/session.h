@@ -198,7 +198,10 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     WT_TXN_ISOLATION isolation;
     WT_TXN *txn; /* Transaction state */
 
+    //__wt_block_ext_prealloc中初始化和赋值
+    //对应WT_BLOCK_MGR_SESSION结构  参考官方文档https://source.wiredtiger.com/develop/arch-block.html
     void *block_manager; /* Block-manager support */
+    //__block_manager_session_cleanup
     int (*block_manager_cleanup)(WT_SESSION_IMPL *);
 
     const char *hs_checkpoint;     /* History store checkpoint name, during checkpoint cursor ops */
@@ -227,8 +230,9 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     u_int op_handle_next;       /* Next empty slot */
     size_t op_handle_allocated; /* Bytes allocated */
 
-    //__reconcile中赋值初始化
+    //__reconcile中赋值初始化 WT_RECONCILE
     void *reconcile; /* Reconciliation support */
+    //__rec_destroy_session
     int (*reconcile_cleanup)(WT_SESSION_IMPL *);
 
     /* Salvage support. */
