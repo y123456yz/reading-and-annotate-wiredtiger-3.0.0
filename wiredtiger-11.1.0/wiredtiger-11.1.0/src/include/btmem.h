@@ -54,7 +54,7 @@ struct __wt_page_header {
      * The record number of the first record of the page is stored on disk so we can figure out
      * where the column-store leaf page fits into the key space during salvage.
      */ //A uint64_t record number, used by column stores (since they don't maintain keys internally)
-    uint64_t recno; /* 00-07: column-store starting recno */
+    uint64_t recno; /* 00-07: column-store starting recno */ //行存储该内容为WT_RECNO_OOB
 
     /*
      * We maintain page write-generations in the non-transactional case as that's how salvage can
@@ -98,7 +98,7 @@ struct __wt_page_header {
 /*
  * WT_PAGE_HEADER_SIZE is the number of bytes we allocate for the structure: if the compiler inserts
  * padding it will break the world.
- */
+ */ //也就是上面的__wt_page_header头部结构长度
 #define WT_PAGE_HEADER_SIZE 28
 
 /*
@@ -308,6 +308,7 @@ struct __wt_ovfl_track {
      * Overflow key/value address/byte-string pairs we potentially reuse each time we reconcile the
      * page.
      */
+    //可以参考__wt_ovfl_reuse_search
     WT_OVFL_REUSE *ovfl_reuse[WT_SKIP_MAXDEPTH];
 
     /*

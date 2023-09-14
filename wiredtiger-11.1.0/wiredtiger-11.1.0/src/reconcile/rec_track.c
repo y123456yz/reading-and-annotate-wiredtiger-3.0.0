@@ -201,6 +201,7 @@ __ovfl_reuse_dump(WT_SESSION_IMPL *session, WT_PAGE *page)
  * __ovfl_reuse_skip_search --
  *     Return the first, not in-use, matching value in the overflow reuse list.
  */
+//在head跳跃表中查找是否存在有value这个元素
 static WT_OVFL_REUSE *
 __ovfl_reuse_skip_search(WT_OVFL_REUSE **head, const void *value, size_t value_size)
 {
@@ -411,6 +412,7 @@ __ovfl_reuse_wrapup_err(WT_SESSION_IMPL *session, WT_PAGE *page)
  * __wt_ovfl_reuse_search --
  *     Search the page's list of overflow records for a match.
  */
+//在ovfl_reuse跳跃表中查找是否存在有value这个元素，返回这个元素地址，如果value元素已经存在直接返回地址信息
 int
 __wt_ovfl_reuse_search(WT_SESSION_IMPL *session, WT_PAGE *page, uint8_t **addrp, size_t *addr_sizep,
   const void *value, size_t value_size)
@@ -429,6 +431,7 @@ __wt_ovfl_reuse_search(WT_SESSION_IMPL *session, WT_PAGE *page, uint8_t **addrp,
      * The search function returns the first matching record in the list which does not have the
      * in-use flag set, or NULL.
      */
+    //在ovfl_reuse跳跃表中查找是否存在有value这个元素，返回这个元素地址
     if ((reuse = __ovfl_reuse_skip_search(head, value, value_size)) == NULL)
         return (0);
 

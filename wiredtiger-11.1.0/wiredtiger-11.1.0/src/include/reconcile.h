@@ -9,7 +9,7 @@
 /*
  * WT_REC_KV--
  *	An on-page key/value item we're building.
- */ //参考__rec_cell_build_leaf_key
+ */ //参考__rec_cell_build_leaf_key  __wt_rec_cell_build_val
 struct __wt_rec_kv {
     //真正的key内容
     WT_ITEM buf;  /* Data */
@@ -68,6 +68,9 @@ struct __wt_rec_chunk {
     size_t min_offset; /* byte offset */
 
     //磁盘中的数据信息，参考__rec_split_write
+    //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
+    //corrected_page_size
+    //r->first_free指向这里面的实际数据位置，也就是(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据)中的实际数据
     WT_ITEM image; /* disk-image */
 
     /* For fixed-length column store, track where the time windows start and how many we have. */
@@ -194,7 +197,12 @@ struct __wt_reconcile {
      * generates more split chunks, the previous chunk is written to the disk and current and
      * previous swap.
      */
-    WT_REC_CHUNK chunk_A, chunk_B, *cur_ptr, *prev_ptr;
+    WT_REC_CHUNK chunk_A, 
+                 chunk_B, 
+                 //实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+                 //配合__wt_rec_image_copy  __wt_rec_split_init分析
+                 *cur_ptr, //赋值参考__wt_rec_split_init
+                 *prev_ptr;
 
     size_t disk_img_buf_size; /* Base size needed for a chunk memory image */
 
@@ -208,7 +216,8 @@ struct __wt_reconcile {
     //__wt_rec_incr计数统计，K 和 V各加1
     uint32_t entries;       /* Current number of entries */
     //r->first_free = WT_PAGE_HEADER_BYTE(btree, r->cur_ptr->image.mem);
-    //__wt_rec_image_copy中会拷贝数据到该空间
+    //__wt_rec_image_copy  __wt_rec_split_init中会拷贝数据到该空间  
+    //跳过PAGE_HEADER，也就是指向真实data
     uint8_t *first_free;    /* Current first free byte */
 
     //__wt_rec_split_init

@@ -70,7 +70,7 @@ access_example(void)
 
     /* Open a connection to the database, creating it if necessary. */ 
     //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
-    error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[verify=5, split=5, overflow=5, generation=5, \
+    error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[verify=5, split=5, overflow=5, generation=5, \
         block=5, evictserver=5, evict_stuck=5, block_cache=5, checkpoint_progress=5,  checkpoint=5, checkpoint_cleanup=5, block=5,overflow=5,reconcile=5,evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
 
     /* Open a session handle for the database. */
@@ -97,7 +97,7 @@ access_example(void)
     value_item.size = strlen(value_item.data);
     __wt_random_init_seed(NULL, &rnd);
 
-    for (i=500;i > 0; i--) {
+    for (i=200;i > 0; i--) {
         rval = __wt_random(&rnd);
         
         cursor->set_key(cursor, i); /* Insert a record. */

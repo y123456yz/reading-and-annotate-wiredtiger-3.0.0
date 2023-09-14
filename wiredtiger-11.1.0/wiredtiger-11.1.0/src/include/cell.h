@@ -115,6 +115,7 @@
 #define WT_CELL_KEY_PFX (7 << 4)        /* Key with prefix byte */
 #define WT_CELL_VALUE (8 << 4)          /* Value */
 #define WT_CELL_VALUE_COPY (9 << 4)     /* Value copy */
+//value过大 __wt_rec_cell_build_val
 #define WT_CELL_VALUE_OVFL (10 << 4)    /* Overflow value */
 #define WT_CELL_VALUE_OVFL_RM (11 << 4) /* Overflow value (removed) */
 
@@ -185,12 +186,36 @@ struct __wt_cell {
                                                                                                 \
     uint8_t flags
 
+
+//pack和unpack在处理二进制流中比较常用的封包、解包格式
+//可以参考https://blog.csdn.net/free__o/article/details/128676261
+
 /*
  * WT_CELL_UNPACK_COMMON --
  *     Unpacked address cell, the common fields.
  */
 struct __wt_cell_unpack_common {
-    WT_CELL_COMMON_FIELDS;
+    WT_CELL *cell; /* Cell's disk image address */                                              
+                                                                                               
+    uint64_t v; /* RLE count or recno */                                                        
+                                                                                                
+    /*                                                                                          
+     * The size and __len fields are reasonably type size_t; don't change the type, performance 
+     * drops significantly if they're type size_t.                                              
+     */                                                                                         
+    const void *data; /* Data */                                                                
+    uint32_t size;    /* Data size */                                                           
+                                                                                                
+    uint32_t __len; /* Cell + data length (usually) */                                          
+                                                                                                
+    uint8_t prefix; /* Cell prefix length */                                                    
+                                                                                                
+    uint8_t raw;  /* Raw cell type (include "shorts") */                                        
+    uint8_t type; /* Cell type */                                                               
+                                                                                                
+    uint8_t flags;
+
+   // WT_CELL_COMMON_FIELDS;
 };
 
 /*
@@ -198,7 +223,26 @@ struct __wt_cell_unpack_common {
  *     Unpacked address cell.
  */
 struct __wt_cell_unpack_addr {
-    WT_CELL_COMMON_FIELDS;
+    //WT_CELL_COMMON_FIELDS;
+    WT_CELL *cell; /* Cell's disk image address */                                              
+                                                                                               
+    uint64_t v; /* RLE count or recno */                                                        
+                                                                                                
+    /*                                                                                          
+     * The size and __len fields are reasonably type size_t; don't change the type, performance 
+     * drops significantly if they're type size_t.                                              
+     */                                                                                         
+    const void *data; /* Data */                                                                
+    uint32_t size;    /* Data size */                                                           
+                                                                                                
+    uint32_t __len; /* Cell + data length (usually) */                                          
+                                                                                                
+    uint8_t prefix; /* Cell prefix length */                                                    
+                                                                                                
+    uint8_t raw;  /* Raw cell type (include "shorts") */                                        
+    uint8_t type; /* Cell type */                                                               
+                                                                                                
+    uint8_t flags;
 
     WT_TIME_AGGREGATE ta; /* Address validity window */
 
@@ -210,7 +254,26 @@ struct __wt_cell_unpack_addr {
  *     Unpacked value cell.
  */
 struct __wt_cell_unpack_kv {
-    WT_CELL_COMMON_FIELDS;
+    //WT_CELL_COMMON_FIELDS;
+    WT_CELL *cell; /* Cell's disk image address */                                              
+                                                                                               
+    uint64_t v; /* RLE count or recno */                                                        
+                                                                                                
+    /*                                                                                          
+     * The size and __len fields are reasonably type size_t; don't change the type, performance 
+     * drops significantly if they're type size_t.                                              
+     */                                                                                         
+    const void *data; /* Data */                                                                
+    uint32_t size;    /* Data size */                                                           
+                                                                                                
+    uint32_t __len; /* Cell + data length (usually) */                                          
+                                                                                                
+    uint8_t prefix; /* Cell prefix length */                                                    
+                                                                                                
+    uint8_t raw;  /* Raw cell type (include "shorts") */                                        
+    uint8_t type; /* Cell type */                                                               
+                                                                                                
+    uint8_t flags;
 
     WT_TIME_WINDOW tw; /* Value validity window */
 };

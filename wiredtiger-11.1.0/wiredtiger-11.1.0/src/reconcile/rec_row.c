@@ -525,7 +525,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
     for (; ins != NULL; ins = WT_SKIP_NEXT(ins)) {//遍历跳跃表
          //获取该ins对应的update链表中最新的V
         WT_RET(__wt_rec_upd_select(session, r, ins, NULL, NULL, &upd_select));
-        if ((upd = upd_select.upd) == NULL) {
+        if ((upd = upd_select.upd) == NULL) {//upd记录的是该key对应的value修改列表，一般不会进来
             /*
              * In cases where a page has grown so large we are trying to force evict it (there is
              * content, but none of the content can be evicted), we set up fake split points, to
@@ -534,6 +534,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
              * additional size is odd, but split takes into account saved updates in a special way
              * for this case already.
              */
+            printf("yang test .......__rec_row_leaf_insert.......update no no date.................\r\n");
             if (!upd_select.upd_saved || !__wt_rec_need_split(r, 0))
                 continue;
 

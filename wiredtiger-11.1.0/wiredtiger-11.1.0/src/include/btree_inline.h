@@ -1184,6 +1184,8 @@ __wt_row_leaf_key_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
  * __wt_row_leaf_value_set --
  *     Set a WT_ROW to reference an on-page row-store leaf key and value pair, if possible.
  */
+//__wt_row_leaf_key_set: 
+//__wt_row_leaf_value_set
 static inline void
 __wt_row_leaf_value_set(WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
 {

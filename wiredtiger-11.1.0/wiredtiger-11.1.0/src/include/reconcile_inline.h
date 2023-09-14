@@ -208,7 +208,7 @@ __wt_rec_need_split(WT_RECONCILE *r, size_t len)
 /*
  * __wt_rec_incr --
  *     Update the memory tracking structure for a set of new entries.
- */ //记录可用空间相关统计信息
+ */ //记录可用空间相关统计信息  __wt_rec_image_copy
 static inline void
 __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size)
 {
@@ -430,6 +430,7 @@ __wt_rec_cell_build_val(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *d
               (const uint8_t *)val->buf.data, (uint32_t)val->buf.size, &val->buf));
 
         /* Create an overflow object if the data won't fit. */
+        //value过大
         if (val->buf.size > btree->maxleafvalue) {
             WT_STAT_DATA_INCR(session, rec_overflow_value);
 

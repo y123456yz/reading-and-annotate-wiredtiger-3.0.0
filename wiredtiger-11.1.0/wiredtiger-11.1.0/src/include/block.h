@@ -320,7 +320,12 @@ struct __wt_block {
 /*
  * WT_BLOCK_DESC --
  *	The file's description.
+ The layout of a .wt file consists of a file description WT_BLOCK_DESC which always occupies the first block, followed by a 
+  set of on-disk pages. The file description contains metadata about the file such as the WiredTiger major and minor version, 
+  a magic number, and a checksum of the block contents. This information is used to verify that the file is a legitimate WiredTiger 
+  data file with a compatible WiredTiger version, and that its contents are not corrupted.
  */
+ 
 struct __wt_block_desc {
 #define WT_BLOCK_MAGIC 120897
     uint32_t magic; /* 00-03: Magic number */

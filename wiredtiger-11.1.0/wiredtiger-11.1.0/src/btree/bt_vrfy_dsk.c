@@ -52,6 +52,7 @@ static int __verify_dsk_row_leaf(WT_VERIFY_INFO *);
  * WT_CELL_FOREACH macro, created because the loop can't simply unpack cells,
  * verify has to do additional work to ensure that unpack is safe.
  */
+//遍历dsk，获取所有cell
 #define WT_CELL_FOREACH_VRFY(session, dsk, cell, unpack, i)                                 \
     for ((cell) = WT_PAGE_HEADER_BYTE(S2BT(session), dsk), (i) = (dsk)->u.entries; (i) > 0; \
          (cell) = (WT_CELL *)((uint8_t *)(cell) + (unpack)->__len), --(i))
@@ -562,10 +563,14 @@ __verify_dsk_row_leaf(WT_VERIFY_INFO *vi)
     WT_BTREE *btree;
     WT_CELL *cell;
     WT_CELL_UNPACK_KV *unpack, _unpack;
-    WT_DECL_ITEM(current);
-    WT_DECL_ITEM(last_ovfl);
-    WT_DECL_ITEM(last_pfx);
-    WT_DECL_RET;
+    //WT_DECL_ITEM(current);
+    // WT_DECL_ITEM(last_ovfl);
+    //WT_DECL_ITEM(last_pfx);
+    WT_ITEM *current = NULL;
+    WT_ITEM *last_ovfl = NULL;
+    WT_ITEM *last_pfx = NULL;
+    //WT_DECL_RET;
+    int ret = 0;
     WT_ITEM *last;
     enum { FIRST, WAS_KEY, WAS_VALUE } last_cell_type;
     size_t prefix;
@@ -586,6 +591,7 @@ __verify_dsk_row_leaf(WT_VERIFY_INFO *vi)
     last_cell_type = FIRST;
     cell_num = last_cell_num = 0;
     key_cnt = 0;
+    //遍历dsk上面所有的数据
     WT_CELL_FOREACH_VRFY (vi->session, vi->dsk, cell, unpack, i) {
         ++cell_num;
 

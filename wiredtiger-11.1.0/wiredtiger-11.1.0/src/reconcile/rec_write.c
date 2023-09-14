@@ -1128,7 +1128,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
     /* Starting record number, entries, first free byte. */
     r->recno = recno;
     r->entries = 0;
-    //跳过PAGE_HEADER
+    //跳过PAGE_HEADER，也就是指向真实data
     r->first_free = WT_PAGE_HEADER_BYTE(btree, r->cur_ptr->image.mem);
 
     if (page->type == WT_PAGE_COL_FIX) {
@@ -2728,7 +2728,8 @@ __wt_rec_cell_build_ovfl(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *k
 {
     WT_BM *bm;
     WT_BTREE *btree;
-    WT_DECL_ITEM(tmp);
+    //WT_DECL_ITEM(tmp);
+    WT_ITEM *tmp = NULL;
     WT_DECL_RET;
     WT_PAGE *page;
     WT_PAGE_HEADER *dsk;
@@ -2746,17 +2747,21 @@ __wt_rec_cell_build_ovfl(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *k
      * See if this overflow record has already been written and reuse it if possible, otherwise
      * write a new overflow record.
      */
+    //在ovfl_reuse跳跃表中查找是否存在有value这个元素，返回这个元素地址
     WT_RET(__wt_ovfl_reuse_search(session, page, &addr, &size, kv->buf.data, kv->buf.size));
     if (addr == NULL) {//如果page->modify->ovfl_track为NULL，则走该流程
         /* Allocate a buffer big enough to write the overflow record. */
         size = kv->buf.size;
         //__bm_write_size
+        //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据sizep
         WT_RET(bm->write_size(bm, session, &size));
         WT_RET(__wt_scr_alloc(session, size, &tmp));
 
         /* Initialize the buffer: disk header and overflow record. */
         //header + 数据
         dsk = tmp->mem;
+
+        //page header __wt_page_header结构体赋值初始化
         memset(dsk, 0, WT_PAGE_HEADER_SIZE);
         dsk->type = WT_PAGE_OVFL;
         __rec_set_page_write_gen(btree, dsk);
@@ -2764,7 +2769,7 @@ __wt_rec_cell_build_ovfl(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *k
 
         //拷贝真实数据，跳过page header + block header
         memcpy(WT_PAGE_HEADER_BYTE(btree, dsk), kv->buf.data, kv->buf.size);
-        //总长度 = page header + block header + 实际数据
+        //总长度 = page header + block header + 实际数据长度
         dsk->mem_size = WT_PAGE_HEADER_BYTE_SIZE(btree) + (uint32_t)kv->buf.size;
         tmp->size = dsk->mem_size;
 
