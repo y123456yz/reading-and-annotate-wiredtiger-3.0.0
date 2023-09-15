@@ -360,7 +360,7 @@ next:
 /*
  * __wt_row_ikey_alloc --
  *     Instantiate a key in a WT_IKEY structure.
- */ //分配WT_IKEY+真实key数据
+ */ //分配WT_IKEY+真实key数据，并拷贝数据到ikeyp空间
 int
 __wt_row_ikey_alloc(
   WT_SESSION_IMPL *session, uint32_t cell_offset, const void *key, size_t size, WT_IKEY **ikeyp)

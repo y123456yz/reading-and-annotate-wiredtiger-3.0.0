@@ -32,6 +32,7 @@ static int __block_merge(WT_SESSION_IMPL *, WT_BLOCK *, WT_EXTLIST *, wt_off_t, 
  * __block_off_srch_last --
  *     Return the last element in the list, along with a stack for appending.
  */
+//获取head对应跳表的最后一个WT_EXT成员
 static inline WT_EXT *
 __block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
 {
@@ -107,7 +108,7 @@ __block_first_srch(WT_EXT **head, wt_off_t size, WT_EXT ***stack)
 /*
  * __block_size_srch --
  *     Search the by-size skiplist for the specified size.
- */
+ */ //head跳表中查找第一个>=size长度的成员WT_SIZE
 static inline void
 __block_size_srch(WT_SIZE **head, wt_off_t size, WT_SIZE ***stack)
 {
@@ -523,9 +524,10 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
         ext = *estack[0];
     } else {
         __block_size_srch(block->live.avail.sz, size, sstack);
-        if ((szp = *sstack[0]) == NULL) {
+        if ((szp = *sstack[0]) == NULL) {//block->live.avail.sz跳表中没有找到一个>=size长度的成员WT_SIZE
 append:
-            //block->size增加size长度，同时offp记录修改前block->size的长度
+            //block->size增加size长度，同时offp记录修改前block->size的长度, 
+            //也就是向block对应磁盘空间往后移动size字节，在外层通过offp返回这部分空间的其实地址，offp开始的size字节空间就可以被新的WT_EXT使用
             WT_RET(__block_extend(session, block, offp, size));
             WT_RET(__block_append(session, block, &block->live.alloc, *offp, (wt_off_t)size));
             return (0);
@@ -923,7 +925,8 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *
 /*
  * __block_append --
  *     Append a new entry to the allocation list.
- */
+ */ 
+//
 static int
 __block_append(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -945,10 +948,12 @@ __block_append(
     if ((ext = el->last) != NULL && ext->off + ext->size == off)
         ext->size += size;
     else {
+        //获取el->off对应跳表的最后一个WT_EXT成员
         ext = __block_off_srch_last(el->off, astack);
         if (ext != NULL && ext->off + ext->size == off)
             ext->size += size;
         else {
+            //获取一个WT_EXT结构，先从预分配的cache中获取，如果cache中的用完了，则重新分配一个WT_EXT
             WT_RET(__wt_block_ext_alloc(session, &ext));
             ext->off = off;
             ext->size = size;

@@ -2056,6 +2056,7 @@ __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compress
  * __rec_split_write --
  *     Write a disk block out for the split helper functions.
  */
+//chunk就是某page对应的需要写入磁盘的数据信息,WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
 static int
 __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk,
   WT_ITEM *compressed_image, bool last_block)
@@ -2083,9 +2084,18 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
         return (__wt_set_return(session, EBUSY));
 
     /* Make sure there's enough room for another write. */
+    //一个page会拆分为多个page，多个就是这里的multi_next
     WT_RET(__wt_realloc_def(session, &r->multi_allocated, r->multi_next + 1, &r->multi));
     multi = &r->multi[r->multi_next++];
-
+    //[1694762068:750379][38202:0x7f7d2d5ed800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_RECONCILE][DEBUG_1]: 0xe70500 reconcile row-store leaf (evict, history store)
+    //yang test ..__wt_leaf_page_can_split....11111111111111........count:16..........size:35872................
+    //yang test ...............__rec_split_write............multi_next:1
+    //[1694762068:750452][38202:0x7f7d2d5ed800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 4096-20480
+    //yang test ...............__rec_split_write............multi_next:2
+    //[1694762068:750530][38202:0x7f7d2d5ed800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 20480-40960
+    //[1694762068:750578][38202:0x7f7d2d5ed800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_RECONCILE][DEBUG_1]: 0xe70500 reconciled into 2 pages
+    //printf("yang test ...............__rec_split_write............multi_next:%d\r\n", (int)r->multi_next);
+    
     /* Initialize the address (set the addr type for the parent). */
     WT_TIME_AGGREGATE_COPY(&multi->addr.ta, &chunk->ta);
 
@@ -2107,10 +2117,12 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->size = WT_STORE_SIZE(chunk->image.size);
     multi->checksum = 0;
     multi->supd_restore = false;
+    printf("yang test ...............__rec_split_write............multi_next:%d, size:%d\r\n", 
+        (int)r->multi_next, (int)multi->size);
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
-        //分配WT_IKEY+真实key数据
+        //分配WT_IKEY+真实key数据空间，并拷贝数据到对应空间
         WT_RET(__wt_row_ikey_alloc(session, 0, chunk->key.data, chunk->key.size, &multi->key.ikey));
     else
         multi->key.recno = chunk->recno;

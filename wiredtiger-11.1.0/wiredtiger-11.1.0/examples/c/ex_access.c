@@ -71,7 +71,7 @@ access_example(void)
     /* Open a connection to the database, creating it if necessary. */ 
     //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
     error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[verify=5, split=5, overflow=5, generation=5, \
-        block=5, evictserver=5, evict_stuck=5, block_cache=5, checkpoint_progress=5,  checkpoint=5, checkpoint_cleanup=5, block=5,overflow=5,reconcile=5,evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
+        block=5, write=5, evictserver=5, evict_stuck=5, block_cache=5, checkpoint_progress=5,  checkpoint=5, checkpoint_cleanup=5, block=5,overflow=5,reconcile=5,evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
 
     /* Open a session handle for the database. */
     error_check(conn->open_session(conn, NULL, NULL, &session));

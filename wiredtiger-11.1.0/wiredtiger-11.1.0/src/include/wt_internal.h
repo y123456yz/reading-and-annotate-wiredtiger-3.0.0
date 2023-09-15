@@ -214,6 +214,7 @@ typedef struct __wt_evict_entry WT_EVICT_ENTRY;
 struct __wt_evict_queue;
 typedef struct __wt_evict_queue WT_EVICT_QUEUE;
 struct __wt_ext;
+//__block_ext_prealloc中分配空间 //__wt_extlist.off成员为该类型
 typedef struct __wt_ext WT_EXT;
 struct __wt_extlist;
 //__wt_block_ckpt的alloc avail discard为该类型
@@ -358,6 +359,7 @@ typedef struct __wt_session_stash WT_SESSION_STASH;
 struct __wt_session_stats;
 typedef struct __wt_session_stats WT_SESSION_STATS;
 struct __wt_size;
+//__wt_extlist.sz成员为该类型
 typedef struct __wt_size WT_SIZE;
 struct __wt_spinlock;
 typedef struct __wt_spinlock WT_SPINLOCK;

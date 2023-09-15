@@ -15,11 +15,14 @@
 //session->block_manager为该类型
 typedef struct {
     //参考__block_ext_prealloc初始化
+    //是一个WT_EXT链表
     WT_EXT *ext_cache;   /* List of WT_EXT handles */
+    //链表中WT_EXT节点数
     u_int ext_cache_cnt; /* Count */
 
-    //参考__block_size_prealloc初始化
+    //参考__block_size_prealloc初始化，是一个WT_SIZE链表
     WT_SIZE *sz_cache;  /* List of WT_SIZE handles */
+    //sz_cache链表上面的节点个数
     u_int sz_cache_cnt; /* Count */
 } WT_BLOCK_MGR_SESSION;
 
@@ -46,6 +49,7 @@ __block_ext_alloc(WT_SESSION_IMPL *session, WT_EXT **extp)
  * __wt_block_ext_alloc --
  *     Return a WT_EXT structure for use.
  */
+//获取一个WT_EXT结构，先从预分配的cache中获取，如果cache中的用完了，则重新分配一个WT_EXT
 int
 __wt_block_ext_alloc(WT_SESSION_IMPL *session, WT_EXT **extp)
 {
@@ -81,6 +85,7 @@ __wt_block_ext_alloc(WT_SESSION_IMPL *session, WT_EXT **extp)
  * __block_ext_prealloc --
  *     Pre-allocate WT_EXT structures.
  */
+//创建max个WT_EXT成员，添加到bms->ext_cache链表中
 static int
 __block_ext_prealloc(WT_SESSION_IMPL *session, u_int max)
 {
@@ -187,7 +192,7 @@ __wt_block_size_alloc(WT_SESSION_IMPL *session, WT_SIZE **szp)
 /*
  * __block_size_prealloc --
  *     Pre-allocate WT_SIZE structures.
- */
+ */ //创建max个WT_SIZE成员，添加到bms->sz_cache链表中
 static int
 __block_size_prealloc(WT_SESSION_IMPL *session, u_int max)
 {
@@ -278,6 +283,7 @@ __block_manager_session_cleanup(WT_SESSION_IMPL *session)
  * __wt_block_ext_prealloc --
  *     Pre-allocate WT_EXT and WT_SIZE structures.
  */
+//为session->block_manager提前分配WT_EXT and WT_SIZE structures.
 int
 __wt_block_ext_prealloc(WT_SESSION_IMPL *session, u_int max)
 {

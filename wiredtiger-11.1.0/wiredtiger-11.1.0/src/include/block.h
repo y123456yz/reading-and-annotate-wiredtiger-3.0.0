@@ -52,7 +52,9 @@
 struct __wt_extlist {
     char *name; /* Name */
 
+    //跳表中所有elem数据字节数总和
     uint64_t bytes;   /* Byte count */
+    //__block_off_insert->__block_ext_insert和__block_append中分配ext空间向跳跃表中添加elem,计数自增
     uint32_t entries; /* Entry count */
 
     uint32_t objectid; /* Written object ID */
@@ -72,9 +74,12 @@ struct __wt_extlist {
  * WT_EXT --
  *	Encapsulation of an extent, either allocated or freed within the
  * checkpoint.
- */
+ */  //__wt_extlist.off成员为该类型
+//__block_ext_prealloc中分配空间
 struct __wt_ext {
+    //该ext在磁盘中的其实位置
     wt_off_t off;  /* Extent's file offset */
+    //该ext的数据长度
     wt_off_t size; /* Extent's Size */
 
     uint8_t depth; /* Skip list depth */
@@ -90,7 +95,7 @@ struct __wt_ext {
 /*
  * WT_SIZE --
  *	Encapsulation of a block size skiplist entry.
- */
+ */ //__wt_extlist.sz成员为该类型
 struct __wt_size {
     wt_off_t size; /* Size */
 
@@ -265,6 +270,7 @@ struct __wt_block {
 
     /* Configuration information, set when the file is opened. */
     //https://source.wiredtiger.com/develop/arch-block.html
+    //默认为best, block_allocation配置
     uint32_t allocfirst; /* Allocation is first-fit */
     //allocation_size配置，默认4K  
     //getconf PAGESIZE获取操作系统page

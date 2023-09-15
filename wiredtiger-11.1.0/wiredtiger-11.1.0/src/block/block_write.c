@@ -262,6 +262,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
 
     /* Pre-allocate some number of extension structures. */
     //提前分配辅助空间
+    //为session->block_manager提前分配5个WT_EXT and WT_SIZE structures.
     WT_RET(__wt_block_ext_prealloc(session, 5));
 
     /*
@@ -274,6 +275,8 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
         __wt_spin_lock(session, &block->live_lock);
         local_locked = true;
     }
+
+    //
     ret = __wt_block_alloc(session, block, &offset, (wt_off_t)align_size);
     if (ret == 0)
         ret = __wt_block_extend(session, block, fh, offset, align_size, &local_locked);
@@ -397,3 +400,4 @@ __wt_block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, ui
     __wt_page_header_byteswap(buf->mem);
     return (ret);
 }
+
