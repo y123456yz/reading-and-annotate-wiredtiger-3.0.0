@@ -601,6 +601,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
     //注意conn gen和session gen的区别
     volatile uint64_t generations[WT_GENERATIONS];
 
+    //file_extend配置，默认为0
     wt_off_t data_extend_len; /* file_extend data length */
     wt_off_t log_extend_len;  /* file_extend log length */
 

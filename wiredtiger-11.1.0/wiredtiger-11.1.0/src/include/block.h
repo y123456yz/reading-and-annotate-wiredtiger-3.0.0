@@ -260,9 +260,11 @@ struct __wt_block {
     size_t related_allocated; /* Size of related object array */
     u_int related_next;       /* Next open slot */
 
+    
     WT_FH *fh;            /* Backing file handle */
     wt_off_t size;        /* File size */
     wt_off_t extend_size; /* File extended size */
+    //file_extend配置，默认为0
     wt_off_t extend_len;  /* File extend chunk size */
 
     bool close_on_checkpoint;   /* Close the handle after the next checkpoint */
@@ -331,7 +333,7 @@ struct __wt_block {
   a magic number, and a checksum of the block contents. This information is used to verify that the file is a legitimate WiredTiger 
   data file with a compatible WiredTiger version, and that its contents are not corrupted.
  */
- 
+//先把该结构写入数据文件最前面 __wt_desc_write
 struct __wt_block_desc {
 #define WT_BLOCK_MAGIC 120897
     uint32_t magic; /* 00-03: Magic number */

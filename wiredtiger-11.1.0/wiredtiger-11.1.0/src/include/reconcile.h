@@ -173,6 +173,7 @@ struct __wt_reconcile {
      * primary and auxiliary portions.
      */
     //__wt_rec_split_init
+    //默认//= btree->maxmempage_image, 也就是4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
     uint32_t page_size; /* Page size */
 
     /*
@@ -197,11 +198,12 @@ struct __wt_reconcile {
      * generates more split chunks, the previous chunk is written to the disk and current and
      * previous swap.
      */
-    WT_REC_CHUNK chunk_A, 
-                 chunk_B, 
+    WT_REC_CHUNK chunk_A, //__wt_rec_split_init
+                 chunk_B, //__wt_rec_split
                  //实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
                  //配合__wt_rec_image_copy  __wt_rec_split_init分析
                  *cur_ptr, //赋值参考__wt_rec_split_init
+                 //赋值参考__wt_rec_split
                  *prev_ptr;
 
     size_t disk_img_buf_size; /* Base size needed for a chunk memory image */

@@ -293,6 +293,15 @@ err:
 /*
  * __wt_desc_write --
  *     Write a file's initial descriptor structure.
+
+Descriptor blocks
+A file is divided up into blocks. The first block in a file is special as it contains metadata about the file and is referred to 
+  as the "descriptor block". It contains the WiredTiger major and minor version, a checksum of the block contents as well as a 
+  "magic" number to check against.
+
+The descriptor block serves as a safety check to ensure that the file being loaded into the block manager is actually a WiredTiger 
+  data file, that it belongs to a compatible version of WiredTiger and that the entire file has not been corrupted. WiredTiger also 
+  uses checksums to defend against file corruption which is described in the Checksum section.
  */
 int
 __wt_desc_write(WT_SESSION_IMPL *session, WT_FH *fh, uint32_t allocsize)
@@ -324,6 +333,7 @@ __wt_desc_write(WT_SESSION_IMPL *session, WT_FH *fh, uint32_t allocsize)
 #ifdef WORDS_BIGENDIAN
     desc->checksum = __wt_bswap32(desc->checksum);
 #endif
+    //数据文件头部是desc，因为allocsize对齐，所以头部默认1024字节
     ret = __wt_write(session, fh, (wt_off_t)0, (size_t)allocsize, desc);
 
     __wt_scr_free(session, &buf);

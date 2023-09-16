@@ -134,6 +134,7 @@ __wt_filesize(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t *sizep)
 {
     __wt_verbose(session, WT_VERB_HANDLEOPS, "%s: handle-size", fh->handle->name);
 
+    //__posix_fs_size
     return (fh->handle->fh_size(fh->handle, (WT_SESSION *)session, sizep));
 }
 
@@ -175,6 +176,8 @@ __wt_ftruncate(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset)
  * __wt_write --
  *     POSIX pwrite.
  */
+//__wt_block_manager_create->__wt_desc_write->__wt_write: 头部1024字节用于记录Descriptor信息，实际上没有用完1024字节
+//__block_write_off: page数据内容写入磁盘通过该接口
 static inline int
 __wt_write(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, const void *buf)
 {
@@ -207,3 +210,4 @@ __wt_write(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, con
     WT_STAT_CONN_DECR_ATOMIC(session, thread_write_active);
     return (ret);
 }
+

@@ -529,6 +529,7 @@ append:
             //block->size增加size长度，同时offp记录修改前block->size的长度, 
             //也就是向block对应磁盘空间往后移动size字节，在外层通过offp返回这部分空间的其实地址，offp开始的size字节空间就可以被新的WT_EXT使用
             WT_RET(__block_extend(session, block, offp, size));
+            //获取一个WT_EXT元数据结构添加到block->live.alloc跳跃表中，WT_EXT用于存储一个page对应的磁盘元数据信息
             WT_RET(__block_append(session, block, &block->live.alloc, *offp, (wt_off_t)size));
             return (0);
         }

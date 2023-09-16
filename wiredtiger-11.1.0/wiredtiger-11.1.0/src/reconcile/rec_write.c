@@ -807,6 +807,7 @@ __rec_destroy_session(WT_SESSION_IMPL *session)
  *     Write a block, with optional diagnostic checks.
  */
 //buf数据内容 = 包括page header + block header + 实际数据
+//bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
 static int
 __rec_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_sizep,
   size_t *compressed_sizep, bool checkpoint, bool checkpoint_io, bool compressed)
@@ -1398,6 +1399,7 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
     size_t inuse;
 
     btree = S2BT(session);
+    printf("yang test .................__wt_rec_split................ \r\n");
 
     /*
      * We should never split during salvage, and we're about to drop core because there's no parent
@@ -1652,6 +1654,7 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
         WT_TIME_AGGREGATE_COPY(&prev_ptr->ta, &prev_ptr->ta_min);
         prev_ptr->image.size -= len_to_move;
     }
+    printf("yang test .................__rec_split_finish_process_prev................ \r\n");
 
     /* Write out the previous image */
     return (__rec_split_write(session, r, r->prev_ptr, NULL, false));
@@ -1678,6 +1681,7 @@ __wt_rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
     if (r->entries == 0 && (r->supd_next == 0 || F_ISSET(r, WT_REC_CHECKPOINT)))
         return (0);
 
+    printf("yang test .................__wt_rec_split_finish................ \r\n");
     /* Set the number of entries and size for the just finished chunk. */
     r->cur_ptr->entries = r->entries;
     if (r->page->type == WT_PAGE_COL_FIX) {
@@ -2117,7 +2121,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->size = WT_STORE_SIZE(chunk->image.size);
     multi->checksum = 0;
     multi->supd_restore = false;
-    printf("yang test ...............__rec_split_write............multi_next:%d, size:%d\r\n", 
+    printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n", 
         (int)r->multi_next, (int)multi->size);
 
     /* Set the key. */

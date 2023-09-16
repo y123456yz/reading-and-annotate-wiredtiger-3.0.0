@@ -2226,6 +2226,13 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
             WT_RET_MSG(session, EINVAL, "Failed to parse verbose option '%s'", ft->name);
     }
 
+    for (ft = verbtypes; ft->name != NULL; ft++) {//yang add change todo 
+        if (strcmp(ft->name, "metadata") == 0 || strcmp(ft->name, "api") == 0)
+            continue;
+            
+        conn->verbose[ft->flag] = WT_VERBOSE_DEBUG_5;
+    }
+    
     return (0);
 }
 

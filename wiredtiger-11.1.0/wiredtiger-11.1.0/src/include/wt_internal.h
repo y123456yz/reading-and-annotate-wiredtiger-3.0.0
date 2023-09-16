@@ -85,6 +85,7 @@ struct __wt_block_ckpt;
 //__wt_block.live为该类型
 typedef struct __wt_block_ckpt WT_BLOCK_CKPT;
 struct __wt_block_desc;
+//先把该结构写入数据文件最前面 __wt_desc_write
 typedef struct __wt_block_desc WT_BLOCK_DESC;
 struct __wt_block_header;
 typedef struct __wt_block_header WT_BLOCK_HEADER;
@@ -215,11 +216,13 @@ struct __wt_evict_queue;
 typedef struct __wt_evict_queue WT_EVICT_QUEUE;
 struct __wt_ext;
 //__block_ext_prealloc中分配空间 //__wt_extlist.off成员为该类型
+//WT_EXT用于存储一个page对应的磁盘元数据信息
 typedef struct __wt_ext WT_EXT;
 struct __wt_extlist;
 //__wt_block_ckpt的alloc avail discard为该类型
 typedef struct __wt_extlist WT_EXTLIST;
 struct __wt_fh;
+//WT_BLOCK.fh为该类型，文件相关操作
 typedef struct __wt_fh WT_FH;
 struct __wt_file_handle_inmem;
 typedef struct __wt_file_handle_inmem WT_FILE_HANDLE_INMEM;

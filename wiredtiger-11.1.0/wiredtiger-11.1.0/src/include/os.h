@@ -94,6 +94,7 @@
         TAILQ_REMOVE(&(h)->fhhash[bucket], fh, hashq); \
     } while (0)
 
+//WT_BLOCK.fh为该类型，文件相关操作
 struct __wt_fh {
     /*
      * There is a file name field in both the WT_FH and WT_FILE_HANDLE structures, which isn't

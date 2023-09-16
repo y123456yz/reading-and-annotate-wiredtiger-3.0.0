@@ -185,6 +185,7 @@ __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
  * __wt_block_write --
  *     Write a buffer into a block, returning the block's address cookie.
  //buf数据内容 = 包括page header + block header + 实际数据
+ //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
  */
 int
 __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_t *addr,
@@ -208,6 +209,7 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_
  * __block_write_off --
  *     Write a buffer into a block, returning the block's offset, size and checksum.
  //数据写入磁盘
+ //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
  */
 static int
 __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint32_t *objectidp,
@@ -276,7 +278,8 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
         local_locked = true;
     }
 
-    //
+    //align_size是一个page在磁盘上面的总大小，=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+    //也就是一次性分配一个page该有的磁盘空间元数据
     ret = __wt_block_alloc(session, block, &offset, (wt_off_t)align_size);
     if (ret == 0)
         ret = __wt_block_extend(session, block, fh, offset, align_size, &local_locked);
@@ -292,11 +295,13 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
         WT_RET(__wt_vpack_uint(&file_sizep, 0, (uint64_t)block->size));
 
     /* Zero out any unused bytes at the end of the buffer. */
+    //因为1024字节对齐填充的部分先全部置为0
     memset((uint8_t *)buf->mem + buf->size, 0, align_size - buf->size);
 
     /*
      * Clear the block header to ensure all of it is initialized, even the unused fields.
      */
+    // WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 中的block header初始化清零
     blk = WT_BLOCK_HEADER_REF(buf->mem);
     memset(blk, 0, sizeof(*blk));
 
@@ -332,6 +337,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
 #endif
 
     /* Write the block. */
+    // WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据，把这个page对应的数据写入磁盘
     if ((ret = __wt_write(session, fh, offset, align_size, buf->mem)) != 0) {
         if (!caller_locked)
             __wt_spin_lock(session, &block->live_lock);
@@ -382,6 +388,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
  * __wt_block_write_off --
  *     Write a buffer into a block, returning the block's offset, size and checksum.
  */
+//bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
 int
 __wt_block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint32_t *objectidp,
   wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump, bool data_checksum, bool checkpoint_io,
