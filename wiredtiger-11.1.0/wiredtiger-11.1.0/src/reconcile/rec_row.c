@@ -76,6 +76,10 @@ __rec_cell_build_int_key(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *
  *     Process a key and return a WT_CELL structure and byte string to be stored on a row-store leaf
  *     page.
  */
+
+//__wt_rec_cell_build_val: value数据封装到r->v中
+//__rec_cell_build_leaf_key: 对key进行编码后存入r->k中, 同时r->cur指向data数据
+
 //对key进行编码后存入r->k中
 static int
 __rec_cell_build_leaf_key(
@@ -190,6 +194,7 @@ __wt_bulk_insert_row(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
     WT_TIME_WINDOW tw;
     bool ovfl_key;
 
+    printf("yang test .....................__wt_bulk_insert_row.........................\r\n");
     r = cbulk->reconcile;
     btree = S2BT(session);
     cursor = &cbulk->cbt.iface;
@@ -217,6 +222,7 @@ __wt_bulk_insert_row(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
             if (!ovfl_key)
                 WT_RET(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
         }
+        
         WT_RET(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
     }
 
@@ -256,6 +262,7 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     key = &r->k;
     val = &r->v;
 
+    printf("yang test .....................__rec_row_merge.........................\r\n");
     /* For each entry in the split array... */
     for (multi = mod->mod_multi, i = 0; i < mod->mod_multi_entries; ++multi, ++i) {
         /* Build the key and value cells. */
@@ -307,6 +314,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     child = NULL;
     WT_TIME_AGGREGATE_INIT_MERGE(&ft_ta);
 
+    printf("yang test ...............__wt_rec_row_int...........Reconcile a row-store internal page.........\r\n");
     key = &r->k;
     kpack = &_kpack;
     WT_CLEAR(*kpack); /* -Wuninitialized */
@@ -500,7 +508,8 @@ __rec_row_zero_len(WT_SESSION_IMPL *session, WT_TIME_WINDOW *tw)
  * __rec_row_leaf_insert --
  *     Walk an insert chain, writing K/V pairs.
  */
-//把这个KV数据添加到r->first_free对应内存空间
+//__wt_rec_row_leaf->__rec_row_leaf_insert->__wt_rec_image_copy: 拷贝page内存部分KV数据到r->first_free对应内存空间
+//__wt_rec_row_leaf->__wt_rec_image_copy: 拷贝磁盘部分KV数据到r->first_free对应内存空间
 static int
 __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 {
@@ -579,6 +588,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
                 val->len = 0;
             else
                 /* Take the value from the update. */
+                //value数据封装到r->v中
                 WT_RET(__wt_rec_cell_build_val(session, r, upd->data, upd->size, &tw, 0));
             break;
         case WT_UPDATE_TOMBSTONE:
@@ -592,6 +602,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
           session, r, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins), &ovfl_key));
 
         /* Boundary: split or write the page. */
+        //WT_RECONCILE对应page如果较大，超过了一个WT_RECONCILE最大磁盘空间，磁盘空间不够用，则需要split
         if (__wt_rec_need_split(r, key->len + val->len)) {
             /*
              * Turn off prefix compression until a full key written to the new page, and (unless
@@ -603,7 +614,8 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
                 if (!ovfl_key)
                     WT_RET(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
-
+            printf("yang test .........__rec_row_leaf_insert.....__wt_rec_need_split.......__wt_rec_split_crossing_bnd.........................\r\n");
+            //也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
             WT_RET(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
 
@@ -713,6 +725,7 @@ __wt_rec_row_leaf(
      */
     //把这个KV数据添加到r->first_free对应内存空间
     if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT_SMALLEST(page))) != NULL)
+        //__rec_row_leaf_insert: 把这个KV数据添加到r->first_free对应内存空间
         WT_RET(__rec_row_leaf_insert(session, r, ins));
 
     /*
@@ -989,10 +1002,12 @@ slow:
                     WT_ERR(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
 
+            printf("yang test ..............__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
             WT_ERR(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
 
         /* Copy the key/value pair onto the page. */
+        //拷贝key数据到r->first_free对应内存空间
         __wt_rec_image_copy(session, r, key);
         if (val->len == 0 && __rec_row_zero_len(session, twp))
             r->any_empty_value = true;
@@ -1000,6 +1015,7 @@ slow:
             r->all_empty_value = false;
             if (dictionary && btree->dictionary)
                 WT_ERR(__wt_rec_dict_replace(session, r, twp, 0, val));
+            //拷贝value数据到r->first_free对应内存空间
             __wt_rec_image_copy(session, r, val);
         }
         WT_TIME_AGGREGATE_UPDATE(session, &r->cur_ptr->ta, twp);

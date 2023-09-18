@@ -177,6 +177,9 @@ __rec_page_time_stats(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 /*
  * __wt_rec_need_split --
  *     Check whether adding some bytes to the page requires a split.
+
+ //WT_RECONCILE对应page如果磁盘空间不够用，则需要split
+ //WT_RECONCILE对应page如果较大，超过了一个WT_RECONCILE最大磁盘空间，磁盘空间不够用，则需要split
  */
 static inline bool
 __wt_rec_need_split(WT_RECONCILE *r, size_t len)
@@ -223,6 +226,7 @@ __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size
     //计数统计，代表当前处理的page上面的K和V数 
     r->entries += v;
     r->space_avail -= size;
+    //执行数据末尾
     r->first_free += size;
 
     /*
@@ -242,6 +246,8 @@ __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size
  *     Copy a key/value cell and buffer pair into the new image.
  */
 //拷贝k或者v数据到r->first_free对应内存空间
+//__wt_rec_row_leaf->__rec_row_leaf_insert->__wt_rec_image_copy: 拷贝page内存部分KV数据到r->first_free对应内存空间
+//__wt_rec_row_leaf->__rec_row_leaf_insert: 拷贝磁盘部分KV数据到r->first_free对应内存空间
 static inline void
 __wt_rec_image_copy(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *kv)
 {
@@ -405,6 +411,10 @@ __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *add
  * __wt_rec_cell_build_val --
  *     Process a data item and return a WT_CELL structure and byte string to be stored on the page.
  */
+//__wt_rec_cell_build_val: value数据封装到r->v中
+//__rec_cell_build_leaf_key: 对key进行编码后存入r->k中, 同时r->cur指向data数据
+
+//value数据封装到r->v中
 static inline int
 __wt_rec_cell_build_val(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *data, size_t size,
   WT_TIME_WINDOW *tw, uint64_t rle)
@@ -419,6 +429,7 @@ __wt_rec_cell_build_val(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *d
      * Unless necessary we don't copy the data into the buffer; start by just re-pointing the
      * buffer's data/length fields.
      */
+    //buf成员赋值
     val->buf.data = data;
     val->buf.size = size;
 
@@ -439,7 +450,10 @@ __wt_rec_cell_build_val(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *d
     }
     __rec_cell_tw_stats(r, tw);
 
+    //cell len计数及cell赋值
+    //WT_CELL内容填充，主要记录wt信息和size内容到WT_CELL中
     val->cell_len = __wt_cell_pack_value(session, &val->cell, tw, rle, val->buf.size);
+    //cell信息长度+真实数据总长度
     val->len = val->cell_len + val->buf.size;
 
     return (0);

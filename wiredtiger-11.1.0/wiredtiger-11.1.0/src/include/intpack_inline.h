@@ -40,10 +40,13 @@
 
 #define NEG_1BYTE_MIN (-(1 << 6))
 #define NEG_2BYTE_MIN (-(1 << 13) + NEG_1BYTE_MIN)
+//也就是位图 11,1111，对应十六进制OX3F
 #define POS_1BYTE_MAX ((1 << 6) - 1)
+//也就是位图 1,0000,0011,1111, 对应OX103F
 #define POS_2BYTE_MAX ((1 << 13) + POS_1BYTE_MAX)
 
 /* Extract bits <start> to <end> from a value (counting from LSB == 0). */
+//也就是获取x这个数的第start到end这几位的值，例如255=OXFF=1111,1111    GET_BITS(255, 2, 4)=位图11，也就是3
 #define GET_BITS(x, start, end) (((uint64_t)(x) & ((1U << (start)) - 1U)) >> (end))
 
 /*
@@ -184,6 +187,7 @@ __wt_vunpack_negint(const uint8_t **pp, size_t maxlen, uint64_t *retp)
  * __wt_vpack_uint --
  *     Variable-sized packing for unsigned integers
  */
+//根据x大小进行uint64封包编码
 static inline int
 __wt_vpack_uint(uint8_t **pp, size_t maxlen, uint64_t x)
 {
@@ -191,7 +195,7 @@ __wt_vpack_uint(uint8_t **pp, size_t maxlen, uint64_t x)
 
     WT_SIZE_CHECK_PACK(1, maxlen);
     p = *pp;
-    if (x <= POS_1BYTE_MAX)
+    if (x <= POS_1BYTE_MAX) //
         *p++ = POS_1BYTE_MARKER | GET_BITS(x, 6, 0);
     else if (x <= POS_2BYTE_MAX) {
         WT_SIZE_CHECK_PACK(2, maxlen);

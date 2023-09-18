@@ -24,6 +24,7 @@
 #define WT_TIME_STRING_SIZE (WT_TS_INT_STRING_SIZE * 4 + 20 * 2 + 64)
 
 /* The time points that define a value's time window and associated prepare information. */
+//事务相关，例如可见性，可以参考__wt_txn_tw_start_visible_all
 struct __wt_time_window {
     wt_timestamp_t durable_start_ts; /* default value: WT_TS_NONE */
     wt_timestamp_t start_ts;         /* default value: WT_TS_NONE */

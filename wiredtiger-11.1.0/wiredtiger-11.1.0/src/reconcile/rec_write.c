@@ -1117,7 +1117,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
      * give us 5x compression and gives us nothing at all.
      */
     corrected_page_size = r->page_size;
-    //__bm_write_size  //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据corrected_page_size
+    //__bm_write_size  //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据  
     WT_RET(bm->write_size(bm, session, &corrected_page_size));
     r->disk_img_buf_size = WT_ALIGN(WT_MAX(corrected_page_size, r->split_size), btree->allocsize);
 
@@ -1129,7 +1129,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
     /* Starting record number, entries, first free byte. */
     r->recno = recno;
     r->entries = 0;
-    //跳过PAGE_HEADER，也就是指向真实data
+    //跳过PAGE_HEADER和block header，也就是指向真实data
     r->first_free = WT_PAGE_HEADER_BYTE(btree, r->cur_ptr->image.mem);
 
     if (page->type == WT_PAGE_COL_FIX) {
@@ -1184,12 +1184,13 @@ __rec_is_checkpoint(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 /*
  * __rec_split_row_promote --
  *     Key promotion for a row-store.
- */
+ */ //当前操作的KV中的KV赋值给key
 static int
 __rec_split_row_promote(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ITEM *key, uint8_t type)
 {
     WT_BTREE *btree;
-    WT_DECL_ITEM(update);
+    //WT_DECL_ITEM(update);
+    WT_ITEM *update = NULL;
     WT_DECL_RET;
     WT_ITEM *max;
     WT_SAVE_UPD *supd;
@@ -1391,6 +1392,10 @@ __rec_split_fix_shrink(WT_SESSION_IMPL *session, WT_RECONCILE *r)
  *     Handle the page reconciliation bookkeeping. (Did you know "bookkeeper" has 3 doubled letters
  *     in a row? Sweet-tooth does, too.)
  */
+//1. 如果prev_ptr不为NULL，则把对应内存chunk数据写入磁盘, 同时重新申请chunk image空间，把当前的cur_ptr指向该新空间，
+//2. 如果prev_ptr为NULL，则直接同时重新申请chunk image空间，prev_ptr指向cur_ptr，把当前的ptr指向该新空间
+
+//也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
 int
 __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
 {
@@ -1399,7 +1404,7 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
     size_t inuse;
 
     btree = S2BT(session);
-    printf("yang test .................__wt_rec_split................ \r\n");
+   // printf("yang test .................__wt_rec_split................ \r\n");
 
     /*
      * We should never split during salvage, and we're about to drop core because there's no parent
@@ -1419,6 +1424,7 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
      * page with too few items, which isn't good for tree depth or search. Grow the buffer to
      * contain the current item if we don't have enough items to split an internal page.
      */
+    //也就是多个KV数据在磁盘中用到的真实空间
     inuse = WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem);
     if (inuse < r->split_size / 2 && !__wt_rec_need_split(r, 0)) {
         WT_ASSERT(session, r->page->type != WT_PAGE_COL_FIX);
@@ -1433,6 +1439,7 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
 
     /* Set the entries, timestamps and size for the just finished chunk. */
     r->cur_ptr->entries = r->entries;
+    printf("yang test ...........__wt_rec_split....inuse:%d.....r->entries:%d\r\n", (int)inuse, (int)r->entries);
     if (r->page->type == WT_PAGE_COL_FIX) {
         if ((r->cur_ptr->auxentries = r->aux_entries) != 0) {
             __rec_split_fix_shrink(session, r);
@@ -1454,26 +1461,31 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
     if (r->is_bulk_load)
         WT_RET(__rec_split_write(session, r, r->cur_ptr, NULL, false));
     else {
-        if (r->prev_ptr != NULL)
+        if (r->prev_ptr != NULL) //先把之前这批在prev_ptr指向内存，但是还没有写入磁盘的chunk数据写入磁盘
             WT_RET(__rec_split_write(session, r, r->prev_ptr, NULL, false));
 
         if (r->prev_ptr == NULL) {
             WT_RET(__rec_split_chunk_init(session, r, &r->chunk_B));
             r->prev_ptr = &r->chunk_B;
         }
+
+        //交换prev_ptr和cur_ptr
         tmp = r->prev_ptr;
         r->prev_ptr = r->cur_ptr;
         r->cur_ptr = tmp;
     }
 
     /* Initialize the next chunk, including the key. */
+    //前面交互后，这里cur_ptr指向了新的chunk,对该chunk初始化，成员变量全赋值0, 并从新获取disk_img_buf_size大小image空间
     WT_RET(__rec_split_chunk_init(session, r, r->cur_ptr));
     r->cur_ptr->recno = r->recno;
     if (btree->type == BTREE_ROW)
+        //当前操作的KV中的KV赋值给&r->cur_ptr->key
         WT_RET(__rec_split_row_promote(session, r, &r->cur_ptr->key, r->page->type));
 
     /* Reset tracking information. */
     r->entries = 0;
+    //指向新的image数据其实地址
     r->first_free = WT_PAGE_HEADER_BYTE(btree, r->cur_ptr->image.mem);
 
     if (r->page->type == WT_PAGE_COL_FIX) {
@@ -1533,6 +1545,9 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
      * location in the buffer. If we are crossing the split boundary at the same time, possible when
      * the next record is large enough, just split at this point.
      */
+
+    printf("yang test ..............sssssssssssssss....__wt_rec_split_crossing_bnd....inuse:%d....\r\n",
+        (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem));
     if (WT_CROSSING_MIN_BND(r, next_len) && !WT_CROSSING_SPLIT_BND(r, next_len) &&
       !__wt_rec_need_split(r, 0)) {
         /*
@@ -1560,6 +1575,7 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
     }
 
     /* We are crossing a split boundary */
+    //也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
     return (__wt_rec_split(session, r, next_len));
 }
 
@@ -1592,7 +1608,7 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
      */
     combined_size = prev_ptr->image.size + (cur_ptr->image.size - WT_PAGE_HEADER_BYTE_SIZE(btree));
 
-    if (combined_size <= r->page_size) {
+    if (combined_size <= r->page_size) {//cur_ptr和prev_ptr两个chunk合并成一个存入prev_ptr，cur_ptr重新用新的image空间
         /* This won't work for FLCS pages, so make sure we don't get here by accident. */
         WT_ASSERT(session, r->page->type != WT_PAGE_COL_FIX);
 
@@ -2737,7 +2753,7 @@ err:
 /*
  * __wt_rec_cell_build_ovfl --
  *     Store overflow items in the file, returning the address cookie.
- */
+ */ //value大小超过btree->maxleafvalue时候的pack封包流程
 int
 __wt_rec_cell_build_ovfl(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *kv, uint8_t type,
   WT_TIME_WINDOW *tw, uint64_t rle)

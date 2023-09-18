@@ -46,8 +46,15 @@
  2. The page header is followed by a "block header". In WiredTiger each page is a block, and it is possible to plug 
      in different "block managers" that manage the transition of pages to and from disk. The default block header is 
      defined in src/include/block.h in the __wt_block_header structure. 
+
+     Pages consist of a header (WT_PAGE_HEADER and WT_BLOCK_HEADER) followed by a variable number of cells, which encode keys, 
+ values or addresses (see cell.h). The page header WT_PAGE_HEADER consists of information such as the column-store record number, 
+ write generation (required for ordering pages in time), in-memory size, cell count (the number of cells on the page), data length 
+ (the overflow record length), and the page type. This is immediately followed by the block header WT_BLOCK_HEADER which contains 
+ block-manager specific information such as flags and version.
  参考reconcile官方文档:https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
  */
+//一个page数据在磁盘中连续空间内容: __wt_page_header + WT_BLOCK_HEADER + 
 //分片空间和赋值可以参考__wt_rec_cell_build_ovfl
 struct __wt_page_header {
     /*

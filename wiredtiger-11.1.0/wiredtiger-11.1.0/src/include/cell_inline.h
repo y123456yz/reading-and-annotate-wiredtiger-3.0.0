@@ -45,13 +45,16 @@ __cell_pack_value_validity(WT_SESSION_IMPL *session, uint8_t **pp, WT_TIME_WINDO
 
     WT_IGNORE_RET(__cell_check_value_validity(session, tw, false));
 
+    //pp[0] |= WT_CELL_SECOND_DESC, 数组[0]的位图第4位置1
     **pp |= WT_CELL_SECOND_DESC;
     ++*pp;
+    //pp[1]记录flagsp，也就是记录紧跟后面有几个ts会添加到pp[2-xx]中
     flagsp = *pp;
     ++*pp;
 
     flags = 0;
     if (tw->start_ts != WT_TS_NONE) {
+        //根据x大小进行uint64封包编码
         WT_IGNORE_RET(__wt_vpack_uint(pp, 0, tw->start_ts));
         LF_SET(WT_CELL_TS_START);
     }
@@ -87,6 +90,7 @@ __cell_pack_value_validity(WT_SESSION_IMPL *session, uint8_t **pp, WT_TIME_WINDO
     }
     if (tw->prepare)
         LF_SET(WT_CELL_PREPARE);
+    //修改pp[1]的值
     *flagsp = flags;
 }
 
@@ -234,6 +238,7 @@ __wt_cell_pack_addr(WT_SESSION_IMPL *session, WT_CELL *cell, u_int cell_type, ui
  * __wt_cell_pack_value --
  *     Set a value item's WT_CELL contents.
  */
+//WT_CELL内容填充，主要记录wt信息和size内容到WT_CELL中
 static inline size_t
 __wt_cell_pack_value(
   WT_SESSION_IMPL *session, WT_CELL *cell, WT_TIME_WINDOW *tw, uint64_t rle, size_t size)
@@ -271,6 +276,8 @@ __wt_cell_pack_value(
         /* Length */
         WT_IGNORE_RET(__wt_vpack_uint(&p, 0, (uint64_t)size));
     }
+
+    //也就是cell结构长度
     return (WT_PTRDIFF(p, cell));
 }
 

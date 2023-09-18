@@ -187,8 +187,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
 
     //page内存没有超限，继续走下面的流程
 
-    printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p..\r\n", 
-        page->modify->page_state, page);
+    
     /* No need to reconcile the page if it is from a dead tree or it is clean. */
     if (!tree_dead && __wt_page_is_modified(page)) {
         WT_ERR(__evict_reconcile(session, ref, flags));
@@ -727,6 +726,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
     WT_DECL_RET;
     uint32_t flags;
     bool closing, is_eviction_thread, use_snapshot_for_app_thread;
+    WT_PAGE *page = ref->page;
 
     btree = S2BT(session);
     conn = S2C(session);
@@ -813,6 +813,9 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
         LF_SET(WT_REC_APP_EVICTION_SNAPSHOT);
     else if (!WT_SESSION_BTREE_SYNC(session))
         LF_SET(WT_REC_VISIBLE_ALL);
+
+    printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p....use_snapshot_for_app_thread:%d\r\n", 
+            page->modify->page_state, page, use_snapshot_for_app_thread);
 
     WT_ASSERT(session, LF_ISSET(WT_REC_VISIBLE_ALL) || F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT));
 

@@ -158,6 +158,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     u_int split_deepen_min_child; /* Minimum entries to deepen tree */
 #define WT_SPLIT_DEEPEN_PER_CHILD_DEF 100
     u_int split_deepen_per_child; /* Entries per child when deepened */
+    //split_pct=90ÅäÖÃ£¬Ä¬ÈÏ90%
     int split_pct;                /* Split page percent */
 
     //block_compressor=snappyÅäÖÃ£¬Ä¬ÈÏsnappy

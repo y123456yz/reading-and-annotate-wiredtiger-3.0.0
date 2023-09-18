@@ -229,6 +229,7 @@ __wt_rec_col_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REF *pageref)
     val = &r->v;
     vpack = &_vpack;
 
+    printf("yang test .................__wt_rec_col_int.......Reconcile a column-store internal page......\r\n");
     WT_RET(
       __wt_rec_split_init(session, r, page, pageref->ref_recno, btree->maxintlpage_precomp, 0));
 

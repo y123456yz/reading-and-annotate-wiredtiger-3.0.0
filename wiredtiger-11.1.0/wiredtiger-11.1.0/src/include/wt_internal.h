@@ -335,6 +335,7 @@ typedef struct __wt_rec_chunk WT_REC_CHUNK;
 struct __wt_rec_dictionary;
 typedef struct __wt_rec_dictionary WT_REC_DICTIONARY;
 struct __wt_rec_kv;
+//该结构 = cell + 真实value
 typedef struct __wt_rec_kv WT_REC_KV;
 struct __wt_reconcile;
 //WT_SESSION_IMPL.reconcile为该类型  __rec_init分片空间
@@ -387,6 +388,7 @@ typedef struct __wt_tiered_work_unit WT_TIERED_WORK_UNIT;
 struct __wt_time_aggregate;
 typedef struct __wt_time_aggregate WT_TIME_AGGREGATE;
 struct __wt_time_window;
+//事务相关，例如可见性，可以参考__wt_txn_tw_start_visible_all
 typedef struct __wt_time_window WT_TIME_WINDOW;
 struct __wt_txn;
 typedef struct __wt_txn WT_TXN;
