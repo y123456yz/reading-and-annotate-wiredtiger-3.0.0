@@ -51,6 +51,7 @@ __block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
             extp = &(*extp)->next[i];
         } else
             stack[i--] = extp--;
+            
     return (last);
 }
 
@@ -466,7 +467,7 @@ __block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off
      */
     if (block->size > (wt_off_t)INT64_MAX - size)
         WT_RET_MSG(session, WT_ERROR, "block allocation failed, file cannot grow further");
-
+    
     *offp = block->size;
     block->size += size;
 
@@ -927,7 +928,7 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *
  * __block_append --
  *     Append a new entry to the allocation list.
  */ 
-//
+//获取
 static int
 __block_append(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -946,10 +947,11 @@ __block_append(
      * The terminating element of the list is cached, check it; otherwise, get a stack for the last
      * object in the skiplist, check for a simple extension, and otherwise append a new structure.
      */
+    //el->last有指向跳跃表的最后一个ext, 并且最后的这个ext末尾和off刚好相等，也就是可以直接追加数据
     if ((ext = el->last) != NULL && ext->off + ext->size == off)
         ext->size += size;
     else {
-        //获取el->off对应跳表的最后一个WT_EXT成员
+        //从跳跃表中查找获取el->off对应跳表的最后一个WT_EXT成员
         ext = __block_off_srch_last(el->off, astack);
         if (ext != NULL && ext->off + ext->size == off)
             ext->size += size;

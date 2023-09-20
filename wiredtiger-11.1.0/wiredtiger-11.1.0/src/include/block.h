@@ -57,6 +57,7 @@ struct __wt_extlist {
     //__block_off_insert->__block_ext_insert和__block_append中分配ext空间向跳跃表中添加elem,计数自增
     uint32_t entries; /* Entry count */
 
+    //赋值参考__wt_block_extlist_write
     uint32_t objectid; /* Written object ID */
     wt_off_t offset;   /* Written extent offset */
     uint32_t checksum; /* Written extent checksum */
@@ -163,7 +164,7 @@ There are three extent lists that are maintained per checkpoint:
 The alloc and discard extent lists are maintained as a skiplist sorted by file offset. 
 The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
 */
-    WT_EXTLIST alloc;   /* Extents allocated */
+    WT_EXTLIST alloc;   /* Extents allocated */ //__wt_block_alloc中分配ext空间，添加到alloc跳跃表中
     WT_EXTLIST avail;   /* Extents available */
     WT_EXTLIST discard; /* Extents discarded */
 
@@ -262,7 +263,9 @@ struct __wt_block {
 
     
     WT_FH *fh;            /* Backing file handle */
+    //代表当前已经写入到文件末尾位置，也就是文件大小
     wt_off_t size;        /* File size */
+    //file_extend配置，默认为0，所以extend_size也就是是当前block size
     wt_off_t extend_size; /* File extended size */
     //file_extend配置，默认为0
     wt_off_t extend_len;  /* File extend chunk size */
@@ -280,7 +283,7 @@ struct __wt_block {
     size_t os_cache;     /* System buffer cache flush max */
     //os_cache_max配置，默认为0
     size_t os_cache_max;
-    //os_cache_dirty_max配置，默认为0
+    //os_cache_dirty_max配置，默认为0, 也就是没写入多少数据，就进行强制__wt_fsync刷盘
     size_t os_cache_dirty_max;
 
     u_int block_header; /* Header length */
@@ -397,6 +400,7 @@ struct __wt_block_header {
      * with another valid page image). Second, a page's checksum is stored in the disk header. This
      * is for salvage, so salvage knows it has found a page that may be useful.
      */
+    //__block_write_off中赋值
     uint32_t checksum; /* 04-07: checksum */
 
 /*

@@ -103,6 +103,7 @@ __wt_block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_FH *fh, wt_off_t
      * If we unlock here, we clear release_lock.
      */
 
+    //默认不配置，直接从这里返回
     /* If not configured to extend the file, we're done. */
     if (block->extend_len == 0)
         return (0);
@@ -137,6 +138,7 @@ __wt_block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_FH *fh, wt_off_t
      * of extend_size being smaller than the actual file size, and that's OK, we simply may do
      * another extension sooner than otherwise.
      */
+    //file_extend配置，默认为0，所以extend_size也就是是当前block size，见__wt_block_extend
     block->extend_size = block->size + block->extend_len * 2;
 
     /*
@@ -187,6 +189,8 @@ __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
  //buf数据内容 = 包括page header + block header + 实际数据
  //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
  */
+
+//数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
 int
 __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_t *addr,
   size_t *addr_sizep, bool data_checksum, bool checkpoint_io)
@@ -195,11 +199,14 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_
     uint32_t checksum, objectid, size;
     uint8_t *endp;
 
+    //数据写入磁盘，并返回objectidp, offsetp, sizep和checksump
     WT_RET(__wt_block_write_off(session, block, buf, &objectid, &offset, &size, &checksum,
       data_checksum, checkpoint_io, false));
 
     endp = addr;
+    //对objectid offset size  checksum四个字段进行封包存入addr数组中
     WT_RET(__wt_block_addr_pack(block, &endp, objectid, offset, size, checksum));
+    //封装后的数据存入到addr数组后，数组长度大小
     *addr_sizep = WT_PTRDIFF(endp, addr);
 
     return (0);
@@ -210,6 +217,8 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_
  *     Write a buffer into a block, returning the block's offset, size and checksum.
  //数据写入磁盘
  //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+
+//数据写入磁盘，并返回objectidp, offsetp, sizep和checksump
  */
 static int
 __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint32_t *objectidp,
@@ -280,8 +289,10 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
 
     //align_size是一个page在磁盘上面的总大小，=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
     //也就是一次性分配一个page该有的磁盘空间元数据
+    //offset也就是buf数据需要从文件的offset这个位置开始向文件中写入
     ret = __wt_block_alloc(session, block, &offset, (wt_off_t)align_size);
     if (ret == 0)
+        //默认file_extend不配置，忽略该函数
         ret = __wt_block_extend(session, block, fh, offset, align_size, &local_locked);
     if (local_locked)
         __wt_spin_unlock(session, &block->live_lock);
@@ -351,6 +362,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
      * Optionally schedule writes for dirty pages in the system buffer cache, but only if the
      * current session can wait.
      */
+    //os_cache_dirty_max配置，默认为0, 也就是没写入多少数据，就进行强制__wt_fsync刷盘
     if (block->os_cache_dirty_max != 0 && fh->written > block->os_cache_dirty_max &&
       __wt_session_can_wait(session)) {
         fh->written = 0;
@@ -376,7 +388,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
       "off %" PRIuMAX ", size %" PRIuMAX ", checksum %#" PRIx32, (uintmax_t)offset,
       (uintmax_t)align_size, checksum);
 
-    *objectidp = objectid;
+    *objectidp = objectid;  
     *offsetp = offset;
     *sizep = WT_STORE_SIZE(align_size);
     *checksump = checksum;
@@ -389,6 +401,8 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
  *     Write a buffer into a block, returning the block's offset, size and checksum.
  */
 //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+
+//数据写入磁盘，并返回objectidp, offsetp, sizep和checksump
 int
 __wt_block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint32_t *objectidp,
   wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump, bool data_checksum, bool checkpoint_io,
@@ -401,9 +415,14 @@ __wt_block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, ui
      * place to catch all callers. After the write, swap values back to native order so callers
      * never see anything other than their original content.
      */
+    //大小端对齐，忽略
     __wt_page_header_byteswap(buf->mem);
+
+    //数据写入磁盘，并返回objectidp, offsetp, sizep和checksump
     ret = __block_write_off(session, block, buf, objectidp, offsetp, sizep, checksump,
       data_checksum, checkpoint_io, caller_locked);
+
+    //大小端对齐，忽略
     __wt_page_header_byteswap(buf->mem);
     return (ret);
 }

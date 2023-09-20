@@ -230,6 +230,8 @@ err:
  */
 //buf数据内容 = 包括page header + block header + 实际数据
 //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+
+//数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
 int
 __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_sizep,
   size_t *compressed_sizep, bool checkpoint, bool checkpoint_io, bool compressed)
@@ -373,6 +375,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
     time_start = timer ? __wt_clock(session) : 0;
                         //__bm_checkpoint
     WT_ERR(checkpoint ? bm->checkpoint(bm, session, ip, btree->ckpt, data_checksum) :
+    //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
                         //__bm_write
                         bm->write(bm, session, ip, addr, addr_sizep, data_checksum, checkpoint_io));
     if (timer) {
@@ -409,6 +412,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
      *
      * Ignore the final checkpoint writes.
      */
+    //默认不使能，直接跳过
     if (blkcache->type == BLKCACHE_UNCONFIGURED)
         ;
     else if (!blkcache->cache_on_checkpoint && checkpoint_io)

@@ -542,6 +542,10 @@ __wt_blkcache_remove(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
 /*
  * __blkcache_init --
  *     Initialize the block cache.
+     "block_cache=(blkcache_eviction_aggression=1800,"
+    "cache_on_checkpoint=true,cache_on_writes=true,enabled=false,"
+    "full_target=95,hashsize=0,max_percent_overhead=10,nvram_path=,"
+    "percent_file_in_dram=50,size=0,system_ram=0,type=),"
  */
 static int
 __blkcache_init(WT_SESSION_IMPL *session, size_t cache_size, u_int hash_size, u_int type,
@@ -709,6 +713,10 @@ __blkcache_reconfig(WT_SESSION_IMPL *session, bool reconfig, size_t cache_size, 
 /*
  * __wt_blkcache_setup --
  *     Set up the block cache.
+     "block_cache=(blkcache_eviction_aggression=1800,"
+    "cache_on_checkpoint=true,cache_on_writes=true,enabled=false,"
+    "full_target=95,hashsize=0,max_percent_overhead=10,nvram_path=,"
+    "percent_file_in_dram=50,size=0,system_ram=0,type=),"
  */
 int
 __wt_blkcache_setup(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
@@ -773,6 +781,7 @@ __wt_blkcache_setup(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
     WT_RET(__wt_config_gets(session, cfg, "block_cache.percent_file_in_dram", &cval));
     percent_file_in_os_cache = (u_int)cval.val;
 
+    //cache_on_checkpoint=true,cache_on_writes=true Ä¬ÈÏtrue
     WT_RET(__wt_config_gets(session, cfg, "block_cache.cache_on_checkpoint", &cval));
     if (cval.val == 0)
         cache_on_checkpoint = false;
@@ -783,6 +792,7 @@ __wt_blkcache_setup(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
     WT_RET(__wt_config_gets(session, cfg, "block_cache.full_target", &cval));
     full_target = (uint64_t)((float)cache_size * (float)cval.val / (float)100);
 
+    //cache_on_checkpoint=true,cache_on_writes=true Ä¬ÈÏtrue
     WT_RET(__wt_config_gets(session, cfg, "block_cache.cache_on_writes", &cval));
     if (cval.val == 0)
         cache_on_writes = false;

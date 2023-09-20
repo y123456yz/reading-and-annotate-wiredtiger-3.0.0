@@ -9,6 +9,7 @@
 #define WT_CROSSING_MIN_BND(r, next_len) \
     ((r)->cur_ptr->min_offset == 0 && (next_len) > (r)->min_space_avail)
 #define WT_CROSSING_SPLIT_BND(r, next_len) ((next_len) > (r)->space_avail)
+//也就是判断next_len添加进来后，如果min_offset为0，可用空间是否会超过min_space_avail，或者是否会超过space_avail
 #define WT_CHECK_CROSSING_BND(r, next_len) \
     (WT_CROSSING_MIN_BND(r, next_len) || WT_CROSSING_SPLIT_BND(r, next_len))
 
@@ -180,6 +181,8 @@ __rec_page_time_stats(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 
  //WT_RECONCILE对应page如果磁盘空间不够用，则需要split
  //WT_RECONCILE对应page如果较大，超过了一个WT_RECONCILE最大磁盘空间，磁盘空间不够用，则需要split
+
+ //对应image mem可用空间不足了，则需要split
  */
 static inline bool
 __wt_rec_need_split(WT_RECONCILE *r, size_t len)
@@ -205,6 +208,7 @@ __wt_rec_need_split(WT_RECONCILE *r, size_t len)
         len += (r->supd_memsize - ((size_t)r->supd_next * WT_UPDATE_SIZE)) / 10;
 
     /* Check for the disk image crossing a boundary. */
+    //也就是判断next_len添加进来后，如果min_offset为0，可用空间是否会超过min_space_avail，或者是否会超过space_avail
     return (WT_CHECK_CROSSING_BND(r, len));
 }
 

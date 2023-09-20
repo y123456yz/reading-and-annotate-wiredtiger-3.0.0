@@ -604,6 +604,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
         /* Boundary: split or write the page. */
         //WT_RECONCILE对应page如果较大，超过了一个WT_RECONCILE最大磁盘空间，磁盘空间不够用，则需要split
         if (__wt_rec_need_split(r, key->len + val->len)) {
+          //这里一般会进来两次，第一次是可用空间接近min_space_avail，第二次是可用空间直接接近space_avail
             /*
              * Turn off prefix compression until a full key written to the new page, and (unless
              * already working with an overflow key), rebuild the key without compression.

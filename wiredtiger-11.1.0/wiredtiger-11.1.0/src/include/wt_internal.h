@@ -286,6 +286,7 @@ struct __wt_lsm_worker_cookie;
 typedef struct __wt_lsm_worker_cookie WT_LSM_WORKER_COOKIE;
 struct __wt_multi;
 //一个page拆分为多个page时候用到，可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
+//管理磁盘page image的内存元数据信息，一个__wt_multi对应一个pag 磁盘image
 typedef struct __wt_multi WT_MULTI;
 struct __wt_myslot;
 typedef struct __wt_myslot WT_MYSLOT;

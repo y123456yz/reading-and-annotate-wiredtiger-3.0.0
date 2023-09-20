@@ -56,7 +56,7 @@ struct __wt_rec_chunk {
     uint32_t entries;
     //colum才用，row store不用该字段
     uint64_t recno;
-    //对应的ref key，赋值参考__wt_rec_split_init
+    //对应的ref key，赋值参考__wt_rec_split_init  
     WT_ITEM key;
     //WT_TIME_AGGREGATE_UPDATE中统计赋值
     WT_TIME_AGGREGATE ta;
@@ -68,6 +68,7 @@ struct __wt_rec_chunk {
     WT_TIME_AGGREGATE ta_min;
 
     //__wt_rec_split_crossing_bnd赋值
+    //也就是最解决image mem内存中，离min_space_avail最近的游标位置
     size_t min_offset; /* byte offset */
 
     //磁盘中的数据信息，参考__rec_split_write
@@ -189,6 +190,9 @@ struct __wt_reconcile {
     //默认50% * page_size
     uint32_t min_split_size; /* Minimum split page size */
 
+
+    //下面是可用空间，__wt_rec_incr中会减去已写入的KV数据长度
+
     //yang add change，修改位置
     //__wt_rec_split_init初始化，__wt_rec_need_split->WT_CHECK_CROSSING_BND判断是否需要split
     //split_size - WT_PAGE_HEADER_BYTE_SIZE, 除去头部字段的真实可用数据部分
@@ -300,7 +304,10 @@ struct __wt_reconcile {
     size_t delete_hs_upd_allocated;
 
     /* List of pages we've written so far. */
+    //注意__wt_reconcile.multi和__wt_page_modify.mod_multi_entries.multi的区别联系
+    
     //可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
+    //__rec_split_write中把chunk数据写入磁盘，并保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)到WT_MULTI中
     WT_MULTI *multi;
     //__rec_split_write中自增, 也就是该page拆分为了多少个新page，可以参考__rec_split_dump_keys的打印
     uint32_t multi_next;
@@ -368,6 +375,7 @@ struct __wt_reconcile {
      * Variables to track reconciliation calls for pages containing cells with time window values
      * and prepared transactions.
      */
+    //__rec_page_time_stats
     bool rec_page_cell_with_ts;
     bool rec_page_cell_with_txn_id;
     bool rec_page_cell_with_prepared_txn;

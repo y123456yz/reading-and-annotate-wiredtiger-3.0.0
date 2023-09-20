@@ -67,7 +67,12 @@ struct __wt_blkcache_item {
  * WT_BLKCACHE --
  *     Block cache metadata includes the hashtable of cached items, number of cached data blocks
  * and the total amount of space they occupy.
- */
+
+ "block_cache=(blkcache_eviction_aggression=1800,"
+"cache_on_checkpoint=true,cache_on_writes=true,enabled=false,"
+"full_target=95,hashsize=0,max_percent_overhead=10,nvram_path=,"
+"percent_file_in_dram=50,size=0,system_ram=0,type=),"
+ */ //默认没启用，参考__wt_blkcache_setup
 struct __wt_blkcache {
     /* Locked: Block manager cache. Locks are per-bucket. */
     TAILQ_HEAD(__wt_blkcache_hash, __wt_blkcache_item) * hash;

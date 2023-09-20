@@ -188,6 +188,7 @@ __wt_write(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, con
       !F_ISSET(S2C(session), WT_CONN_READONLY) ||
         WT_STRING_MATCH(fh->name, WT_SINGLETHREAD, strlen(WT_SINGLETHREAD)));
 
+    //[1695202799:277312][38596:0x7fc551dc1800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_HANDLEOPS][DEBUG_2]: WT_HOME/access.wt: handle-write: 16384 at 4096
     __wt_verbose_debug2(session, WT_VERB_HANDLEOPS,
       "%s: handle-write: %" WT_SIZET_FMT " at %" PRIuMAX, fh->handle->name, len, (uintmax_t)offset);
 
@@ -202,6 +203,7 @@ __wt_write(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, con
     WT_STAT_CONN_INCR_ATOMIC(session, thread_write_active);
     time_start = __wt_clock(session);
 
+    //__posix_file_write
     ret = fh->handle->fh_write(fh->handle, (WT_SESSION *)session, offset, len, buf);
 
     time_stop = __wt_clock(session);

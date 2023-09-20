@@ -2159,7 +2159,8 @@ __wt_json_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 int
 __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 {
-    static const WT_NAME_FLAG verbtypes[] = {{"api", WT_VERB_API}, {"backup", WT_VERB_BACKUP},
+    static const WT_NAME_FLAG verbtypes[] = {{"config_all_verbos", WT_VERB_OPEN_ALL_VERBOS},
+      {"api", WT_VERB_API}, {"backup", WT_VERB_BACKUP},
       {"block", WT_VERB_BLOCK}, {"block_cache", WT_VERB_BLKCACHE},
       {"checkpoint", WT_VERB_CHECKPOINT}, {"checkpoint_cleanup", WT_VERB_CHECKPOINT_CLEANUP},
       {"checkpoint_progress", WT_VERB_CHECKPOINT_PROGRESS}, {"compact", WT_VERB_COMPACT},
@@ -2176,12 +2177,15 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
       {"split", WT_VERB_SPLIT}, {"temporary", WT_VERB_TEMPORARY},
       {"thread_group", WT_VERB_THREAD_GROUP}, {"timestamp", WT_VERB_TIMESTAMP},
       {"tiered", WT_VERB_TIERED}, {"transaction", WT_VERB_TRANSACTION}, {"verify", WT_VERB_VERIFY},
-      {"version", WT_VERB_VERSION}, {"write", WT_VERB_WRITE}, {NULL, 0}};
+      {"version", WT_VERB_VERSION}, {"write", WT_VERB_WRITE}, 
+      {NULL, 0}};
 
     WT_CONFIG_ITEM cval, sval;
     WT_CONNECTION_IMPL *conn;
     WT_DECL_RET;
     const WT_NAME_FLAG *ft;
+    int i;
+    WT_VERBOSE_LEVEL verbose_value;
 
     conn = S2C(session);
 
@@ -2198,25 +2202,28 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
         ret = __wt_config_subgets(session, &cval, ft->name, &sval);
         WT_RET_NOTFOUND_OK(ret);
 
-        if (ret == WT_NOTFOUND)
+        if (ret == WT_NOTFOUND) {
             /*
              * If the given event isn't specified in configuration string, default it to the
              * WT_VERBOSE_NOTICE verbosity level. WT_VERBOSE_NOTICE being an always-on informational
              * verbosity message.
              */
-            conn->verbose[ft->flag] = WT_VERBOSE_NOTICE;
-        else if (sval.type == WT_CONFIG_ITEM_BOOL && sval.len == 0)
+            verbose_value = WT_VERBOSE_NOTICE;
+            goto verbos_assign;
+        } else if (sval.type == WT_CONFIG_ITEM_BOOL && sval.len == 0) {
             /*
              * If no value is associated with the event (i.e passing verbose=[checkpoint]), default
              * the event to WT_VERBOSE_DEBUG_1. Correspondingly, all legacy uses of '__wt_verbose',
              * being messages without an explicit verbosity level, will default to
              * 'WT_VERBOSE_DEBUG_1'.
              */
-            conn->verbose[ft->flag] = WT_VERBOSE_DEBUG_1;
-        else if (sval.type == WT_CONFIG_ITEM_NUM && sval.val >= WT_VERBOSE_INFO &&
-          sval.val <= WT_VERBOSE_DEBUG_5)
-            conn->verbose[ft->flag] = (WT_VERBOSE_LEVEL)sval.val;
-        else
+            verbose_value = WT_VERBOSE_DEBUG_1;
+            goto verbos_assign;
+        } else if (sval.type == WT_CONFIG_ITEM_NUM && sval.val >= WT_VERBOSE_INFO &&
+          sval.val <= WT_VERBOSE_DEBUG_5) {
+            verbose_value = (WT_VERBOSE_LEVEL)sval.val;
+            goto verbos_assign;
+        } else {
             /*
              * We only support verbosity values in the form of positive numbers (representing
              * verbosity levels e.g. [checkpoint:1,rts:0]) and boolean expressions (e.g.
@@ -2224,7 +2231,19 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
              * negative numbers and strings.
              */
             WT_RET_MSG(session, EINVAL, "Failed to parse verbose option '%s'", ft->name);
+        }
+        
+verbos_assign:
+        if (ft->flag == WT_VERB_OPEN_ALL_VERBOS) {
+            printf("yang test ............WT_VERB_API:%d............verbose_value:%d\r\n", WT_VERB_API, verbose_value);
+            for (i = 0; i < WT_VERB_NUM_CATEGORIES; i++)
+                conn->verbose[i] = verbose_value;
+        } else { 
+        printf("yang test ............ft->flag:%d............verbose_value:%d\r\n", (int)ft->flag, verbose_value);
+            conn->verbose[ft->flag] = verbose_value;
+        }
     }
+
 
     for (ft = verbtypes; ft->name != NULL; ft++) {//yang add change todo 
         if (strcmp(ft->name, "metadata") == 0 || strcmp(ft->name, "api") == 0)

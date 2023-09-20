@@ -144,10 +144,11 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
 /*
  * WT_ADDR --
  *	An in-memory structure to hold a block's location.
- */
+ */ //__wt_multi.addr为该类型
 struct __wt_addr {
     WT_TIME_AGGREGATE ta;
 
+    //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
     uint8_t *addr; /* Block-manager's cookie */
     uint8_t size;  /* Block-manager's cookie length */
 
@@ -267,11 +268,12 @@ struct __wt_save_upd {
  * WT_MULTI --
  *	Replacement block information used during reconciliation.
  */ //一个page拆分为多个page时候用到，可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
+//管理磁盘page image的内存元数据信息，一个__wt_multi对应一个pag 磁盘image
 struct __wt_multi {
     /*
      * Block's key: either a column-store record number or a row-store variable length byte string.
      */
-    //page拆分后对应的ref key
+    //page拆分后对应的ref key，参考__rec_split_write
     union {
         uint64_t recno;
         WT_IKEY *ikey;
@@ -291,6 +293,7 @@ struct __wt_multi {
      * If there are unresolved updates, the block wasn't written and there will always be a disk
      * image.
      */
+    //赋值参考__rec_supd_move
     WT_SAVE_UPD *supd;
     uint32_t supd_entries;
     bool supd_restore; /* Whether to restore saved update chains to this page */
@@ -300,6 +303,8 @@ struct __wt_multi {
      * page, we avoid writing the block if it's unchanged by comparing size and checksum; the reuse
      * flag is set when the block is unchanged and we're reusing a previous address.
      */
+    //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
+    //赋值见__rec_split_write 
     WT_ADDR addr;
     uint32_t size;
     uint32_t checksum;
@@ -390,13 +395,16 @@ struct __wt_page_modify {
 #undef mod_disk_image
 #define mod_disk_image u1.r.disk_image
 
-        struct {
+        //管理磁盘page image的内存元数据信息，一个__wt_multi对应一个pag 磁盘image
+        struct {//注意__wt_reconcile.multi和__wt_page_modify.mod_multi_entries.multi的区别联系
+            //__rec_write_wrapup中赋值
             WT_MULTI *multi;        /* Multiple replacement blocks */
+            //__rec_write_wrapup中赋值
             uint32_t multi_entries; /* Multiple blocks element count */
         } m;
 #undef mod_multi
 #define mod_multi u1.m.multi
-#undef mod_multi_entries
+#undef mod_multi_entries  
 #define mod_multi_entries u1.m.multi_entries
     } u1;
 
