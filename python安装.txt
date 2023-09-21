@@ -1,1 +1,11 @@
+/usr/bin/ld: /usr/local/lib64/libsnappy.a(snappy.cc.o): relocation R_X86_64_32 against `.rodata' can not be used when making a shared object; recompile with -fPIC
+/usr/bin/ld: /usr/local/lib64/libsnappy.a(snappy-sinksource.cc.o): relocation R_X86_64_32 against symbol `_ZTVN6snappy6SourceE' can not be used when making a shared object; recompile with -fPIC
+/usr/bin/ld: /usr/local/lib64/libsnappy.a(snappy-c.cc.o): relocation R_X86_64_PC32 against symbol `snappy_max_compressed_length' can not be used when making a shared object; recompile with -fPIC
+/usr/bin/ld: final link failed: Bad value
+collect2: error: ld returned 1 exit status
+
+如果编译报错，可以跳过snappy，对应命令如下:
+cmake -DENABLE_SNAPPY=0 ../.
+
+
 ./configure --prefix=/usr/local/python-3.8.8  --enable-shared CFLAGS=-fPIC --enable-optimizations  升级python时候源码编译一定带上，否则高版本wiredtiger编译的时候会报错

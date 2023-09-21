@@ -130,6 +130,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     uint32_t maxleafpage;      /* Leaf page max size */
     uint32_t maxleafkey;       /* Leaf page max key size */
     uint32_t maxleafvalue;     /* Leaf page max value size */
+    //注意cache_size这里是/1000而不是除100
     //memory_page_max配置默认5M,取MIN(5M, (conn->cache->eviction_dirty_trigger * cache_size) / 1000) example测试也就是默认2M
     uint64_t maxmempage;       /* In-memory page max size */
     //4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
@@ -198,7 +199,8 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
 
     //__wt_btree_open->__wt_blkcache_open
     WT_BM *bm;          /* Block manager reference */  //__wt_btree.bm
-    u_int block_header; /* WT_PAGE_HEADER_BYTE_SIZE */
+    //WT_BLOCK_HEADER_SIZE
+    u_int block_header; /* WT_PAGE_HEADER_BYTE_SIZE */  //yang add todo xxxxx  备注长度错了，容易误解
 
     //__rec_set_page_write_gen中自增
     uint64_t write_gen;      /* Write generation */

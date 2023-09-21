@@ -56,12 +56,13 @@ struct __wt_rec_chunk {
     uint32_t entries;
     //colum才用，row store不用该字段
     uint64_t recno;
-    //对应的ref key，赋值参考__wt_rec_split_init  
+    //对应的ref key，赋值参考__wt_rec_split_init, 实际上就是split的拆分点
     WT_ITEM key;
     //WT_TIME_AGGREGATE_UPDATE中统计赋值
     WT_TIME_AGGREGATE ta;
 
     /* Saved minimum split-size boundary information. */
+    //把cur_ptr第一次接近min_space_avail可用阈值时候的成员数以及min_offset偏移量记录下来，在外层的__rec_split_finish_process_prev使用
     uint32_t min_entries;
     uint64_t min_recno;
     WT_ITEM min_key;
@@ -69,12 +70,14 @@ struct __wt_rec_chunk {
 
     //__wt_rec_split_crossing_bnd赋值
     //也就是最解决image mem内存中，离min_space_avail最近的游标位置
+    //把cur_ptr第一次接近min_space_avail可用阈值时候的成员数以及min_offset偏移量记录下来，在外层的__rec_split_finish_process_prev使用
     size_t min_offset; /* byte offset */
 
     //磁盘中的数据信息，参考__rec_split_write
     //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
     //corrected_page_size
     //r->first_free指向这里面的实际数据位置，也就是(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据)中的实际数据
+    //默认空间大小是按照disk_img_buf_size对齐的，参考__rec_split_chunk_init
     WT_ITEM image; /* disk-image */
 
     /* For fixed-length column store, track where the time windows start and how many we have. */
@@ -224,6 +227,7 @@ struct __wt_reconcile {
                  *prev_ptr;
 
     //默认值r->page_size按照allocsize对齐的大小
+    //WT_ALIGN(WT_MAX(corrected_page_size, r->split_size), btree->allocsize);
     size_t disk_img_buf_size; /* Base size needed for a chunk memory image */
 
     /*

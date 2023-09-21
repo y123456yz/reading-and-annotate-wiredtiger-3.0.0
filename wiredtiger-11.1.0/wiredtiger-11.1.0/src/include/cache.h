@@ -106,6 +106,7 @@ struct __wt_cache {
     uint64_t app_waits;  /* User threads waited for cache */
     uint64_t app_evicts; /* Pages evicted by user threads */
 
+    //也就是历史最大的page->memory_footprint
     uint64_t evict_max_page_size; /* Largest page seen at eviction */
     struct timespec stuck_time;   /* Stuck time */
 

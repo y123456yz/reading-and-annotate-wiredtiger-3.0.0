@@ -2219,7 +2219,8 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
              */
             verbose_value = WT_VERBOSE_DEBUG_1;
             goto verbos_assign;
-        } else if (sval.type == WT_CONFIG_ITEM_NUM && sval.val >= WT_VERBOSE_INFO &&
+            //yang add todo xxxxx ,这里应该是
+        } else if (sval.type == WT_CONFIG_ITEM_NUM && sval.val >= WT_VERBOSE_ERROR &&
           sval.val <= WT_VERBOSE_DEBUG_5) {
             verbose_value = (WT_VERBOSE_LEVEL)sval.val;
             goto verbos_assign;

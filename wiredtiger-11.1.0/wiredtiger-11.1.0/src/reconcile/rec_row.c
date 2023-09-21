@@ -508,8 +508,8 @@ __rec_row_zero_len(WT_SESSION_IMPL *session, WT_TIME_WINDOW *tw)
  * __rec_row_leaf_insert --
  *     Walk an insert chain, writing K/V pairs.
  */
-//__wt_rec_row_leaf->__rec_row_leaf_insert->__wt_rec_image_copy: 拷贝page内存部分KV数据到r->first_free对应内存空间
-//__wt_rec_row_leaf->__wt_rec_image_copy: 拷贝磁盘部分KV数据到r->first_free对应内存空间
+//__wt_rec_row_leaf->__rec_row_leaf_insert->__wt_rec_image_copy: 拷贝page内存部分KV数据到r->first_free对应内存空间, 如果拷贝的空间内容超过一定阀值，则直接写入磁盘
+//__wt_rec_row_leaf->__wt_rec_image_copy: 拷贝磁盘部分KV数据到r->first_free对应内存空间, 如果拷贝的空间内容超过一定阀值，则直接写入磁盘
 static int
 __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 {
@@ -725,10 +725,11 @@ __wt_rec_row_leaf(
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
      */
     //把这个KV数据添加到r->first_free对应内存空间
-    if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT_SMALLEST(page))) != NULL)
+    if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT_SMALLEST(page))) != NULL) {
+        printf("yang test .......11111111111111111111111..............__wt_rec_row_leaf.......................\r\n");
         //__rec_row_leaf_insert: 把这个KV数据添加到r->first_free对应内存空间
         WT_RET(__rec_row_leaf_insert(session, r, ins));
-
+    }
     /*
      * When we walk the page, we store each key we're building for the disk image in the last-key
      * buffer. There's trickiness because it's significantly faster to use a previously built key
@@ -1003,7 +1004,7 @@ slow:
                     WT_ERR(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
 
-            printf("yang test ..............__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
+            printf("yang test ......2222222222222222222222........__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
             WT_ERR(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
 
@@ -1027,8 +1028,10 @@ slow:
 leaf_insert:
         /* Write any K/V pairs inserted into the page after this key. */
         //把这个KV数据添加到r->first_free对应内存空间
-        if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT(page, rip))) != NULL)
+        if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT(page, rip))) != NULL) {
+            printf("yang test ......333333333333333333333...............__wt_rec_row_leaf.......................\r\n");
             WT_ERR(__rec_row_leaf_insert(session, r, ins));
+       }
     } ////遍历该page所有KV，然后把这个KV数据添加到r->first_free对应内存空间,整个page数据遍历完成退出该for循环
 
     /* Write the remnant page. */

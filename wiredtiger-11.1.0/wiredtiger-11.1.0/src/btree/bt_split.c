@@ -1160,7 +1160,8 @@ err:
 /*
  * __split_internal_lock --
  *     Lock an internal page.
- */ //获取page对应的page_lock锁，也就是锁住ref->home这个internal page
+ */ 
+//获取page对应的page_lock锁，也就是锁住ref->home这个internal page, 并返回parent page
 static int
 __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PAGE **parentp)
 {
@@ -1670,6 +1671,8 @@ __split_multi_inmem_fail(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *mult
  * __wt_multi_to_ref --
  *     Move a multi-block entry into a WT_REF structure.
  */
+//__wt_evict->__evict_page_dirty_update->__wt_split_multi->__split_multi_lock->__split_multi->__wt_multi_to_ref
+//让page指向拆分后的磁盘元数据
 int
 __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_REF **refp,
   size_t *incrp, bool closing)
@@ -2103,7 +2106,9 @@ __split_insert_lock(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __wt_split_insert --
  *     Split a page's last insert list entries into a separate page.
- */ //__wt_evict
+ */ 
+//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘
+//__evict_reconcile: 对page拆分为多个page后写入磁盘中
 int
 __wt_split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -2123,6 +2128,7 @@ __wt_split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
  * __split_multi --
  *     Split a page into multiple pages.
  */
+//__wt_evict->__evict_page_dirty_update->__wt_split_multi->__split_multi_lock->__split_multi
 static int
 __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
 {
@@ -2147,7 +2153,7 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      */
     WT_RET(__wt_calloc_def(session, new_entries, &ref_new));
     for (i = 0; i < new_entries; ++i)
-        WT_ERR(
+        WT_ERR( //让page指向拆分后的磁盘元数据
           __wt_multi_to_ref(session, page, &mod->mod_multi[i], &ref_new[i], &parent_incr, closing));
 
     /*
@@ -2189,6 +2195,7 @@ err:
  * __split_multi_lock --
  *     Split a page into multiple pages.
  */
+//__wt_evict->__evict_page_dirty_update->__wt_split_multi->__split_multi_lock
 static int
 __split_multi_lock(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
 {
@@ -2196,6 +2203,7 @@ __split_multi_lock(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
     WT_PAGE *parent;
 
     /* Lock the parent page, then proceed with the split. */
+    //获取page对应的page_lock锁，也就是锁住ref->home这个internal page, 并返回parent page
     WT_RET(__split_internal_lock(session, ref, false, &parent));
     if ((ret = __split_multi(session, ref, closing)) != 0 || closing) {
         __split_internal_unlock(session, parent);
@@ -2213,6 +2221,7 @@ __split_multi_lock(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
  * __wt_split_multi --
  *     Split a page into multiple pages.
  */
+//__wt_evict->__evict_page_dirty_update->__wt_split_multi
 int
 __wt_split_multi(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
 {

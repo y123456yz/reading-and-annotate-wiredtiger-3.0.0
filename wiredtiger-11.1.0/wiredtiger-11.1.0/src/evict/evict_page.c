@@ -173,7 +173,8 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
      * Review the page for conditions that would block its eviction. If the check fails (for
      * example, we find a page with active children), quit. Make this check for clean pages, too:
      * while unlikely eviction would choose an internal page with children, it's not disallowed.
-     */ //判断是否可以进行mem split，结果存入inmem_split
+     */ 
+    //判断是否可以进行mem split，结果存入inmem_split
     WT_ERR(__evict_review(session, ref, flags, &inmem_split));
 
     /*
@@ -197,6 +198,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
      * Fail 0.1% of the time after we have done reconciliation. We should always evict the page of a
      * dead tree.
      */
+    //让0.1%的evict reconcile跳过后续流程，直接err
     if (!closing && !tree_dead &&
       __wt_failpoint(session, WT_TIMING_STRESS_FAILPOINT_EVICTION_FAIL_AFTER_RECONCILIATION, 10)) {
         ret = EBUSY;
@@ -395,6 +397,7 @@ __evict_page_clean_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
  * __evict_page_dirty_update --
  *     Update a dirty page's reference on eviction.
  */
+//__wt_evict->__evict_page_dirty_update
 static int
 __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
 {
@@ -441,6 +444,7 @@ __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_
             WT_ASSERT(session, closing == false);
             WT_RET(__wt_split_rewrite(session, ref, &mod->mod_multi[0]));
         } else
+            //一般走这里，一个page通过evict reconcile拆分为多个page
             WT_RET(__wt_split_multi(session, ref, closing));
         break;
     case WT_PM_REC_REPLACE:
@@ -717,6 +721,8 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
  * __evict_reconcile --
  *     Reconcile the page for eviction.
  */
+//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘
+//__evict_reconcile: 对page拆分为多个page后写入磁盘中
 static int
 __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
 {

@@ -1490,7 +1490,7 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
     WT_RET(__rec_split_chunk_init(session, r, r->cur_ptr));
     r->cur_ptr->recno = r->recno;
     if (btree->type == BTREE_ROW)
-        //当前操作的KV中的KV赋值给&r->cur_ptr->key
+        //当前操作的KV中的KV赋值给&r->cur_ptr->key, 也就是page拆分的拆分点key
         WT_RET(__rec_split_row_promote(session, r, &r->cur_ptr->key, r->page->type));
 
     /* Reset tracking information. */
@@ -1575,16 +1575,17 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
         if (r->entries == 0)
             return (0);
 
+        //把cur_ptr第一次接近min_space_avail可用阈值时候的成员数以及min_offset偏移量记录下来，在外层的__rec_split_finish_process_prev使用
         r->cur_ptr->min_entries = r->entries;
         r->cur_ptr->min_recno = r->recno;
         if (S2BT(session)->type == BTREE_ROW)
-            //当前操作的KV中的KV赋值给key
+            //当前操作的KV中的KV赋值给key,也就是splite的拆分点
             WT_RET(__rec_split_row_promote(session, r, &r->cur_ptr->min_key, r->page->type));
         WT_TIME_AGGREGATE_COPY(&r->cur_ptr->ta_min, &r->cur_ptr->ta);
 
         WT_ASSERT_ALWAYS(
           session, r->cur_ptr->min_offset == 0, "Trying to re-enter __wt_rec_split_crossing_bnd");
-        //也就是最解决image mem内存中，离min_space_avail最近的游标位置
+        //也就是image mem内存中，离min_space_avail最近的游标位置，主要用于在__rec_split_finish_process_prev和pre chunk image做合并用
         r->cur_ptr->min_offset = WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem);
 
         /* All page boundaries reset the dictionary. */
@@ -1610,6 +1611,8 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
  *     update the pointer to the current image buffer. After this function exits, we will have one
  *     (last) buffer in memory, pointed to by the current image pointer.
  */
+//pre_ptr和cur_ptr合并，如果合并后不超过page_size，则合并到pre
+//如果合并后超过page_size，则pre的前min_offset放入pre，min_offset后半段和cur合并放入cur
 static int
 __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 {
@@ -1630,7 +1633,10 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
      * to include the header twice.
      */
     combined_size = prev_ptr->image.size + (cur_ptr->image.size - WT_PAGE_HEADER_BYTE_SIZE(btree));
+    printf("yang test ....111111111111111111111......__rec_split_finish_process_prev......combined_size:%d,r->page_size:%d, prev_ptr->min_offset:%d, cur_ptr->image.size:%d\r\n",
+        (int)combined_size, (int)r->page_size, (int)prev_ptr->min_offset, (int)cur_ptr->image.size);
 
+    //可以合并到一个chunk image中
     if (combined_size <= r->page_size) {//cur_ptr和prev_ptr两个chunk合并成一个存入prev_ptr，cur_ptr重新用新的image空间
         /* This won't work for FLCS pages, so make sure we don't get here by accident. */
         WT_ASSERT(session, r->page->type != WT_PAGE_COL_FIX);
@@ -1656,9 +1662,16 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
         return (__rec_split_chunk_init(session, r, r->prev_ptr));
     }
 
-    if (prev_ptr->min_offset != 0 && cur_ptr->image.size < r->min_split_size) {
+    //下面分支，说明合并后的数据大于pagesize了
+
+
+    //这里因为合并时候会超过pagesize，因此把prev_ptr对应image空间的前面min_offset部分存入prev_ptr，
+    //min_offset后半部分内容和cur_ptr合并到一起，存入cur_ptr
+    if (prev_ptr->min_offset != 0 && cur_ptr->image.size < r->min_split_size) {//???????????????????? 下面的逻辑为啥这样实现?????
         /* This won't work for FLCS pages, so make sure we don't get here by accident. */
         WT_ASSERT(session, r->page->type != WT_PAGE_COL_FIX);
+
+        //下面的合并配合__wt_rec_split_crossing_bnd
 
         /*
          * The last chunk, pointed to by the current image pointer, has less than the minimum data.
@@ -1692,8 +1705,10 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
         prev_ptr->entries = prev_ptr->min_entries;
         WT_TIME_AGGREGATE_COPY(&prev_ptr->ta, &prev_ptr->ta_min);
         prev_ptr->image.size -= len_to_move;
+        printf("yang test ....2222222222222222....__rec_split_finish_process_prev......r->min_split_size:%d,\
+            prev_ptr-size:%d, cur-size:%d\r\n",
+        (int)r->min_split_size, (int)prev_ptr->image.size, (int)cur_ptr->image.size);
     }
-    printf("yang test .................__rec_split_finish_process_prev................ \r\n");
 
     /* Write out the previous image */
     return (__rec_split_write(session, r, r->prev_ptr, NULL, false));
@@ -1748,12 +1763,15 @@ __wt_rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
      */
     if (r->prev_ptr != NULL) {
         if (r->page->type != WT_PAGE_COL_FIX)
+            //pre_ptr和cur_ptr合并，如果合并后不超过page_size，则合并到pre
+            //如果合并后超过page_size，则pre的前min_offset放入pre，min_offset后半段和cur合并放入cur,同时pre写入磁盘
             WT_RET(__rec_split_finish_process_prev(session, r));
         else
             WT_RET(__rec_split_write(session, r, r->prev_ptr, NULL, false));
     }
 
     /* Write the remaining data/last page. */
+    //cur_ptr写入磁盘
     return (__rec_split_write(session, r, r->cur_ptr, NULL, true));
 }
 
@@ -1969,7 +1987,7 @@ __rec_split_write_reuse(
      * time, so the last block written for a page is unlikely to match any previously written block
      * or block written in the future, (absent a point-update earlier in the page which didn't
      * change the size of the on-page object in any way).
-     */
+     */ //计算校验和是开销较大的部分，请尽量避免。
     if (last_block)
         return (false);
 
@@ -2236,7 +2254,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
      * If we wrote this block before, re-use it. Prefer a checksum of the compressed image. It's an
      * identical test and should be faster.
      */
-    //判断image数据是否可以复用已有的block
+    //判断image数据是否可以复用已有的block，数据都是一样的，则直接跳过后面的write操作
     if (__rec_split_write_reuse(session, r, multi,
           compressed_image == NULL ? &chunk->image : compressed_image, last_block))
         goto copy_image;
@@ -2249,7 +2267,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
 #ifdef HAVE_DIAGNOSTIC
     verify_image = false;
 #endif
-    //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
+    //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)存入内存multi addr结构中
     WT_RET(__wt_memdup(session, addr, addr_size, &multi->addr.addr));
     multi->addr.size = (uint8_t)addr_size;
 
@@ -2514,6 +2532,8 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
      * replaced. Make sure it's discarded at some point, and clear the underlying modification
      * information, we're creating a new reality.
      */
+    printf("yang test .........__rec_write_wrapup......ref->addr:%p...........mod->rec_result:%d\r\n", 
+        ref->addr, mod->rec_result);
     switch (mod->rec_result) {
     case 0: /*
              * The page has never been reconciled before, free the original
@@ -2638,6 +2658,7 @@ split:
         for (multi = r->multi, i = 0; i < r->multi_next; ++multi, ++i)
             multi->addr.reuse = 0;
 
+        //把本次reconcile的multi信息转存到mod->mod_multi中
         mod->mod_multi = r->multi;
         mod->mod_multi_entries = r->multi_next;
         mod->rec_result = WT_PM_REC_MULTIBLOCK;

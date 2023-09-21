@@ -31,6 +31,7 @@
 #define WT_REC_CHECKPOINT_RUNNING 0x008u
 #define WT_REC_CLEAN_AFTER_REC 0x010u
 #define WT_REC_EVICT 0x020u
+//__evict_reconcile中如果是leaf page设置该标识
 #define WT_REC_HS 0x040u
 #define WT_REC_IN_MEMORY 0x080u
 #define WT_REC_SCRUB 0x100u
@@ -135,7 +136,7 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
  * WT_PAGE_HEADER_BYTE_SIZE --
  *	The first usable data byte on the block (past the combined headers).
  */
-//page header + block header
+//page header(WT_PAGE_HEADER_SIZE) + block header(WT_BLOCK_HEADER_SIZE)
 #define WT_PAGE_HEADER_BYTE_SIZE(btree) ((u_int)(WT_PAGE_HEADER_SIZE + (btree)->block_header))
 //dsk开始跳过page header + block header
 #define WT_PAGE_HEADER_BYTE(btree, dsk) \
@@ -273,7 +274,7 @@ struct __wt_multi {
     /*
      * Block's key: either a column-store record number or a row-store variable length byte string.
      */
-    //page拆分后对应的ref key，参考__rec_split_write
+    //page拆分后对应的ref key，参考__rec_split_dump_keys的打印，赋值的地方在__rec_split_write
     union {
         uint64_t recno;
         WT_IKEY *ikey;
@@ -403,8 +404,10 @@ struct __wt_page_modify {
             uint32_t multi_entries; /* Multiple blocks element count */
         } m;
 #undef mod_multi
+//赋值参考__rec_write_wrapup， 一次reconcile结束后，reconcile的multi信息转存到mod->mod_multi中
 #define mod_multi u1.m.multi
 #undef mod_multi_entries  
+//赋值参考__rec_write_wrapup，一次reconcile结束后，reconcile的multi信息转存到mod->mod_multi中
 #define mod_multi_entries u1.m.multi_entries
     } u1;
 
@@ -464,13 +467,17 @@ struct __wt_page_modify {
             WT_INSERT_HEAD **insert;
 
             /* Updated items for row-stores. */
+            //pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
             WT_UPDATE **update;
         } row_leaf;
 #undef mod_row_insert
+//pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
+
 //WT_PAGE_ALLOC_AND_SWAP、__split_insert分配空间   
 //WT_ROW_INSERT_SLOT获取对应的跳跃表，实际上insert是个数组，数组每个成员对应一个跳跃表，参考__wt_leaf_page_can_split
 #define mod_row_insert u2.row_leaf.insert
 #undef mod_row_update
+//pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
 #define mod_row_update u2.row_leaf.update
     } u2;
 
@@ -505,6 +512,7 @@ struct __wt_page_modify {
  * WT_PAGE_DIRTY --
  *	Two or more updates have been added to the page.
  */
+//__wt_page_modify_clear
 #define WT_PAGE_CLEAN 0
 #define WT_PAGE_DIRTY_FIRST 1
 #define WT_PAGE_DIRTY 2
@@ -514,6 +522,7 @@ struct __wt_page_modify {
 #define WT_PM_REC_EMPTY 1      /* Reconciliation: no replacement */
 #define WT_PM_REC_MULTIBLOCK 2 /* Reconciliation: multiple blocks */
 #define WT_PM_REC_REPLACE 3    /* Reconciliation: single block */
+    //复制参考__rec_write_wrapup
     uint8_t rec_result;        /* Reconciliation state */
 
 #define WT_PAGE_RS_RESTORED 0x1
@@ -690,6 +699,7 @@ struct __wt_page {
         //指向该page存储的真实数据，见__wt_page_alloc
         WT_ROW *row; /* Key/value pairs */
 #undef pg_row
+//pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
 //指向该page存储的真实数据，见__wt_page_alloc
 #define pg_row u.row
 
@@ -1023,6 +1033,7 @@ struct __wt_ref {
      * or NULL if page created in-memory.
      */
     //数据对应的磁盘地址???????
+    //例如evict reconcile流程中的__wt_multi_to_ref，指向该page对应的磁盘元数据信息
     void *addr;
 
     /*
@@ -1248,6 +1259,7 @@ struct __wt_row { /* On-page key, on-page cell, or off-page WT_IKEY */
  * WT_ROW_FOREACH --
  *	Walk the entries of an in-memory row-store leaf page.
  */
+//pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
 #define WT_ROW_FOREACH(page, rip, i) \
     for ((i) = (page)->entries, (rip) = (page)->pg_row; (i) > 0; ++(rip), --(i))
 #define WT_ROW_FOREACH_REVERSE(page, rip, i)                                             \
@@ -1557,6 +1569,7 @@ struct __wt_insert_head {
  * following macros return an array entry if the array of pointers and the specific structure exist,
  * else NULL.
  */
+//pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
 #define WT_ROW_INSERT_SLOT(page, slot)                                  \
     ((page)->modify == NULL || (page)->modify->mod_row_insert == NULL ? \
         NULL :                                                          \
@@ -1571,6 +1584,7 @@ struct __wt_insert_head {
  * insert array. That's because the insert array requires an extra slot to hold keys that sort
  * before any key found on the original page.
  */
+//pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
 #define WT_ROW_INSERT_SMALLEST(page)                                    \
     ((page)->modify == NULL || (page)->modify->mod_row_insert == NULL ? \
         NULL :                                                          \

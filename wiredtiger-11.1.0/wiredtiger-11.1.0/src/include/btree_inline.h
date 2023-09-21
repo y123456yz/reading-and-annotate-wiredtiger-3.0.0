@@ -1715,7 +1715,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
     WT_INSERT *ins;
     WT_INSERT_HEAD *ins_head;
     size_t size;
-    int count;
+    int count1 = 0, count2 = 0;
 
     btree = S2BT(session);
 
@@ -1744,7 +1744,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * correctness (the page must be reconciled again before being evicted after the split,
      * information from a previous reconciliation will be wrong, so we can't evict immediately).
      */
-    //这里是大阈值，如果page内存找过这个阈值，则不能进行memsplite,而是__evict_reconcile
+    //这里是大阈值，如果page内存超过这个阈值，则不能进行memsplite,而是__evict_reconcile
     if (page->memory_footprint < btree->splitmempage)
         return (false);
     if (WT_PAGE_IS_INTERNAL(page))
@@ -1774,14 +1774,14 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
 //page消耗的内存较高，大于maxleafpage * 2，并且至少有5个KV
 #define WT_MAX_SPLIT_COUNT 5
     if (page->memory_footprint > (size_t)btree->maxleafpage * 2) {
-        for (count = 0, ins = ins_head->head[0]; ins != NULL; ins = ins->next[0]) {
-            if (++count < WT_MAX_SPLIT_COUNT)
+        for (count1 = 0, ins = ins_head->head[0]; ins != NULL; ins = ins->next[0]) {
+            if (++count1 < WT_MAX_SPLIT_COUNT)
                 continue;
 
             //当一个page使用内存较高的时候一般从这里返回
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
             printf("yang test ......111111........page->entries:%d..........__wt_leaf_page_can_split......count:%d..........\r\n", 
-                (int)page->entries, count);
+                (int)page->entries, count1);
             return (true);
         }
 
@@ -1797,17 +1797,20 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
 #define WT_MIN_SPLIT_COUNT 30
 #define WT_MIN_SPLIT_MULTIPLIER 16 /* At level 2, we see 1/16th entries */
     //通过level2大概算一下有多少KV及使用的内存,这样可以避免扫描所有KV影响性能
-    for (count = 0, size = 0, ins = ins_head->head[WT_MIN_SPLIT_DEPTH]; ins != NULL;
+    for (count2 = 0, size = 0, ins = ins_head->head[WT_MIN_SPLIT_DEPTH]; ins != NULL;
          ins = ins->next[WT_MIN_SPLIT_DEPTH]) {
-        count += WT_MIN_SPLIT_MULTIPLIER;
+        count2 += WT_MIN_SPLIT_MULTIPLIER;
         size += WT_MIN_SPLIT_MULTIPLIER * (WT_INSERT_KEY_SIZE(ins) + WT_UPDATE_MEMSIZE(ins->upd));
-        if (count > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
+        if (count2 > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
-            printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count:%d..........size:%d................\r\n", (int)count, (int)size);
+            printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count2:%d..........size:%d................\r\n", (int)count2, (int)size);
             return (true);
         }
     }
-    printf("yang test ..__wt_leaf_page_can_split....11111111111111........count:%d..........size:%d................\r\n", (int)count, (int)size);
+    
+    printf("yang test ..__wt_leaf_page_can_split....11111111111111...page->memory_footprint:%d \
+    ..btree->splitmempage:%d...count1:%d..........size:%d.....count2:%d...........\r\n", 
+    (int)page->memory_footprint, (int)btree->splitmempage, (int)count1, (int)size, (int)count2);
     return (false);
 }
 

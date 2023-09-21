@@ -70,17 +70,17 @@ access_example(void)
 
     /* Open a connection to the database, creating it if necessary. */ 
     //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
-   // error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[vessrify=5, split=5, overflow=5, generation=5, block=5, write=5, evictserver=5, evict_stuck=5, block_cache=5, checkpoint_progress=5,  checkpoint=5, checkpoint_cleanup=5, block=5,overflow=5,reconcile=5,evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
+    //error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[split=5, overflow=5, generation=5, block=5, write=5, evictserver=5, evict_stuck=5, block_cache=5, checkpoint_progress=5,  checkpoint=5, checkpoint_cleanup=5, block=5,overflow=5,reconcile=5,evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
 
     error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[\
     backup=5, block=5, block_cache=5, checkpoint=5, checkpoint_cleanup=5,checkpoint_progress=5,compact=5,\
     compact_progress=5,error_returns=5,evict=5,evict_stuck=5,evictserver=5,fileops=5,generation=5,handleops=5,log=5,\
     hs=5, history_store_activity=5,lsm=5,lsm_manager=5,metadata=5,mutex=5,out_of_order=5,overflow=5,read=5,reconcile=5,recovery=5, \
     recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\
-    version=5,write=5, config_all_verbos=1, api=5]  ", &conn));
+    version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));
 
     /* Open a session handle for the database. */
-    error_check(conn->open_session(conn, NULL, NULL,     &session));
+    error_check(conn->open_session(conn, NULL, NULL, &session));
     /*! [access example connection] */
     
 
@@ -103,7 +103,7 @@ access_example(void)
     value_item.size = strlen(value_item.data);
     __wt_random_init_seed(NULL, &rnd);
 
-    for (i=400;i > 0; i--) {
+    for (i=50;i > 0; i--) {
         rval = __wt_random(&rnd);
         
         cursor->set_key(cursor, i); /* Insert a record. */
