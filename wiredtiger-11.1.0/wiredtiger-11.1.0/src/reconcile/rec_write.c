@@ -1410,8 +1410,8 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
 
     btree = S2BT(session);
    // printf("yang test .................__wt_rec_split................ \r\n");
-    printf("yang test ...........__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d\r\n", 
-        (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->split_size);
+   // printf("yang test ...........__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d\r\n", 
+   //     (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->split_size);
        
     /*
      * We should never split during salvage, and we're about to drop core because there's no parent
@@ -1556,12 +1556,12 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
      * the next record is large enough, just split at this point.
      */
 
-    printf("yang test ......__wt_rec_split_crossing_bnd....inuse:%d, r->entries:%d,(r)->min_space_avail:%d \
+    /*printf("yang test ......__wt_rec_split_crossing_bnd....inuse:%d, r->entries:%d,(r)->min_space_avail:%d \
     , (r)->space_avail:%d, next_len:%d, r->cur_ptr->min_offset:%d, __wt_rec_need_split(r, 0):%d, \
     r->supd_next:%d\r\n",
         (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->min_space_avail,
         (int)r->space_avail, (int)next_len, (int)r->cur_ptr->min_offset, __wt_rec_need_split(r, 0),
-        (int)r->supd_next);
+        (int)r->supd_next);*/
 
     //已用空间超过了min_space_avail，但是没有超过space_avail，并且不需要rec split
     if (WT_CROSSING_MIN_BND(r, next_len) && !WT_CROSSING_SPLIT_BND(r, next_len) &&
@@ -1633,8 +1633,8 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
      * to include the header twice.
      */
     combined_size = prev_ptr->image.size + (cur_ptr->image.size - WT_PAGE_HEADER_BYTE_SIZE(btree));
-    printf("yang test ....111111111111111111111......__rec_split_finish_process_prev......combined_size:%d,r->page_size:%d, prev_ptr->min_offset:%d, cur_ptr->image.size:%d\r\n",
-        (int)combined_size, (int)r->page_size, (int)prev_ptr->min_offset, (int)cur_ptr->image.size);
+   // printf("yang test ....111111111111111111111......__rec_split_finish_process_prev......combined_size:%d,r->page_size:%d, prev_ptr->min_offset:%d, cur_ptr->image.size:%d\r\n",
+     //   (int)combined_size, (int)r->page_size, (int)prev_ptr->min_offset, (int)cur_ptr->image.size);
 
     //可以合并到一个chunk image中
     if (combined_size <= r->page_size) {//cur_ptr和prev_ptr两个chunk合并成一个存入prev_ptr，cur_ptr重新用新的image空间
@@ -1705,9 +1705,9 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
         prev_ptr->entries = prev_ptr->min_entries;
         WT_TIME_AGGREGATE_COPY(&prev_ptr->ta, &prev_ptr->ta_min);
         prev_ptr->image.size -= len_to_move;
-        printf("yang test ....2222222222222222....__rec_split_finish_process_prev......r->min_split_size:%d,\
-            prev_ptr-size:%d, cur-size:%d\r\n",
-        (int)r->min_split_size, (int)prev_ptr->image.size, (int)cur_ptr->image.size);
+       // printf("yang test ....2222222222222222....__rec_split_finish_process_prev......r->min_split_size:%d,
+       //     prev_ptr-size:%d, cur-size:%d\r\n",
+       // (int)r->min_split_size, (int)prev_ptr->image.size, (int)cur_ptr->image.size);
     }
 
     /* Write out the previous image */
@@ -1735,7 +1735,7 @@ __wt_rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
     if (r->entries == 0 && (r->supd_next == 0 || F_ISSET(r, WT_REC_CHECKPOINT)))
         return (0);
 
-    printf("yang test .................__wt_rec_split_finish................ \r\n");
+    //printf("yang test .................__wt_rec_split_finish................ \r\n");
     /* Set the number of entries and size for the just finished chunk. */
     r->cur_ptr->entries = r->entries;
     if (r->page->type == WT_PAGE_COL_FIX) {
@@ -2182,8 +2182,8 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->size = WT_STORE_SIZE(chunk->image.size);
     multi->checksum = 0;
     multi->supd_restore = false;
-    printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n", 
-        (int)r->multi_next, (int)multi->size);
+   // printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n", 
+    //    (int)r->multi_next, (int)multi->size);
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
@@ -2478,8 +2478,8 @@ __rec_split_dump_keys(WT_SESSION_IMPL *session, WT_RECONCILE *r)
         WT_RET(__wt_scr_alloc(session, 0, &tkey));
         for (multi = r->multi, i = 0; i < r->multi_next; ++multi, ++i)
             __wt_verbose_debug2(session, WT_VERB_SPLIT, "starting key %s",
-              __wt_buf_set_printable(
-                session, WT_IKEY_DATA(multi->key.ikey), multi->key.ikey->size, false, tkey));
+              __wt_buf_set_printable_format(
+                session, WT_IKEY_DATA(multi->key.ikey), multi->key.ikey->size, btree->key_format,false, tkey));
         __wt_scr_free(session, &tkey);
     } else
         for (multi = r->multi, i = 0; i < r->multi_next; ++multi, ++i)
@@ -2532,8 +2532,8 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
      * replaced. Make sure it's discarded at some point, and clear the underlying modification
      * information, we're creating a new reality.
      */
-    printf("yang test .........__rec_write_wrapup......ref->addr:%p...........mod->rec_result:%d\r\n", 
-        ref->addr, mod->rec_result);
+   // printf("yang test .........__rec_write_wrapup......ref->addr:%p...........mod->rec_result:%d\r\n", 
+    //    ref->addr, mod->rec_result);
     switch (mod->rec_result) {
     case 0: /*
              * The page has never been reconciled before, free the original

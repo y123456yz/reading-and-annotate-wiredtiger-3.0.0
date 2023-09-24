@@ -1007,7 +1007,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
     prefix_start = prefix_stop = 0;           /* [-Wconditional-uninitialized] */
     best_prefix_start = best_prefix_stop = 0; /* [-Wconditional-uninitialized] */
 
-    printf("yang test ......__inmem_row_leaf......... \r\n");
+    //printf("yang test ......__inmem_row_leaf......... \r\n");
     /* Walk the page, building indices. */
     rip = page->pg_row;
     WT_CELL_FOREACH_KV (session, page->dsk, unpack) {

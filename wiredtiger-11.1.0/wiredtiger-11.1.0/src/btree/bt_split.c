@@ -2107,8 +2107,11 @@ __split_insert_lock(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_split_insert --
  *     Split a page's last insert list entries into a separate page.
  */ 
-//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘
-//__evict_reconcile: 对page拆分为多个page后写入磁盘中
+//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
+//__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
+//__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
+//__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
+
 int
 __wt_split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -2221,6 +2224,11 @@ __split_multi_lock(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
  * __wt_split_multi --
  *     Split a page into multiple pages.
  */
+//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
+//__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
+//__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
+//__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
+
 //__wt_evict->__evict_page_dirty_update->__wt_split_multi
 int
 __wt_split_multi(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
@@ -2258,6 +2266,11 @@ __split_reverse(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_split_reverse --
  *     Reverse split (rewrite a parent page's index to reflect an empty page).
  */
+//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
+//__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
+//__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
+//__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
+
 int
 __wt_split_reverse(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -2277,6 +2290,11 @@ __wt_split_reverse(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_split_rewrite --
  *     Rewrite an in-memory page with a new version.
  */
+//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
+//__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
+//__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
+//__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
+
 int
 __wt_split_rewrite(WT_SESSION_IMPL *session, WT_REF *ref, WT_MULTI *multi)
 {

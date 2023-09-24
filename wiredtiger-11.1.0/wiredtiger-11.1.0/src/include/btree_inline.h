@@ -1730,10 +1730,11 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * Only split a page once, otherwise workloads that update in the middle of the page could
      * continually split without benefit.
      */
-    //之前该page在__split_insert中已经拆分过一次了直接返回
-    if (F_ISSET_ATOMIC_16(page, WT_PAGE_SPLIT_INSERT))
+    //之前该page在__split_insert中已经拆分过一次了直接返回, 在外层进入__evict_reconcile流程
+    if (F_ISSET_ATOMIC_16(page, WT_PAGE_SPLIT_INSERT)) {
+        //printf("yang test ...............__wt_leaf_page_can_split..............have also splite\r\n");
         return (false);
-
+    }
     /*
      * Check for pages with append-only workloads. A common application pattern is to have multiple
      * threads frantically appending to the tree. We want to reconcile and evict this page, but we'd
@@ -1744,7 +1745,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * correctness (the page must be reconciled again before being evicted after the split,
      * information from a previous reconciliation will be wrong, so we can't evict immediately).
      */
-    //这里是大阈值，如果page内存超过这个阈值，则不能进行memsplite,而是__evict_reconcile
+    //一定要大于splitmempage才可以进行内存splite
     if (page->memory_footprint < btree->splitmempage)
         return (false);
     if (WT_PAGE_IS_INTERNAL(page))
@@ -1780,8 +1781,8 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
 
             //当一个page使用内存较高的时候一般从这里返回
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
-            printf("yang test ......111111........page->entries:%d..........__wt_leaf_page_can_split......count:%d..........\r\n", 
-                (int)page->entries, count1);
+          //  printf("yang test ......111111........page->entries:%d..........__wt_leaf_page_can_split......count:%d..........\r\n", 
+          //      (int)page->entries, count1);
             return (true);
         }
 
@@ -1803,14 +1804,14 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
         size += WT_MIN_SPLIT_MULTIPLIER * (WT_INSERT_KEY_SIZE(ins) + WT_UPDATE_MEMSIZE(ins->upd));
         if (count2 > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
-            printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count2:%d..........size:%d................\r\n", (int)count2, (int)size);
+          //  printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count2:%d..........size:%d................\r\n", (int)count2, (int)size);
             return (true);
         }
     }
     
-    printf("yang test ..__wt_leaf_page_can_split....11111111111111...page->memory_footprint:%d \
-    ..btree->splitmempage:%d...count1:%d..........size:%d.....count2:%d...........\r\n", 
-    (int)page->memory_footprint, (int)btree->splitmempage, (int)count1, (int)size, (int)count2);
+   // printf("yang test ..__wt_leaf_page_can_split....11111111111111...page->memory_footprint:%d 
+   // ..btree->splitmempage:%d...count1:%d..........size:%d.....count2:%d...........\r\n", 
+  //  (int)page->memory_footprint, (int)btree->splitmempage, (int)count1, (int)size, (int)count2);
     return (false);
 }
 
@@ -2181,6 +2182,7 @@ __wt_page_swap_func(WT_SESSION_IMPL *session, WT_REF *held, WT_REF *want, uint32
 
     //printf("yang test .....................__wt_page_swap_func...................................\r\n");
     /* Get the wanted page. */
+    //获取ref这个page，如果因为冲突或者evict等则需要等待
     ret = __wt_page_in_func(session, want, flags
 #ifdef HAVE_DIAGNOSTIC
       ,

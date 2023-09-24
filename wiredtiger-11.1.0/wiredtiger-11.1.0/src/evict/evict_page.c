@@ -89,7 +89,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
         WT_RET(__wt_curhs_cache(session));
     }
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
-    printf("yang test ................................__wt_page_release_evict.............................................\r\n");
+    //printf("yang test ................................__wt_page_release_evict.............................................\r\n");
     ret = __wt_evict(session, ref, previous_state, evict_flags);
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
 
@@ -712,8 +712,8 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
     if (F_ISSET(session, WT_SESSION_NO_RECONCILE))
         return (__wt_set_return(session, EBUSY));
 
-    printf("yang test .........page->memory_footprint:%d......................__evict_review......closing:%d.............\r\n", 
-        (int)page->memory_footprint, closing);
+   // printf("yang test .........page->memory_footprint:%d......................__evict_review......closing:%d.............\r\n", 
+    //    (int)page->memory_footprint, closing);
     return (0);
 }
 
@@ -732,7 +732,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
     WT_DECL_RET;
     uint32_t flags;
     bool closing, is_eviction_thread, use_snapshot_for_app_thread;
-    WT_PAGE *page = ref->page;
+    //WT_PAGE *page = ref->page;
 
     btree = S2BT(session);
     conn = S2C(session);
@@ -820,8 +820,8 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
     else if (!WT_SESSION_BTREE_SYNC(session))
         LF_SET(WT_REC_VISIBLE_ALL);
 
-    printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p....use_snapshot_for_app_thread:%d\r\n", 
-            page->modify->page_state, page, use_snapshot_for_app_thread);
+   // printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p....use_snapshot_for_app_thread:%d\r\n", 
+    //        page->modify->page_state, page, use_snapshot_for_app_thread);
 
     WT_ASSERT(session, LF_ISSET(WT_REC_VISIBLE_ALL) || F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT));
 

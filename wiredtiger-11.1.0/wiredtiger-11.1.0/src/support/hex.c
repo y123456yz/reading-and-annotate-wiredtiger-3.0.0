@@ -75,6 +75,7 @@ __wt_raw_to_esc_hex(WT_SESSION_IMPL *session, const uint8_t *from, size_t size, 
     WT_RET(__wt_buf_init(session, to, size * 3 + 1));
 
     for (p = from, t = to->mem, i = size; i > 0; --i, ++p)
+        //isprint(测试字符是否为可打印字符)
         if (__wt_isprint((u_char)*p)) {
             if (*p == '\\')
                 *t++ = '\\';

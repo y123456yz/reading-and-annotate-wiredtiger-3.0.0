@@ -63,9 +63,11 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
      */
     //该page消耗的内存超过一定阈值才可以进入，一般这里面如果跳跃表中至少有5个KV，并且page消耗的总内存超过maxleafpage * 2就会返回true
     //如果之前该page已经split过，在__split_insert中已经拆分过一次了直接返回
+    //之前该page在__split_insert中已经拆分过一次了直接返回, 在外层进入__evict_reconcile流程
 
     //内存消耗在maxleafpage级别的判断走这里
     if (footprint < btree->maxmempage) { //这里面可能会决定是否需要进行page splite
+         //之前该page在__split_insert中已经拆分过一次了直接返回, 在外层进入__evict_reconcile流程
         if (__wt_leaf_page_can_split(session, page)) //
             return (true);
         return (false);
@@ -268,6 +270,7 @@ err:
  *     Acquire a hazard pointer to a page; if the page is not in-memory, read it from the disk and
  *     build an in-memory version.
  */ //__wt_row_search->__wt_page_swap_func
+//获取ref这个page，如果因为冲突或者evict等则需要等待
 int
 __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 #ifdef HAVE_DIAGNOSTIC

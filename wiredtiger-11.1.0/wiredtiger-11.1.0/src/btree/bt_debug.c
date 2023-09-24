@@ -900,10 +900,11 @@ __wt_debug_tree_all(void *session_arg, WT_BTREE *btree, WT_REF *ref, const char 
     if (btree == NULL)
         btree = S2BT(session);
 
-    return 0;//xxxxxxxxxx
+    //return 0;//xxxxxxxxxx
     
     WT_WITH_BTREE(session, btree,
       ret = __debug_tree(session, ref, ofile, WT_DEBUG_TREE_LEAF | WT_DEBUG_TREE_WALK));
+    
     return (ret);
 }
 

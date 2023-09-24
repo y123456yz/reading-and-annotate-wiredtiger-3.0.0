@@ -2186,6 +2186,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
     const WT_NAME_FLAG *ft;
     int i;
     WT_VERBOSE_LEVEL verbose_value;
+    bool config_all_verbos_flag;
 
     conn = S2C(session);
 
@@ -2197,10 +2198,12 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
         return (0);
     WT_RET(ret);
 
+    config_all_verbos_flag = true;
     WT_RET(__wt_config_gets(session, cfg, "verbose", &cval));
     for (ft = verbtypes; ft->name != NULL; ft++) {
         ret = __wt_config_subgets(session, &cval, ft->name, &sval);
         WT_RET_NOTFOUND_OK(ret);
+        
 
         if (ret == WT_NOTFOUND) {
             /*
@@ -2208,8 +2211,17 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
              * WT_VERBOSE_NOTICE verbosity level. WT_VERBOSE_NOTICE being an always-on informational
              * verbosity message.
              */
-            verbose_value = WT_VERBOSE_NOTICE;
-            goto verbos_assign;
+            if (ft->flag == WT_VERB_OPEN_ALL_VERBOS) {
+                config_all_verbos_flag = false;
+                continue;
+            } 
+
+            if (config_all_verbos_flag == true) {
+                continue;
+            } else {
+                verbose_value = WT_VERBOSE_NOTICE;
+                goto verbos_assign;
+            }
         } else if (sval.type == WT_CONFIG_ITEM_BOOL && sval.len == 0) {
             /*
              * If no value is associated with the event (i.e passing verbose=[checkpoint]), default
@@ -2236,22 +2248,24 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
         
 verbos_assign:
         if (ft->flag == WT_VERB_OPEN_ALL_VERBOS) {
-            printf("yang test ............WT_VERB_API:%d............verbose_value:%d\r\n", WT_VERB_API, verbose_value);
+            //printf("yang test ............WT_VERB_API:%d............verbose_value:%d\r\n", WT_VERB_API, verbose_value);
             for (i = 0; i < WT_VERB_NUM_CATEGORIES; i++)
                 conn->verbose[i] = verbose_value;
         } else { 
-        printf("yang test ............ft->flag:%d............verbose_value:%d\r\n", (int)ft->flag, verbose_value);
+         //printf("yang test ............ft->flag:%d............verbose_value:%d\r\n", (int)ft->flag, verbose_value);
             conn->verbose[ft->flag] = verbose_value;
         }
     }
 
+  // for (i = 0; i < WT_VERB_NUM_CATEGORIES; i++)
+   //    printf("\r\n\r\n\r\nyang test ............i:%d............verbose_value:%d\r\n", i, conn->verbose[i]);
 
-    for (ft = verbtypes; ft->name != NULL; ft++) {//yang add change todo 
+   /* for (ft = verbtypes; ft->name != NULL; ft++) {//yang add change todo 
         if (strcmp(ft->name, "metadata") == 0 || strcmp(ft->name, "api") == 0)
             continue;
             
         conn->verbose[ft->flag] = WT_VERBOSE_DEBUG_5;
-    }
+    }*/
     
     return (0);
 }

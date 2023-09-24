@@ -129,6 +129,7 @@ struct __wt_cache {
      * one.
      */
     //¸³Öµ²Î¿¼__cache_config_local
+    //eviction_dirty_target=5, eviction_dirty_trigger=20,eviction_target=80,eviction_trigger=95
     double eviction_dirty_target;    /* Percent to allow dirty */
     double eviction_dirty_trigger;   /* Percent to trigger dirty eviction */
     double eviction_trigger;         /* Percent to trigger eviction */

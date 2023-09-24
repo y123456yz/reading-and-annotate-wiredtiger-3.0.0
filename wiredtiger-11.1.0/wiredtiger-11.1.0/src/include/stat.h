@@ -337,6 +337,12 @@ __wt_stats_clear(void *stats_arg, int slot)
 /*
  * Statistics entries for connections.
  */
+//yang add todo xxxxx    example中可以添加一个statistic的统计
+
+//对应mongodb server层的接口为WiredTigerServerStatusSection::generateSection
+//参考test/thread目录下面的t.c文件中的stats(void)函数
+//__wt_connection_stats: 统计是conn级别维度统计，是所有表级别统计之和，对应db.serverstatus().wiredtiger
+//__wt_dsrc_stats: 该统计是表级别维度的统计信息，对应db.collection.serverstatus().wiredtiger
 #define WT_CONNECTION_STATS_BASE 1000
 struct __wt_connection_stats {
     //
@@ -935,7 +941,11 @@ struct __wt_connection_stats {
 
 /*
  * Statistics entries for data sources.
- */
+ */ 
+//对应mongodb server层的接口为WiredTigerServerStatusSection::generateSection
+//参考test/thread目录下面的t.c文件中的stats(void)函数
+//__wt_connection_stats: 统计是conn级别维度统计，是所有表级别统计之和，对应db.serverstatus().wiredtiger
+//__wt_dsrc_stats: 该统计是表级别维度的统计信息，对应db.collection.serverstatus().wiredtiger
 #define WT_DSRC_STATS_BASE 2000
 struct __wt_dsrc_stats {
     int64_t bloom_false_positive;

@@ -284,6 +284,7 @@ static const char *const __stats_dsrc_desc[] = {
   "transaction: update conflicts",
 };
 
+//获取对应描述信息
 int
 __wt_stat_dsrc_desc(WT_CURSOR_STAT *cst, int slot, const char **p)
 {

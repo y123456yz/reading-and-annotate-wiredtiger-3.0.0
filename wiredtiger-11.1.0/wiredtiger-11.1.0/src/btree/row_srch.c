@@ -443,7 +443,7 @@ restart://表示重新从root page开始查找
          */
         if (pindex->entries == base) {
 append:
-            if (__wt_split_descent_race(session, current, parent_pindex))
+            if (__wt_split_descent_race(session, current, parent_pindex))//yang add todo xxxxxx internal page如果splite会不会这里死循环
                 //重新从根page查找
                 goto restart;
         }
@@ -467,15 +467,17 @@ descend:
         //如果BTREE中没数据，这时候写入一条数据，是第一次写入，这里面会创建leaf page存入&descent->page
         //internal page查找的时候都会到这里，这里面可能会创建leaf page
 
-        //current代表当前的internal page, descent代表对应的下一层page，可能是internal page也可能是leaf page
+        //current代表当前的internal page, descent代表对应的下一层page，可能是internal page也可能是leaf page 
+        //获取descent这个page，如果因为冲突或者evict等则需要等待
         if ((ret = __wt_page_swap(session, current, descent, read_flags)) == 0) {
-            //把该internal page赋值给current，然后继续下一层internal page的遍历
+            //把该internal page赋值给current，然后继续下一层internal page的遍历, 如果下一层desent是leaf page，在前面的if (page->type != WT_PAGE_ROW_INT)会跳出循环，进入leaf page查找
             current = descent;
             continue;
         }
-    
-        if (ret == WT_RESTART) //重新从根page查找
-            goto restart; //?????????????????? 有没有可能会形成死循环，反复查找
+
+        //由于在__wt_page_swap中最终会有__wt_yield操作，因此不存在大量消耗CPU的情况
+        if (ret == WT_RESTART) //重新从根page查找，例如到遍历到指定page时候，该page有可能在evict，这时候就需要重新查找
+            goto restart; //?????????????????? 有没有可能会形成死循环，反复查找, yang add todo xxxx 如果evict耗时太久，这里会不会消耗很多CPU，死循环查找
         return (ret);
     }
 

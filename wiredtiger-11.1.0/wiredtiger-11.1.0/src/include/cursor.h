@@ -278,7 +278,7 @@ struct __wt_cursor_btree {
 #endif
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
-//__wt_cursor_func_init
+//__wt_cursor_func_init //cbt执行了__wt_cursor_func_ini后才会设置WT_CBT_ACTIVE
 #define WT_CBT_ACTIVE 0x001u             /* Active in the tree */
 #define WT_CBT_CACHEABLE_RLE_CELL 0x002u /* Col-store: value in RLE cell valid for its keys */
 #define WT_CBT_ITERATE_APPEND 0x004u     /* Col-store: iterating append list */

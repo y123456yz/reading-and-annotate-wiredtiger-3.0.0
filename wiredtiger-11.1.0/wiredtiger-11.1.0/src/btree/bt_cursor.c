@@ -25,6 +25,7 @@ typedef struct {
  *     Determine if a given key is within the bounds set on a cursor.
  */ 
 //判断key是否比upper_bound大或者比lower_bound小
+//类似cursor->bound(cursor, "action=set,bound=lower")配置，一般不配置，可忽略
 static int
 __btcur_bounds_contains_key(WT_SESSION_IMPL *session, WT_CURSOR *cursor, WT_ITEM *key,
   uint64_t recno, bool *key_out_of_boundsp, bool *upperp)
@@ -130,7 +131,8 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt, bool search_operation)
     /*
      * Check the page active flag, asserting the page reference with any external key.
      */
-    if (!F_ISSET(cbt, WT_CBT_ACTIVE)) {
+    if (!F_ISSET(cbt, WT_CBT_ACTIVE)) {//该cbt执行了__wt_cursor_func_ini后才会设置WT_CBT_ACTIVE
+        //printf("yang test 11..........__cursor_page_pinned.................\r\n");
         WT_ASSERT(session, cbt->ref == NULL && !F_ISSET(cursor, WT_CURSTD_KEY_INT));
         return (false);
     }
@@ -144,9 +146,11 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt, bool search_operation)
      * at all, we can proceed with the operation. However, if the key has been set, that is, it's an
      * external key, we're going to have to do a full search.
      */
-    if (!search_operation && !F_ISSET(cursor, WT_CURSTD_KEY_INT))
+    if (!search_operation && !F_ISSET(cursor, WT_CURSTD_KEY_INT)) {
+       // printf("yang test 222..........__cursor_page_pinned.................\r\n");
         return (false);
-
+    }
+    
     /*
      * XXX No fast-path searches at read-committed isolation. Underlying transactional functions
      * called by the fast and slow path search code handle transaction IDs differently, resulting in
@@ -154,16 +158,19 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt, bool search_operation)
      * functions, but in the case of a search, we will see different results based on the cursor's
      * initial location. See WT-5134 for the details.
      */
-    if (search_operation && session->txn->isolation == WT_ISO_READ_COMMITTED)
+    if (search_operation && session->txn->isolation == WT_ISO_READ_COMMITTED) {
+       // printf("yang test 3333..........__cursor_page_pinned.................\r\n");
         return (false);
-
+    }
     /*
      * Fail if the page is flagged for forced eviction (so we periodically release pages grown too
      * large).
      */
-    if (cbt->ref->page->read_gen == WT_READGEN_OLDEST)
+    if (cbt->ref->page->read_gen == WT_READGEN_OLDEST) {
+      //  printf("yang test 44444..........__cursor_page_pinned.................\r\n");
         return (false);
-
+    }
+   // printf("yang test 555..........__cursor_page_pinned.................\r\n");
     return (true);
 }
 
@@ -799,9 +806,11 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
      * Check that the provided search key is within bounds. If not, return WT_NOTFOUND and early
      * exit.
      */
+    //类似cursor->bound(cursor, "action=set,bound=lower")配置，一般不配置，可忽略
     WT_ERR(__btcur_bounds_contains_key(
       session, cursor, &cursor->key, cursor->recno, &key_out_of_bounds, NULL));
     if (key_out_of_bounds) {
+        printf("yang test ..................__wt_btcur_search................\r\n");
         WT_STAT_CONN_DATA_INCR(session, cursor_bounds_search_early_exit);
         WT_ERR(WT_NOTFOUND);
     }
@@ -810,6 +819,7 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
      * If we have a page pinned, search it; if we don't have a page pinned, or the search of the
      * pinned page doesn't find an exact match, search from the root.
      */
+
     if (__cursor_page_pinned(cbt, true)) {
         __wt_txn_cursor_op(session);
 

@@ -143,7 +143,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
          */
         WT_ERR(bm->checkpoint_load(bm, session, ckpt.raw.data, ckpt.raw.size, root_addr,
           &root_addr_size, F_ISSET(btree, WT_BTREE_READONLY)));
-        printf("yang test ...__wt_btree_open.....__btree_tree_open_empty..name:%s..creation:%d.....root_addr_size:%d\r\n", dhandle->name, creation, (int)root_addr_size);
+        //printf("yang test ...__wt_btree_open.....__btree_tree_open_empty..name:%s..creation:%d.....root_addr_size:%d\r\n", dhandle->name, creation, (int)root_addr_size);
         if (creation || root_addr_size == 0) //BTREE还没有任何数据，走这里
             WT_ERR(__btree_tree_open_empty(session, creation));
         else {//从磁盘加载了数据到BTREE走这里
@@ -959,6 +959,8 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
      */
     WT_RET(__wt_config_gets(session, cfg, "memory_page_max", &cval));
     btree->maxmempage = (uint64_t)cval.val;
+    //printf("yang test ........11................maxmempage:%d, eviction_dirty_trigger size:%d\r\n", 
+     //   (int)btree->maxmempage, (int)(conn->cache->eviction_dirty_trigger * conn->cache_size) / 1000);
     if (!F_ISSET(conn, WT_CONN_CACHE_POOL) && (cache_size = conn->cache_size) > 0)
         //取MIN(5M, (conn->cache->eviction_dirty_trigger * cache_size) / 1000) 也就是默认2M
         btree->maxmempage = (uint64_t)WT_MIN(
@@ -973,7 +975,7 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
      */
     btree->splitmempage = (8 * btree->maxmempage) / 10;
 
-    printf("yang test ........................maxmempage:%d, splitmempage:%d\r\n", (int)btree->maxmempage, (int)btree->splitmempage);
+    //printf("yang test .....22...................maxmempage:%d, splitmempage:%d\r\n", (int)btree->maxmempage, (int)btree->splitmempage);
     /*
      * Get the split percentage (reconciliation splits pages into smaller than the maximum page size
      * chunks so we don't split every time a new entry is added). Determine how large newly split

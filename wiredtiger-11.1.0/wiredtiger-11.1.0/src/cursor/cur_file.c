@@ -316,6 +316,7 @@ __curfile_search(WT_CURSOR *cursor)
     WT_WITH_CHECKPOINT(session, cbt, ret = __wt_btcur_search(cbt));
     WT_ERR(ret);
     time_stop = __wt_clock(session);
+    //赋值见WT_STAT_USECS_HIST_INCR_FUNC， 耗时统计
     __wt_stat_usecs_hist_incr_opread(session, WT_CLOCKDIFF_US(time_stop, time_start));
 
     /* Search maintains a position, key and value. */

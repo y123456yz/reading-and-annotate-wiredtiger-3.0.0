@@ -194,7 +194,7 @@ __wt_bulk_insert_row(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
     WT_TIME_WINDOW tw;
     bool ovfl_key;
 
-    printf("yang test .....................__wt_bulk_insert_row.........................\r\n");
+    //printf("yang test .....................__wt_bulk_insert_row.........................\r\n");
     r = cbulk->reconcile;
     btree = S2BT(session);
     cursor = &cbulk->cbt.iface;
@@ -314,7 +314,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     child = NULL;
     WT_TIME_AGGREGATE_INIT_MERGE(&ft_ta);
 
-    printf("yang test ...............__wt_rec_row_int...........Reconcile a row-store internal page.........\r\n");
+    //printf("yang test ...............__wt_rec_row_int...........Reconcile a row-store internal page.........\r\n");
     key = &r->k;
     kpack = &_kpack;
     WT_CLEAR(*kpack); /* -Wuninitialized */
@@ -615,7 +615,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
                 if (!ovfl_key)
                     WT_RET(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
-            printf("yang test .........__rec_row_leaf_insert.....__wt_rec_need_split.......__wt_rec_split_crossing_bnd.........................\r\n");
+            //printf("yang test .........__rec_row_leaf_insert.....__wt_rec_need_split.......__wt_rec_split_crossing_bnd.........................\r\n");
             //也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
             WT_RET(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
@@ -726,7 +726,7 @@ __wt_rec_row_leaf(
      */
     //把这个KV数据添加到r->first_free对应内存空间
     if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT_SMALLEST(page))) != NULL) {
-        printf("yang test .......11111111111111111111111..............__wt_rec_row_leaf.......................\r\n");
+       // printf("yang test .......11111111111111111111111..............__wt_rec_row_leaf.......................\r\n");
         //__rec_row_leaf_insert: 把这个KV数据添加到r->first_free对应内存空间
         WT_RET(__rec_row_leaf_insert(session, r, ins));
     }
@@ -1004,7 +1004,7 @@ slow:
                     WT_ERR(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
 
-            printf("yang test ......2222222222222222222222........__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
+            //printf("yang test ......2222222222222222222222........__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
             WT_ERR(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
 
@@ -1029,7 +1029,7 @@ leaf_insert:
         /* Write any K/V pairs inserted into the page after this key. */
         //把这个KV数据添加到r->first_free对应内存空间
         if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT(page, rip))) != NULL) {
-            printf("yang test ......333333333333333333333...............__wt_rec_row_leaf.......................\r\n");
+            //printf("yang test ......333333333333333333333...............__wt_rec_row_leaf.......................\r\n");
             WT_ERR(__rec_row_leaf_insert(session, r, ins));
        }
     } ////遍历该page所有KV，然后把这个KV数据添加到r->first_free对应内存空间,整个page数据遍历完成退出该for循环
