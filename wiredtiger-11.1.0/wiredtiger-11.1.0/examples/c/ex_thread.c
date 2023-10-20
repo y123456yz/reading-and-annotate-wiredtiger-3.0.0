@@ -34,7 +34,7 @@
 
 static const char *home;
 
-#define NUM_THREADS 10
+#define NUM_THREADS 3
 
 /*! [thread scan] */
 static WT_THREAD_RET
@@ -49,6 +49,13 @@ scan_thread(void *conn_arg)
     conn = conn_arg;
     error_check(conn->open_session(conn, NULL, NULL, &session));
     error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
+
+    pthread_setname_np(pthread_self(), "scan_thread");
+    cursor->set_key(cursor, "key122");
+    cursor->set_value(cursor, "value221");
+    printf("yang test ...........scan_thread...............11111111111111111\r\n");
+    error_check(cursor->insert(cursor));
+    printf("yang test ...........scan_thread...............222222222222222\r\n");
 
     /* Show all records. */
     while ((ret = cursor->next(cursor)) == 0) {

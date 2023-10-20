@@ -654,6 +654,7 @@ leaf_match:
     //leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
     WT_ERR(__wt_search_insert(session, cbt, ins_head, srch_key));
     if (cbt->compare == 0) {
+        //ins_head跳跃表中有该数据，则直接存储到cbt->tmp
         cbt->tmp->data = WT_INSERT_KEY(cbt->ins);
         cbt->tmp->size = WT_INSERT_KEY_SIZE(cbt->ins);
     }

@@ -274,6 +274,7 @@ __wt_stats_clear(void *stats_arg, int slot)
  * milliseconds or microseconds. Also values less than a given minimum are ignored and not put in
  * any bucket. This floor value keeps us from having an excessively large smallest values.
  */
+//__wt_stat_usecs_hist_incr_opread
 #define WT_STAT_MSECS_HIST_INCR_FUNC(name, stat, min_val)                                         \
     static inline void __wt_stat_msecs_hist_incr_##name(WT_SESSION_IMPL *session, uint64_t msecs) \
     {                                                                                             \
@@ -344,6 +345,7 @@ __wt_stats_clear(void *stats_arg, int slot)
 //__wt_connection_stats: 统计是conn级别维度统计，是所有表级别统计之和，对应db.serverstatus().wiredtiger
 //__wt_dsrc_stats: 该统计是表级别维度的统计信息，对应db.collection.serverstatus().wiredtiger
 #define WT_CONNECTION_STATS_BASE 1000
+//__wt_connection_impl.stats为该类型, 配合WT_STAT_CONN_DATA_INCR等阅读  
 struct __wt_connection_stats {
     //
     int64_t lsm_work_queue_app;
@@ -577,7 +579,7 @@ struct __wt_connection_stats {
     int64_t read_io;
     int64_t write_io;
 
-    //"cursor"
+    //"cursor"  xxx_error实际上在API_END_STAT中统计
     int64_t cursor_next_skip_total;
     int64_t cursor_prev_skip_total;
     int64_t cursor_skip_hs_cur_position;
@@ -1231,6 +1233,7 @@ struct __wt_join_stats {
  * Statistics entries for session.
  */
 #define WT_SESSION_STATS_BASE 4000
+//session相关的统计  __wt_session_impl.stats为该类型，参考stat.h中的WT_STAT_CONN_DECRV等
 struct __wt_session_stats {
     int64_t bytes_read;
     int64_t bytes_write;

@@ -25,32 +25,102 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- * ex_hello.c
- *	This is an example demonstrating how to create and connect to a
- *	database.
+ * ex_debug_tree.c
+ * 	Shows how to debug the tree.
  */
 #include <test_util.h>
 
 static const char *home;
 
+#define MAX_TEST_KV_NUM 2000
+//问题，多运行几次，可能会段错误
+static void
+debug_tree_example(void)
+{
+    /*! [access example connection] */
+    WT_CONNECTION *conn;
+    WT_CURSOR *cursor;
+    WT_SESSION *session;
+    int i;
+    WT_ITEM value_item;
+    WT_BTREE *btree;
+    WT_CURSOR_BTREE *cbt;
+    WT_SESSION_IMPL *session_impl;
+    //int ret;
+
+    /* Open a connection to the database, creating it if necessary. */
+    error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all)", &conn));
+
+    /* Open a session handle for the database. */
+    error_check(conn->open_session(conn, NULL, NULL, &session));
+    /*! [access example connection] */
+
+    /*! [access example table create] */
+    error_check(session->create(session, "table:debug_tree", "memory_page_max=20K, key_format=q,value_format=u"));
+    /*! [access example table create] */
+
+    /*! [access example cursor open] */
+    error_check(session->open_cursor(session, "table:debug_tree", NULL, NULL, &cursor));
+    /*! [access example cursor open] */
+
+    //insert
+    for (i = 0; i < MAX_TEST_KV_NUM; i++) {
+        cursor->set_key(cursor, i);
+
+        value_item.data = "old value #####################################################\0";
+        value_item.size = strlen(value_item.data) + 1;
+        
+        cursor->set_value(cursor, &value_item);
+        error_check(cursor->insert(cursor));
+    }
+
+    //update
+    for (i = 0; i < MAX_TEST_KV_NUM; i++) {
+        cursor->set_key(cursor, i);
+
+        value_item.data = "new value #####################################################\0";
+        value_item.size = strlen(value_item.data) + 1;
+        cursor->set_value(cursor, &value_item);
+        error_check(cursor->update(cursor));
+    }
+
+        //update
+    for (i = 0; i < MAX_TEST_KV_NUM; i++) {
+        cursor->set_key(cursor, i);
+
+        value_item.data = "new value 2 #####################################################\0";
+        value_item.size = strlen(value_item.data) + 1;
+        cursor->set_value(cursor, &value_item);
+        error_check(cursor->update(cursor));
+    }
+
+    error_check(cursor->reset(cursor));
+   /* while ((ret = cursor->next(cursor)) == 0) {
+         error_check(cursor->get_key(cursor, &i));
+         error_check(cursor->get_value(cursor, &value_item.data));
+    
+         printf("Got record: %d : %s\r\n", i, (char*)value_item.data);
+     }*/
+
+    
+    cbt = (WT_CURSOR_BTREE *)cursor;  
+    session_impl = CUR2S(cbt);
+    btree = CUR2BT(cbt);
+    WT_WITH_BTREE(session_impl, btree, error_check(__wt_debug_tree_all(session_impl, NULL, NULL, NULL)));
+
+    error_check(cursor->close(cursor));
+    /*! [access example close] */
+    error_check(conn->close(conn, NULL)); /* Close all handles. */
+                                          /*! [access example close] */
+}
+
 int
 main(int argc, char *argv[])
 {
-    WT_CONNECTION *conn;
-    WT_SESSION *session;
-
     home = example_setup(argc, argv);
 
-    /* Open a connection to the database, creating it if necessary. */
-    error_check(wiredtiger_open(home, NULL, "create", &conn));
-
-    /* Open a session for the current thread's work. */
-    error_check(conn->open_session(conn, NULL, NULL, &session));
-
-    /* Do some work... */
-
-    /* Note: closing the connection implicitly closes open session(s). */
-    error_check(conn->close(conn, NULL));
+    debug_tree_example();
 
     return (EXIT_SUCCESS);
 }
+

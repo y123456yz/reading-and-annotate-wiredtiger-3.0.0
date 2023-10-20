@@ -157,6 +157,7 @@ struct __wt_connection_impl;
 //每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
 typedef struct __wt_connection_impl WT_CONNECTION_IMPL;
 struct __wt_connection_stats;
+//__wt_connection_impl.stats为该类型,配合WT_STAT_CONN_DATA_INCR等阅读  
 typedef struct __wt_connection_stats WT_CONNECTION_STATS;
 struct __wt_cursor_backup;
 typedef struct __wt_cursor_backup WT_CURSOR_BACKUP;
@@ -362,6 +363,8 @@ typedef struct __wt_session_impl WT_SESSION_IMPL;
 struct __wt_session_stash;
 typedef struct __wt_session_stash WT_SESSION_STASH;
 struct __wt_session_stats;
+//session相关的统计  __wt_session_impl.stats为该类型
+//session相关的统计, 参考stat.h中的WT_STAT_CONN_DECRV等
 typedef struct __wt_session_stats WT_SESSION_STATS;
 struct __wt_size;
 //__wt_extlist.sz成员为该类型

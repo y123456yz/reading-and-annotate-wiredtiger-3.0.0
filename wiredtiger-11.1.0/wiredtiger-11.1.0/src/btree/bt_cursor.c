@@ -147,7 +147,7 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt, bool search_operation)
      * external key, we're going to have to do a full search.
      */
     if (!search_operation && !F_ISSET(cursor, WT_CURSTD_KEY_INT)) {
-       // printf("yang test 222..........__cursor_page_pinned.................\r\n");
+        //printf("yang test 222..........__cursor_page_pinned.................\r\n");
         return (false);
     }
     
@@ -159,7 +159,7 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt, bool search_operation)
      * initial location. See WT-5134 for the details.
      */
     if (search_operation && session->txn->isolation == WT_ISO_READ_COMMITTED) {
-       // printf("yang test 3333..........__cursor_page_pinned.................\r\n");
+        //printf("yang test 3333..........__cursor_page_pinned.................\r\n");
         return (false);
     }
     /*
@@ -167,10 +167,10 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt, bool search_operation)
      * large).
      */
     if (cbt->ref->page->read_gen == WT_READGEN_OLDEST) {
-      //  printf("yang test 44444..........__cursor_page_pinned.................\r\n");
+        //printf("yang test 44444..........__cursor_page_pinned.................\r\n");
         return (false);
     }
-   // printf("yang test 555..........__cursor_page_pinned.................\r\n");
+    //printf("yang test 555..........__cursor_page_pinned.................\r\n");
     return (true);
 }
 
@@ -273,6 +273,7 @@ __cursor_valid_insert(WT_CURSOR_BTREE *cbt, WT_ITEM *key, bool *valid, bool chec
             return (0);
     }
 
+    //获取该update链表的第一个value值，实际上就是该key对应的最新的value
     WT_RET(__wt_txn_read_upd_list(session, cbt, cbt->ins->upd));
     *valid =
       cbt->upd_value->type != WT_UPDATE_INVALID && cbt->upd_value->type != WT_UPDATE_TOMBSTONE;
@@ -827,9 +828,13 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
             WT_ERR(__cursor_row_search(cbt, false, cbt->ref, &leaf_found));
         else
             WT_ERR(__cursor_col_search(cbt, cbt->ref, &leaf_found));
-
+            
         if (leaf_found && cbt->compare == 0)
             WT_ERR(__wt_cursor_valid(cbt, &valid, false));
+
+    printf("yang test ...111....__wt_btcur_search.......leaf_found:%d, cbt->compare:%d, valid:%d\r\n",
+        leaf_found, cbt->compare, (int)valid);
+
     }
     if (!valid) {
         WT_ERR(__wt_cursor_func_init(cbt, true));
@@ -1152,8 +1157,10 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
     session = CUR2S(cbt);
     yield_count = sleep_usecs = 0;
 
+
     WT_STAT_CONN_DATA_INCR(session, cursor_insert);
     WT_STAT_CONN_DATA_INCRV(session, cursor_insert_bytes, insert_bytes);
+
 
     if (btree->type == BTREE_ROW)
         WT_RET(__cursor_size_chk(session, &cursor->key));

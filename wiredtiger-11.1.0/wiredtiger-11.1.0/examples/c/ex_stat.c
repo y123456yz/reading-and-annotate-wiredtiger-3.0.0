@@ -210,13 +210,20 @@ main(int argc, char *argv[])
     cursor->set_key(cursor, "key");
     cursor->set_value(cursor, "value");
     error_check(cursor->insert(cursor));
+
+    cursor->set_key(cursor, "key");
+    cursor->set_value(cursor, "value");
+    error_check(cursor->insert(cursor));
+
     error_check(cursor->close(cursor));
 
     error_check(session->checkpoint(session, NULL));
 
     print_database_stats(session);
 
+    printf("yang test 11111111111111111111111\r\n");
     print_file_stats(session);
+    printf("yang test 2222222222222222222222222\r\n");
 
     print_join_cursor_stats(session);
 

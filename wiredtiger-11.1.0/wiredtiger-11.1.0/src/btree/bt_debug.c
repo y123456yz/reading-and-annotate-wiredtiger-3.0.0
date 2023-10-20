@@ -1187,6 +1187,7 @@ __debug_page_metadata(WT_DBG *ds, WT_REF *ref)
     if (split_gen != 0)
         WT_RET(ds->f(ds, ", split-gen=%" PRIu64, split_gen));
     if (mod != NULL)
+        //yang add to do  xxxxxxxxxxx 这里可以转换为字符串
         WT_RET(ds->f(ds, ", page-state=%" PRIu32, mod->page_state));
     WT_RET(ds->f(ds, ", memory-size %" WT_SIZET_FMT, page->memory_footprint));
     return (ds->f(ds, "\n"));
@@ -1354,7 +1355,7 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
 
     session = ds->session;
 
-    printf("\r\n\r\n\r\nyang test .............1111...............__debug_page_row_int...............................................\r\n");
+   // printf("\r\n\r\n\r\nyang test .............1111...............__debug_page_row_int...............................................\r\n");
     //获取所有internal page的ref信息
     WT_INTL_FOREACH_BEGIN (session, page, ref) {
         //获取一个page所属ref的key值和长度, 记录的是对应page的最小key
@@ -1365,7 +1366,7 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
         WT_RET(__debug_ref(ds, ref));
     }
     WT_INTL_FOREACH_END;
-    printf("\r\n\r\n\r\nyang test .........222...................__debug_page_row_int...............................................\r\n");
+    //printf("\r\n\r\n\r\nyang test .........222...................__debug_page_row_int...............................................\r\n");
     //获取所有
     if (LF_ISSET(WT_DEBUG_TREE_WALK)) {
         WT_INTL_FOREACH_BEGIN (session, page, ref) {
@@ -1376,7 +1377,7 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
         }
         WT_INTL_FOREACH_END;
     }
-    printf("\r\n\r\n\r\nyang test .........3333...................__debug_page_row_int...............................................\r\n");
+    //printf("\r\n\r\n\r\nyang test .........3333...................__debug_page_row_int...............................................\r\n");
     
     return (0);
 }
@@ -1397,38 +1398,49 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
 
     session = ds->session;
     unpack = &_unpack;
-   // return (0);//yang add test 
+    //return (0);//yang add test 
 
     /*
      * Dump any K/V pairs inserted into the page before the first from-disk key on the page.
      */
+    //打印内存中某个page上面的insert list成员信息
     if ((insert = WT_ROW_INSERT_SMALLEST(page)) != NULL)
         WT_RET(__debug_row_skip(ds, insert));
 
 
-    printf("yang test .......__debug_page_row_leaf..............(page)->entries:%d\r\n", (int)page->entries);
+    printf("yang test .......__debug_page_row_leaf.......111.......(page)->entries:%d\r\n", (int)page->entries);
     
     /* Dump the page's K/V pairs. */
+    //打印该page在磁盘上面的KV信息
     WT_ROW_FOREACH (page, rip, i) {
+       // printf("yang test .......__debug_page_row_leaf.......222.......(page)->entries:%d\r\n", (int)page->entries);
         WT_RET(__wt_row_leaf_key(session, page, rip, ds->key, false));
-        WT_RET(__debug_item_key(ds, "K-yangyazhou", ds->key->data, ds->key->size));
+        // K {1929}
+        WT_RET(__debug_item_key(ds, "K", ds->key->data, ds->key->size));
+        
+                 
 
         __wt_row_leaf_value_cell(session, page, rip, unpack);
-        WT_RET(__debug_cell_kv(ds, page, WT_PAGE_ROW_LEAF, "V-yangyazhou", unpack));
-
+        //value: len 64
+        //V {new value #####################################################\00}
+        WT_RET(__debug_cell_kv(ds, page, WT_PAGE_ROW_LEAF, "V", unpack)); 
+        //printf("yang test .......__debug_page_row_leaf.......444.......(page)->entries:%d\r\n", (int)page->entries);
+                  
 
         //xxxxxxx
-        return 0;
+        //return 0;
         
         if ((upd = WT_ROW_UPDATE(page, rip)) != NULL)
             WT_RET(__debug_update(ds, upd, false));
 
         if (!WT_IS_HS(session->dhandle) && ds->hs_cursor != NULL)
             WT_RET(__debug_hs_key(ds));
+                
 
         if ((insert = WT_ROW_INSERT(page, rip)) != NULL)
             WT_RET(__debug_row_skip(ds, insert));
     }
+    printf("yang test .......__debug_page_row_leaf.......555.......(page)->entries:%d\r\n", (int)page->entries);
     return (0);
 }
 
@@ -1464,6 +1476,7 @@ __debug_col_skip(
  * __debug_row_skip --
  *     Dump an insert list.
  */
+//打印内存中某个page上面的insert list成员信息
  int
 __debug_row_skip(WT_DBG *ds, WT_INSERT_HEAD *head)
 {
@@ -1474,7 +1487,8 @@ __debug_row_skip(WT_DBG *ds, WT_INSERT_HEAD *head)
 
     WT_SKIP_FOREACH (ins, head) {
         WT_RET(__debug_item_key(ds, "insert", WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins)));
-        //WT_RET(__debug_update(ds, ins->upd, false));
+        WT_RET(__debug_update(ds, ins->upd, false));
+        printf("yang test .......__debug_row_skip.......111.......\r\n");
 
         if (!WT_IS_HS(session->dhandle) && ds->hs_cursor != NULL) {
             WT_RET(__wt_buf_set(session, ds->key, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins)));
@@ -1580,7 +1594,7 @@ __debug_update(WT_DBG *ds, WT_UPDATE *upd, bool hexbyte)
         if (prepare_state != NULL)
             WT_RET(ds->f(ds, ", prepare %s", prepare_state));
 
-        WT_RET(ds->f(ds, ", flags 0x%" PRIx8 "\n", upd->flags));
+        WT_RET(ds->f(ds, ", flags 0x%" PRIx8 "\n", upd->flags)); //yang add todo xxxx转换为字符串
     }
     return (0);
 }

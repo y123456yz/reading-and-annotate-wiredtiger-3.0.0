@@ -239,7 +239,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     void *salvage_track;
 
     /* Sessions have an associated statistics bucket based on its ID. */
-    //该session在hash桶中的位置
+    //该session在统计hash桶中的位置，可以参考WT_STAT_CONN_INCRV
     u_int stat_bucket;          /* Statistics bucket offset */
     uint64_t cache_max_wait_us; /* Maximum time an operation waits for space in cache */
 
@@ -346,6 +346,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     uint64_t optrack_offset;
     WT_FH *optrack_fh;
 
+    //session相关的统计, 参考stat.h中的WT_STAT_CONN_DECRV等
     WT_SESSION_STATS stats;
 };
 

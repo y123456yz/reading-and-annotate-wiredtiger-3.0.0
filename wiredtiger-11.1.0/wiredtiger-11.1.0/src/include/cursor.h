@@ -124,7 +124,7 @@ struct __wt_cursor_backup {
     (((WT_CURSOR_BTREE *)(c))->dhandle == NULL ? \
         NULL :                                   \
         (WT_BTREE *)((WT_CURSOR_BTREE *)(c))->dhandle->handle)
-//__curfile_create中分片空间
+//__curfile_create中分配空间
 struct __wt_cursor_btree {
     WT_CURSOR iface;
 
@@ -231,6 +231,7 @@ struct __wt_cursor_btree {
      *
      * 3) For tracking random return values to avoid repetition.
      */
+    
     WT_ITEM *tmp, _tmp;
 
     /*

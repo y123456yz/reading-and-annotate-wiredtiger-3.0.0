@@ -440,10 +440,13 @@ struct __wt_connection_impl {
     /* Last checkpoint connection's base write generation */
     uint64_t last_ckpt_base_write_gen;
 
+    //__wt_conn_statistics_config中配置
     uint32_t stat_flags; /* Options declared in flags.py */
 
     /* Connection statistics */
     uint64_t rec_maximum_seconds; /* Maximum seconds reconciliation took. */
+    //配合WT_STAT_CONN_DATA_INCR等阅读  
+    //__wt_stat_connection_init中赋值，每个指针指向stat_array数组，参考 __wt_stat_connection_init
     WT_CONNECTION_STATS *stats[WT_COUNTER_SLOTS];
     WT_CONNECTION_STATS *stat_array;
 
