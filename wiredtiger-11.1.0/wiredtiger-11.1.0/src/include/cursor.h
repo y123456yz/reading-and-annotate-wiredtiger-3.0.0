@@ -231,7 +231,7 @@ struct __wt_cursor_btree {
      *
      * 3) For tracking random return values to avoid repetition.
      */
-    
+
     WT_ITEM *tmp, _tmp;
 
     /*

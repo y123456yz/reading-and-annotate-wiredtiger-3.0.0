@@ -959,7 +959,9 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
      */
     WT_RET(__wt_config_gets(session, cfg, "memory_page_max", &cval));
     btree->maxmempage = (uint64_t)cval.val;
-    //printf("yang test ........11................maxmempage:%d, eviction_dirty_trigger size:%d\r\n", 
+
+    //确保cache_size内存至少可以存放10个page
+    //printf("yang test ........11................maxmempage:%d, eviction_dirty_trigger size:%d\r\n",
      //   (int)btree->maxmempage, (int)(conn->cache->eviction_dirty_trigger * conn->cache_size) / 1000);
     if (!F_ISSET(conn, WT_CONN_CACHE_POOL) && (cache_size = conn->cache_size) > 0)
         //取MIN(5M, (conn->cache->eviction_dirty_trigger * cache_size) / 1000) 也就是默认2M
@@ -968,14 +970,15 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
 
     /* Enforce a lower bound of a single disk leaf page */
     btree->maxmempage = WT_MAX(btree->maxmempage, btree->maxleafpage);
-
+    
     /*
      * Try in-memory splits once we hit 80% of the maximum in-memory page size. This gives
      * multi-threaded append workloads a better chance of not stalling.
      */
     btree->splitmempage = (8 * btree->maxmempage) / 10;
 
-    //printf("yang test .....22...................maxmempage:%d, splitmempage:%d\r\n", (int)btree->maxmempage, (int)btree->splitmempage);
+    printf("yang test .....22...................maxmempage:%d, splitmempage:%d, btree->maxleafpage:%d\r\n", 
+        (int)btree->maxmempage, (int)btree->splitmempage, (int)(btree->maxleafpage));
     /*
      * Get the split percentage (reconciliation splits pages into smaller than the maximum page size
      * chunks so we don't split every time a new entry is added). Determine how large newly split

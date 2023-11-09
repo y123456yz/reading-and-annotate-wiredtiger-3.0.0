@@ -1160,7 +1160,7 @@ err:
 /*
  * __split_internal_lock --
  *     Lock an internal page.
- */ 
+ */
 //获取page对应的page_lock锁，也就是锁住ref->home这个internal page, 并返回parent page
 static int
 __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PAGE **parentp)
@@ -1206,7 +1206,7 @@ __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PA
             WT_PAGE_LOCK(session, parent);
         if (parent == ref->home)
             break;//这里break，也就是
-            
+
         WT_PAGE_UNLOCK(session, parent);
     }
 
@@ -1770,7 +1770,7 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
  *     Split a page's last insert list entries into a separate page.
  官方split文档说明: https://github.com/wiredtiger/wiredtiger/wiki/In-memory-Page-Splits
  把一个ref page拆分为多个page
- */ 
+ */
 //__split_insert_lock
 static int
 __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
@@ -1811,7 +1811,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
                                         WT_ROW_INSERT_SLOT(page, page->entries - 1);
     else
         ins_head = WT_COL_APPEND(page);
-    
+
     //获取跳跃表中的最后一个成员KV, 也就是该page最大得K
     moved_ins = WT_SKIP_LAST(ins_head);
 
@@ -1819,7 +1819,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      * The first page in the split is almost identical to the current page, but we have to create a
      * replacement WT_REF, the original WT_REF will be set to split status and eventually freed.
      */
-    //创建一个新的ref, 并赋值为原始ref相关值
+    //创建一个新的ref, 并赋值为原始ref相关值，ref[0]指向原来的page, ref[1]指向拆分后的创建的新page
     WT_ERR(__wt_calloc_one(session, &split_ref[0]));
     parent_incr += sizeof(WT_REF);
     child = split_ref[0];
@@ -1845,6 +1845,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     ref->addr = NULL;
 
     /* The second page in the split is a new WT_REF/page pair. */
+    //获取一个新page通过right返回
     WT_ERR(__wt_page_alloc(session, type, 0, false, &right));
 
     /*
@@ -1865,8 +1866,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     right_incr += sizeof(WT_INSERT_HEAD);
     right_incr += sizeof(WT_INSERT_HEAD *);
 
-
-    //创建ref2
+    //创建ref2,ref[0]指向原来的page, ref[1]指向拆分后的创建的新page
     WT_ERR(__wt_calloc_one(session, &split_ref[1]));
     parent_incr += sizeof(WT_REF);
     child = split_ref[1];
@@ -1881,8 +1881,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     } else
         child->ref_recno = WT_INSERT_RECNO(moved_ins);
 
-    
-    ds = &_ds; 
+    ds = &_ds;
     WT_ERR(__debug_config(session, ds, NULL));
     WT_RET(__debug_item_key(ds, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nyang test __split_insert:", WT_INSERT_KEY(moved_ins), WT_INSERT_KEY_SIZE(moved_ins)));
     /*
@@ -2106,7 +2105,7 @@ __split_insert_lock(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __wt_split_insert --
  *     Split a page's last insert list entries into a separate page.
- */ 
+ */
 //__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
 //__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
 //__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印

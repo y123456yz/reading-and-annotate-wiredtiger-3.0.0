@@ -44,10 +44,10 @@
 /*
  * WT_EXTLIST --
  *	An extent list.
- Internally, the block manager uses a data structure called an extent list or a WT_EXTLIST to track file usage. 
- An extent list consists of a series of extents (or WT_EXT elements). Each extent uses a file offset and size to 
+ Internally, the block manager uses a data structure called an extent list or a WT_EXTLIST to track file usage.
+ An extent list consists of a series of extents (or WT_EXT elements). Each extent uses a file offset and size to
  track a portion of the file.
- */ 
+ */
 //__wt_block_ckpt的alloc avail discard为该类型
 struct __wt_extlist {
     char *name; /* Name */
@@ -161,7 +161,7 @@ There are three extent lists that are maintained per checkpoint:
     alloc: The file ranges allocated for a given checkpoint.
     avail: The file ranges that are unused and available for allocation.
     discard: The file ranges freed in the current checkpoint.
-The alloc and discard extent lists are maintained as a skiplist sorted by file offset. 
+The alloc and discard extent lists are maintained as a skiplist sorted by file offset.
 The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
 */
     WT_EXTLIST alloc;   /* Extents allocated */ //__wt_block_alloc中分配ext空间，添加到alloc跳跃表中
@@ -185,7 +185,7 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
 /*
  * WT_BM --
  *	Block manager handle, references a single checkpoint in a file.
- */ 
+ */
 //__wt_btree_open->__wt_blkcache_open分片空间，__bm_method_set中进行接口定义
 //__wt_btree.bm为该类型
 struct __wt_bm {
@@ -197,6 +197,7 @@ struct __wt_bm {
     //__bm_checkpoint
     int (*checkpoint)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, WT_CKPT *, bool);
     int (*checkpoint_last)(WT_BM *, WT_SESSION_IMPL *, char **, char **, WT_ITEM *);
+    //__bm_checkpoint_load
     int (*checkpoint_load)(
       WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t, uint8_t *, size_t *, bool);
     int (*checkpoint_resolve)(WT_BM *, WT_SESSION_IMPL *, bool);
@@ -229,7 +230,7 @@ struct __wt_bm {
     int (*write)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, uint8_t *, size_t *, bool, bool);
     int (*write_size)(WT_BM *, WT_SESSION_IMPL *, size_t *);
 
-    //__wt_block_open  
+    //__wt_block_open
     WT_BLOCK *block; /* Underlying file */
 
     void *map; /* Mapped region */
@@ -245,7 +246,7 @@ struct __wt_bm {
 /*
  * WT_BLOCK --
  *	Block manager handle, references a single file.
- */ 
+ */
 //分配空间和赋值见__wt_block_open，__wt_bm.block为该类型
 struct __wt_block {
     const char *name;  /* Name */
@@ -261,7 +262,6 @@ struct __wt_block {
     size_t related_allocated; /* Size of related object array */
     u_int related_next;       /* Next open slot */
 
-    
     WT_FH *fh;            /* Backing file handle */
     //代表当前已经写入到文件末尾位置，也就是文件大小
     wt_off_t size;        /* File size */
@@ -277,7 +277,7 @@ struct __wt_block {
     //https://source.wiredtiger.com/develop/arch-block.html
     //默认为best, block_allocation配置
     uint32_t allocfirst; /* Allocation is first-fit */
-    //allocation_size配置，默认4K  
+    //allocation_size配置，默认4K
     //getconf PAGESIZE获取操作系统page
     uint32_t allocsize;  /* Allocation size */
     size_t os_cache;     /* System buffer cache flush max */
@@ -331,9 +331,9 @@ struct __wt_block {
 /*
  * WT_BLOCK_DESC --
  *	The file's description.
- The layout of a .wt file consists of a file description WT_BLOCK_DESC which always occupies the first block, followed by a 
-  set of on-disk pages. The file description contains metadata about the file such as the WiredTiger major and minor version, 
-  a magic number, and a checksum of the block contents. This information is used to verify that the file is a legitimate WiredTiger 
+ The layout of a .wt file consists of a file description WT_BLOCK_DESC which always occupies the first block, followed by a
+  set of on-disk pages. The file description contains metadata about the file such as the WiredTiger major and minor version,
+  a magic number, and a checksum of the block contents. This information is used to verify that the file is a legitimate WiredTiger
   data file with a compatible WiredTiger version, and that its contents are not corrupted.
  */
 //先把该结构写入数据文件最前面 __wt_desc_write
@@ -379,8 +379,8 @@ __wt_block_desc_byteswap(WT_BLOCK_DESC *desc)
  * block-manager specific structure: WT_BLOCK_HEADER is WiredTiger's default.
  https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
 
- The page header is followed by a "block header". In WiredTiger each page is a block, and it is possible 
-   to plug in different "block managers" that manage the transition of pages to and from disk. 
+ The page header is followed by a "block header". In WiredTiger each page is a block, and it is possible
+   to plug in different "block managers" that manage the transition of pages to and from disk.
 
  参考https://source.wiredtiger.com/develop/arch-block.html
  */

@@ -217,7 +217,7 @@ __wt_block_open(WT_SESSION_IMPL *session, const char *filename, uint32_t objecti
     block->allocsize = allocsize;
 
     WT_ERR(__wt_config_gets(session, cfg, "block_allocation", &cval));
-    block->allocfirst = WT_STRING_MATCH("first", cval.str, cval.len) ? 1 : 0; 
+    block->allocfirst = WT_STRING_MATCH("first", cval.str, cval.len) ? 1 : 0;
 
     /* Configuration: optional OS buffer cache maximum size. */
     WT_ERR(__wt_config_gets(session, cfg, "os_cache_max", &cval));
@@ -295,12 +295,12 @@ err:
  *     Write a file's initial descriptor structure.
 
 Descriptor blocks
-A file is divided up into blocks. The first block in a file is special as it contains metadata about the file and is referred to 
-  as the "descriptor block". It contains the WiredTiger major and minor version, a checksum of the block contents as well as a 
+A file is divided up into blocks. The first block in a file is special as it contains metadata about the file and is referred to
+  as the "descriptor block". It contains the WiredTiger major and minor version, a checksum of the block contents as well as a
   "magic" number to check against.
 
-The descriptor block serves as a safety check to ensure that the file being loaded into the block manager is actually a WiredTiger 
-  data file, that it belongs to a compatible version of WiredTiger and that the entire file has not been corrupted. WiredTiger also 
+The descriptor block serves as a safety check to ensure that the file being loaded into the block manager is actually a WiredTiger
+  data file, that it belongs to a compatible version of WiredTiger and that the entire file has not been corrupted. WiredTiger also
   uses checksums to defend against file corruption which is described in the Checksum section.
  */
 int

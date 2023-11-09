@@ -18,7 +18,7 @@ static int __inmem_row_leaf_entries(WT_SESSION_IMPL *, const WT_PAGE_HEADER *, u
 /*
  * __wt_page_alloc --
  *     Create or read a page into the cache.
- */
+ */  //获取一个新page通过pagep返回
 int
 __wt_page_alloc(
   WT_SESSION_IMPL *session, uint8_t type, uint32_t alloc_entries, bool alloc_refs, WT_PAGE **pagep)
@@ -118,6 +118,7 @@ err:
 
     /* Increment the cache statistics. */
     __wt_cache_page_inmem_incr(session, page, size);
+    // 内存中的page数自增
     (void)__wt_atomic_add64(&cache->pages_inmem, 1);
     page->cache_create_gen = cache->evict_pass_gen;
 

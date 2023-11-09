@@ -71,8 +71,8 @@ struct __wt_table {
 
     //__wt_schema_open_colgroups中置为true
     //__wt_curtable_open->__curtable_complete中会做检查   Return failure if the table is not yet fully created.
-    bool cg_complete, 
-        idx_complete, 
+    bool cg_complete,
+        idx_complete,
         is_simple; //默认1
     //Tables without explicit column groups have a single default column group containing all of the columns.
     ////和__wt_cursor_table.cg_cursors配合

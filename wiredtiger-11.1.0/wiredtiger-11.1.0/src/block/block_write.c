@@ -187,7 +187,7 @@ __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
  * __wt_block_write --
  *     Write a buffer into a block, returning the block's address cookie.
  //buf数据内容 = 包括page header + block header + 实际数据
- //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+ //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
  */
 
 //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
@@ -216,7 +216,7 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_
  * __block_write_off --
  *     Write a buffer into a block, returning the block's offset, size and checksum.
  //数据写入磁盘
- //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+ //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
 
 //数据写入磁盘，并返回objectidp, offsetp, sizep和checksump
  */
@@ -287,7 +287,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
         local_locked = true;
     }
 
-    //align_size是一个page在磁盘上面的总大小，=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+    //align_size是一个page在磁盘上面的总大小，=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
     //也就是一次性分配一个page该有的磁盘空间元数据
     //offset也就是buf数据需要从文件的offset这个位置开始向文件中写入
     ret = __wt_block_alloc(session, block, &offset, (wt_off_t)align_size);
@@ -362,7 +362,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
      * Optionally schedule writes for dirty pages in the system buffer cache, but only if the
      * current session can wait.
      */
-    //os_cache_dirty_max配置，默认为0, 也就是没写入多少数据，就进行强制__wt_fsync刷盘
+    //os_cache_dirty_max配置，默认为0, 也就是每写入多少数据，就进行强制__wt_fsync刷盘
     if (block->os_cache_dirty_max != 0 && fh->written > block->os_cache_dirty_max &&
       __wt_session_can_wait(session)) {
         fh->written = 0;
@@ -388,7 +388,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
       "off %" PRIuMAX ", size %" PRIuMAX ", checksum %#" PRIx32, (uintmax_t)offset,
       (uintmax_t)align_size, checksum);
 
-    *objectidp = objectid;  
+    *objectidp = objectid;
     *offsetp = offset;
     *sizep = WT_STORE_SIZE(align_size);
     *checksump = checksum;
@@ -400,7 +400,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
  * __wt_block_write_off --
  *     Write a buffer into a block, returning the block's offset, size and checksum.
  */
-//bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+//bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
 
 //数据写入磁盘，并返回objectidp, offsetp, sizep和checksump
 int
@@ -426,4 +426,3 @@ __wt_block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, ui
     __wt_page_header_byteswap(buf->mem);
     return (ret);
 }
-

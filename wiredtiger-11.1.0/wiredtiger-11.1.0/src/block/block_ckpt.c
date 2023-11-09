@@ -925,10 +925,10 @@ __ckpt_update(
  * __wt_block_checkpoint_resolve --
  *     Resolve a checkpoint.
 
- When deleting a checkpoint it's extent lists are merged into the next most recent checkpoints extent lists. 
- Any blocks that are no longer needed (i.e those that are on the allocate list of the earlier checkpoint and the discard 
- list of the newer checkpoint) are moved onto a special available list in the live checkpoint (called ckpt_avail). Once a 
- checkpoint is really deleted, the ckpt_avail list is merged into the live checkpoints available list. The merge is 
+ When deleting a checkpoint it's extent lists are merged into the next most recent checkpoints extent lists.
+ Any blocks that are no longer needed (i.e those that are on the allocate list of the earlier checkpoint and the discard
+ list of the newer checkpoint) are moved onto a special available list in the live checkpoint (called ckpt_avail). Once a
+ checkpoint is really deleted, the ckpt_avail list is merged into the live checkpoints available list. The merge is
  implemented in the __wt_block_checkpoint_resolve method.
  */
 int

@@ -27,6 +27,7 @@
  */
 
 #include "wtperf.h"
+//#include "verbose.h"
 
 /* Default values. */
 #define DEFAULT_HOME "WT_TEST"
@@ -1885,16 +1886,20 @@ find_table_count(WTPERF *wtperf)
     opts = wtperf->opts;
     conn = wtperf->conn;
 
+    printf("yang test 11111111111111111111111111111111\r\n");
     max_icount = 0;
     if ((ret = conn->open_session(conn, NULL, opts->sess_config, &session)) != 0) {
         lprintf(wtperf, ret, 0, "find_table_count: open_session failed");
         goto out;
     }
+
     for (i = 0; i < opts->table_count; i++) {
         if ((ret = session->open_cursor(session, wtperf->uris[i], NULL, NULL, &cursor)) != 0) {
             lprintf(wtperf, ret, 0, "find_table_count: open_cursor failed");
             goto err;
         }
+
+        
         if ((ret = cursor->prev(cursor)) != 0) {
             lprintf(wtperf, ret, 0, "find_table_count: cursor prev failed");
             goto err;
@@ -1912,12 +1917,17 @@ find_table_count(WTPERF *wtperf)
             goto err;
         }
     }
+
+    printf("yang test 222222222222222222222222222222222222222  end\r\n");
 err:
+    __wt_sleep(10000, 0);
+
     if ((t_ret = session->close(session, NULL)) != 0) {
         if (ret == 0)
             ret = t_ret;
         lprintf(wtperf, ret, 0, "find_table_count: session close failed");
     }
+    //最大表的数据行数
     opts->icount = max_icount;
 out:
     return (ret);
@@ -1946,6 +1956,7 @@ create_uris(WTPERF *wtperf)
         else
             testutil_check(
               __wt_snprintf(wtperf->uris[i], len, "table:%s%05" PRIu32, opts->table_name, i));
+        printf("yang test .................................. uri:%s\r\n", wtperf->uris[i]);
     }
 
     /* Create the log-like-table URI. */

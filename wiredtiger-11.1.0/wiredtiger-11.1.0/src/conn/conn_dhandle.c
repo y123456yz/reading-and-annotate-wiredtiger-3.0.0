@@ -34,7 +34,7 @@ __conn_dhandle_config_clear(WT_SESSION_IMPL *session)
 /*
  * __conn_dhandle_config_set --
  *     Set up a btree handle's configuration information.
- */ 
+ */
 //从元数据文件中读取配置存入dhandle->cfg[]
 static int
 __conn_dhandle_config_set(WT_SESSION_IMPL *session)
@@ -87,7 +87,7 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
          * an empty category to strip out since we don't know any backup ids. Set them empty and
          * call collapse to overwrite anything existing.
          */
-        // cfg[0] = 
+        // cfg[0] =
         //    "access_pattern_hint=none,allocation_size=4KB,allocation_size=8KB,allocation_size=18KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=0,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none";;
         cfg[0] = metaconf;
         //metaconf="access_pattern_hint=none,allocation_size=4KB,allocation_size=8KB,allocation_size=18KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=0,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none";
@@ -103,7 +103,7 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
         WT_ASSERT(session, dhandle->orig_meta_base == NULL);
 #endif
         WT_ERR(__wt_config_collapse(session, cfg, &tmp));
-       // printf("yang test ...1111111111.... __conn_dhandle_config_set ...name:%s...cfg[0]:%s,\r\n tmp:%s\r\n\r\n\r\n\r\n", 
+       // printf("yang test ...1111111111.... __conn_dhandle_config_set ...name:%s...cfg[0]:%s,\r\n tmp:%s\r\n\r\n\r\n\r\n",
         //    dhandle->name, cfg[0], tmp);
 
         /*
@@ -130,7 +130,7 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
     }
     dhandle->cfg[1] = metaconf;
     dhandle->meta_base = base;
-   // printf("yang test ...2222.... __conn_dhandle_config_set ...metaconf:%s,\r\n base:%s\r\n\r\n\r\n\r\n", 
+   // printf("yang test ...2222.... __conn_dhandle_config_set ...metaconf:%s,\r\n base:%s\r\n\r\n\r\n\r\n",
      //   metaconf, base);
     dhandle->meta_base_length = base == NULL ? 0 : strlen(base);
 #ifdef HAVE_DIAGNOSTIC
@@ -189,7 +189,7 @@ __conn_dhandle_destroy(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle, bool f
  *     Allocate a new data handle and return it linked into the connection's list.
  __session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc(alloc WT_DATA_HANDLE)
  __session_get_dhandle->__session_add_dhandle(alloc WT_DATA_HANDLE_CACHE)
- 
+
  会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
  实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
 */
@@ -231,7 +231,7 @@ __wt_conn_dhandle_alloc(WT_SESSION_IMPL *session, const char *uri, const char *c
     /* Btree handles keep their data separate from the interface. */
     if (WT_DHANDLE_BTREE(dhandle)) {
         WT_ERR(__wt_calloc_one(session, &btree));
-        dhandle->handle = btree; 
+        dhandle->handle = btree;
         btree->dhandle = dhandle;
     }
 

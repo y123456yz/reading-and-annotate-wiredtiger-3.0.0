@@ -489,7 +489,7 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
     if (cgname != NULL && (ret = __wt_config_subgets(session, &table->cgconf, cgname, &cval)) != 0)
         WT_ERR_MSG(session, ret == WT_NOTFOUND ? EINVAL : ret,
           "Column group '%s' not found in table '%.*s'", cgname, (int)tlen, tablename);
-    
+
     /* Check if the column group already exists. */
     //例如
     //   colgroup:access\00
@@ -546,7 +546,7 @@ __create_colgroup(WT_SESSION_IMPL *session, const char *name, bool exclusive, co
 
     if (!exists) {
         //记录colgroup信息到元数据文件
-        //{"t":{"$date":"2023-08-14T19:24:48.928+08:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"conn1130","msg":"WiredTiger message","attr":{"message":"[1692012288:928674][6762:0x7fdeed888700], WT_SESSION.create: [WT_VERB_METADATA] 
+        //{"t":{"$date":"2023-08-14T19:24:48.928+08:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"conn1130","msg":"WiredTiger message","attr":{"message":"[1692012288:928674][6762:0x7fdeed888700], WT_SESSION.create: [WT_VERB_METADATA]
         //Insert: key: colgroup:test/collection/18--5164326421294708085, value: app_metadata=(formatVersion=1),assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,
         //source=\"file:test/collection/18--5164326421294708085.wt\",type=file,verbose=[],write_timestamp_usage=none, tracking: true, not turtle"}}
         WT_ERR(__wt_metadata_insert(session, name, cgconf));
@@ -853,13 +853,11 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
     cgname = filename = NULL;
     table = NULL;
 
-    
     WT_ASSERT(session, FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_TABLE_WRITE));
 
     tablename = uri;
     WT_PREFIX_SKIP_REQUIRED(session, tablename, "table:");
 
-    
     /* Check if the table already exists. */
     //从wiredtiger.wt中读取table:xxxx的配置信息
     if ((ret = __wt_metadata_search(session, uri, &tablecfg)) != WT_NOTFOUND) {
@@ -871,7 +869,6 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
             WT_TRET(EEXIST);
         goto err;
     }
-    
 
     if (import) {
         import_repair =
@@ -911,7 +908,7 @@ __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const 
     WT_ERR(__wt_config_collapse(session, cfg, &tablecfg));
     //不存在则写入到元数据表中
     WT_ERR(__wt_metadata_insert(session, uri, tablecfg));
-   
+
     if (ncolgroups == 0) {
         len = strlen("colgroup:") + strlen(tablename) + 1;
         WT_ERR(__wt_calloc_def(session, len, &cgname));
@@ -1270,8 +1267,8 @@ __schema_create_config_check(
  * __schema_create --
  *     Process a WT_SESSION::create operation for all supported types.
  */
-//The create schema operation is responsible for creating the underlying data objects on the filesystem and then 
-//creating required entries in the metadata. 
+//The create schema operation is responsible for creating the underlying data objects on the filesystem and then
+//creating required entries in the metadata.
 
 //mongodb建table表: __session_create->__wt_schema_create->__schema_create
 static int
@@ -1373,8 +1370,8 @@ err:
  * __wt_schema_create --
  *     Process a WT_SESSION::create operation for all supported types.
  */
-//The create schema operation is responsible for creating the underlying data objects on the filesystem and then 
-//creating required entries in the metadata. 
+//The create schema operation is responsible for creating the underlying data objects on the filesystem and then
+//creating required entries in the metadata.
 
 //__session_create->__wt_schema_create(最开始的table，也就是对应table:表名)
 //mongodb建table表: __session_create->__wt_schema_create->__schema_create->__create_table

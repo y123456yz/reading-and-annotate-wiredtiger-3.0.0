@@ -35,7 +35,7 @@ wiredtiger/wiredtiger_kv_engine.cpp:    uassertStatusOK(wtRCToStatus(session->cr
 wiredtiger/wiredtiger_session_cache.cpp:        LOGV2_DEBUG(22418, 4, "created checkpoint (forced)");
 wiredtiger/wiredtiger_session_cache.cpp:        LOGV2_DEBUG(22420, 4, "created checkpoint");
 wiredtiger/wiredtiger_session_cache.h:     * The exact cursor config that was used to create the cursor must be provided or subsequent
-wiredtiger/wiredtiger_session_cache.h:        
+wiredtiger/wiredtiger_session_cache.h:
 wiredtiger/wiredtiger_session_cache.h:     * Returns a smart pointer to a previously released session for reuse, or creates a new session.
 wiredtiger/wiredtiger_size_storer.cpp:        session.getSession()->create(session.getSession(), _storageUri.c_str(), config.c_str()));
 wiredtiger/wiredtiger_util.cpp:    invariantWTOK(session->open_cursor(session, "metadata:create", nullptr, "", &cursor));
@@ -331,7 +331,7 @@ err:
  * __wt_session_close_internal --
    __wt_session_close_internal和__open_session对应，一个创建session, 一个销毁session
  *     Internal function of WT_SESSION->close method.
- */  
+ */
 int
 __wt_session_close_internal(WT_SESSION_IMPL *session)
 {
@@ -644,10 +644,10 @@ __session_open_cursor_int(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *
 
 /*
  * __wt_open_cursor --
- *     Internal version of WT_SESSION::open_cursor.   
+ *     Internal version of WT_SESSION::open_cursor.
  __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，内部使用
  __session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int创建，外部WT_SESSION->open_cursor
- 
+
  */ //先从cache中获取，如果没有则创建
 int
 __wt_open_cursor(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, const char *cfg[],
@@ -1195,7 +1195,7 @@ err:
  * __session_drop --
  *     WT_SESSION->drop method.
  */
-//WT_SESSION::drop operation drops the specified uri. The method will delete all related files and metadata entries. 
+//WT_SESSION::drop operation drops the specified uri. The method will delete all related files and metadata entries.
 //It is possible to keep the underlying files by specifying "remove_files=false" in the config string.
 static int
 __session_drop(WT_SESSION *wt_session, const char *uri, const char *config)
@@ -1437,7 +1437,7 @@ __session_salvage_worker(WT_SESSION_IMPL *session, const char *uri, const char *
  *     WT_SESSION->salvage method.
  Recover data from a corrupted file.
 
-The salvage command salvages the specified data source, discarding any data that cannot be recovered. Underlying 
+The salvage command salvages the specified data source, discarding any data that cannot be recovered. Underlying
 files are re-written in place, overwriting the original file contents
 
  http://source.wiredtiger.com/2.7.0/command_line.html  修复异常数据相关
@@ -1650,19 +1650,19 @@ err:
  * __session_truncate --
  *     WT_SESSION->truncate method.
  Truncate Operation
-Truncate allows multiple records in a specified range to be deleted in a single operation. It is much faster and 
-more efficient than deleting each record individually. Fast-truncate is an optimization that WiredTiger makes 
-internally; whole pages are marked as deleted without having to first instantiate the page in memory or inspect 
+Truncate allows multiple records in a specified range to be deleted in a single operation. It is much faster and
+more efficient than deleting each record individually. Fast-truncate is an optimization that WiredTiger makes
+internally; whole pages are marked as deleted without having to first instantiate the page in memory or inspect
 records individually. In situations where this is not possible, a slower truncate will walk keys individually,
-putting a tombstone onto each one to mark deletion. Truncation is also possible for log files but the focus here 
+putting a tombstone onto each one to mark deletion. Truncation is also possible for log files but the focus here
 will be on truncation for B-Tree data files (file: uri).
 
 参考https://source.wiredtiger.com/11.0.0/arch-btree.html#:~:text=Fast-truncate%20is%20an%20optimization%20that%20WiredTiger%20makes%20internally%3B,a%20tombstone%20onto%20each%20one%20to%20mark%20deletion.
 */
 //数据范围删除更快
-//WT_SESSION::truncate truncates a file, table, cursor range, or backup cursor. If start and stop cursors are not 
-//specified all the data stored in the uri will be wiped out. When a range truncate is in progress, and another 
-//transaction inserts a key into that range, the behavior is not well defined. It is best to avoid this type of 
+//WT_SESSION::truncate truncates a file, table, cursor range, or backup cursor. If start and stop cursors are not
+//specified all the data stored in the uri will be wiped out. When a range truncate is in progress, and another
+//transaction inserts a key into that range, the behavior is not well defined. It is best to avoid this type of
 //situations. See Truncate Operation for more details.
 static int
 __session_truncate(
@@ -2400,9 +2400,8 @@ __wt_session_breakpoint(WT_SESSION *wt_session)
   //__wt_open_internal_session->__wt_open_session:    wiredtieger内部使用的
   //__conn_open_session->__wt_open_session:  server层通过_conn->open_session调用
 
- 
   __wt_session_close_internal和__open_session对应，一个创建session, 一个销毁session
- */ 
+ */
 //从session hash桶中获取一个session
 //__wt_open_session
 static int
@@ -2590,7 +2589,7 @@ err:
  * __wt_open_session --
  *     Allocate a session handle.
  */ //从session hash桶中获取一个session
- 
+
 //__wt_open_internal_session->__wt_open_session->__open_session:    wiredtieger内部使用的
 //__conn_open_session->__wt_open_session->__open_session:  server层通过_conn->open_session调用
 int
@@ -2628,7 +2627,7 @@ __wt_open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, con
  * __wt_open_internal_session --
  *     Allocate a session for WiredTiger's use.
  */
- 
+
 //__wt_open_internal_session:  wiredtieger内部使用的
 //__conn_open_session:  server层通过_conn->open_session调用
 int
@@ -2654,4 +2653,3 @@ __wt_open_internal_session(WT_CONNECTION_IMPL *conn, const char *name, bool open
     *sessionp = session;
     return (0);
 }
-

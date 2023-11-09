@@ -30,7 +30,6 @@
  */
 #include <test_util.h>
 
-
 static const char *home;
 
 static int
@@ -40,13 +39,12 @@ cursor_search(WT_CURSOR *cursor)
     const char *p = "12345\0\0\0";
 
     return 0;
-    
+
     cursor->set_key(cursor, 15);
 
     error_check(cursor->search(cursor));
     error_check(cursor->get_value(cursor, &value_item));
 
-    
     printf("Got cursor_search: %d  %d : %s\n", (int)sizeof(p), 15, (char*)value_item.data);
 
     return (0);
@@ -65,16 +63,16 @@ access_example(void)
     WT_ITEM value_item;
     WT_ITEM value_item2;
     int i =0;
-    
+
     WT_BTREE *btree;
     int ret;
     WT_CURSOR_BTREE *cbt;
     WT_SESSION_IMPL *session_impl;
-    WT_RAND_STATE rnd; 
+    WT_RAND_STATE rnd;
     uint64_t rval;
     uint64_t max_i = 0;
 
-    /* Open a connection to the database, creating it if necessary. */ 
+    /* Open a connection to the database, creating it if necessary. */
     //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
     //error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[split=5, overflow=5, generation=5, block=5, write=5, evictserver=5, evict_stuck=5, block_cache=5, checkpoint_progress=5,  checkpoint=5, checkpoint_cleanup=5, block=5,overflow=5,reconcile=5,evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
 
@@ -85,13 +83,12 @@ access_example(void)
     recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\
     version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/
 
-    error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[config_all_verbos=0,api:0,metadata:0]", &conn));
+    error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[config_all_verbos=5,api:0,metadata:0]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
     /* Open a session handle for the database. */
     error_check(conn->open_session(conn, NULL, NULL, &session));
     /*! [access example connection] */
-    
 
     /*! [access example table create] */
     error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u"));
@@ -101,7 +98,6 @@ access_example(void)
     error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
     /*! [access example cursor open] */
 
-    
     value_item.data = "value old @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
     /*
       "abcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyz"
@@ -117,9 +113,9 @@ access_example(void)
 
     value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
     value_item2.size = strlen(value_item2.data);
-    for (i=1200;i > 0; i--) {
+    for (i=500;i > 0; i--) {
         rval = __wt_random(&rnd);
-        
+
         cursor->set_key(cursor, i); /* Insert a record. */
         cursor->set_value(cursor, &value_item);
         if (max_i < rval % 12000)
@@ -127,13 +123,13 @@ access_example(void)
 
         if (i % 5 == 0)
             continue;
-            
+
         //printf("yang test insert ......... i:%lu, max_i:%lu\r\n", rval % 23519, max_i);
         error_check(cursor->insert(cursor));
     }
-     for (i=1200;i > 0; i--) {
+     for (i=120;i > 0; i--) {
         rval = __wt_random(&rnd);
-        
+
         error_check(session->begin_transaction(session, NULL));
         cursor->set_key(cursor, i);
         cursor->set_value(cursor, &value_item2);
@@ -153,40 +149,37 @@ access_example(void)
     cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));
 
-
     //error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
     cbt = (WT_CURSOR_BTREE *)cursor; //yang add xxxxxxxxx todo example¨¬¨ª?¨®btree dump
     session_impl = CUR2S(cbt);
     btree = CUR2BT(cbt);
     //usleep(10000000);
-    
+
     WT_WITH_BTREE(session_impl, btree, ret = __wt_debug_tree_all(session_impl, NULL, NULL, NULL));
     if (!ret)
         printf("yang test 111111111111111111111__wt_debug_tree_all11111ss1111111111111111111111 error\r\n");
 
-
      /*! [access example cursor insert]
-    cursor->set_key(cursor, 1111);  
+    cursor->set_key(cursor, 1111);
     cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));
     printf("yang test 2222222222222222222222222222222222222222222222222\r\n");
-    cursor->set_key(cursor, 11);  
+    cursor->set_key(cursor, 11);
     cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));
     printf("yang test 333333333333333333333333333333333333333333333333\r\n");
 
-    cursor->set_key(cursor, 2222);  
+    cursor->set_key(cursor, 2222);
     cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));
     printf("yang test 444444444444444444444444444444444444444444444444\r\n");
 
-        cursor->set_key(cursor, 11);  
+        cursor->set_key(cursor, 11);
     cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));*/
-    
+
     printf("yang test 555555555555555555555555555555555555555555555555555555555555\r\n");
-    
-    
+
     error_check(cursor->reset(cursor)); /* Restart the scan. */
     /*! [access example cursor insert] */
     error_check(cursor_search(cursor));
@@ -194,7 +187,7 @@ access_example(void)
 
     /*! [access example cursor list] */
     error_check(cursor->reset(cursor)); /* Restart the scan. */
-    
+
    // while ((ret = cursor->next(cursor)) == 0) {
        // error_check(cursor->get_key(cursor, &key_item));
        // error_check(cursor->get_value(cursor, &value_item));

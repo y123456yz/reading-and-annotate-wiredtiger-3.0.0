@@ -11,11 +11,10 @@
 /*
  * __search_insert_append --
  *     Fast append search of a row-store insert list, creating a skiplist stack as we go.
- */ 
+ */
 //__search_insert_append: 如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
 //__wt_search_insert: leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
 //__wt_row_modify: 真正把KV添加到跳跃表中
-
 
 ////如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
 static inline int
@@ -32,7 +31,7 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_INSERT
 
     btree = S2BT(session);
     collator = btree->collator;
-    
+
     //ins为该page下跳跃表最后一个节点为NULL，说明该page跳跃表中还没有KV，第一个写入该跳跃表这里会直接返回
     if ((ins = WT_SKIP_LAST(ins_head)) == NULL) {
         return (0);
@@ -87,7 +86,7 @@ __search_insert_append(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_INSERT
 /*
  * __wt_search_insert --
  *     Search a row-store insert list, creating a skiplist stack as we go.
- */ 
+ */
 //__search_insert_append: 如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
 //__wt_search_insert: leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
 //__wt_row_modify: 真正把KV添加到跳跃表中
@@ -341,7 +340,7 @@ restart://表示重新从root page开始查找
                 goto append;
 
             //如果该internale page下面不止一个leaf page，则取该internale page下面最右边的leaf page
-           
+
             //拷贝ref->ref_ikey到item
             __wt_ref_key(page, descent, &item->data, &item->size);
             WT_ERR(__wt_compare(session, collator, srch_key, item, &cmp));
@@ -467,7 +466,7 @@ descend:
         //如果BTREE中没数据，这时候写入一条数据，是第一次写入，这里面会创建leaf page存入&descent->page
         //internal page查找的时候都会到这里，这里面可能会创建leaf page
 
-        //current代表当前的internal page, descent代表对应的下一层page，可能是internal page也可能是leaf page 
+        //current代表当前的internal page, descent代表对应的下一层page，可能是internal page也可能是leaf page
         //获取descent这个page，如果因为冲突或者evict等则需要等待
         if ((ret = __wt_page_swap(session, current, descent, read_flags)) == 0) {
             //把该internal page赋值给current，然后继续下一层internal page的遍历, 如果下一层desent是leaf page，在前面的if (page->type != WT_PAGE_ROW_INT)会跳出循环，进入leaf page查找
@@ -620,7 +619,7 @@ leaf_match:
      * If inserting a key smaller than any key found in the WT_ROW array, use the extra slot of the
      * insert array, otherwise the insert array maps one-to-one to the WT_ROW array.
      */
-   // printf("yang test .......insert:%d......descend_right:%d.....page->entries:%u,....cbt->slot:%u, base:%u\r\n", 
+   // printf("yang test .......insert:%d......descend_right:%d.....page->entries:%u,....cbt->slot:%u, base:%u\r\n",
    //        insert, descend_right, page->entries, cbt->slot, base);
     if (base == 0) {
         cbt->compare = 1;

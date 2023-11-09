@@ -22,7 +22,7 @@ struct __wt_data_handle_cache {
  * WT_HAZARD --
  *	A hazard pointer.
 
- 在WiredTiger里面， 采用Hazard pointers来管理一个内存页是否可以被Evict， 
+ 在WiredTiger里面， 采用Hazard pointers来管理一个内存页是否可以被Evict，
  Hazard pointersHazard pointers是在多线程环境下实现资源无锁访问的一种方法， 它采用空间换时间的方法：
  为每一个资源分配一个Hazard指针数组，数组大小等于线程个数， 每一项里面包含一个指针指向某个资源或者为空；
  每当线程要访问资源的时候， 将该线程对应的Hazard pointer修改： 资源的指针赋给Hazard指针包含的资源指针；
@@ -127,7 +127,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 #define WT_GENERATIONS 5    /* Total generation manager entries */
         //注意conn gen和session gen的区别
         volatile uint64_t generations[WT_GENERATIONS];
-        
+
         /*
          * Session memory persists past session close because it's accessed by threads of control other
          * than the thread owning the session. For example, btree splits and hazard pointers can "free"
@@ -143,7 +143,6 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
             size_t cnt;   /* Array entries */
             size_t alloc; /* Allocated bytes */
         } stash[WT_GENERATIONS];
-
 
     /*
      * Each session keeps a cache of data handles. The set of handles can grow quite large so we
@@ -169,8 +168,6 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 
     WT_CURSOR_BACKUP *bkp_cursor; /* Hot backup cursor */
 
-
-
     WT_IMPORT_LIST *import_list; /* List of metadata entries to import from file. */
 
     u_int hs_cursor_counter; /* Number of open history store cursors */
@@ -191,9 +188,8 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     u_int scratch_alloc;   /* Currently allocated */
     size_t scratch_cached; /* Scratch bytes cached */
 
-
     WT_ITEM err; /* Error buffer */
-    
+
     //__open_session,默认WT_ISO_SNAPSHOT
     WT_TXN_ISOLATION isolation;
     WT_TXN *txn; /* Transaction state */
@@ -313,7 +309,6 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     /* Hashed handle reference list array */ //handle to the session's cache.
     //__session_get_dhandle->__session_add_dhandle
     TAILQ_HEAD(__dhandles_hash, __wt_data_handle_cache) * dhhash;
-
 
 /*
  * Hazard pointers.

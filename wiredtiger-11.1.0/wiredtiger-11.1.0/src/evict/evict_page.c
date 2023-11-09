@@ -117,7 +117,6 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
     force_evict_hs = false;
     local_gen = false;
 
-    
     __wt_verbose(
         session, WT_VERB_EVICT, "xxxxxxxxxxx page %p (%s)", (void *)page, __wt_page_type_string(page->type));
       //session, WT_VERB_EVICT, "page %p (%s)", (void *)page, __wt_page_type_string(page->type));
@@ -173,7 +172,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
      * Review the page for conditions that would block its eviction. If the check fails (for
      * example, we find a page with active children), quit. Make this check for clean pages, too:
      * while unlikely eviction would choose an internal page with children, it's not disallowed.
-     */ 
+     */
     //判断是否可以进行mem split，结果存入inmem_split
     WT_ERR(__evict_review(session, ref, flags, &inmem_split));
 
@@ -188,12 +187,11 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
 
     //page内存没有超限，继续走下面的流程
 
-    
     /* No need to reconcile the page if it is from a dead tree or it is clean. */
     if (!tree_dead && __wt_page_is_modified(page)) {
         WT_ERR(__evict_reconcile(session, ref, flags));
     }
-    
+
     /*
      * Fail 0.1% of the time after we have done reconciliation. We should always evict the page of a
      * dead tree.
@@ -712,7 +710,7 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
     if (F_ISSET(session, WT_SESSION_NO_RECONCILE))
         return (__wt_set_return(session, EBUSY));
 
-   // printf("yang test .........page->memory_footprint:%d......................__evict_review......closing:%d.............\r\n", 
+   // printf("yang test .........page->memory_footprint:%d......................__evict_review......closing:%d.............\r\n",
     //    (int)page->memory_footprint, closing);
     return (0);
 }
@@ -820,7 +818,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
     else if (!WT_SESSION_BTREE_SYNC(session))
         LF_SET(WT_REC_VISIBLE_ALL);
 
-   // printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p....use_snapshot_for_app_thread:%d\r\n", 
+   // printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p....use_snapshot_for_app_thread:%d\r\n",
     //        page->modify->page_state, page, use_snapshot_for_app_thread);
 
     WT_ASSERT(session, LF_ISSET(WT_REC_VISIBLE_ALL) || F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT));
@@ -855,4 +853,3 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
 
     return (0);
 }
-

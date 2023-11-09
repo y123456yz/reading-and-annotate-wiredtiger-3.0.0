@@ -14,7 +14,6 @@
 #define WT_BASECONFIG "WiredTiger.basecfg"         /* Base configuration */
 #define WT_BASECONFIG_SET "WiredTiger.basecfg.set" /* Base config temp */
 
-
 //https://source.wiredtiger.com/develop/database_config.html#config_order
 #define WT_USERCONFIG "WiredTiger.config" /* User configuration */
 

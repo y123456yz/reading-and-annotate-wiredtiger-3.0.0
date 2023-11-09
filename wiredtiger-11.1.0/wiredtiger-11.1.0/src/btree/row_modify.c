@@ -202,12 +202,12 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
          * reference it (the WT_INSERT_HEAD might be allocated, the WT_INSERT was allocated).
          */
         //给该key分配对应WT_INSERT空间
-        //KV中的key对应WT_INSERT，value对应WT_UPDATE    
+        //KV中的key对应WT_INSERT，value对应WT_UPDATE
         WT_ERR(__wt_row_insert_alloc(session, key, skipdepth, &ins, &ins_size));
         cbt->ins_head = ins_head;
         cbt->ins = ins;
 
-        if (upd_arg == NULL) {//value空间分配, 
+        if (upd_arg == NULL) {//value空间分配,
             //__wt_upd_alloc分配WT_UPDATE空间
             WT_ERR(__wt_upd_alloc(session, value, modify_type, &upd, &upd_size));
             WT_ERR(__wt_txn_modify(session, upd));
@@ -319,7 +319,9 @@ err:
 /*
  * __wt_row_insert_alloc --
  *     Row-store insert: allocate a WT_INSERT structure and fill it in.
+ 跳跃表图解参考https://www.jb51.net/article/199510.htm
  */
+//可以配合https://www.jb51.net/article/199510.htm 图片阅读
 int
 __wt_row_insert_alloc(WT_SESSION_IMPL *session, const WT_ITEM *key, u_int skipdepth,
   WT_INSERT **insp, size_t *ins_sizep)

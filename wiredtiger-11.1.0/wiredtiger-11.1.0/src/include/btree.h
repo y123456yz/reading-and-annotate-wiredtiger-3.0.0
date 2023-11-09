@@ -111,7 +111,6 @@ struct __wt_btree {
 
     uint32_t id; /* File ID, for logging */
 
-
 /* https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
 internal_page_max - the maximum size we will let an on-disk internal page grow to when doing reconciliation.
 internal_key_max - the maximum size a key can be before we store it as an overflow item on an on-disk and in-memory internal page.
@@ -121,7 +120,7 @@ leaf_value_max - the maximum size a value can be before we store it as an overfl
 memory_page_max - how large an in-memory page can grow before we evict it. It may be evicted before it grows. this large if the space it's using in cache is needed.
 split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to when doing reconciliation, if all of the content from the in-memory page doesn't fit into a single page.
 */
-    //赋值参考__btree_page_sizes  
+    //赋值参考__btree_page_sizes
     //allocation_size配置，默认allocation_size配置，默认值4K
     uint32_t allocsize;        /* Allocation size */
     //internal_page_max配置，默认4K

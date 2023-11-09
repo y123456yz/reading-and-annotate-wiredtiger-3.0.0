@@ -51,7 +51,7 @@ __block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
             extp = &(*extp)->next[i];
         } else
             stack[i--] = extp--;
-            
+
     return (last);
 }
 
@@ -467,7 +467,7 @@ __block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off
      */
     if (block->size > (wt_off_t)INT64_MAX - size)
         WT_RET_MSG(session, WT_ERROR, "block allocation failed, file cannot grow further");
-    
+
     *offp = block->size;
     block->size += size;
 
@@ -519,7 +519,7 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
      */
     if (block->live.avail.bytes < (uint64_t)size)
         goto append;
-    if (block->allocfirst > 0) {  
+    if (block->allocfirst > 0) {
         if (!__block_first_srch(block->live.avail.off, size, estack))
             goto append;
         ext = *estack[0];
@@ -527,7 +527,7 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
         __block_size_srch(block->live.avail.sz, size, sstack);
         if ((szp = *sstack[0]) == NULL) {//block->live.avail.sz跳表中没有找到一个>=size长度的成员WT_SIZE
 append:
-            //block->size增加size长度，同时offp记录修改前block->size的长度, 
+            //block->size增加size长度，同时offp记录修改前block->size的长度,
             //也就是向block对应磁盘空间往后移动size字节，在外层通过offp返回这部分空间的其实地址，offp开始的size字节空间就可以被新的WT_EXT使用
             WT_RET(__block_extend(session, block, offp, size));
             //获取一个WT_EXT元数据结构添加到block->live.alloc跳跃表中，WT_EXT用于存储一个page对应的磁盘元数据信息
@@ -927,7 +927,7 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *
 /*
  * __block_append --
  *     Append a new entry to the allocation list.
- */ 
+ */
 //获取
 static int
 __block_append(

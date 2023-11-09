@@ -558,7 +558,6 @@ __wt_cursor_get_valuev(WT_CURSOR *cursor, va_list ap)
         value = va_arg(ap, WT_ITEM *);
         value->data = cursor->value.data;
         value->size = cursor->value.size;
-        printf("yang test .................__wt_cursor_get_valuev.....size:%d\r\n", (int)value->size);
     } else if (WT_STREQ(fmt, "S"))
         *va_arg(ap, const char **) = cursor->value.data;
     else if (WT_STREQ(fmt, "t") || (__wt_isdigit((u_char)fmt[0]) && WT_STREQ(fmt + 1, "t")))
@@ -807,7 +806,7 @@ __wt_cursor_get_hash(
  * __wt_cursor_cache_get --
  *     Open a matching cursor from the cache.
  //cursor相关的配置参考confchk_WT_SESSION_open_cursor
- */ 
+ */
 //session->cursor_cache[bucket]中查找
 int
 __wt_cursor_cache_get(WT_SESSION_IMPL *session, const char *uri, uint64_t hash_value,

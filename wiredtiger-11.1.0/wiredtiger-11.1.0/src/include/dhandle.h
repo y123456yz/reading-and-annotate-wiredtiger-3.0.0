@@ -114,7 +114,7 @@ struct __wt_data_handle {
 
     WT_DATA_SOURCE *dsrc; /* Data source for this handle */
     //可以通过该handle找到数据源，例如BTREE btree = (WT_BTREE *)dhandle->handle;
-    //btree内存分配__wt_conn_dhandle_alloc   
+    //btree内存分配__wt_conn_dhandle_alloc
     void *handle;         /* Generic handle */
 
     //参考__wt_conn_dhandle_alloc
@@ -152,7 +152,7 @@ struct __wt_data_handle {
 #define WT_DHANDLE_DISCARD_KILL 0x004u /* Mark dead on release */
 #define WT_DHANDLE_DROPPED 0x008u      /* Handle is dropped */
 #define WT_DHANDLE_EVICTED 0x010u      /* Btree is evicted (advisory) */
-//独占访问 //__wt_curfile_open   __wt_session_lock_dhandle  
+//独占访问 //__wt_curfile_open   __wt_session_lock_dhandle
 //代表是否独占dhandle,dhandle加写锁后就代表独占
 #define WT_DHANDLE_EXCLUSIVE 0x020u    /* Exclusive access */ //
 #define WT_DHANDLE_HS 0x040u           /* History store table */

@@ -11,7 +11,7 @@
 /*
  * Per session handle cached block manager information.
  */
-//__wt_block_ext_prealloc 
+//__wt_block_ext_prealloc
 //session->block_manager为该类型
 typedef struct {
     //参考__block_ext_prealloc初始化

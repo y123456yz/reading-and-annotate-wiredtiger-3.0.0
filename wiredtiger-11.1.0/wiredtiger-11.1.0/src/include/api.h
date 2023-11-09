@@ -86,7 +86,6 @@
                 if ((config) != NULL)                                             \
             WT_ERR(__wt_config_check((s), WT_CONFIG_REF(s, h##_##n), (config), 0))
 
-
 #define API_END(s, ret)                                                                    \
     if ((s) != NULL) {                                                                     \
         WT_TRACK_OP_END(s);                                                                \

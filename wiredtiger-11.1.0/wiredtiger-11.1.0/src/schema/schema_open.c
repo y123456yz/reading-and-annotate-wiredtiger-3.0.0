@@ -487,7 +487,7 @@ __wt_schema_get_colgroup(
     for (i = 0; i < WT_COLGROUPS(table); i++) {
         colgroup = table->cgroups[i];
         printf("yang test ..........uri:%s, colgroup->name:%s\r\n", uri, colgroup->name);
-    
+
         if (strcmp(colgroup->name, uri) == 0) {
             *colgroupp = colgroup;
             if (tablep != NULL)

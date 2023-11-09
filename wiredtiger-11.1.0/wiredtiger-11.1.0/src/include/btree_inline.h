@@ -304,7 +304,7 @@ __wt_cache_page_inmem_incr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
             (void)__wt_atomic_add64(&btree->bytes_updates, size);
             (void)__wt_atomic_addsize(&page->modify->bytes_updates, size);
         }
-        
+
         if (__wt_page_is_modified(page)) {
             if (WT_PAGE_IS_INTERNAL(page)) {
                 (void)__wt_atomic_add64(&cache->bytes_dirty_intl, size);
@@ -681,7 +681,7 @@ __wt_page_modify_init(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_page_only_modify_set --
  *     Mark the page (but only the page) dirty.
- 
+
 //__wt_tree_modify_set:        Mark the page (but only the page) dirty.Mark the tree dirty.
 //__wt_page_only_modify_set:   Mark the page (but only the page) dirty.
  */
@@ -1184,7 +1184,7 @@ __wt_row_leaf_key_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
  * __wt_row_leaf_value_set --
  *     Set a WT_ROW to reference an on-page row-store leaf key and value pair, if possible.
  */
-//__wt_row_leaf_key_set: 
+//__wt_row_leaf_key_set:
 //__wt_row_leaf_value_set
 static inline void
 __wt_row_leaf_value_set(WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
@@ -1252,6 +1252,7 @@ __wt_row_leaf_key_free(WT_SESSION_IMPL *session, WT_PAGE *page, WT_ROW *rip)
  * __wt_row_leaf_key --
  *     Set a buffer to reference a row-store leaf page key as cheaply as possible.
  */
+//解析磁盘rip位置的KV数据中的K存储到key中，可以参考__debug_page_row_leaf
 static inline int
 __wt_row_leaf_key(
   WT_SESSION_IMPL *session, WT_PAGE *page, WT_ROW *rip, WT_ITEM *key, bool instantiate)
@@ -1438,7 +1439,7 @@ __wt_row_leaf_value(WT_PAGE *page, WT_ROW *rip, WT_ITEM *value)
         value->size = WT_KV_DECODE_VALUE_LEN(v);
         return (true);
     }
-    
+
     return (false);
 }
 
@@ -1758,7 +1759,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * on the page. Split if there are enough items and the skiplist does not fit within a single
      * disk page.
      */
-    
+
     ins_head = page->type == WT_PAGE_ROW_LEAF ?
       //行存
       (page->entries == 0 ? WT_ROW_INSERT_SMALLEST(page) :
@@ -1774,14 +1775,15 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
  */
 //page消耗的内存较高，大于maxleafpage * 2，并且至少有5个KV
 #define WT_MAX_SPLIT_COUNT 5
-    if (page->memory_footprint > (size_t)btree->maxleafpage * 2) {
+    if ((page->memory_footprint > (size_t)btree->maxleafpage * 2)
+        || (page->memory_footprint > (size_t)btree->splitmempage)) {
         for (count1 = 0, ins = ins_head->head[0]; ins != NULL; ins = ins->next[0]) {
             if (++count1 < WT_MAX_SPLIT_COUNT)
                 continue;
 
             //当一个page使用内存较高的时候一般从这里返回
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
-          //  printf("yang test ......111111........page->entries:%d..........__wt_leaf_page_can_split......count:%d..........\r\n", 
+          //  printf("yang test ......111111........page->entries:%d..........__wt_leaf_page_can_split......count:%d..........\r\n",
           //      (int)page->entries, count1);
             return (true);
         }
@@ -1802,15 +1804,16 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
          ins = ins->next[WT_MIN_SPLIT_DEPTH]) {
         count2 += WT_MIN_SPLIT_MULTIPLIER;
         size += WT_MIN_SPLIT_MULTIPLIER * (WT_INSERT_KEY_SIZE(ins) + WT_UPDATE_MEMSIZE(ins->upd));
-        if (count2 > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
+        if (count2 > WT_MIN_SPLIT_COUNT && 
+            (size > (size_t)btree->maxleafpage || size > btree->splitmempage)) {
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
           //  printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count2:%d..........size:%d................\r\n", (int)count2, (int)size);
             return (true);
         }
     }
-    
-   // printf("yang test ..__wt_leaf_page_can_split....11111111111111...page->memory_footprint:%d 
-   // ..btree->splitmempage:%d...count1:%d..........size:%d.....count2:%d...........\r\n", 
+
+   // printf("yang test ..__wt_leaf_page_can_split....11111111111111...page->memory_footprint:%d
+   // ..btree->splitmempage:%d...count1:%d..........size:%d.....count2:%d...........\r\n",
   //  (int)page->memory_footprint, (int)btree->splitmempage, (int)count1, (int)size, (int)count2);
     return (false);
 }
@@ -1953,7 +1956,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
     if (WT_IS_METADATA(S2BT(session)->dhandle) && !modified &&
       !__wt_txn_visible_all(session, mod->rec_max_txn, mod->rec_max_timestamp))
         return (false);
-        
+
     return (true);
 }
 
@@ -2014,7 +2017,7 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
  * __wt_skip_choose_depth --
  *     Randomly choose a depth for a skiplist insert.
 
-10 level skip lists, 1/4 have a link to the next element. 
+10 level skip lists, 1/4 have a link to the next element.
 for example: level 0 we have all the items, at level 1 we have 1/4 and at level 2 we have 1/16th
  */
 static inline u_int

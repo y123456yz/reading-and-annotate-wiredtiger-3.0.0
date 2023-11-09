@@ -1036,7 +1036,7 @@ err:
  *     WT_SESSION->open_cursor method for table cursors.
 //owner作用是是否需要把获取的cursor添加到session->cursors中节点owner的后面，参考__wt_cursor_init
 
-//mongodb建table表: 
+//mongodb建table表:
      __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup->__wt_schema_get_table
      ->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle->__session_find_shared_dhandle
      ->__wt_conn_dhandle_alloc(创建dhandle)

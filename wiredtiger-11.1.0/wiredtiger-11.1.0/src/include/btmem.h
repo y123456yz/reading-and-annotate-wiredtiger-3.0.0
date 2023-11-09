@@ -43,19 +43,19 @@
  * WT_PAGE_HEADER --
  *	Blocks have a common header, a WT_PAGE_HEADER structure followed by a
  * block-manager specific structure.
- 1. A page header followed by a series of key/value pairs. The page header is broken into several sub-headers. 
- 2. The page header is followed by a "block header". In WiredTiger each page is a block, and it is possible to plug 
-     in different "block managers" that manage the transition of pages to and from disk. The default block header is 
-     defined in src/include/block.h in the __wt_block_header structure. 
+ 1. A page header followed by a series of key/value pairs. The page header is broken into several sub-headers.
+ 2. The page header is followed by a "block header". In WiredTiger each page is a block, and it is possible to plug
+     in different "block managers" that manage the transition of pages to and from disk. The default block header is
+     defined in src/include/block.h in the __wt_block_header structure.
 
-     Pages consist of a header (WT_PAGE_HEADER and WT_BLOCK_HEADER) followed by a variable number of cells, which encode keys, 
- values or addresses (see cell.h). The page header WT_PAGE_HEADER consists of information such as the column-store record number, 
- write generation (required for ordering pages in time), in-memory size, cell count (the number of cells on the page), data length 
- (the overflow record length), and the page type. This is immediately followed by the block header WT_BLOCK_HEADER which contains 
+     Pages consist of a header (WT_PAGE_HEADER and WT_BLOCK_HEADER) followed by a variable number of cells, which encode keys,
+ values or addresses (see cell.h). The page header WT_PAGE_HEADER consists of information such as the column-store record number,
+ write generation (required for ordering pages in time), in-memory size, cell count (the number of cells on the page), data length
+ (the overflow record length), and the page type. This is immediately followed by the block header WT_BLOCK_HEADER which contains
  block-manager specific information such as flags and version.
  ²Î¿¼reconcile¹Ù·½ÎÄµµ:https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
  */
-//Ò»¸öpageÊý¾ÝÔÚ´ÅÅÌÖÐÁ¬Ðø¿Õ¼äÄÚÈÝ: __wt_page_header + WT_BLOCK_HEADER + 
+//Ò»¸öpageÊý¾ÝÔÚ´ÅÅÌÖÐÁ¬Ðø¿Õ¼äÄÚÈÝ: __wt_page_header + WT_BLOCK_HEADER +
 //·ÖÆ¬¿Õ¼äºÍ¸³Öµ¿ÉÒÔ²Î¿¼__wt_rec_cell_build_ovfl
 struct __wt_page_header {
     /*
@@ -305,7 +305,7 @@ struct __wt_multi {
      * flag is set when the block is unchanged and we're reusing a previous address.
      */
     //±£´æchunk->imageÐ´Èë´ÅÅÌÊ±ºòµÄÔªÊý¾ÝÐÅÏ¢(objectid offset size  checksum)
-    //¸³Öµ¼û__rec_split_write 
+    //¸³Öµ¼û__rec_split_write
     WT_ADDR addr;
     uint32_t size;
     uint32_t checksum;
@@ -336,7 +336,8 @@ struct __wt_ovfl_track {
 /*
  * WT_PAGE_MODIFY --
  *	When a page is modified, there's additional information to maintain.
- */ 
+ ²Î¿¼¹Ù·½ÎÄµµhttps://source.wiredtiger.com/develop/arch-cache.html
+ */
 //__wt_page.modify ¸³Öµ¼û__wt_page_modify_init
 //ÀýÈçleaf pageÖÐÌøÔ¾±íÖÐ½ÚµãÄÚÈÝ¶¼ÔÚ¸ÃmodifyÖÐ
 struct __wt_page_modify {
@@ -406,7 +407,7 @@ struct __wt_page_modify {
 #undef mod_multi
 //¸³Öµ²Î¿¼__rec_write_wrapup£¬ Ò»´Îreconcile½áÊøºó£¬reconcileµÄmultiÐÅÏ¢×ª´æµ½mod->mod_multiÖÐ
 #define mod_multi u1.m.multi
-#undef mod_multi_entries  
+#undef mod_multi_entries
 //¸³Öµ²Î¿¼__rec_write_wrapup£¬Ò»´Îreconcile½áÊøºó£¬reconcileµÄmultiÐÅÏ¢×ª´æµ½mod->mod_multiÖÐ
 #define mod_multi_entries u1.m.multi_entries
     } u1;
@@ -467,17 +468,17 @@ struct __wt_page_modify {
             WT_INSERT_HEAD **insert;
 
             /* Updated items for row-stores. */
-            //pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾Ý£¬mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
+            //pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾Ý(Êµ¼ÊÉÏÕâÀïÖ¸ÏòµÄÊÇÄÚ´æ£¬´Ó´ÅÅÌ¼ÓÔØµÄ»òÕß´ÓÄÚ´æÐ´Èë´ÅÅÌµÄ£¬ÄÚ´æºÍ´ÅÅÌ¶¼ÓÐÒ»·Ý)£¬mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
             WT_UPDATE **update;
         } row_leaf;
 #undef mod_row_insert
-//pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾Ý£¬mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
+////pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾Ý(Êµ¼ÊÉÏÕâÀïÖ¸ÏòµÄÊÇÄÚ´æ£¬´Ó´ÅÅÌ¼ÓÔØµÄ»òÕß´ÓÄÚ´æÐ´Èë´ÅÅÌµÄ£¬ÄÚ´æºÍ´ÅÅÌ¶¼ÓÐÒ»·Ý)£¬mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
 
-//WT_PAGE_ALLOC_AND_SWAP¡¢__split_insert·ÖÅä¿Õ¼ä   
+//__wt_row_modify->WT_PAGE_ALLOC_AND_SWAP¡¢__split_insert·ÖÅä¿Õ¼ä
 //WT_ROW_INSERT_SLOT»ñÈ¡¶ÔÓ¦µÄÌøÔ¾±í£¬Êµ¼ÊÉÏinsertÊÇ¸öÊý×é£¬Êý×éÃ¿¸ö³ÉÔ±¶ÔÓ¦Ò»¸öÌøÔ¾±í£¬²Î¿¼__wt_leaf_page_can_split
 #define mod_row_insert u2.row_leaf.insert
 #undef mod_row_update
-//pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾Ý£¬mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
+////pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾Ý(Êµ¼ÊÉÏÕâÀïÖ¸ÏòµÄÊÇÄÚ´æ£¬´Ó´ÅÅÌ¼ÓÔØµÄ»òÕß´ÓÄÚ´æÐ´Èë´ÅÅÌµÄ£¬ÄÚ´æºÍ´ÅÅÌ¶¼ÓÐÒ»·Ý)£¬mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
 #define mod_row_update u2.row_leaf.update
     } u2;
 
@@ -549,11 +550,10 @@ struct __wt_col_rle {
     uint32_t indx;  /* Slot of entry in col_var. */
 };
 
-
 /*
  * WT_PAGE_INDEX --
  *	The page index held by each internal page.
- */ 
+ */
 //https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
 //__wt_page_alloc·ÖÅä¿Õ¼ä£¬Í¨¹ýWT_INTL_INDEX_GET(session, page, pindex);»ñÈ¡page¶ÔÓ¦µÄ__wt_page_index
 struct __wt_page_index {
@@ -678,7 +678,6 @@ struct __wt_page {
         ((page)->u.intl.__index) = (v); \
     } while (0)
 
-
 #define WT_INTL_FOREACH_REVERSE_BEGIN(session, page, ref)                                 \
     do {                                                                                  \
         WT_PAGE_INDEX *__pindex;                                                          \
@@ -694,12 +693,13 @@ struct __wt_page {
     while (0)
 
         /* Row-store leaf page. */
-        //An array of items that were on the page when it was loaded into memory (cache) from disk. 
+        //An array of items that were on the page when it was loaded into memory (cache) from disk.
         //WT_PAGE::row::d aliased as WT_PAGE::pg_row_d
         //Ö¸Ïò¸Ãpage´æ´¢µÄÕæÊµÊý¾Ý£¬¼û__wt_page_alloc
         WT_ROW *row; /* Key/value pairs */
 #undef pg_row
-//pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾Ý£¬mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
+//pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊý¾ÝWT_ROW_FOREACH±éÀú»ñÈ¡¸ÃpageÔÚ´ÅÅÌµÄKVÊý¾Ý£ Õâ¸öÊý¾ÝÔÚÄÚ´æÖÐ£¬Ö»ÊÇ´Ó´ÅÅÌ¼ÓÔØµÄ£¬ÔÚ´ÅÅÌÉÏÒ²ÓÐÒ»·ÝÊý¾Ý
+//mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊý¾Ý£¬mod_row_update¼ÇÂ¼ÄÚ´æÖÐÍ¬Ò»¸öKµÄ±ä¸ü¹ý³Ì
 //Ö¸Ïò¸Ãpage´æ´¢µÄÕæÊµÊý¾Ý£¬¼û__wt_page_alloc
 #define pg_row u.row
 
@@ -737,6 +737,10 @@ struct __wt_page {
      * The entries field only applies to leaf pages, internal pages use the page-index entries
      * instead.
      */
+    // An internal Btree page will have an array of WT_REF structures. 
+    //A row-store leaf page will have an array of WT_ROW structures representing the KV pairs stored on the page. 
+    //¸³Öµ¼û__wt_page_inmem->__wt_page_inmem
+    //´ú±íÔÚ´ÅÅÌpg_rowÉÏÃæµÄKV×ÜÊý
     uint32_t entries; /* Leaf page entries */
 
     uint32_t prefix_start; /* Best page prefix starting slot */
@@ -776,6 +780,7 @@ struct __wt_page {
     size_t memory_footprint; /* Memory attached to the page */
 
     /* Page's on-disk representation: NULL for pages created in memory. */
+    //¸ÃpageÓÐÊý¾Ý´æ´¢ÔÚ´ÅÅÌÉÏ£¬´ÅÅÌµÄ½á¹¹ÐÅÏ¢Î»ÖÃ
     const WT_PAGE_HEADER *dsk;
 
     /* If/when the page is modified, we need lots more information. */
@@ -983,13 +988,13 @@ struct __wt_ref_hist {
  //To access a page in the B-Tree, we require a WT_REF which tracks whether the page has or has not been loaded from storage
  //
 
- //Each page in the cache is accessed via a WT_REF structure. When WiredTiger opens a Btree, it places a WT_REF for the 
- //cached root page in the corresponding WT_BTREE structure. A WT_REF can represent either a page in the cache or one that 
+ //Each page in the cache is accessed via a WT_REF structure. When WiredTiger opens a Btree, it places a WT_REF for the
+ //cached root page in the corresponding WT_BTREE structure. A WT_REF can represent either a page in the cache or one that
  //has not been loaded yet. The page itself is represented by a WT_PAGE structure. This includes a pointer to a buffer that
  //contains the on-disk page image (decrypted and uncompressed). It also holds the supplemental structures that WiredTiger
  //uses to access and update the page while it is cached.
 
- An internal Btree page will have an array of WT_REF structures. A row-store leaf page will have an array of WT_ROW 
+ An internal Btree page will have an array of WT_REF structures. A row-store leaf page will have an array of WT_ROW
  structures representing the KV pairs stored on the page.
  BTREEÍ¼ÐÎ»¯²Î¿¼https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
  */ //btree¶ÔÓ¦root page,¸³Öµ²Î¿¼__btree_tree_open_empty
@@ -1249,6 +1254,7 @@ struct __wt_ref {
  * references to the field (so the code doesn't read it multiple times), all
  * to make sure we don't introduce this bug (again).
  */
+//´ú±í´ÅÅÌÉÏÃæµÄÒ»ÌõKVÊý¾Ý£¬²Î¿¼__debug_page_row_leaf
 struct __wt_row { /* On-page key, on-page cell, or off-page WT_IKEY */
     void *volatile __key;
 };
@@ -1343,6 +1349,8 @@ struct __wt_ikey {
  * page is updated, the WT_UPDATE array is allocated, with one slot for every existing element in
  * the page. A slot points to a WT_UPDATE structure; if more than one update is done for an entry,
  * WT_UPDATE structures are formed into a forward-linked list.
+  ²Î¿¼¹Ù·½ÎÄµµhttps://source.wiredtiger.com/develop/arch-cache.html
+  
  */ //·ÖÅä__wt_upd_alloc¿Õ¼ä
 //·ÖÅä__wt_upd_alloc¿Õ¼ä //KVÖÐµÄkey¶ÔÓ¦WT_INSERT£¬value¶ÔÓ¦WT_UPDATE(WT_INSERT.upd)
 //__wt_insert.updÎª¸ÃÀàÐÍ
@@ -1508,6 +1516,8 @@ struct __wt_update_vector {
  * into a column-store: only appends are allowed, as insert requires re-numbering subsequent
  * records. Berkeley DB did support mutable records, but it won't scale and it isn't useful enough
  * to re-implement, IMNSHO.)
+  ÌøÔ¾±íÍ¼½â²Î¿¼https://www.jb51.net/article/199510.htm
+
  */ //__wt_row_insert_alloc  WT_INSERTÍ·²¿+level¿Õ¼ä+ÕæÊµÊý¾Ýkey
 struct __wt_insert {
     WT_UPDATE *upd; /* value */ //valueÔÚÕâÀï  __wt_insert.updÎª¸ÃÀàÐÍ
@@ -1526,6 +1536,7 @@ struct __wt_insert {
 #define WT_INSERT_KEY(ins) ((void *)((uint8_t *)(ins) + ((WT_INSERT *)(ins))->u.key.offset))
 #define WT_INSERT_RECNO(ins) (((WT_INSERT *)(ins))->u.recno)
 
+    //Êý×é´óÐ¡ºÍËæ»ú²ãÊýÏà¹Ø£¬²Î¿¼__wt_row_insert_alloc
     WT_INSERT *next[0]; /* forward-linked skip list */
 };
 
@@ -1557,7 +1568,8 @@ struct __wt_insert {
 /*
  * WT_INSERT_HEAD --
  * 	The head of a skiplist of WT_INSERT items.
-     ÅäºÏWT_SKIP_FOREACH   WT_SKIP_LAST   WT_SKIP_FIRSTÔÄ¶Á
+     ÅäºÏWT_SKIP_FOREACH   WT_SKIP_LAST     WT_SKIP_FIRSTÔÄ¶Á
+ ÌøÔ¾±íÍ¼½â²Î¿¼https://www.jb51.net/article/199510.htm
  */ //WT_PAGE_ALLOC_AND_SWAPÖÐ»á·ÖÅä¿Õ¼ä
 struct __wt_insert_head {
     WT_INSERT *head[WT_SKIP_MAXDEPTH]; /* first item on skiplists */

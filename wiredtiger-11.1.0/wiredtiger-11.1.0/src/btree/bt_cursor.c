@@ -23,7 +23,7 @@ typedef struct {
 /*
  * __btcur_bounds_contains_key --
  *     Determine if a given key is within the bounds set on a cursor.
- */ 
+ */
 //判断key是否比upper_bound大或者比lower_bound小
 //类似cursor->bound(cursor, "action=set,bound=lower")配置，一般不配置，可忽略
 static int
@@ -150,7 +150,7 @@ __cursor_page_pinned(WT_CURSOR_BTREE *cbt, bool search_operation)
         //printf("yang test 222..........__cursor_page_pinned.................\r\n");
         return (false);
     }
-    
+
     /*
      * XXX No fast-path searches at read-committed isolation. Underlying transactional functions
      * called by the fast and slow path search code handle transaction IDs differently, resulting in
@@ -828,12 +828,12 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
             WT_ERR(__cursor_row_search(cbt, false, cbt->ref, &leaf_found));
         else
             WT_ERR(__cursor_col_search(cbt, cbt->ref, &leaf_found));
-            
+
         if (leaf_found && cbt->compare == 0)
             WT_ERR(__wt_cursor_valid(cbt, &valid, false));
 
-    printf("yang test ...111....__wt_btcur_search.......leaf_found:%d, cbt->compare:%d, valid:%d\r\n",
-        leaf_found, cbt->compare, (int)valid);
+   // printf("yang test ...111....__wt_btcur_search.......leaf_found:%d, cbt->compare:%d, valid:%d\r\n",
+    //    leaf_found, cbt->compare, (int)valid);
 
     }
     if (!valid) {
@@ -1157,10 +1157,8 @@ __wt_btcur_insert(WT_CURSOR_BTREE *cbt)
     session = CUR2S(cbt);
     yield_count = sleep_usecs = 0;
 
-
     WT_STAT_CONN_DATA_INCR(session, cursor_insert);
     WT_STAT_CONN_DATA_INCRV(session, cursor_insert_bytes, insert_bytes);
-
 
     if (btree->type == BTREE_ROW)
         WT_RET(__cursor_size_chk(session, &cursor->key));

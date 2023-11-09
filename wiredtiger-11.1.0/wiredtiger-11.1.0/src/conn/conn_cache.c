@@ -12,7 +12,7 @@
  * __cache_config_abs_to_pct --
  *     Cache configuration values can be either a percentage or an absolute size, this function
  *     converts an absolute size to a percentage.
- */ 
+ */
 //"eviction trigger"配置对应百分比解析
 static inline int
 __cache_config_abs_to_pct(
@@ -66,6 +66,8 @@ __cache_config_local(WT_SESSION_IMPL *session, bool shared, const char *cfg[])
      * If not using a shared cache configure the cache size, otherwise check for a reserved size.
      * All other settings are independent of whether we are using a shared cache or not.
      */
+    //默认使用cache_size
+    //cache size只包括btree等内容，不包括cursor session等内存，参考官方说明https://source.wiredtiger.com/develop/arch-cache.html
     if (!shared) {
         WT_RET(__wt_config_gets(session, cfg, "cache_size", &cval));
         conn->cache_size = (uint64_t)cval.val;
@@ -176,10 +178,10 @@ __wt_cache_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 
  //   const char **cfg1;
   //  for (cfg1 = cfg; *cfg1 != NULL; ++cfg1) {
-  //      if 
+  //      if
    //     printf("yang test ................__wt_cache_config, config:\r\n");
   //  }
-    
+
     WT_RET(__wt_config_gets_none(session, cfg, "shared_cache.name", &cval));
     now_shared = cval.len != 0;
     was_shared = F_ISSET(conn, WT_CONN_CACHE_POOL);
@@ -195,7 +197,6 @@ __wt_cache_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
          */
         conn->cache_size = 0;
 
-   
     /*
      * Always setup the local cache - it's used even if we are participating in a shared cache.
      */

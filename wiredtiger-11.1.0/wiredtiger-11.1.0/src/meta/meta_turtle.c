@@ -552,7 +552,8 @@ __wt_turtle_init(WT_SESSION_IMPL *session, bool verify_meta, const char *cfg[])
             WT_ERR(__wt_remove_if_exists(session, WT_METAFILE, false));
             WT_ERR(__wt_remove_if_exists(session, WT_METADATA_TURTLE, false));
             load = true;
-        } else if (validate_turtle)
+        } else if (validate_turtle && !__wt_version_eq(conn->recovery_version, WT_NO_VERSION))
+            //如果已经检查过了，就没必要再次检查 If it has already been checked, there is no need to check it again
             WT_ERR(__wt_turtle_validate_version(session));
     } else
         load = true;
@@ -611,14 +612,14 @@ err:
  * __wt_turtle_read --
  *     Read the turtle file.
 
-[root@localhost WT_HOME]# cat WiredTiger.turtle 
+[root@localhost WT_HOME]# cat WiredTiger.turtle
 WiredTiger version string
 WiredTiger 11.1.0: (November  2, 2022)
 WiredTiger version
 major=11,minor=1,patch=0
 file:WiredTiger.wt
 access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=0,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.11=(addr="018481e44910462d8581e454c359c08681e4126649ce808080e25fc0cfc0",order=11,time=1691501853,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=2,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=27,run_write_gen=23)),checkpoint_backup_info=,checkpoint_lsn=(4294967295,2147483647)
-[root@localhost WT_HOME]# 
+[root@localhost WT_HOME]#
  */ //
 int
 __wt_turtle_read(WT_SESSION_IMPL *session, const char *key, char **valuep)

@@ -190,7 +190,7 @@ __logmgr_version(WT_SESSION_IMPL *session, bool reconfig)
 /*
  * __wt_logmgr_config --
  *     Parse and setup the logging server options.
- */ 
+ */
 //mongodb ≈‰÷√log=(enabled=true,archive=true,path=journal,compressor=snappy)º∞ƒ¨»œ“˝«Ê≈‰÷√transaction_sync=(enabled=false,method=fsync)
  //wiredtiger_open
 int

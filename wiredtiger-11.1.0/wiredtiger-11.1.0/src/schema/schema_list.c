@@ -64,12 +64,10 @@ __wt_schema_release_tiered(WT_SESSION_IMPL *session, WT_TIERED **tieredp)
  * __wt_schema_get_table_uri --
  *     Get the table handle for the named table.
 
- 
 内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，内部使用
 外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，外部WT_SESSION->open_cursor
- 
- */ //获取uri对应的table，并且不改变session对应dhandle
 
+ */ //获取uri对应的table，并且不改变session对应dhandle
 
 //table通过__wt_curtable_open
 int
@@ -103,7 +101,7 @@ err:
 /*
  * __wt_schema_get_table --
  *     Get the table handle for the named table.
- //mongodb建table表: 
+ //mongodb建table表:
       __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup->__wt_schema_get_table
       ->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle->__session_find_shared_dhandle
       ->__wt_conn_dhandle_alloc(创建dhandle)

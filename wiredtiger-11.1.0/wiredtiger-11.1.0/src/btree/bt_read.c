@@ -65,6 +65,8 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
     //如果之前该page已经split过，在__split_insert中已经拆分过一次了直接返回
     //之前该page在__split_insert中已经拆分过一次了直接返回, 在外层进入__evict_reconcile流程
 
+    //到这里footprint=<splitmempage, maxmempage> = <0.8*maxmempage, maxmempage>
+
     //内存消耗在maxleafpage级别的判断走这里
     if (footprint < btree->maxmempage) { //这里面可能会决定是否需要进行page splite
          //之前该page在__split_insert中已经拆分过一次了直接返回, 在外层进入__evict_reconcile流程
@@ -75,11 +77,8 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
 
     //内存空间在maxmempage级别的情况走这里
 
-
-    
     //到这里说明该page占用的内存已经超过btree->maxmempage，说明某个page太大了，消耗的内存
 
-    
     /* Bump the oldest ID, we're about to do some visibility checks. */
     WT_IGNORE_RET(__wt_txn_update_oldest(session, 0));
 

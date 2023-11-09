@@ -222,7 +222,7 @@ __wt_bulk_insert_row(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
             if (!ovfl_key)
                 WT_RET(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
         }
-        
+
         WT_RET(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
     }
 

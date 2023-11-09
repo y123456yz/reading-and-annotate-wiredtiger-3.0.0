@@ -8,11 +8,10 @@
 
 #include "wt_internal.h"
 
-#ifdef HAVE_DIAGNOSTIC  //yang add change 
+#ifdef HAVE_DIAGNOSTIC  //yang add change
 /*
  * We pass around a session handle and output information, group it together.
  */
-
 
 static const /* Output separator */
   char *const sep = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n";
@@ -901,10 +900,10 @@ __wt_debug_tree_all(void *session_arg, WT_BTREE *btree, WT_REF *ref, const char 
         btree = S2BT(session);
 
     //return 0;//xxxxxxxxxx
-    
+
     WT_WITH_BTREE(session, btree,
       ret = __debug_tree(session, ref, ofile, WT_DEBUG_TREE_LEAF | WT_DEBUG_TREE_WALK));
-    
+
     return (ret);
 }
 
@@ -1018,7 +1017,7 @@ __wt_debug_cursor_tree_hs(void *cursor_arg, const char *ofile)
 /*
  * __debug_tree --
  *     Dump the in-memory information for a tree.
- */ 
+ */
  int
 __debug_tree(WT_SESSION_IMPL *session, WT_REF *ref, const char *ofile, uint32_t flags)
 {
@@ -1042,7 +1041,7 @@ err:
 /*
  * __debug_page --
  *     Dump the in-memory information for an in-memory page.
- */ 
+ */
 
 //__wt_debug_tree_all->__debug_tree
 ////__wt_debug_tree_all->__debug_tree->__debug_page_row_int->__debug_page这里会递归
@@ -1378,8 +1377,21 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
         WT_INTL_FOREACH_END;
     }
     //printf("\r\n\r\n\r\nyang test .........3333...................__debug_page_row_int...............................................\r\n");
-    
+
     return (0);
+}
+
+static void page_debug_test(WT_PAGE *page, WT_ROW *rip) {  
+        return ;
+        
+        if (!page->dsk)
+            printf("yang test 111111111111111111\r\n");
+        if (!page->pg_row)
+            printf("yang test 2222222222222222222\r\n");
+         
+        if(page->modify->mod_row_update[WT_ROW_SLOT(page, rip)] == NULL)
+            printf("yang test 333333333333333333\r\n");
+        
 }
 
 /*
@@ -1398,47 +1410,46 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
 
     session = ds->session;
     unpack = &_unpack;
-    //return (0);//yang add test 
+    //return (0);//yang add test
 
     /*
      * Dump any K/V pairs inserted into the page before the first from-disk key on the page.
      */
+    printf("yang test .......__debug_page_row_leaf.......111.......(page)->entries:%d\r\n", (int)page->entries);
     //打印内存中某个page上面的insert list成员信息
     if ((insert = WT_ROW_INSERT_SMALLEST(page)) != NULL)
         WT_RET(__debug_row_skip(ds, insert));
 
+    printf("yang test .......__debug_page_row_leaf.......222.......(page)->entries:%d\r\n", (int)page->entries);
 
-    printf("yang test .......__debug_page_row_leaf.......111.......(page)->entries:%d\r\n", (int)page->entries);
-    
     /* Dump the page's K/V pairs. */
-    //打印该page在磁盘上面的KV信息
+    //打印该page记录在磁盘上面的KV信息，实际上这时候内存中也有一份
+    //从这里可以看出磁盘上面的数据可能来自于
     WT_ROW_FOREACH (page, rip, i) {
-       // printf("yang test .......__debug_page_row_leaf.......222.......(page)->entries:%d\r\n", (int)page->entries);
+        page_debug_test(page, rip);
+        //printf("yang test .......__debug_page_row_leaf.......222.......(page)->entries:%d\r\n", (int)page->entries);
         WT_RET(__wt_row_leaf_key(session, page, rip, ds->key, false));
         // K {1929}
         WT_RET(__debug_item_key(ds, "K", ds->key->data, ds->key->size));
-        
-                 
 
         __wt_row_leaf_value_cell(session, page, rip, unpack);
         //value: len 64
         //V {new value #####################################################\00}
-        WT_RET(__debug_cell_kv(ds, page, WT_PAGE_ROW_LEAF, "V", unpack)); 
+        WT_RET(__debug_cell_kv(ds, page, WT_PAGE_ROW_LEAF, "V", unpack));
         //printf("yang test .......__debug_page_row_leaf.......444.......(page)->entries:%d\r\n", (int)page->entries);
-                  
 
         //xxxxxxx
         //return 0;
-        
+
+        //对该K的更新
         if ((upd = WT_ROW_UPDATE(page, rip)) != NULL)
             WT_RET(__debug_update(ds, upd, false));
 
         if (!WT_IS_HS(session->dhandle) && ds->hs_cursor != NULL)
             WT_RET(__debug_hs_key(ds));
-                
 
         if ((insert = WT_ROW_INSERT(page, rip)) != NULL)
-            WT_RET(__debug_row_skip(ds, insert));
+            WT_RET(__debug_row_skip(ds, insert)); //注意这里和上面的WT_ROW_INSERT_SMALLEST下面的__debug_row_skip的区别
     }
     printf("yang test .......__debug_page_row_leaf.......555.......(page)->entries:%d\r\n", (int)page->entries);
     return (0);
@@ -1488,7 +1499,7 @@ __debug_row_skip(WT_DBG *ds, WT_INSERT_HEAD *head)
     WT_SKIP_FOREACH (ins, head) {
         WT_RET(__debug_item_key(ds, "insert", WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins)));
         WT_RET(__debug_update(ds, ins->upd, false));
-        printf("yang test .......__debug_row_skip.......111.......\r\n");
+        //printf("yang test .......__debug_row_skip.......111.......\r\n");
 
         if (!WT_IS_HS(session->dhandle) && ds->hs_cursor != NULL) {
             WT_RET(__wt_buf_set(session, ds->key, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins)));

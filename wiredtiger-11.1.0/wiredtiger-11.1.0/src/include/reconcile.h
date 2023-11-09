@@ -9,7 +9,7 @@
 /*
  * WT_REC_KV--
  *	An on-page key/value item we're building.
- */ 
+ */
 //参考__rec_cell_build_leaf_key  __wt_rec_cell_build_val
 //该结构 = cell + 真实value
 struct __wt_rec_kv {
@@ -193,7 +193,6 @@ struct __wt_reconcile {
     //默认50% * page_size
     uint32_t min_split_size; /* Minimum split page size */
 
-
     //下面是可用空间，__wt_rec_incr中会减去已写入的KV数据长度
 
     //yang add change，修改位置
@@ -202,7 +201,6 @@ struct __wt_reconcile {
     size_t space_avail;     /* Remaining space in this chunk */
     //min_split_size - WT_PAGE_HEADER_BYTE_SIZE, 除去头部字段的真实可用数据部分
     size_t min_space_avail; /* Remaining space in this chunk to put a minimum size boundary */
-
 
     /*
      * We maintain two split chunks in the memory during reconciliation to be written out as pages.
@@ -220,7 +218,7 @@ struct __wt_reconcile {
      */
     WT_REC_CHUNK chunk_A, //__wt_rec_split_init
                  chunk_B, //__wt_rec_split->__rec_split_chunk_init
-                 //实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+                 //实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
                  //配合__wt_rec_image_copy  __wt_rec_split_init分析
                  *cur_ptr, //赋值参考__wt_rec_split_init，通过cur_ptr变量可以获取该page对应磁盘其实地址信息，通过后面的first_free成员可以获取该page对应磁盘结尾处
                  //赋值参考__wt_rec_split,指向chunk_B，这里用两个chunk的目的是，splite拆分的时候，可以分开，参考__wt_rec_split
@@ -240,7 +238,7 @@ struct __wt_reconcile {
     //__wt_rec_incr计数统计，K 和 V各加1
     uint32_t entries;       /* Current number of entries */
     //r->first_free = WT_PAGE_HEADER_BYTE(btree, r->cur_ptr->image.mem);
-    //__wt_rec_image_copy  __wt_rec_split_init中会拷贝数据到该空间  
+    //__wt_rec_image_copy  __wt_rec_split_init中会拷贝数据到该空间
     //跳过PAGE_HEADER及block header，也就是指向真实data, 记录写入的KV数据的末尾处，见__wt_rec_incr
     //最终这部分buf数据会和PAGE_HEADER、block header一起写入磁盘
 
@@ -309,7 +307,7 @@ struct __wt_reconcile {
 
     /* List of pages we've written so far. */
     //注意__wt_reconcile.multi和__wt_page_modify.mod_multi_entries.multi的区别联系
-    
+
     //可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
     //__rec_split_write中把chunk数据写入磁盘，并保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)到WT_MULTI中
     WT_MULTI *multi;

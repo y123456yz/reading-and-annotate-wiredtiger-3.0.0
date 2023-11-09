@@ -186,7 +186,7 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
         if (new_ins->next[i] == NULL)
             simple = false;
 
-    if (simple)  
+    if (simple)
         ret = __insert_simple_func(session, ins_stack, new_ins, skipdepth);
     else {
         if (!exclusive)

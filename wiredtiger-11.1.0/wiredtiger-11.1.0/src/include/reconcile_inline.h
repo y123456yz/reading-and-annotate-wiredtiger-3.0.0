@@ -227,7 +227,7 @@ __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size
     WT_ASSERT(session,
       WT_BLOCK_FITS(r->first_free, size, r->cur_ptr->image.mem, r->cur_ptr->image.memsize));
 
-    //计数统计，代表当前处理的page上面的K和V数 
+    //计数统计，代表当前处理的page上面的K和V数
     r->entries += v;
     r->space_avail -= size;
     //执行数据末尾

@@ -1305,12 +1305,12 @@ err:
  * __conn_open_session --
  *     WT_CONNECTION->open_session method.
  MongoDB server层通过_conn->open_session调用
- */ 
+ */
 
 //__wt_open_internal_session:  wiredtieger内部使用的
 //__conn_open_session:  server层通过_conn->open_session调用
 
-//从session hash桶中获取一个session   
+//从session hash桶中获取一个session
 static int
 __conn_open_session(WT_CONNECTION *wt_conn, WT_EVENT_HANDLER *event_handler, const char *config,
   WT_SESSION **wt_sessionp)
@@ -1750,7 +1750,7 @@ config  diagnostic.data     local    mongod.lock      sizeStorer.wt  WiredTiger 
 collection-127-5712598948713236855.wt  index-128-5712598948713236855.wt  index-131-5712598948713236855.wt  index-138-5712598948713236855.wt  index-145-5712598948713236855.wt
 collection-135-5712598948713236855.wt  index-129-5712598948713236855.wt  index-136-5712598948713236855.wt  index-139-5712598948713236855.wt  index-146-5712598948713236855.wt
 collection-143-5712598948713236855.wt  index-130-5712598948713236855.wt  index-137-5712598948713236855.wt  index-144-5712598948713236855.wt  index-147-5712598948713236855.wt
-[user_00@TENCENT64 /data1/xxx/211909456/db]$ 
+[user_00@TENCENT64 /data1/xxx/211909456/db]$
  */
 //wiredtiger_open调用，判断是否已经有其他线程在使用home对应目录下的DB，
 //例如MONGODB数据目录/data1/containers/211909456/db, 一个进程例如mongod，只能拥有一个唯一的db，db下面是具体的实例数据，包括元数据
@@ -1926,7 +1926,7 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
     //注意这里已经是对"WiredTiger"文件操作，而不是"WiredTiger.lock"
     ret = __wt_open(session, WT_WIREDTIGER, WT_FS_OPEN_FILE_TYPE_REGULAR,
       is_create || is_salvage ? WT_FS_OPEN_CREATE : 0, &fh);
-      
+
     /*
      * If we're read-only, check for handled errors. Even if able to open the WiredTiger file
      * successfully, we do not try to lock it. The lock file test above is the only one we do for
@@ -1979,8 +1979,8 @@ __conn_single(WT_SESSION_IMPL *session, const char *cfg[])
          [root@localhost ex_access]# cat WT_HOME/WiredTiger
          WiredTiger
          WiredTiger 11.1.0: (November  2, 2022)
-         [root@localhost ex_access]# 
-         [root@localhost ex_access]# 
+         [root@localhost ex_access]#
+         [root@localhost ex_access]#
          [root@localhost ex_access]#
          */
         //向WiredTiger文件中写入wiredtiger版本信息
@@ -2177,7 +2177,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
       {"split", WT_VERB_SPLIT}, {"temporary", WT_VERB_TEMPORARY},
       {"thread_group", WT_VERB_THREAD_GROUP}, {"timestamp", WT_VERB_TIMESTAMP},
       {"tiered", WT_VERB_TIERED}, {"transaction", WT_VERB_TRANSACTION}, {"verify", WT_VERB_VERIFY},
-      {"version", WT_VERB_VERSION}, {"write", WT_VERB_WRITE}, 
+      {"version", WT_VERB_VERSION}, {"write", WT_VERB_WRITE},
       {NULL, 0}};
 
     WT_CONFIG_ITEM cval, sval;
@@ -2203,7 +2203,6 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
     for (ft = verbtypes; ft->name != NULL; ft++) {
         ret = __wt_config_subgets(session, &cval, ft->name, &sval);
         WT_RET_NOTFOUND_OK(ret);
-        
 
         if (ret == WT_NOTFOUND) {
             /*
@@ -2214,7 +2213,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
             if (ft->flag == WT_VERB_OPEN_ALL_VERBOS) {
                 config_all_verbos_flag = false;
                 continue;
-            } 
+            }
 
             if (config_all_verbos_flag == true) {
                 continue;
@@ -2245,13 +2244,13 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
              */
             WT_RET_MSG(session, EINVAL, "Failed to parse verbose option '%s'", ft->name);
         }
-        
+
 verbos_assign:
         if (ft->flag == WT_VERB_OPEN_ALL_VERBOS) {
             //printf("yang test ............WT_VERB_API:%d............verbose_value:%d\r\n", WT_VERB_API, verbose_value);
             for (i = 0; i < WT_VERB_NUM_CATEGORIES; i++)
                 conn->verbose[i] = verbose_value;
-        } else { 
+        } else {
          //printf("yang test ............ft->flag:%d............verbose_value:%d\r\n", (int)ft->flag, verbose_value);
             conn->verbose[ft->flag] = verbose_value;
         }
@@ -2260,13 +2259,13 @@ verbos_assign:
   // for (i = 0; i < WT_VERB_NUM_CATEGORIES; i++)
    //    printf("\r\n\r\n\r\nyang test ............i:%d............verbose_value:%d\r\n", i, conn->verbose[i]);
 
-   /* for (ft = verbtypes; ft->name != NULL; ft++) {//yang add change todo 
+   /* for (ft = verbtypes; ft->name != NULL; ft++) {//yang add change todo
         if (strcmp(ft->name, "metadata") == 0 || strcmp(ft->name, "api") == 0)
             continue;
-            
+
         conn->verbose[ft->flag] = WT_VERBOSE_DEBUG_5;
     }*/
-    
+
     return (0);
 }
 
@@ -2434,7 +2433,7 @@ __wt_timing_stress_config(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __conn_write_base_config --
  *     Save the base configuration used to create a database.
- */ 
+ */
 //默认false, 见WiredTigerKVEngine::WiredTigerKVEngine  实际上直接返回
 static int
 __conn_write_base_config(WT_SESSION_IMPL *session, const char *cfg[])
@@ -2606,7 +2605,7 @@ __conn_session_size(WT_SESSION_IMPL *session, const char *cfg[], uint32_t *vp)
 
     WT_RET(__wt_config_gets(session, cfg, "session_max", &cval));
     v += cval.val;
-    
+
     *vp = (uint32_t)v;
 
     //printf("yang test ............ __conn_session_size.........cfg[0]:%s, cfg[1]:%s\r\n", cfg[0], cfg[1]);

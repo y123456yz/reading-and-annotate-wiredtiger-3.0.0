@@ -879,7 +879,7 @@ __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __wt_upd_alloc --
  *     Allocate a WT_UPDATE structure and associated value and fill it in.
- */ 
+ */
 //__wt_upd_alloc∑÷≈‰WT_UPDATEø’º‰
 static inline int
 __wt_upd_alloc(WT_SESSION_IMPL *session, const WT_ITEM *value, u_int modify_type, WT_UPDATE **updp,

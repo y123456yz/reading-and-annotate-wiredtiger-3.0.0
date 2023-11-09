@@ -11,7 +11,7 @@
 /*
  * __wt_connection_open --
  *     Open a connection.
- */ 
+ */
 //wiredtiger_openÖÐµ÷ÓÃ
 int
 __wt_connection_open(WT_CONNECTION_IMPL *conn, const char *cfg[])

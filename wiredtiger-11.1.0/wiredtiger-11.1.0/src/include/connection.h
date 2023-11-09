@@ -47,7 +47,7 @@ extern WT_PROCESS __wt_process;
 /*
  * WT_BUCKET_STORAGE --
  *	A list entry for a storage source with a unique name (bucket, prefix).
- */ 
+ */
 struct __wt_bucket_storage {
     const char *bucket;                /* Bucket name */
     const char *bucket_prefix;         /* Bucket prefix */
@@ -96,7 +96,7 @@ struct __wt_keyed_encryptor {
  */ //__wt_connection_impl.collqh为该类型，该列表中的成员
 struct __wt_named_collator {
     const char *name;                   /* Name of collator */
-    //赋值参考__conn_add_collator 
+    //赋值参考__conn_add_collator
     WT_COLLATOR *collator;              /* User supplied object */
     TAILQ_ENTRY(__wt_named_collator) q; /* Linked list of collators */
 };
@@ -119,7 +119,7 @@ struct __wt_named_compressor {
  */ //__wt_connection_impl.dsrcqh为该类型，该列表中的成员
 struct __wt_named_data_source {
     const char *prefix;   /* Name of data source */
-    WT_DATA_SOURCE *dsrc; /* User supplied callbacks */  
+    WT_DATA_SOURCE *dsrc; /* User supplied callbacks */
     /* Linked list of data sources */
     TAILQ_ENTRY(__wt_named_data_source) q;
 };
@@ -240,13 +240,13 @@ typedef TAILQ_HEAD(__wt_backuphash, __wt_backup_target) WT_BACKUPHASH;
  * WT_CONNECTION_IMPL --
  *	Implementation of WT_CONNECTION
 
- Internally, WiredTiger's cache state is represented by the WT_CACHE structure, which contains counters and parameter 
- settings for tracking cache usage and controlling eviction policy. The WT_CACHE also includes state WiredTiger uses 
- to track the progress of eviction. There is a single WT_CACHE for each connection, accessed via the WT_CONNECTION_IMPL 
+ Internally, WiredTiger's cache state is represented by the WT_CACHE structure, which contains counters and parameter
+ settings for tracking cache usage and controlling eviction policy. The WT_CACHE also includes state WiredTiger uses
+ to track the progress of eviction. There is a single WT_CACHE for each connection, accessed via the WT_CONNECTION_IMPL
  structure.
 
  //每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
- */ 
+ */
 //__wt_cache_pool.cache_pool_qh:为了计算所有conn上面的内存情况及内存压力
 ////__wt_process.connqh全局变量存储所有分配的conn,确保只有一个conn访问该DB
 struct __wt_connection_impl {
@@ -279,7 +279,7 @@ struct __wt_connection_impl {
     TAILQ_ENTRY(__wt_connection_impl) cpq;
 
     //__conn_home中赋值
-    const char *home;         /* Database home */ 
+    const char *home;         /* Database home */
     const char *error_prefix; /* Database error prefix */
     uint64_t dh_hash_size;    /* Data handle hash bucket array size */
     uint64_t hash_size;       /* General hash bucket array size */
@@ -332,13 +332,12 @@ struct __wt_connection_impl {
     /* Locked: data handle list */
     TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh;
 
-    
     /* Locked: dynamic library handle list */
     TAILQ_HEAD(__wt_dlh_qh, __wt_dlh) dlhqh;
     /* Locked: file list */
     TAILQ_HEAD(__wt_fhhash, __wt_fh) * fhhash;
     TAILQ_HEAD(__wt_fh_qh, __wt_fh) fhqh;
-    
+
     /* Locked: LSM handle list. */
     TAILQ_HEAD(__wt_lsm_qh, __wt_lsm_tree) lsmqh;
     /* Locked: Tiered system work queue. */
@@ -445,13 +444,13 @@ struct __wt_connection_impl {
 
     /* Connection statistics */
     uint64_t rec_maximum_seconds; /* Maximum seconds reconciliation took. */
-    //配合WT_STAT_CONN_DATA_INCR等阅读  
+    //配合WT_STAT_CONN_DATA_INCR等阅读
     //__wt_stat_connection_init中赋值，每个指针指向stat_array数组，参考 __wt_stat_connection_init
     WT_CONNECTION_STATS *stats[WT_COUNTER_SLOTS];
     WT_CONNECTION_STATS *stat_array;
 
     //__wt_capacity_throttle中使用
-    WT_CAPACITY capacity;              /* Capacity structure */ 
+    WT_CAPACITY capacity;              /* Capacity structure */
     WT_SESSION_IMPL *capacity_session; /* Capacity thread session */
     wt_thread_t capacity_tid;          /* Capacity thread */
     bool capacity_tid_set;             /* Capacity thread set */
@@ -512,7 +511,6 @@ struct __wt_connection_impl {
 #define WT_CONN_LOG_ZERO_FILL 0x800u       /* Manually zero files */
                                            /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
 
-                                           
     //journal日志相关，默认mongod配置log=(enabled=true,archive=true,path=journal,compressor=snappy)
     uint32_t log_flags;                    /* Global logging configuration */
     WT_CONDVAR *log_cond;                  /* Log server wait mutex */
@@ -542,7 +540,7 @@ struct __wt_connection_impl {
 [user_00@TENCENT64 /data2/containers/175591266/db]$ cd journal/
 [user_00@TENCENT64 /data2/containers/175591266/db/journal]$ ls
 WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
-[user_00@TENCENT64 /data2/containers/175591266/db/journal]$ 
+[user_00@TENCENT64 /data2/containers/175591266/db/journal]$
 */ //journal日志目录
     const char *log_path;                  /* Logging path format */
     //"log.prealloc"配置
@@ -551,8 +549,6 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
     uint16_t log_req_min;                  /* Min required log version */
     //transaction_sync配置，参考__logmgr_sync_cfg
     uint32_t txn_logsync;                  /* Log sync configuration */
-
-
 
     WT_SESSION_IMPL *meta_ckpt_session; /* Metadata checkpoint session */
 

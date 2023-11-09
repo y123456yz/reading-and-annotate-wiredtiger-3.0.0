@@ -103,7 +103,7 @@ retry:
  *     a file while it is being bulk-loaded will fail), but internal or database-wide operations
  *     should not prevent application-initiated operations. For example, attempting to verify a file
  *     should not fail because the sweep server happens to be in the process of closing that file.
- */ 
+ */
 //如果flag带有WT_DHANDLE_EXCLUSIVE标记则加写锁，其他大部分情况加读锁
 int
 __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_deadp)
@@ -710,14 +710,14 @@ __session_dhandle_sweep(WT_SESSION_IMPL *session)
  *     the handle's reference count while holding the handle list lock.
  __session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc(alloc WT_DATA_HANDLE)
  __session_get_dhandle->__session_add_dhandle(alloc WT_DATA_HANDLE_CACHE)
- 
+
  会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
  实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
 
- */ 
+ */
 //__wt_cursor_cache  __session_find_shared_dhandle
-//先从conn->dhhash查找，找不到则alloc一个dhandle  
-static int 
+//先从conn->dhhash查找，找不到则alloc一个dhandle
+static int
 __session_find_shared_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint)
 {
     WT_DECL_RET;
@@ -743,11 +743,11 @@ __session_find_shared_dhandle(WT_SESSION_IMPL *session, const char *uri, const c
  *     Search for a data handle, first in the session cache, then in the connection.
  __session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc(alloc WT_DATA_HANDLE)
  __session_get_dhandle->__session_add_dhandle(alloc WT_DATA_HANDLE_CACHE)
- 
+
  会同时添加到__wt_connection_impl.dhhash+dhqh(__wt_conn_dhandle_alloc)和//WT_SESSION_IMPL.dhandles+dhhash(__session_add_dhandle)
  实际上WT_DATA_HANDLE_CACHE.dhandle就是WT_DATA_HANDLE
 
- */ 
+ */
 //__wt_session_get_dhandle调用
 //根据uri和checkpoint优先从自己的session->dhhash[bucket]中查找对应dhandle, 没找到则从共享conn->dhhash[bucket]中查找
 //如果两则都没有，则创建一个dhandle添加到session->dhhash[bucket]和conn->dhhash[bucket]
@@ -773,7 +773,7 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
      * handle we find.
      */
     //先添加到__wt_connection_impl.dhhash+dhqh，然后添加到WT_SESSION_IMPL.dhandles+dhhash
-     
+
     //再从conn->dhhash中查找
     //先从conn->dhhash查找，找不到则alloc一个dhandle添加到__wt_connection_impl.dhhash+dhqh
 
