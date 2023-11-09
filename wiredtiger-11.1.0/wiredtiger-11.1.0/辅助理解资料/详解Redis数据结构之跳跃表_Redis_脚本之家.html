@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<!-- saved from url=(0039)https://www.jb51.net/article/199510.htm -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script type="text/javascript" async="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/auto_dup"></script><script src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/f(4).txt" id="google_shimpl"></script><script type="text/javascript" async="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ycgm"></script>
+
+
+<meta http-equiv="x-dns-prefetch-control" content="on">
+<link rel="dns-prefetch" href="https://img.jbzj.com/">
+<link rel="dns-prefetch" href="https://icws.jb51.net/">
+<link rel="dns-prefetch" href="https://files.jb51.net/">
+<meta name="applicable-device" content="pc">
+<meta name="renderer" content="webkit">
+<meta name="force-rendering" content="webkit">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+<meta http-equiv="Cache-Control" content="no-transform">
+<title>详解Redis数据结构之跳跃表_Redis_脚本之家</title>
+<meta name="keywords" content="Redis数据结构跳跃表,Redis数据结构">
+<meta name="description" content="这篇文章主要介绍了Redis数据结构中的跳跃表的相关知识，本文给大家介绍的非常详细，对大家的学习或工作具有一定的参考借鉴价值,需要的朋友可以参考下">
+<link rel="alternate" media="only screen and(max-width: 640px)" href="https://m.jb51.net/article/199510.htm">
+<meta http-equiv="mobile-agent" content="format=html5; url=https://m.jb51.net/article/199510.htm">
+<meta http-equiv="mobile-agent" content="format=xhtml; url=https://m.jb51.net/article/199510.htm">
+<script src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/hm.js.下载"></script><script src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/push.js.下载" id="ttzz"></script><script src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/push.js(1).下载"></script><script type="text/javascript">
+    var articleid="art_199510",tougao = "mrr",lmname = "Redis",suoyin = "ok",dxycms="ok";
+    (function() {
+        if (/Android|webOS|iPhone|iPad|Windows Phone|iPod|BlackBerry|SymbianOS|Nokia|Mobile|Opera Mini/i.test(navigator.userAgent)) {
+            var siteName = window.location.pathname,url = window.location.href;
+            if (url.indexOf("?pc") < 0) {
+                try {
+                    if (typeof siteName !== "undefined") {
+                        window.location.href = "https://m.jb51.net" + siteName
+                    }
+                } catch (e) {}
+            }
+        }
+    })();
+</script>
+<meta name="referrer" content="always">
+<link type="text/css" href="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/article.css" rel="stylesheet">
+<link type="text/css" href="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/viewer.min.css" rel="stylesheet">
+<script type="text/javascript" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/jquery.min.js.下载"></script>
+<script type="text/javascript">
+    if (typeof jQuery == 'undefined') {
+        document.write(unescape("%3Cscript src='/skin/js/jquery.js' type='text/javascript'%3E%3C/script%3E"));
+    }
+</script>
+<script type="text/javascript" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/common.js.下载"></script>
+<style type="text/css">.tipsa_ds{position: relative;display: inline-block;}.tipsa_ds:hover .tipsa_d{width:117px;text-indent: -36px;color:#e9e9e9;right:-9px!important}.tipsa_d{position: absolute;line-height: 1.4;box-sizing: border-box;padding: 0 5px;right:-1.5px!important;bottom:-1px!important;background: rgba(120,120,120,.5);border-radius: 6px 0 0 0;color: #d5d5d5;font-size: 12px;width: 31px;overflow: hidden;transform: scale(0.85);transition:all .3s ease-out;white-space: nowrap;}</style><meta http-equiv="origin-trial" content="As0hBNJ8h++fNYlkq8cTye2qDLyom8NddByiVytXGGD0YVE+2CEuTCpqXMDxdhOMILKoaiaYifwEvCRlJ/9GcQ8AAAB8eyJvcmlnaW4iOiJodHRwczovL2RvdWJsZWNsaWNrLm5ldDo0NDMiLCJmZWF0dXJlIjoiV2ViVmlld1hSZXF1ZXN0ZWRXaXRoRGVwcmVjYXRpb24iLCJleHBpcnkiOjE3MTk1MzI3OTksImlzU3ViZG9tYWluIjp0cnVlfQ=="><meta http-equiv="origin-trial" content="AgRYsXo24ypxC89CJanC+JgEmraCCBebKl8ZmG7Tj5oJNx0cmH0NtNRZs3NB5ubhpbX/bIt7l2zJOSyO64NGmwMAAACCeyJvcmlnaW4iOiJodHRwczovL2dvb2dsZXN5bmRpY2F0aW9uLmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViVmlld1hSZXF1ZXN0ZWRXaXRoRGVwcmVjYXRpb24iLCJleHBpcnkiOjE3MTk1MzI3OTksImlzU3ViZG9tYWluIjp0cnVlfQ=="><meta http-equiv="origin-trial" content="As0hBNJ8h++fNYlkq8cTye2qDLyom8NddByiVytXGGD0YVE+2CEuTCpqXMDxdhOMILKoaiaYifwEvCRlJ/9GcQ8AAAB8eyJvcmlnaW4iOiJodHRwczovL2RvdWJsZWNsaWNrLm5ldDo0NDMiLCJmZWF0dXJlIjoiV2ViVmlld1hSZXF1ZXN0ZWRXaXRoRGVwcmVjYXRpb24iLCJleHBpcnkiOjE3MTk1MzI3OTksImlzU3ViZG9tYWluIjp0cnVlfQ=="><meta http-equiv="origin-trial" content="AgRYsXo24ypxC89CJanC+JgEmraCCBebKl8ZmG7Tj5oJNx0cmH0NtNRZs3NB5ubhpbX/bIt7l2zJOSyO64NGmwMAAACCeyJvcmlnaW4iOiJodHRwczovL2dvb2dsZXN5bmRpY2F0aW9uLmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViVmlld1hSZXF1ZXN0ZWRXaXRoRGVwcmVjYXRpb24iLCJleHBpcnkiOjE3MTk1MzI3OTksImlzU3ViZG9tYWluIjp0cnVlfQ=="></head>
+
+<body>
+    <!--topTools Start -->
+    <div id="topbar">
+        <div id="wrap">
+            <div class="topbarleft">
+                <a href="http://edu.jb51.net/" target="_blank">菜鸟学堂</a>
+                <a href="http://s.jb51.net/" target="_blank" rel="nofollow">服务器常用软件</a>
+            <a href="https://zhuji.jb51.net/" target="_blank">主机测评网</a><a href="http://tools.jb51.net/" target="_blank">在线工具</a></div>
+            <div class="fr">
+                <ul>
+                    <li><i class="ico-mobile"></i><a target="_blank" href="https://m.jb51.net/" rel="nofollow">手机版</a></li>
+                    <li><i class="ico-contribute"></i><a href="http://tougao.jb51.net/" rel="nofollow" target="_blank">投稿中心</a></li>
+                    <li id="wxHide"><i class="ico-wechat"></i><a href="javascript:void(0)" target="_blank">关注微信</a>
+                        <div id="wxShow" class="wxHide_box"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/erwm.jpg" alt="扫一扫" width="84" hight="84" data-baiduimageplus-ignore=""></div>
+                    </li>
+                </ul>
+                <!--快捷导航 开始 -->
+                <div class="text_d right" id="navHide">
+                    <a rel="nofollow" href="javascript:void(0);">快捷导航 <i class="arrowright"></i></a>
+                    <div id="navBox" class="nwebnav">
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="https://www.jb51.net/softs/" target="_blank">软件下载</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/softs/android.html" target="_blank">android</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/softs/mac.html" target="_blank">MAC</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/qudong/" target="_blank">驱动下载</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/fonts/" target="_blank">字体下载</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/dll/" target="_blank">DLL</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="https://www.jb51.net/codes/" target="_blank">源码下载</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/codes/php.html" target="_blank">PHP</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/codes/aspnet.html" target="_blank">ASP.NET</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/codes/asp.html" target="_blank">ASP</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/codes/jsp.html" target="_blank">JSP</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="https://www.jb51.net/list/index_84.htm" target="_blank">软件编程</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_85_1.htm" target="_blank">C#</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_134_1.htm" target="_blank">JAVA</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_159_1.htm" target="_blank">C 语言</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_206_1.htm" target="_blank">Delphi</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_233_1.htm" target="_blank">Android</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="https://www.jb51.net/list/index_1.htm" target="_blank">网络编程</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_15_1.htm" target="_blank">PHP</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_21_1.htm" target="_blank">ASP.NET</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_2_1.htm" target="_blank">ASP</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_3_1.htm" target="_blank">JavaScript</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="http://tools.jb51.net/" target="_blank">在线工具</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/tools/cssyasuo.shtml" target="_blank">CSS格式化</a>
+                                    <a rel="nofollow" href="http://tools.jb51.net/tools/js_geshihua.asp" target="_blank">JS格式化</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/tools/html-js.htm" target="_blank">Html转化为Js</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="https://www.jb51.net/list/index_104.htm" target="_blank">数据库</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_112_1.htm" target="_blank">MYSQL</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_113_1.htm" target="_blank">MSSQL</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_154_1.htm" target="_blank">oracle</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_155_1.htm" target="_blank">DB2</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/list/list_252_1.htm" target="_blank">MARIADB</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="https://www.jb51.net/cms/" target="_blank">CMS</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/cms/list411_1.html" target="_blank">PHPCMS</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/cms/list408_1.html" target="_blank">DEDECMS</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/cms/list578_1.html" target="_blank">帝国CMS</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/cms/list419_1.html" target="_blank">WordPress</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="ndeallist clear_fix">
+                            <h4><a rel="nofollow" href="javascript:0;" target="_blank">常用工具</a></h4>
+                            <dl>
+                                <dd>
+                                    <a rel="nofollow" href="https://www.jb51.net/zt/phphuanjing.html" target="_blank">PHP开发工具</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/zt/python.html" target="_blank">python</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/zt/photoshopxz.html" target="_blank">Photoshop</a>
+                                    <a rel="nofollow" href="https://www.jb51.net/bibei/win/index.html" target="_blank">必备软件</a>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <!--快捷导航 结束 -->
+            </div>
+        </div>
+    </div>
+    <!--topTools end -->
+
+    <div id="header">
+        <!-- Logo start -->
+        <div id="logo"><a href="https://www.jb51.net/"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/logo.gif" title="脚本之家" alt="脚本之家"></a></div>
+        <div class="logom fl"><a href="https://jinnian580.com/" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/jinzhaopin.jpg" width="430" height="60"><span class="tipsa_d">广告　商业广告，理性选择</span></a></div>
+        <div class="logor fr"><a href="https://ad.y90f.com/" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/q881.gif" width="430" height="60"><span class="tipsa_d">广告　商业广告，理性选择</span></a></div>
+        <!--Logo end -->
+    </div>
+    <!--Logo end -->
+
+    <!-- 导航开始 -->
+    <div id="nav">
+        <ul>
+            <li><a href="https://www.jb51.net/">网站首页</a></li>
+            <li><a href="https://www.jb51.net/web/">网页制作</a></li>
+            <li><a href="https://www.jb51.net/list/index_1.htm">网络编程</a></li>
+            <li><a href="https://www.jb51.net/list/index_96.htm">脚本专栏</a></li>
+            <li><a href="https://www.jb51.net/jiaoben/">脚本下载</a></li>
+            <li><a href="https://www.jb51.net/list/index_104.htm">数据库</a></li>
+            <li><a href="https://www.jb51.net/list/list_82_1.htm">服务器</a></li>
+            <li><a href="https://www.jb51.net/books/">电子书籍</a></li>
+            <li><a href="https://www.jb51.net/os/">操作系统</a></li>
+            <li><a href="https://www.jb51.net/yunying/">网站运营</a></li>
+            <li><a href="https://www.jb51.net/pingmian/">平面设计</a></li>
+            <li>
+                <p><i>其它</i><span>
+                        <a href="https://www.jb51.net/media/">媒体动画</a>
+                        <a href="https://www.jb51.net/diannaojichu/">电脑基础</a>
+                        <a href="https://www.jb51.net/hardware/">硬件教程</a>
+                        <a href="https://www.jb51.net/hack/">网络安全</a>
+                    </span></p>
+            </li>
+        </ul>
+    </div>
+    <!--导航结束-->
+
+    <!-- 二级菜单开始 -->
+    <div id="submenu">
+        <div class="subnav clearfix">
+            <ul><li><a href="https://www.jb51.net/list/list_113_1.htm" title="MsSql">MsSql</a></li>
+<li><a href="https://www.jb51.net/list/list_112_1.htm" title="Mysql">Mysql</a></li>
+<li><a href="https://www.jb51.net/list/list_252_1.htm" title="mariadb">mariadb</a></li>
+<li><a href="https://www.jb51.net/list/list_154_1.htm" title="oracle">oracle</a></li>
+<li><a href="https://www.jb51.net/list/list_155_1.htm" title="DB2">DB2</a></li>
+<li><a href="https://www.jb51.net/list/list_236_1.htm" title="mssql2008">mssql2008</a></li>
+<li><a href="https://www.jb51.net/list/list_210_1.htm" title="mssql2005">mssql2005</a></li>
+<li><a href="https://www.jb51.net/list/list_215_1.htm" title="SQLite">SQLite</a></li>
+<li><a href="https://www.jb51.net/list/list_224_1.htm" title="PostgreSQL">PostgreSQL</a></li>
+<li><a href="https://www.jb51.net/list/list_239_1.htm" title="MongoDB">MongoDB</a></li>
+<li><a href="https://www.jb51.net/list/list_242_1.htm" title="Redis">Redis</a></li>
+<li><a href="https://www.jb51.net/list/list_105_1.htm" title="Access">Access</a></li>
+<li><a href="https://www.jb51.net/list/list_132_1.htm" title="数据库文摘">数据库文摘</a></li>
+<li><a href="https://www.jb51.net/list/list_133_1.htm" title="数据库其它">数据库其它</a></li>
+</ul>
+        </div>
+    </div>
+    <!-- 二级菜单结束 -->
+
+    <!--content Star -->
+    <div id="wrapper" style="height: auto !important;">
+        <div id="container" style="height: auto !important;">
+            <div class="pt10 clearfix">
+                <div class="clearfix"><div class="mainlr"><a href="https://www.iycms.com/?jiaobenzj" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/iycms.gif" alt="" width="1200" height="100"><span class="tipsa_d">广告　商业广告，理性选择</span></a></div><div class="blank5"></div><div class="mainlr"><a href="https://click.ctyun.cn/?track=source_jiaobenzhijia-medium_cps-content_se1039008" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ctyun1200_1101.gif" alt="" width="1200" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></div><div class="blank5"></div><div id="txtlink"><ul><li><a href="https://www.qyidc.net/" target="_blank" class="red">青云互联：香港/美国服务器九块九起</a></li><li><a href="https://www.yitanyun.com/server/buy.html" target="_blank" class="red">█易探云·香港/美国vps仅19元█</a></li><li><a href="https://t.me/xxsm3" target="_blank" class="red">漫画70%永久分成寻CPS渠道.日结</a></li><li><a href="https://sourl.cn/yuYfQv" target="_blank" class="red">H5盲盒70%分成寻CPS渠道</a></li><li><a href="http://www.boluoyun.com/" target="_blank" class="blue">【菠萝云】来了,【正规商家】香港4G内存99元</a></li><li><a href="tencent://message/?uin=1006456867" target="_blank" class="blue">█机房大带宽机柜Q:1006456867█</a></li><li><a href="https://www.xiaoyueidc.com/" target="_blank" class="blue">高防云服务器6折|香港云主机免费领取</a></li><li><a href="https://sourl.cn/yuYfQv" target="_blank" class="blue">H5盲盒70%分成寻CPS渠道</a></li><li><a href="https://ad.y90f.com/" target="_blank" class="red">实力产品变现</a></li><li><a href="http://asdheja.cn/" target="_blank" class="red">老牌实力产品长期收量</a></li><li><a href="http://www.tuidc.com/" target="_blank" class="red">服务器租用/托管-域名空间/认准腾佑科技</a></li><li><a href="https://sourl.cn/yuYfQv" target="_blank" class="red">H5盲盒70%分成寻CPS渠道</a></li><li><a href="http://www.ushk.net/server.html" target="_blank" class="blue">██美港数据██高端香港服务器租用</a></li><li><a href="http://vps.zzidc.com/tongji/jb51w.html" target="_blank" class="blue">★☆云服务器5折，天天抽红包抵扣☆★</a></li><li><a href="https://www.dzisp.cn/" target="_blank" class="blue">成都|德阳|电信100G高防24核物理机500元</a></li><li><a href="https://sourl.cn/yuYfQv" target="_blank" class="blue">H5盲盒70%分成寻CPS渠道</a></li><li><a href="http://www.pppoevps.com/" target="_blank" class="red">█动态拨号IP云主机，电信ADSL独享20M█ </a></li><li><a href="http://www.vzidc.com/cloud/" target="_blank" class="red">华为云4核8g限时免费送另有代金券免费送</a></li><li><a href="http://www.cyidc.cn/" target="_blank" class="red">畅游网络 百独服务器 包跑满 998元</a></li><li><a href="http://www.wdw6.com/" target="_blank" class="red">bgp多线机房、大带宽</a></li><li><a href="http://www.ssf.cc/" target="_blank" class="blue">免备vps20/百独799/双线350/45互联</a></li><li><a href="http://www.zitian.cn/" target="_blank" class="blue">中原地区核心数据中心，月付299元起</a></li><li><a href="http://www.qy.cn/gfhd.html" target="_blank" class="blue">██群英网络██◆◆◆300G高防仅需599元◆◆◆</a></li><li><a href="https://www.zj-idc.com/" target="_blank" class="blue">上云就选华晨云，每天最低仅需1.2元</a></li><li><a href="http://www.dotdotnetwork.com/tg/tg-cn.htm" target="_blank" class="red">DOTDOTNETWORK美国高端服务器专家</a></li><li><a href="https://www.31idc.com/cloud_hk.html" target="_blank" class="red">★31idc★香港云服务器2核4G★30天免费试用◆</a></li><li><a href="http://www.xiaozhiyun.com/2016/" target="_blank" class="red">韩国香港美国站群服务器 巨牛网络</a></li><li><a href="https://www.31idc.com/cloud_hk.html" target="_blank" class="red">★31idc★香港云服务器2核4G★30天免费试用◆</a></li></ul><div class="clearfix"></div></div><div class="blank5"></div><div class="topimg"><ul><li><a href="https://t.me/kk889906/" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/langxiege235.jpg" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="https://my.suidc.cn/product/index/host?jb51.net" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/suidc235.jpg" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="http://github.crmeb.net/u/jiaobenzhijia" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/crmeb235-1108.gif" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="https://mixing.cash/" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/mixingcash3.gif" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="https://www.huhuyun.com/special/index/B6E9DCB088F9B642EAC3682A1BC81EF6/?i303eeb" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/huhuyun.gif" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li></ul></div><div class="blank5"></div><div class="topimg"><ul><li><a href="https://www.xiaoyueidc.com/" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/xiaoyue2.gif" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="http://www.boluoyun.com/" target="_blank" class="tipsa_ds"><img alt="菠萝云" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bly235.jpg" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="https://www.eltyun.com/" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/lty235.gif" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="https://www.wjdun.cn/taocan.html" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/gfvps_cdn.gif" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li><li><a href="https://www.hncloud.com/activity_register.html?p=jb51&amp;register" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/hncloud_235.gif" width="235" height="50"><span class="tipsa_d">广告　商业广告，理性选择</span></a></li></ul></div><div class="blank5"></div></div>
+            </div>
+
+            <div class="clearfix">
+                <div class="breadcrumb">
+                    <i class="ico-path"></i>您的位置：<a href="https://www.jb51.net/">首页</a> → <a href="https://www.jb51.net/list/index_104.htm" title="数据库">数据库</a> → <a href="https://www.jb51.net/list/list_242_1.htm" title="Redis">Redis</a> → Redis数据结构跳跃表
+                </div>
+                <div class="search">
+                    <form action="https://www.jb51.net/do/search.php" target="_blank">
+                        <input type="hidden" name="s" value="10520733385329581432">
+                        <input type="hidden" name="ie" value="utf-8">
+                        <input type="text" name="q" class="searchinput" placeholder="请输入关键词">
+                        <input type="submit" value=" " class="search-button">
+                    </form>
+                </div>
+            </div>
+
+            <div id="main" class="clearfix" style="height: auto !important;">
+                <div class="main-left" style="height: auto !important;">
+                    <div id="article" style="height: auto !important;">
+                        <h1 class="title">详解Redis数据结构之跳跃表</h1>
+                        <div class="info"> &nbsp;更新时间：2020年11月12日 09:24:00 &nbsp; 作者：sherlock_lin &nbsp; </div>
+                        <div class="lbd clearfix"></div>
+                        <div class="summary">这篇文章主要介绍了Redis数据结构中的跳跃表的相关知识，本文给大家介绍的非常详细，对大家的学习或工作具有一定的参考借鉴价值,需要的朋友可以参考下</div>
+                        <div class="lbd clearfix"></div>
+                        <div id="content">
+                            <div id="navCategory" style="margin-top: 40px;"><span style="position:absolute;left:60px;width:30px;line-height:30px;cursor:pointer;text-align:center;color:#fff;border-radius:3px;font-size:18px;font-weight:bold;user-select:none;">−</span><h5 class="catalogue" style="cursor:pointer;background:#6fa8dc;padding:0 10px;margin-bottom:20px;user-select:none;color:#fff;border-radius:3px;">目录</h5><ul class="first_class_ul"><li><a href="https://www.jb51.net/article/199510.htm#_label0">1、简介</a></li><ul class="second_class_ul"><li><a href="https://www.jb51.net/article/199510.htm#_lab2_0_0">1.1、业务场景</a></li><li><a href="https://www.jb51.net/article/199510.htm#_lab2_0_1">1.2、skiplist</a></li></ul><li><a href="https://www.jb51.net/article/199510.htm#_label1">2、跳表</a></li><ul class="second_class_ul"><li><a href="https://www.jb51.net/article/199510.htm#_lab2_1_2">2.1、跳表简介</a></li><li><a href="https://www.jb51.net/article/199510.htm#_lab2_1_3">2.2、跳表层级之间的关系</a></li><li><a href="https://www.jb51.net/article/199510.htm#_lab2_1_4">2.3、跳表的复杂度</a></li></ul><li><a href="https://www.jb51.net/article/199510.htm#_label2">3、Redis中的跳表</a></li><ul class="second_class_ul"><li><a href="https://www.jb51.net/article/199510.htm#_lab2_2_5">3.1、zskiplistNode</a></li><li><a href="https://www.jb51.net/article/199510.htm#_lab2_2_6">3.2、zskiplist</a></li></ul></ul></div><p class="maodian"><a name="_label0"></a></p><h2>1、简介</h2>
+<p>我们先不谈Redis，来看一下跳表。</p>
+<p class="maodian"><a name="_lab2_0_0"></a></p><h3>1.1、业务场景</h3>
+<p>场景来自小灰的算法之旅，我们需要做一个拍卖行系统，用来查阅和出售游戏中的道具，类似于魔兽世界中的拍卖行那样，还有以下需求：</p>
+<p>拍卖行拍卖的商品需要支持四种排序方式，分别是：按价格、按等级、按剩余时间、按出售者ID排序，排序查询要尽可能地快。还要支持输入道具名称的精确查询和不输入名称的全量查询。</p>
+<p>这样的业务场景所需要的数据结构该如何设计呢？拍卖行商品列表是线性的，最容易表达线性结构的是数组和链表。假如用有序数组，虽然查找的时候可以使用二分法（时间复杂度O(logN)），但是插入的时间复杂度是O(N)，总体时间复杂度是O(N)；而如果要使用有序链表，虽然插入的时间复杂度是O(1)，但是查找的时间复杂度是O(N)，总体还是O(N)。</p>
+<p>那有没有一种数据结构，查找时，有二分法的效率，插入时有链表的简单呢？有的，就是 跳表。</p>
+<p class="maodian"><a name="_lab2_0_1"></a></p><h3>1.2、skiplist</h3>
+<p>skiplist，即跳表，又称跳跃表，也是一种数据结构，用于解决算法问题中的查找问题。</p>
+<p>一般问题中的查找分为两大类，一种是基于各种平衡术，时间复杂度为O(logN)，一种是基于哈希表，时间复杂度O(1)。但是skiplist比较特殊，没有在这里面</p>
+<p class="maodian"><a name="_label1"></a></p><h2>2、跳表</h2>
+<p class="maodian"><a name="_lab2_1_2"></a></p><h3>2.1、跳表简介</h3>
+<p>跳表也是链表的一种，是在链表的基础上发展出来的，我们都知道，链表的插入和删除只需要改动指针就行了，时间复杂度是O(1)，但是插入和删除必然伴随着查找，而查找需要从头/尾遍历，时间复杂度为O(N)，如下图所示是一个有序链表（最左侧的灰色表示一个空的头节点）（图片来自网络，以下同）：</p>
+<p style="text-align: center"><img alt="" loading="lazy" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/202011120920144.png"></p>
+<p>链表中，每个节点都指向下一个节点，想要访问下下个节点，必然要经过下个节点，即无法跳过节点访问，假设，现在要查找22，我们要先后查找 3-&gt;7-&gt;11-&gt;19-&gt;22，需要五次查找。</p>
+<p>但是如果我们能够实现跳过一些节点访问，就可以提高查找效率了，所以对链表进行一些修改，如下图：</p>
+<p style="text-align: center"><img alt="" loading="lazy" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/202011120920145.png"></p>
+<p>我们每个一个节点，都会保存指向下下个节点的指针，这样我们就能跳过某个节点进行访问，这样，我们其实是构造了两个链表，新的链表之后原来链表的一半。</p>
+<p>我们姑且称原链表为第一层，新链表为第二层，第二层是在第一层的基础上隔一个取一个。假设，现在还是要查找22，我们先从第二层查找，从7开始，7小于22，再往后，19小于22，再往后，26大于22，所以从节点19转到第一层，找到了22，先后查找 7-&gt;19-&gt;26-&gt;22，只需要四次查找。</p>
+<p>以此类推，如果再提取一层链表，查找效率岂不是更高，如下图：</p>
+<p style="text-align: center"><img alt="" loading="lazy" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/202011120920146.png"></p>
+<p>现在，又多了第三层链表，第三层是在第二层的基础上隔一个取一个，假设现在还是要查找22，我们先从第三层开始查找，从19开始，19小于22，再往后，发现是空的，则转到第二层，19后面的26大于22，转到第一层，19后面的就是22，先后查找 19-&gt;26&gt;22，只需要三次查找。</p>
+<p>由上例可见，在查找时，跳过多个节点，可以大大提高查找效率，skiplist 就是基于此原理。</p>
+<p>上面的例子中，每一层的节点个数都是下一层的一半，这种查找的过程有点类似二分法，查找的时间复杂度是O(logN)，但是例子中的多层链表有一个致命的缺陷，就是一旦有节点插入或者删除，就会破坏这种上下层链表节点个数是2:1的结构，如果想要继续维持，则需要在插入或者删除节点之后，对后面的所有节点进行一次重新调整，这样一来，插入/删除的时间复杂度就变成了O(N)。</p>
+<p class="maodian"><a name="_lab2_1_3"></a></p><h3>2.2、跳表层级之间的关系</h3>
+<p>如上所述，跳表为了解决插入和删除节点时造成的后续节点重新调整的问题，引入了随机层数的做法。相邻层数之间的节点个数不再是严格的2:1的结构，而是为每个新插入的节点赋予一个随机的层数。下图展示了如何通过一步步的插入操作从而形成一个跳表：</p>
+<p style="text-align: center"><img alt="" loading="lazy" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/202011120920147.png"></p>
+<p>每一个节点的层数都是随机算法得出的，插入一个新的节点不会影响其他节点的层数，因此，插入操作只需要修改插入节点前后的指针即可，避免了对后续节点的重新调整。这是跳表的一个很重要的特性，也是跳表性能明显由于平衡树的原因，因为平衡树在失去平衡之后也需要进行平衡调整。</p>
+<p>上图最后的跳表中，我们需要查找节点22，则遍历到的节点依次是：7-&gt;37-&gt;19-&gt;22，可见，这种随机层数的跳表的查找时可能没有2:1结构的效率，但是却解决了插入/删除节点的问题。</p>
+<p class="maodian"><a name="_lab2_1_4"></a></p><h3>2.3、跳表的复杂度</h3>
+<p>跳表搜索的时间复杂度平均 O(logN)，最坏O(N)，空间复杂度O(2N)，即O(N)</p>
+<p class="maodian"><a name="_label2"></a></p><h2>3、Redis中的跳表</h2>
+<p>在理解 Redis 的跳跃表之前，我们先回忆一下 Redis 的有序集合（sorted set）操作</p>
+<ul>
+  <li>不重复但有序的字符串元素集合；</li>
+  <li>每个元素均关联一个double类型的score，Redis 根据score进行从小到大排序；</li>
+  <li>score可以重复，重复的按照插入顺序进行排序；</li>
+</ul>
+<p>示例如下：</p>
+<div class="jb51code">
+<div><div id="highlighter_83397" class="syntaxhighlighter  plain"><div class="toolbar"><span><a href="https://www.jb51.net/article/199510.htm#" class="toolbar_item command_help help">?</a></span></div><table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div><div class="line number2 index1 alt1">2</div><div class="line number3 index2 alt2">3</div><div class="line number4 index3 alt1">4</div><div class="line number5 index4 alt2">5</div><div class="line number6 index5 alt1">6</div><div class="line number7 index6 alt2">7</div><div class="line number8 index7 alt1">8</div><div class="line number9 index8 alt2">9</div><div class="line number10 index9 alt1">10</div><div class="line number11 index10 alt2">11</div><div class="line number12 index11 alt1">12</div><div class="line number13 index12 alt2">13</div><div class="line number14 index13 alt1">14</div><div class="line number15 index14 alt2">15</div><div class="line number16 index15 alt1">16</div><div class="line number17 index16 alt2">17</div><div class="line number18 index17 alt1">18</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="plain plain">redis 127.0.0.1:6379&gt; ZADD runoobkey 1 redis</code></div><div class="line number2 index1 alt1"><code class="plain plain">(integer) 1</code></div><div class="line number3 index2 alt2"><code class="plain plain">redis 127.0.0.1:6379&gt; ZADD runoobkey 2 mongodb</code></div><div class="line number4 index3 alt1"><code class="plain plain">(integer) 1</code></div><div class="line number5 index4 alt2"><code class="plain plain">redis 127.0.0.1:6379&gt; ZADD runoobkey 3 mysql</code></div><div class="line number6 index5 alt1"><code class="plain plain">(integer) 1</code></div><div class="line number7 index6 alt2"><code class="plain plain">redis 127.0.0.1:6379&gt; ZADD runoobkey 3 mysql</code></div><div class="line number8 index7 alt1"><code class="plain plain">(integer) 0</code></div><div class="line number9 index8 alt2"><code class="plain plain">redis 127.0.0.1:6379&gt; ZADD runoobkey 4 mysql</code></div><div class="line number10 index9 alt1"><code class="plain plain">(integer) 0</code></div><div class="line number11 index10 alt2"><code class="plain plain">redis 127.0.0.1:6379&gt; ZRANGE runoobkey 0 10 WITHSCORES</code></div><div class="line number12 index11 alt1">&nbsp;</div><div class="line number13 index12 alt2"><code class="plain plain">"redis"</code></div><div class="line number14 index13 alt1"><code class="plain plain">"1"</code></div><div class="line number15 index14 alt2"><code class="plain plain">"mongodb"</code></div><div class="line number16 index15 alt1"><code class="plain plain">"2"</code></div><div class="line number17 index16 alt2"><code class="plain plain">"mysql"</code></div><div class="line number18 index17 alt1"><code class="plain plain">"4"</code></div></div></td></tr></tbody></table></div></div>
+<div class="codetool" id="codetool"><a href="javascript:;" class="selall" title="全选"></a><a href="javascript:;" class="copy" title="复制文本代码"></a><div class="code_n"><textarea></textarea></div></div></div>
+<p>这个是 Redis 中的有序列表的基本操作，我们答题可以看出，在有序列表中，有一个浮点数作为 score， 当对应一个值，可以根据 score 精确查找和范围查找，且效率很高</p>
+<p>Redis 里面的这种操作的底层实现就是跳表。</p>
+<p>上面理解了跳表，再去看 Redis 中的跳表就轻松多了，跳表的实现在 Redis 源码目录下 redis.h 文件中</p>
+<p class="maodian"><a name="_lab2_2_5"></a></p><h3>3.1、zskiplistNode</h3>
+<p>zskiplistNode 表示跳表的一个节点，声明如下：</p>
+<div class="jb51code">
+<div><div id="highlighter_992695" class="syntaxhighlighter  plain"><div class="toolbar"><span><a href="https://www.jb51.net/article/199510.htm#" class="toolbar_item command_help help">?</a></span></div><table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div><div class="line number2 index1 alt1">2</div><div class="line number3 index2 alt2">3</div><div class="line number4 index3 alt1">4</div><div class="line number5 index4 alt2">5</div><div class="line number6 index5 alt1">6</div><div class="line number7 index6 alt2">7</div><div class="line number8 index7 alt1">8</div><div class="line number9 index8 alt2">9</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="plain plain">typedef struct zskiplistNode {</code></div><div class="line number2 index1 alt1"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">robj *obj;</code></div><div class="line number3 index2 alt2"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">double score;</code></div><div class="line number4 index3 alt1"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">struct zskiplistNode *backward;</code></div><div class="line number5 index4 alt2"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">struct zskiplistLevel {</code></div><div class="line number6 index5 alt1"><code class="plain spaces">&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain plain">struct zskiplistNode *forward;</code></div><div class="line number7 index6 alt2"><code class="plain spaces">&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="plain plain">unsigned int span;</code></div><div class="line number8 index7 alt1"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">} level[];</code></div><div class="line number9 index8 alt2"><code class="plain plain">} zskiplistNode;</code></div></div></td></tr></tbody></table></div></div>
+<div class="codetool" id="codetool"><a href="javascript:;" class="selall" title="全选"></a><a href="javascript:;" class="copy" title="复制文本代码"></a><div class="code_n"><textarea></textarea></div></div></div>
+<p>robj 类型是 Redis 中用C语言实现一种集合数据结构，它可以表示 string、hash、list、set 和 zset 五种数据类型，这里不做详细说明，在跳表节点中，这个类型的指针表示节点的成员对象</p>
+<p>score 表示分值，用于排序和范围查找</p>
+<p>level 是一个柔性数组，它表示节点的层级，每层都有一个前进指针 forward，用于指向相同层级指向表尾方向的下一个节点，而 span 则表示当前节点在当前层级中距离下一个节点的跨度，即两个节点之间的距离。</p>
+<p>初看上去，很容易以为跨度和遍历节点有关，实际并不是，遍历操作只用前进指针就够了，跨度是用来计算排位（rank）的：在查找某个节点的过程中，沿途访问过的所有层的跨度累计起来，就是目标节点在跳表中的排位。</p>
+<p>下图中，查找成员o3，只经历了一层，排位为3</p>
+<p style="text-align: center"><img alt="" loading="lazy" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/202011120920148.png"></p>
+<p>在 Redis 中，每个节点的层级都是根据幂次定律（power law，越大的树出现的概率越小）随机生成的，它是1~32之间的一个数，作为level数组的大小，即高度</p>
+<p>下图分别展示了三个高度为1、3、5层的节点</p>
+<p style="text-align: center"><img alt="" loading="lazy" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/202011120920149.png"></p>
+<p>backward 是一个后退指针，每个节点都有一个，指向当前节点的表头方向的下一个节点，用于从表尾进行遍历</p>
+<p class="maodian"><a name="_lab2_2_6"></a></p><h3>3.2、zskiplist</h3>
+<p>zskiplist 表示一个跳表，声明如下：</p>
+<div class="jb51code">
+<div><div id="highlighter_737268" class="syntaxhighlighter  plain"><div class="toolbar"><span><a href="https://www.jb51.net/article/199510.htm#" class="toolbar_item command_help help">?</a></span></div><table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div><div class="line number2 index1 alt1">2</div><div class="line number3 index2 alt2">3</div><div class="line number4 index3 alt1">4</div><div class="line number5 index4 alt2">5</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="plain plain">typedef struct zskiplist {</code></div><div class="line number2 index1 alt1"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">struct zskiplistNode *header, *tail;</code></div><div class="line number3 index2 alt2"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">unsigned long length;</code></div><div class="line number4 index3 alt1"><code class="plain spaces">&nbsp;&nbsp;</code><code class="plain plain">int level;</code></div><div class="line number5 index4 alt2"><code class="plain plain">} zskiplist;</code></div></div></td></tr></tbody></table></div></div>
+<div class="codetool" id="codetool"><a href="javascript:;" class="selall" title="全选"></a><a href="javascript:;" class="copy" title="复制文本代码"></a><div class="code_n"><textarea></textarea></div></div></div>
+<p>header 和 tail 指针分别指向表头和表尾节点</p>
+<p>length 记录了节点数量</p>
+<p>level 记录了所有节点中层级最高的节点的层级，表头节点的层高不计算在内</p>
+<p>下图是一个跳表的示例，最左侧是一个 zskiplist 结构，其右侧是四个 zskiplistNode 节点，从左向右分别有32层、4层、2层、5层。每个节点向右的指针即前进指针 forward， BW 则表示后退指针 backward，每个节点依据节点的分值 score 进行排列</p>
+<p style="text-align: center"><img alt="" loading="lazy" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/2020111209201410.png"></p>
+<p>到此这篇关于Redis数据结构中的跳跃表的文章就介绍到这了,更多相关Redis数据结构跳跃表内容请搜索脚本之家以前的文章或继续浏览下面的相关文章希望大家以后多多支持脚本之家！</p>
+                            
+                            <div class="art_xg">
+                                <b>您可能感兴趣的文章:</b><ul><li><a href="https://www.jb51.net/article/250946.htm" title="Redis跳跃表的基本原理和实现" target="_blank">Redis跳跃表的基本原理和实现</a></li><li><a href="https://www.jb51.net/database/290515lsy.htm" title="Redis跳跃表添加元素的方法实现" target="_blank">Redis跳跃表添加元素的方法实现</a></li></ul>
+                            </div>
+
+                        </div>
+                        <!--endmain-->
+                        <div class="lbd_bot clearfix"><script async="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/f(5).txt"></script><ins class="adsbygoogle" style="display: block; height: 211px; width: 820px;" data-ad-client="ca-pub-6384567588307613" data-ad-slot="6445926239" data-ad-format="auto" data-full-width-responsive="true" data-adsbygoogle-status="done" data-ad-status="filled"><div id="aswift_1_host" tabindex="0" title="Advertisement" aria-label="Advertisement" style="border: none; height: 211px; width: 820px; margin: 0px; padding: 0px; position: relative; visibility: visible; background-color: transparent; display: inline-block; overflow: hidden;"><iframe id="aswift_1" name="aswift_1" style="left: 0px; position: absolute; top: 0px; border: 0px; width: 820px; height: 211px;" sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-top-navigation-by-user-activation" width="820" height="211" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ads.html" data-google-container-id="a!2" data-google-query-id="CK2ulL-YtoIDFatGDwIdlaoOcA" data-load-complete="true"></iframe></div></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div><div id="ewm"><div class="jb51ewm"><div class="fl"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/jb51ewm.png"></div><div class="fr"><p>微信公众号搜索 “ <span>脚本之家</span> ” ，选择关注</p><p>程序猿的那些事、送书等活动等着你</p></div></div></div><div id="shengming"><p style="font-size:12px;color:#999;text-overflow:ellipsis;overflow:hidden;white-space: nowrap;">原文链接：https://www.cnblogs.com/sherlock-lin/p/13960915.html</p><p>本文来自互联网用户投稿，该文观点仅代表作者本人，不代表本站立场。本站仅提供信息存储空间服务，不拥有所有权，不承担相关法律责任。<br>如若内容造成侵权/违法违规/事实不符，请将相关资料发送至 reterry123@163.com 进行投诉反馈，一经查实，立即处理！</p></div>
+                        <div class="tags clearfix">
+                            <i class="icon-tag"></i>
+                            <ul class="meta-tags">
+                                <li class="tag item"><a href="http://common.jb51.net/tag/Redis/1.htm" target="_blank" title="搜索关于Redis的文章" rel="nofollow">Redis</a></li>
+<li class="tag item"><a href="http://common.jb51.net/tag/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/1.htm" target="_blank" title="搜索关于数据结构的文章" rel="nofollow">数据结构</a></li>
+<li class="tag item"><a href="http://common.jb51.net/tag/%E8%B7%B3%E8%B7%83%E8%A1%A8/1.htm" target="_blank" title="搜索关于跳跃表的文章" rel="nofollow">跳跃表</a></li>
+
+                            </ul>
+                        </div>
+                        <div class="lbd clearfix">
+                            <span id="art_down" class="jbTestPos"><div class="_6ldg4mgxfyk"><iframe id="iframeu4846790_0" name="iframeu4846790_0" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ycgm.html" width="820" height="250" scrolling="no" frameborder="0"></iframe></div></span>
+                        </div>
+                        <div id="shoucang"></div>
+                        <div class="xgcomm clearfix">
+                            <h2>相关文章</h2>
+                            <ul><li class="lbd clearfix"><span id="art_xg" class="jbTestPos"><div class="_3n4x9l70ogy"><iframe id="iframeu4806172_0" name="iframeu4806172_0" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ycgm(1).html" width="820" height="120" scrolling="no" frameborder="0"></iframe></div></span></li><li><div class="item-inner"><a href="https://www.jb51.net/article/80176.htm" title="redis的hGetAll函数的性能问题(记Redis那坑人的HGETALL)" class="img-wrap" target="_blank"> <img alt="redis的hGetAll函数的性能问题(记Redis那坑人的HGETALL)" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg0.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/80176.htm" title="redis的hGetAll函数的性能问题(记Redis那坑人的HGETALL)">redis的hGetAll函数的性能问题(记Redis那坑人的HGETALL)</a></p><div class="item-info"><div class="js">这篇文章主要介绍了redis的hGetAll函数的性能问题,需要的朋友可以参考下</div><span class="lbtn" style="float:right"> 2016-02-02 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/212359.htm" title="redis内存空间效率问题的深入探究" class="img-wrap" target="_blank"> <img alt="redis内存空间效率问题的深入探究" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg1.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/212359.htm" title="redis内存空间效率问题的深入探究">redis内存空间效率问题的深入探究</a></p><div class="item-info"><div class="js">redis缓存固然高效,可是它会占用我们系统中宝贵的内存资源，那该如何解决呢？这篇文章主要给大家介绍了关于redis内存空间效率问题的相关资料，需要的朋友可以参考下</div><span class="lbtn" style="float:right"> 2021-05-05 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/175607.htm" title="从一个小需求感受Redis的独特魅力(需求设计)" class="img-wrap" target="_blank"> <img alt="从一个小需求感受Redis的独特魅力(需求设计)" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg2.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/175607.htm" title="从一个小需求感受Redis的独特魅力(需求设计)">从一个小需求感受Redis的独特魅力(需求设计)</a></p><div class="item-info"><div class="js">Redis在实际应用中使用的非常广泛，本篇文章就从一个简单的需求说起，为你讲述一个需求是如何从头到尾开始做的，又是如何一步步完善的</div><span class="lbtn" style="float:right"> 2019-12-12 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/database/286286uhp.htm" title="redis使用zset实现延时队列的示例代码" class="img-wrap" target="_blank"> <img alt="redis使用zset实现延时队列的示例代码" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg3.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/database/286286uhp.htm" title="redis使用zset实现延时队列的示例代码">redis使用zset实现延时队列的示例代码</a></p><div class="item-info"><div class="js">本文主要介绍了redis使用zset实现延时队列的示例代码，文中通过示例代码介绍的非常详细，对大家的学习或者工作具有一定的参考学习价值，需要的朋友们下面随着小编来一起学习学习吧</div><span class="lbtn" style="float:right"> 2023-06-06 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/230995.htm" title="linux下安装redis图文详细步骤" class="img-wrap" target="_blank"> <img alt="linux下安装redis图文详细步骤" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg4.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/230995.htm" title="linux下安装redis图文详细步骤">linux下安装redis图文详细步骤</a></p><div class="item-info"><div class="js">大家好，本篇文章主要讲的是linux下安装redis图文详细步骤，感兴趣的同学赶快来看一看吧，对你有帮助的话记得收藏一下，方便下次浏览</div><span class="lbtn" style="float:right"> 2021-12-12 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/263066.htm" title="Spring Boot 整合Redis 实现优惠卷秒杀 一人一单功能" class="img-wrap" target="_blank"> <img alt="Spring Boot 整合Redis 实现优惠卷秒杀 一人一单功能" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg5.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/263066.htm" title="Spring Boot 整合Redis 实现优惠卷秒杀 一人一单功能">Spring&nbsp;Boot&nbsp;整合Redis&nbsp;实现优惠卷秒杀&nbsp;一人一单功能</a></p><div class="item-info"><div class="js">这篇文章主要介绍了Spring&nbsp;Boot&nbsp;整合Redis&nbsp;实现优惠卷秒杀&nbsp;一人一单,在分布式系统下，高并发的场景下，会出现此类库存超卖问题，本篇文章介绍了采用乐观锁来解决，需要的朋友可以参考下</div><span class="lbtn" style="float:right"> 2022-09-09 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/258824.htm" title="redis监听key过期事件的详细步骤" class="img-wrap" target="_blank"> <img alt="redis监听key过期事件的详细步骤" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg6.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/258824.htm" title="redis监听key过期事件的详细步骤">redis监听key过期事件的详细步骤</a></p><div class="item-info"><div class="js">本文主要介绍了redis监听key过期事件的详细步骤，文中通过示例代码介绍的非常详细，对大家的学习或者工作具有一定的参考学习价值，需要的朋友们下面随着小编来一起学习学习吧</div><span class="lbtn" style="float:right"> 2022-08-08 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/257064.htm" title="Redis超详细分析分布式锁" class="img-wrap" target="_blank"> <img alt="Redis超详细分析分布式锁" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg7.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/257064.htm" title="Redis超详细分析分布式锁">Redis超详细分析分布式锁</a></p><div class="item-info"><div class="js">在单体应用中，如果我们对共享数据不进行加锁操作，会出现数据一致性问题，我们的解决办法通常是加锁。下面我们一起聊聊使用redis来实现分布式锁</div><span class="lbtn" style="float:right"> 2022-07-07 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/256958.htm" title="Redis实现事物以及锁的方法" class="img-wrap" target="_blank"> <img alt="Redis实现事物以及锁的方法" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg8.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/256958.htm" title="Redis实现事物以及锁的方法">Redis实现事物以及锁的方法</a></p><div class="item-info"><div class="js">本文主要介绍了Redis实现事物以及锁的方法，文中通过示例代码介绍的非常详细，对大家的学习或者工作具有一定的参考学习价值，需要的朋友们下面随着小编来一起学习学习吧</div><span class="lbtn" style="float:right"> 2022-07-07 </span></div></div></div></div></li>
+<li><div class="item-inner"><a href="https://www.jb51.net/article/212331.htm" title="深入浅析Redis 集群伸缩原理" class="img-wrap" target="_blank"> <img alt="深入浅析Redis 集群伸缩原理" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bcimg9.png"> </a><div class="rbox"><div class="rbox-inner"><p><a class="link title" target="_blank" href="https://www.jb51.net/article/212331.htm" title="深入浅析Redis 集群伸缩原理">深入浅析Redis 集群伸缩原理</a></p><div class="item-info"><div class="js">Redis 集群提供了灵活的节点扩容和收缩方案。在不影响集群对外服务的情况下，可以为集群添加节点进行扩容，也可以下线部分节点进行缩容，接下来通过本文给大家分享Redis 集群伸缩原理，感兴趣的朋友一起看看吧</div><span class="lbtn" style="float:right"> 2021-05-05 </span></div></div></div></div></li>
+</ul>
+                        </div>
+                        <div class="lbd clearfix mt5">
+                            <span id="art_down2" class="jbTestPos"><div class="_idr81sjfla"><iframe id="iframeu5010600_0" name="iframeu5010600_0" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ycgm(2).html" width="820" height="120" scrolling="no" frameborder="0"></iframe></div></span>
+                        </div>
+                        <a href="https://www.jb51.net/article/199510.htm#comments"></a>
+                        <div id="comments">
+                            <h2>最新评论</h2>
+                            <div class="pd5">
+                                <div id="SOHUCS" sid="art_199510"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--endborder-->
+                </div>
+                <!--end fl-->
+
+                <div class="main-right">
+                    <div id="sidebar-right">
+                        <div class="r300 clearfix"><span id="side_up" class="jbTestPos"><div class="_xo11y55aop"><iframe id="iframeu6561626_0" name="iframeu6561626_0" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ycgm(3).html" width="300" height="250" scrolling="no" frameborder="0"></iframe></div></span></div>
+                        <div class="sidebox-recomm"></div>
+                        <div class="r300 clearfix"><div class="blank10"></div><a href="https://www.hncloud.com/activity_2022_815.html?p=jb51&amp;815" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/hncloud_295.gif" alt="" width="300" height="100"><span class="tipsa_d">广告　商业广告，理性选择</span></a></div>
+                        <div class="r300 clearfix mt10"><a href="https://www.yiyangidc.com/" target="_blank"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/yysjk300.png" width="300" height="100" class="nohref"></a></div><div class="sidebox bor-blue">
+                            <div class="bor-default pb10">
+                                <h4 class="blue">大家感兴趣的内容</h4>
+                                <ul class="newsList newList-in">
+                                    <li><em class="no1">1</em><a href="https://www.jb51.net/article/56448.htm" title="超强、超详细Redis数据库入门教程" target="_blank">超强、超详细Redis数据库入门教程</a></li><li><em class="no2">2</em><a href="https://www.jb51.net/article/60627.htm" title="redis常用命令、常见错误、配置技巧等分享" target="_blank">redis常用命令、常见错误、配置技巧等分享</a></li><li><em class="no3">3</em><a href="https://www.jb51.net/article/54774.htm" title="Redis中5种数据结构的使用场景介绍" target="_blank">Redis中5种数据结构的使用场景介绍</a></li><li><em class="no4">4</em><a href="https://www.jb51.net/article/61793.htm" title="Redis操作命令总结" target="_blank">Redis操作命令总结</a></li><li><em class="no5">5</em><a href="https://www.jb51.net/article/137916.htm" title="Redis 密码设置和查看密码的方法" target="_blank">Redis 密码设置和查看密码的方法</a></li><li><em class="no6">6</em><a href="https://www.jb51.net/article/208969.htm" title="推荐几款 Redis 可视化工具(太厉害了)" target="_blank">推荐几款 Redis 可视化工具(太厉害了)</a></li><li><em class="no7">7</em><a href="https://www.jb51.net/article/54747.htm" title="64位Windows下安装Redis教程" target="_blank">64位Windows下安装Redis教程</a></li><li><em class="no8">8</em><a href="https://www.jb51.net/article/211498.htm" title="redis 查看所有的key方式" target="_blank">redis 查看所有的key方式</a></li><li><em class="no9">9</em><a href="https://www.jb51.net/article/57066.htm" title="redis中使用redis-dump导出、导入、还原数据实例" target="_blank">redis中使用redis-dump导出、导入、还原数据实例</a></li><li><em class="no10">10</em><a href="https://www.jb51.net/article/62877.htm" title="Redis中统计各种数据大小的方法" target="_blank">Redis中统计各种数据大小的方法</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="r300 clearfix mt10"><span id="idctu" class="jbTestPos"><div class="_we1rr82wjel"><iframe id="iframeu6390620_0" name="iframeu6390620_0" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ycgm(4).html" width="300" height="250" scrolling="no" frameborder="0"></iframe></div><a href="https://www.henghost.com/act/2021newyear.html?jbzj" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/henghost300.png" width="300" height="100"><span class="tipsa_d">广告　商业广告，理性选择</span></a><div class="blank10"></div><a href="https://www.50vm.com/server.html?pg=34" target="_blank" class="tipsa_ds"><img alt="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/99idc300.jpg" width="300" height="100"><span class="tipsa_d">广告　商业广告，理性选择</span></a></span></div>
+                        <div class="sidebox bor-blue">
+                            <div class="bor-default pb10">
+                                <h4 class="blue">最近更新的内容</h4>
+                                <ul class="newsListA">
+                                    <li><a href="https://www.jb51.net/article/125764.htm" title="详细分析Redis集群故障" target="_blank">详细分析Redis集群故障</a></li><li><a href="https://www.jb51.net/article/104307.htm" title="利用Redis统计网站在线活跃用户的方法" target="_blank">利用Redis统计网站在线活跃用户的方法</a></li><li><a href="https://www.jb51.net/article/159575.htm" title="安装redis（windows和Ubuntu）详解" target="_blank">安装redis（windows和Ubuntu）详解</a></li><li><a href="https://www.jb51.net/article/198660.htm" title="基于Redis+Lua脚本实现分布式限流组件封装的方法" target="_blank">基于Redis+Lua脚本实现分布式限流组件封装的方法</a></li><li><a href="https://www.jb51.net/article/237700.htm" title="Redis实现排名功能的示例代码" target="_blank">Redis实现排名功能的示例代码</a></li><li><a href="https://www.jb51.net/article/111483.htm" title="一起raid数据恢复及回迁成功的案例" target="_blank">一起raid数据恢复及回迁成功的案例</a></li><li><a href="https://www.jb51.net/article/230085.htm" title="Redis 如何批量设置过期时间(PIPLINE的使用)" target="_blank">Redis&nbsp;如何批量设置过期时间(PIPLINE的使用)</a></li><li><a href="https://www.jb51.net/article/252633.htm" title="百行代码实现基于Redis的可靠延迟队列" target="_blank">百行代码实现基于Redis的可靠延迟队列</a></li><li><a href="https://www.jb51.net/article/280823.htm" title="Windows中redis设置密码的两种方法" target="_blank">Windows中redis设置密码的两种方法</a></li><li><a href="https://www.jb51.net/article/250921.htm" title="YII2框架手动安装Redis扩展的过程" target="_blank">YII2框架手动安装Redis扩展的过程</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="r300 clearfix mt10"><div class="idc3"><a href="http://tools.jb51.net/" target="_blank"><h1>在线工具</h1><span>代码格式化等</span> </a><a href="https://www.jb51.net/s/idc/" target="_blank"><h1>高防主机</h1><span>600G 防护</span> </a><a href="http://www.33ip.com/" target="_blank"><h1>枫信科技</h1><span>IDC服务商</span> </a></div></div>
+                        <div class="sidebox bor-blue">
+                            <div class="bor-default pb10">
+                                <h4 class="blue">常用在线小工具</h4>
+                                <ul class="newsListA"><li><a href="http://tools.jb51.net/code/css" target="_blank">CSS代码工具</a></li><li><a href="http://tools.jb51.net/code/js" target="_blank">JavaScript代码格式化工具</a></li><li><a href="http://tools.jb51.net/code/xmlformat" target="_blank">在线XML格式化/压缩工具</a></li><li><a href="http://tools.jb51.net/code/phpformat" target="_blank">php代码在线格式化美化工具</a></li><li><a href="http://tools.jb51.net/code/sqlcodeformat" target="_blank">sql代码在线格式化美化工具</a></li><li><a href="http://tools.jb51.net/transcoding/html_transcode" target="_blank">在线HTML转义/反转义工具</a></li><li><a href="http://tools.jb51.net/code/json" target="_blank">在线JSON代码检验/检验/美化/格式化</a></li><li><a href="http://tools.jb51.net/regex/javascript" target="_blank">JavaScript正则在线测试工具</a></li><li><a href="http://tools.jb51.net/transcoding/jb51qrcode" target="_blank">在线生成二维码工具(加强版)</a></li><li><a href="http://tools.jb51.net/" target="_blank">更多在线工具</a></li></ul>
+                            </div>
+                        </div>
+                        <div class="r300 clearfix mt10"><a href="http://www.tuidc.com/indexhd.html" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/tengyou300.gif" width="300" height="100"><span class="tipsa_d">广告　商业广告，理性选择</span></a><div class="blank10"></div><a href="https://www.yiyangidc.com/" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/yyqz300.gif" alt="服务器" width="300" height="100"><span class="tipsa_d">广告　商业广告，理性选择</span></a><div class="blank10"></div><a href="http://www.boluoyun.com/" target="_blank" class="tipsa_ds"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/bly300.jpg" alt="云服务器" width="300" height="100"><span class="tipsa_d">广告　商业广告，理性选择</span></a></div>
+                        <div class="mt10 rFixedBox" style="position: fixed; top: 0px;">
+                            <div class="r300 clearfix"><script async="" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/f(6).txt" crossorigin="anonymous" data-checked-head="true"></script><ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-6384567588307613" data-ad-slot="6500564943" data-adsbygoogle-status="done" data-ad-status="filled"><div id="aswift_2_host" tabindex="0" title="Advertisement" aria-label="Advertisement" style="border: none; height: 250px; width: 300px; margin: 0px; padding: 0px; position: relative; visibility: visible; background-color: transparent; display: inline-block;"><iframe id="aswift_2" name="aswift_2" style="left:0;position:absolute;top:0;border:0;width:300px;height:250px;" sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-top-navigation-by-user-activation" width="300" height="250" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ads(1).html" data-google-container-id="a!3" data-google-query-id="CPPCl7mYtoIDFcxrDwIdaLsD5Q" data-load-complete="true"></iframe></div></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>
+                            <div class="r300 clearfix mt10">
+                                <span id="rbbd" class="jbTestPos"><div class="_zx84jc734c9"><iframe id="iframeu4519613_0" name="iframeu4519613_0" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ycgm(5).html" width="300" height="250" scrolling="no" frameborder="0"></iframe></div></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--end fr-->
+            </div>
+        </div>
+        <!--share start-->
+        <div id="right-share" class="lefts" style="display: block;">
+            <div class="right-share jb-share" id="jb-share">
+                <a class="rshare-weixin" title="">微信</a>
+                <a rel="nofollow" class="rshare-qzone" target="_blank" href="http://tougao.jb51.net/" title="投稿">投稿</a>
+                <a rel="nofollow" class="rshare-sqq" target="_blank" href="https://task.jb51.net/" title="脚本任务">脚本任务</a>
+                <a rel="nofollow" class="rshare-tsina" target="_blank" href="http://tools.jb51.net/" title="在线工具">在线工具</a>
+            </div>
+            <a class="rshare-top" onclick="javascript:;"></a>
+            <div id="weixin-code" class="hide">
+                <div class="popup_weixin_head">
+                    <p>关注微信公众号</p>
+                    <div id="code"><img src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/erwm.jpg" alt="扫一扫" width="100" height="100"></div>
+                </div>
+            </div>
+        </div>
+        <!--share end-->
+        <!-- 目录容器 -->
+        <div class="AutoCatelog">
+            <div class="AutoCatelogLlist" id="CatelogList" style="display: block;"></div>
+        </div>
+    </div>
+    <!--end content-->
+    <div id="footer">
+        <div class="footer-bottom">
+            <p>
+                <a rel="nofollow" href="https://www.jb51.net/about.htm" target="_blank">关于我们</a> -
+                <a rel="nofollow" href="https://www.jb51.net/support.htm" target="_blank">广告合作</a> -
+                <a rel="nofollow" href="https://www.jb51.net/linkus.htm" target="_blank">联系我们</a> -
+                <a rel="nofollow" href="https://www.jb51.net/sm.htm" target="_blank">免责声明</a> -
+                <a rel="nofollow" href="https://www.jb51.net/sitemap.htm" target="_blank">网站地图</a> -
+                <a rel="nofollow" href="tencent://message/?uin=461478385&amp;Site=https://www.jb51.net" target="_blank">投诉建议</a> -
+                <a rel="nofollow" href="https://www.jb51.net/up.htm" target="_blank">在线投稿</a>
+            </p>
+            <p>©CopyRight 2006-2023 JB51.Net Inc All Rights Reserved. 脚本之家 版权所有</p>
+        </div>
+    </div>
+    <!--end footer-->
+    <script type="text/javascript">
+        var ourl = "104.116.116.112.115.58.47.47.119.119.119.46.99.110.98.108.111.103.115.46.99.111.109.47.115.104.101.114.108.111.99.107.45.108.105.110.47.112.47.49.51.57.54.48.57.49.53.46.104.116.109.108.";
+    </script>
+    ﻿<link type="text/css" rel="stylesheet" href="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/extend.css">
+<script type="text/javascript" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/extend.js.下载"></script><script src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/11.0.1.js.下载" id="sozz"></script><script charset="utf-8" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ab77b6ea7f3fbf79.js.下载"></script>
+<script type="text/javascript" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/arc2019.js.下载"></script>
+<script type="text/javascript" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/viewer.min.js.下载"></script>
+<script type="text/javascript">
+if ('undefined' == typeof(window.Viewer)) {
+        document.write(unescape("%3Cscr"+"ipt src='/skin/js/viewer.min.js' type='text/javascript'%3E%3C/scr"+"ipt%3E"));
+    }
+var viewer = new Viewer(getid('content'));
+</script>
+<div id="tongji">
+<script type="text/javascript" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/tongji.js.下载"></script><script src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/hm.js(1).下载" language="JavaScript"></script>
+</div>
+    <script type="text/javascript">$(function(){$.get("//www.jb51.net/pl.asp?id=199510");})</script>
+    <script type="application/ld+json">
+        {
+            "@context": "https://ziyuan.baidu.com/contexts/cambrian.jsonld",
+            "@id": "https://www.jb51.net/article/199510.htm",
+            "appid": "1549322409310619",
+            "title": "详解Redis数据结构之跳跃表",
+            "description": "这篇文章主要介绍了Redis数据结构中的跳跃表的相关知识，本文给大家介绍的非常详细，对大家的学习或工作具有一定的参考借鉴价值,需要的朋友可以参考下",
+            "pubDate": "2020-11-12T09:24:01",
+            "upDate": "2020-11-12T09:24:00"
+        }
+
+    </script>
+
+<script id="bs-cm" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/cm.js.下载" async="async" defer="defer"></script><ins class="adsbygoogle adsbygoogle-noablate" data-adsbygoogle-status="done" style="display: none !important;" data-ad-status="unfilled"><div id="aswift_0_host" tabindex="0" title="Advertisement" aria-label="Advertisement" style="border: none; height: 0px; width: 0px; margin: 0px; padding: 0px; position: relative; visibility: visible; background-color: transparent; display: inline-block;"><iframe id="aswift_0" name="aswift_0" style="left:0;position:absolute;top:0;border:0;width:undefinedpx;height:undefinedpx;" sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-top-navigation-by-user-activation" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/ads(2).html" data-google-container-id="a!1" data-load-complete="true"></iframe></div></ins><iframe src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/aframe.html" width="0" height="0" style="display: none;"></iframe></body><iframe id="google_esf" name="google_esf" src="./详解Redis数据结构之跳跃表_Redis_脚本之家_files/zrt_lookup.html" style="display: none;"></iframe></html>

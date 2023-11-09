@@ -556,9 +556,12 @@ struct __wt_col_rle {
  */
 //https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
 //__wt_page_alloc分配空间，通过WT_INTL_INDEX_GET(session, page, pindex);获取page对应的__wt_page_index
+//可以参考__split_parent
 struct __wt_page_index {
+    //数组大小
     uint32_t entries;
     uint32_t deleted_entries;
+    //指向真实的index数组地址
     WT_REF **index;
 };
 
@@ -1006,6 +1009,7 @@ struct __wt_ref {
      * need to see that change when looking up our slot in the page's index structure.
      */
     WT_PAGE *volatile home;        /* Reference page */
+    //代表该ref在父page index[]数组的位置
     volatile uint32_t pindex_hint; /* Reference page index hint */
 
     uint8_t unused[2]; /* Padding: before the flags field so flags can be easily expanded. */

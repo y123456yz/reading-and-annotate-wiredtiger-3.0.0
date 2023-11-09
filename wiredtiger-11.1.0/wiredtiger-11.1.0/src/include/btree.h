@@ -69,7 +69,10 @@ typedef enum __wt_btree_type {
 } WT_BTREE_TYPE;
 
 typedef enum __wt_btree_sync {
+    //默认为该值
     WT_BTREE_SYNC_OFF,
+
+    //只有在__wt_sync_file中进入这两个状态
     WT_BTREE_SYNC_WAIT,
     WT_BTREE_SYNC_RUNNING
 } WT_BTREE_SYNC;

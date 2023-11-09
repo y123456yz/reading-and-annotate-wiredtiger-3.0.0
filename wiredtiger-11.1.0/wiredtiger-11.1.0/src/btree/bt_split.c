@@ -34,6 +34,7 @@ typedef enum {
  *     Free a buffer if we can be sure no thread is accessing it, or schedule it to be freed
  *     otherwise.
  */
+//添加需要释放的p先添加到stash中存起来
 static int
 __split_safe_free(WT_SESSION_IMPL *session, uint64_t split_gen, bool exclusive, void *p, size_t s)
 {
@@ -632,7 +633,7 @@ __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *paren
 /*
  * __split_parent --
  *     Resolve a multi-page split, inserting new information into the parent.
- //ref记录split之前的page,ref_new为split后的page
+ //ref记录split之前的page,ref_new为split后的page, ref_new是一个数组，代表从一个ref拆分到了new_entries个ref
  */
 static int
 __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t new_entries,
@@ -653,6 +654,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
     bool empty_parent;
 
     btree = S2BT(session);
+    //也就是ref的父节点
     parent = ref->home;
 
     alloc_index = pindex = NULL;
@@ -681,6 +683,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      * sync.
      */
     deleted_entries = 0;
+    //删除该parent下面带有WT_REF_DELETED标记的page
     if (!WT_BTREE_SYNCING(btree) || WT_SESSION_BTREE_SYNC(session))
         for (i = 0; i < parent_entries; ++i) {
             next_ref = pindex->index[i];
@@ -702,6 +705,8 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
                 if (scr == NULL)
                     WT_ERR(__wt_scr_alloc(session, 10 * sizeof(uint32_t), &scr));
                 WT_ERR(__wt_buf_grow(session, scr, (deleted_entries + 1) * sizeof(uint32_t)));
+
+                //需要清理的page添加到该数组中
                 deleted_refs = scr->mem;
                 deleted_refs[deleted_entries++] = i;
             }
@@ -711,6 +716,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      * The final entry count is the original count, where one entry will be replaced by some number
      * of new entries, and some number will be deleted.
      */
+    //剔除parent下面需要删除的page后的page数
     result_entries = (parent_entries + (new_entries - 1)) - deleted_entries;
 
     /*
@@ -719,8 +725,12 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      */
     if (result_entries == 0) {
         empty_parent = true;
+        
         if (!__wt_ref_is_root(parent->pg_intl_parent_ref))
+            //不受root节点
             __wt_page_evict_soon(session, parent->pg_intl_parent_ref);
+            
+        //如果ref对应父节点ref是root节点
         goto err;
     }
 
@@ -735,10 +745,14 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
     size = sizeof(WT_PAGE_INDEX) + result_entries * sizeof(WT_REF *);
     WT_ERR(__wt_calloc(session, 1, size, &alloc_index));
     parent_incr += size;
+    //指向真实的index数组地址
     alloc_index->index = (WT_REF **)(alloc_index + 1);
+    //数组大小
     alloc_index->entries = result_entries;
     for (alloc_refp = alloc_index->index, hint = i = 0; i < parent_entries; ++i) {
         next_ref = pindex->index[i];
+
+        //需要拆分的就是这个ref, 一个ref拆分为new_entries个
         if (next_ref == ref) {
             for (j = 0; j < new_entries; ++j) {
                 ref_new[j]->home = parent;
@@ -775,6 +789,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      * threads descending the tree.
      */
     WT_ASSERT(session, WT_INTL_INDEX_GET_SAFE(parent) == pindex);
+    //设置父节点的index数组为新的alloc_index
     WT_INTL_INDEX_SET(parent, alloc_index);
     alloc_index = NULL;
 
@@ -788,6 +803,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      */
     WT_FULL_BARRIER();
     split_gen = __wt_gen(session, WT_GEN_SPLIT);
+    //记录该internal page分裂的次数  __split_parent中赋值
     parent->pg_intl_split_gen = split_gen;
 
 #ifdef HAVE_DIAGNOSTIC
@@ -809,7 +825,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
     if (discard) {
         WT_ASSERT(session, exclusive || ref->state == WT_REF_LOCKED);
         WT_TRET(
-          //ref及对page资源释放
+          //老的ref需要释放资源，因为已经被新的ref_new给替代了
           __split_parent_discard_ref(session, ref, parent, &parent_decr, split_gen, exclusive));
     }
 
@@ -1786,6 +1802,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     void *key;
     WT_DBG *ds, _ds;
 
+    //yang add todo xxxxx 挪动到后面会更加准确
     WT_STAT_CONN_DATA_INCR(session, cache_inmem_split);
 
     page = ref->page;
@@ -1813,6 +1830,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
         ins_head = WT_COL_APPEND(page);
 
     //获取跳跃表中的最后一个成员KV, 也就是该page最大得K
+    //下面的新page，也就是righ page中拆分后只存储这一个KEY
     moved_ins = WT_SKIP_LAST(ins_head);
 
     /*
@@ -1898,9 +1916,10 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      * Calculate how much memory we're moving: figure out how deep the skip list stack is for the
      * element we are moving, and the memory used by the item's list of updates.
      */
-    //
+    //也就是确认跳跃表中最后一个moved_ins成员对应的辅助WT_INSERT指针数组有多少个，参考https://www.jb51.net/article/199510.htm
     for (i = 0; i < WT_SKIP_MAXDEPTH && ins_head->tail[i] == moved_ins; ++i)
         ;
+    //计数从ref[0]对应原始page移动到ref[1]对应拆分后新增的page的内存
     WT_MEM_TRANSFER(page_decr, right_incr, sizeof(WT_INSERT) + (size_t)i * sizeof(WT_INSERT *));
     if (type == WT_PAGE_ROW_LEAF)
         WT_MEM_TRANSFER(page_decr, right_incr, WT_INSERT_KEY_SIZE(moved_ins));
@@ -1948,18 +1967,22 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      *   4) If the tail is the item being moved, remove it.
      *   5) Drop down a level, and go to step 3 until at level 0.
      */
-    //从原page对应跳跃表中摘除moved_ins节点
+    //从原page对应跳跃表中摘除moved_ins节点, moved_ins是跳跃表中最大的一个K，因此只需要摘除改跳跃表每层指向该节点的指针即可
     prev_ins = NULL; /* -Wconditional-uninitialized */
     for (i = WT_SKIP_MAXDEPTH - 1, insp = &ins_head->head[i]; i >= 0; i--, insp--) {
         /* Level empty, or a single element. */
+        //跳跃表中没有elem，或者只有一个elem
         if (ins_head->head[i] == NULL || ins_head->head[i] == ins_head->tail[i]) {
             /* Remove if it is the element being moved. */
+            //把moved_ins从原来的ins_head跳跃表中移除
             if (ins_head->head[i] == moved_ins)
                 ins_head->head[i] = ins_head->tail[i] = NULL;
             continue;
         }
 
+        //遍历地i层，直到改层末尾
         for (ins = *insp; ins != ins_head->tail[i]; ins = ins->next[i])
+            //记录下这一层指向的最后一个elem的前一个elem, 间接说明这一层至少2个elem
             prev_ins = ins;
 
         /*
@@ -1967,7 +1990,8 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
          * prev_ins is valid since levels must contain at least two items to be here.
          */
         insp = &prev_ins->next[i];
-        if (ins == moved_ins) {
+        //如果该层的最后一个指针指向了该成员，则让next指向null， 同时更改该层的tail到上一个节点
+        if (ins == moved_ins) { 
             /* Remove the item being moved. */
             WT_ASSERT(session, ins_head->head[i] != moved_ins);
             WT_ASSERT(session, prev_ins->next[i] == moved_ins);
@@ -2021,6 +2045,10 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     if ((ret = __split_parent(session, ref, split_ref, 2, parent_incr, false, true)) == 0)
         return (0);
 
+
+
+    //__split_parent异常，下面需要释放申请的资源信息
+    
     /*
      * Failure.
      *
@@ -2038,6 +2066,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
      * list. As before, we depend on the list having multiple elements and ignore the edge cases
      * small lists have.
      */
+    //
     if (type == WT_PAGE_ROW_LEAF)
         right->modify->mod_row_insert[0]->head[0] = right->modify->mod_row_insert[0]->tail[0] =
           NULL;
@@ -2045,7 +2074,11 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
         right->modify->mod_col_append[0]->head[0] = right->modify->mod_col_append[0]->tail[0] =
           NULL;
 
+    //移除的这个KV需要恢复到源page对应跳跃表末尾
+    
+    //跳跃表中已有的最末尾的数据的next指向moved_ins
     ins_head->tail[0]->next[0] = moved_ins;
+    //跳跃表的第0层的tail直接指向该节点
     ins_head->tail[0] = moved_ins;
 
     /* Fix up accounting for the page size. */

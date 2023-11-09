@@ -1,0 +1,236 @@
+﻿var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?b88cfc1ccab788f0903cac38c894caa3";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+//document.write('<scr'+'ipt src="//s73.cnzz.com/stat.php?id=1585378&web_id=1585378" language="JavaScript"></sc'+'ript>');
+
+//document.write('<scr'+'ipt async defer data-website-id="4b184fb7-20a6-45ef-b5b9-dbf8ecc5400e" src="//tongji.fkxz.cn/umami.js"></sc'+'ript>');
+
+if("undefined" != typeof tougao){
+switch(tougao)
+{	
+	//mdxy-dxy
+	case "mdxy-dxy" :
+	document.write('<scrip'+'t src="//s25.cnzz.com/stat.php?id=5488963&web_id=5488963" language="JavaScript"></sc'+'ript>');
+	break;	
+	
+	//jingxian
+	case "jingxian" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?3e014f2a63d42a203300b0b3e68e51c9" language="JavaScript"></sc'+'ript>');
+	break;	
+	
+	//sunjs bc
+	case "hebedich" :	
+    document.write('<scrip'+'t src="//hm.baidu.com/hm.js?2f08d9a7541635633c6480bd9904d9bb" language="JavaScript"></sc'+'ript>');    
+	break;	
+	
+	//maran
+	case "mrr" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?686f394467d1fa41330b7ec215a0e987" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//lijiao
+	case "lijiao" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?54d0b8d6094288e0ad62a9f9173a1939" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//zhoudan bc
+	case "daisy" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?0d2290e6be737c13de17a40ee6d5c291" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//zhangxin bc
+	case "zx" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?c7163fef5b7c0a36e2437080f6fad9c7" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//yandong bc
+	case "wdc" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?5fa366e1fe7677239ec902c8cd5aa443" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//shichen
+	case "shichen2014" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?db2e99ba41827523a2447550b9e2a6b8" language="JavaScript"></sc'+'ript>');
+	break;
+        
+    case "WDC" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?5fa366e1fe7677239ec902c8cd5aa443" language="JavaScript"></sc'+'ript>');
+	break;    
+	
+	//zhangjunjian bc
+	case "laozhang" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?fde78fc61710553c5bb807fad8a127ae" language="JavaScript"></sc'+'ript>');
+	break;
+	//caobin bc
+	case "caobin" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?ccb939641ec48fec55dbc295dbed8ab6" language="JavaScript"></sc'+'ript>');
+	break;
+	//bairu bc
+	case "bairu" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?1c7ab0c14a2bfd593291eba0535120c7" language="JavaScript"></sc'+'ript>');
+	break;
+	//ycy bc
+	case "ychy" :
+		document.write('<scrip'+'t src="//hm.baidu.com/hm.js?4b2f9e3fd2c28d1fd7e68ae9c76dae3c" language="JavaScript"></sc'+'ript>');
+		break;
+
+	//zhxr bc
+	case "zhxr" :
+		document.write('<scrip'+'t src="//hm.baidu.com/hm.js?c9701187b17298607fd51d4193e1866c" language="JavaScript"></sc'+'ript>');
+		break;
+
+	//gwy bc
+	case "gwy" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?2368802bc6606c2f12d65be25378d41b" language="JavaScript"></sc'+'ript>');
+		break;
+
+	case "yin" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?86b23c7e95da381f47b1b034ff070a8e" language="JavaScript"></sc'+'ript>');
+		break;
+		
+//下面是php统计
+	//caobin php
+	case "99" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?ccb939641ec48fec55dbc295dbed8ab6" language="JavaScript"></sc'+'ript>');
+	break;
+	case "98" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?cb251601edaa0d408adc09afcdad9aa9" language="JavaScript"></sc'+'ript>');
+	break;
+	//bairu bc
+	case "100" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?1c7ab0c14a2bfd593291eba0535120c7" language="JavaScript"></sc'+'ript>');
+	break;
+	//ycy
+	case "93" :
+		document.write('<scrip'+'t src="//hm.baidu.com/hm.js?4b2f9e3fd2c28d1fd7e68ae9c76dae3c" language="JavaScript"></sc'+'ript>');
+		break;
+
+	//zhangjunjian
+	case "72" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?fde78fc61710553c5bb807fad8a127ae" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//zf
+	case "20" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?94297e1c9eef4010e6c8b3c8558b03c9" language="JavaScript"></sc'+'ript>');
+		break;
+
+	//jingxian
+	case "12" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?3e014f2a63d42a203300b0b3e68e51c9" language="JavaScript"></sc'+'ript>');
+	break;	
+	
+	//pyg
+	case "23" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?24a40657ea6911d266f2923db7ef5a14" language="JavaScript"></sc'+'ript>');
+	break;
+	
+    //yaozhenbao
+	case "85" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?434aaf57a0b260db8f737742fc027553" language="JavaScript"></sc'+'ript>');
+	break;
+    
+	//liudan
+	case "82" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?74a1edaf8e16dbe6826df8c32d115b3e" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//zhaotingting
+	case "73" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?79a1be1ba37d0ed920b08548c7409074" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//zhangjunjian
+	case "72" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?fde78fc61710553c5bb807fad8a127ae" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//yandong
+	case "68" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?5fa366e1fe7677239ec902c8cd5aa443" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//shangjun
+	case "66" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?b0fc5f106f4cbb2f6a37d23fa787d657" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//zhangxin
+	case "63" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?c7163fef5b7c0a36e2437080f6fad9c7" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//zhoudan
+	case "61" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?0d2290e6be737c13de17a40ee6d5c291" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//wuyue
+	case "60" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?36be3a18baba0b78fe067a7879c306ff" language="JavaScript"></sc'+'ript>');
+	break;
+			
+	//lijiao
+	case "50" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?54d0b8d6094288e0ad62a9f9173a1939" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//maran
+	case "49" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?686f394467d1fa41330b7ec215a0e987" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//chenxuejiao
+	case "37" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?9c48d0c6d520c80f04f3535503b49089" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//shichen
+	case "36" :	
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?db2e99ba41827523a2447550b9e2a6b8" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//sunjingsong
+	case "34" :	
+    document.write('<scrip'+'t src="//hm.baidu.com/hm.js?2f08d9a7541635633c6480bd9904d9bb" language="JavaScript"></sc'+'ript>');    
+	break;
+	
+	//huliuyue
+	case "27" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?c1a3667a5e7eaf820ff8a59e047addbe" language="JavaScript"></sc'+'ript>');
+	break;
+	
+	//xss
+	case "10" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?14a5460c5d4cd0a4bbdad89a3059df7a" language="JavaScript"></sc'+'ript>');
+	break;	
+
+	//zhxr
+	case "92" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?c9701187b17298607fd51d4193e1866c" language="JavaScript"></sc'+'ript>');
+	break;	
+
+	//ycy
+	case "93" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?4b2f9e3fd2c28d1fd7e68ae9c76dae3c" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//xiaolong
+	case "6" :
+	document.write('<scrip'+'t src="//hm.baidu.com/hm.js?1d47bc7172d1390651cdea117465a9d0" language="JavaScript"></sc'+'ript>');
+	break;
+
+	//mdxy-dxy
+	case "1" :
+	document.write('<scrip'+'t src="//s25.cnzz.com/stat.php?id=5488963&web_id=5488963" language="JavaScript"></sc'+'ript>');
+	break;	
+  default :  
+  //其它
+        document.write('<scrip'+'t src="//s25.cnzz.com/stat.php?id=5488951&web_id=5488951" language="JavaScript"></sc'+'ript>');
+  break;
+}
+} 
