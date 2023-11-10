@@ -533,6 +533,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 
     for (; ins != NULL; ins = WT_SKIP_NEXT(ins)) {//遍历跳跃表
          //获取该ins对应的update链表中最新的V
+         //获取该ins对应的update链表中最新的V存储到upd_select， 及其可用历史版本存储到r->supd
         WT_RET(__wt_rec_upd_select(session, r, ins, NULL, NULL, &upd_select));
         if ((upd = upd_select.upd) == NULL) {//upd记录的是该key对应的value修改列表，一般不会进来
             /*
@@ -725,6 +726,7 @@ __wt_rec_row_leaf(
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
      */
     //把这个KV数据添加到r->first_free对应内存空间
+    //ins对应WT_ROW_INSERT_SMALLEST(page)这个跳跃表第0层，遍历该层即可获取该跳跃表所有数据
     if ((ins = WT_SKIP_FIRST(WT_ROW_INSERT_SMALLEST(page))) != NULL) {
        // printf("yang test .......11111111111111111111111..............__wt_rec_row_leaf.......................\r\n");
         //__rec_row_leaf_insert: 把这个KV数据添加到r->first_free对应内存空间

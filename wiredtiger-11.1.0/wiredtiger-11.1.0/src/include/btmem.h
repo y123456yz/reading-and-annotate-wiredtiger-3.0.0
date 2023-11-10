@@ -257,6 +257,7 @@ struct __wt_ovfl_reuse {
  * WT_SAVE_UPD --
  *	Unresolved updates found during reconciliation.
  */
+//¸´ÖÆ²Î¿¼__rec_update_save
 struct __wt_save_upd {
     WT_INSERT *ins; /* Insert list reference */
     WT_ROW *rip;    /* Original on-page reference */

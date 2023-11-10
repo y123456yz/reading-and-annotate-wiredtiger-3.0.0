@@ -44,7 +44,7 @@ usage(void)
     printf("\t-l load exist data and scan data\n");
     printf("\n");
 }
-#define MAX_TEST_KV_NUM 10000
+
 //  clear && rm -rf WT_HOME && ./ex_hello -i 1   
 /*
 [1698325054:332413][71578:0x7f9d57e49700], eviction-server: [WT_VERB_EVICTSERVER][DEBUG_2]: Eviction pass with: Max: 104857600 In use: 6172764 Dirty: 4978115
@@ -134,7 +134,8 @@ access_example(int argc, char *argv[])
         /*! [access example cursor open] */
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
-
+        
+        #define MAX_TEST_KV_NUM 10000
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
             snprintf(buf, sizeof(buf), "key%d", i);

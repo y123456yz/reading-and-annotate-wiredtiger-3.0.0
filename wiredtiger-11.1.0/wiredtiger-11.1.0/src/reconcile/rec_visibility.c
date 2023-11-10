@@ -479,8 +479,8 @@ __rec_calc_upd_memsize(WT_UPDATE *onpage_upd, WT_UPDATE *tombstone, size_t upd_m
  *     Select the update to write to disk image.
  */
 static int
-__rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd,
-  //first_upd链表中最新的update数据   //first_upd链表中第一个update数据
+__rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd, //udp链表头部
+  //first_upd链表中最新的update数据   //first_upd链表中第一个可见的update数据
   WT_UPDATE_SELECT *upd_select, WT_UPDATE **first_txn_updp, bool *has_newer_updatesp,
   size_t *upd_memsizep)
 {
@@ -757,7 +757,7 @@ __rec_fill_tw_from_upd_select(
 /*
  * __wt_rec_upd_select --
  *     Return the update in a list that should be written (or NULL if none can be written).
- */ //获取该ins对应的update链表中最新的V
+ */ //获取该ins对应的update链表中最新的V存储到upd_select， 及其可用历史版本存储到r->supd
 int
 __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, WT_ROW *rip,
   WT_CELL_UNPACK_KV *vpack, WT_UPDATE_SELECT *upd_select)
@@ -788,6 +788,7 @@ __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, W
      * has no updates.
      */
     if (ins != NULL)
+        //获取该insert的value链表
         first_upd = ins->upd;
     else {
         /* Note: ins is never null for columns. */
@@ -796,10 +797,12 @@ __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, W
             return (0);
     }
 
+    //获取事务中提交的最新可见的value存储到upd_select中
     WT_RET(__rec_upd_select(
       session, r, first_upd, upd_select, &first_txn_upd, &has_newer_updates, &upd_memsize));
 
     /* Keep track of the selected update. */
+    //也就是已提交事务最新的V
     upd = upd_select->upd;
 
     WT_ASSERT_ALWAYS(session,

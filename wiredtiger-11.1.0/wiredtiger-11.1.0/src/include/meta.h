@@ -66,6 +66,7 @@
 /*
  * Optimize comparisons against the metafile URI, flag handles that reference the metadata file.
  */
+//__wt_conn_dhandle_alloc  说明对应元数据文件"file:WiredTiger.wt"
 #define WT_IS_METADATA(dh) F_ISSET((dh), WT_DHANDLE_IS_METADATA)
 #define WT_METAFILE_ID 0 /* Metadata file ID */
 

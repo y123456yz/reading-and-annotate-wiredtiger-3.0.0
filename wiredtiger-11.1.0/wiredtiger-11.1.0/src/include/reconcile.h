@@ -134,7 +134,7 @@ struct __wt_reconcile {
      * a case, the page size stays the same and considering it a success could force the page
      * through eviction repeatedly.
      */
-    //标记是否有update
+    //标记是否有事务可见的V数据
     bool update_used;
 
     /*
@@ -188,7 +188,7 @@ struct __wt_reconcile {
      * size when a split is required so we don't repeatedly split a packed page.
      */
     //__wt_rec_split_init
-    //默认90% * page_size
+    //默认90% * page_size  //reconcile splite的条件
     uint32_t split_size;     /* Split page size */
     //默认50% * page_size
     uint32_t min_split_size; /* Minimum split page size */
@@ -290,8 +290,9 @@ struct __wt_reconcile {
      * page, we save WT_UPDATE lists here, and then move them to per-block areas as the blocks are
      * defined.
      */
-    //__rec_update_save中对下面几个值赋值
+    //__rec_update_save中对下面几个值赋值，记录的是存在更新操作的KV中的V的多个版本信息
     WT_SAVE_UPD *supd; /* Saved updates */
+    //数组大小
     uint32_t supd_next;
     size_t supd_allocated;
     size_t supd_memsize; /* Size of saved update structures */
@@ -392,9 +393,11 @@ struct __wt_reconcile {
 };
 
 typedef struct {
+    //这个是同一个K数据对应的最新的V，参考__rec_upd_select
     WT_UPDATE *upd;       /* Update to write (or NULL) */
     WT_UPDATE *tombstone; /* The tombstone to write (or NULL) */
 
+    //赋值见__rec_fill_tw_from_upd_select
     WT_TIME_WINDOW tw;
 
     bool upd_saved;       /* An element on the row's update chain was saved */

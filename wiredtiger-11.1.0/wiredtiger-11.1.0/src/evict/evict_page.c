@@ -185,7 +185,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
         goto done;
     }
 
-    //page内存没有超限，继续走下面的流程
+    //page内存超过了限制，并且该page之前已经splite过，也就是带有WT_PAGE_SPLIT_INSERT标记，则进入主动reconcile evict流程
 
     /* No need to reconcile the page if it is from a dead tree or it is clean. */
     if (!tree_dead && __wt_page_is_modified(page)) {
