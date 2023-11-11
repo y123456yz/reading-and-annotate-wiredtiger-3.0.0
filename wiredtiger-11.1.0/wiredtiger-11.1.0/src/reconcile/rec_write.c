@@ -37,12 +37,13 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage
 
     btree = S2BT(session);
     page = ref->page;
+    
 
     __wt_seconds(session, &start);
 
-    __wt_verbose(session, WT_VERB_RECONCILE, "%p reconcile %s (%s%s)", (void *)ref,
+    __wt_verbose(session, WT_VERB_RECONCILE, "%p reconcile %s (%s%s), entries:%u", (void *)ref,
       __wt_page_type_string(page->type), LF_ISSET(WT_REC_EVICT) ? "evict" : "checkpoint",
-      LF_ISSET(WT_REC_HS) ? ", history store" : "");
+      LF_ISSET(WT_REC_HS) ? ", history store" : "", page->entries);
 
     /*
      * Sanity check flags.
@@ -281,6 +282,7 @@ __reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, u
 
     addr = ref->addr;
 
+    
     /*
      * If we fail the reconciliation prior to calling __rec_write_wrapup then we can clean up our
      * state and return an error.
@@ -304,6 +306,7 @@ __reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, u
     WT_ERR(__rec_write_wrapup(session, r, page));
     __rec_write_page_status(session, r);
     WT_ERR(__reconcile_post_wrapup(session, r, page, flags, page_lockedp));
+    printf("yang test ...................__reconcile................page->entries:%u\r\n", page->entries);
 
     /*
      * Root pages are special, splits have to be done, we can't put it off as the parent's problem
@@ -968,6 +971,7 @@ __wt_split_page_size(int split_pct, uint32_t maxpagesize, uint32_t allocsize)
  * __rec_split_chunk_init --
  *     Initialize a single chunk structure.
  */
+//初始化一个chunk
 static int
 __rec_split_chunk_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk)
 {
@@ -991,6 +995,7 @@ __rec_split_chunk_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *
      *
      * Clear the disk page header to ensure all of it is initialized, even the unused fields.
      */
+    //__rec_split_chunk_init提前申请需要写入到磁盘的一个reconcile内存空间
     WT_RET(__wt_buf_init(session, &chunk->image, r->disk_img_buf_size));
     memset(chunk->image.mem, 0, WT_PAGE_HEADER_SIZE);
 
@@ -1060,6 +1065,8 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
      * isn't readily avoided.)
      */
     WT_ASSERT(session, auxiliary_size == 0 || page->type == WT_PAGE_COL_FIX);
+    //leaf page对应btree->maxleafpage_precomp
+    //internal page对应btree->maxintlpage_precomp 
     r->page_size = (uint32_t)(primary_size + auxiliary_size);
 
     /*
@@ -1109,6 +1116,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
           __wt_split_page_size(WT_BTREE_MIN_SPLIT_PCT, r->page_size, btree->allocsize);
         r->min_space_avail = r->min_split_size - WT_PAGE_HEADER_BYTE_SIZE(btree);
     }
+    printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
 
     /*
      * Ensure the disk image buffer is large enough for the max object, as corrected by the
@@ -1188,7 +1196,7 @@ __rec_is_checkpoint(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 /*
  * __rec_split_row_promote --
  *     Key promotion for a row-store.
- */ //当前操作的KV中的KV赋值给key
+ */ //当前操作的KV中的K赋值给key
 static int
 __rec_split_row_promote(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ITEM *key, uint8_t type)
 {
@@ -1287,6 +1295,7 @@ __rec_split_row_promote(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ITEM *key,
             }
             break;
         }
+    //把当前正则操作的K赋值给key
     ret = __wt_buf_set(session, key, r->cur->data, size);
 
 err:
@@ -1318,6 +1327,7 @@ __wt_rec_split_grow(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t add_len)
     inuse = r->page->type == WT_PAGE_COL_FIX ? aux_first_free : first_free;
     corrected_page_size = inuse + add_len;
 
+    //获取block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据corrected_page_size
     WT_RET(bm->write_size(bm, session, &corrected_page_size));
     WT_RET(__wt_buf_grow(session, &r->cur_ptr->image, corrected_page_size));
 
@@ -1431,7 +1441,8 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
      * page with too few items, which isn't good for tree depth or search. Grow the buffer to
      * contain the current item if we don't have enough items to split an internal page.
      */
-    //也就是多个KV数据在磁盘中用到的真实空间
+    //也就是本次reconcile多个KV数据在磁盘中用到的真实空间
+    //r->first_free指向本次reconcile内存数据的末尾， r->cur_ptr->image.mem对应内存开始位置
     inuse = WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem);
     
 //    if (inuse < r->split_size / 2 && !__wt_rec_need_split(r, 0)) {
@@ -1470,8 +1481,8 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
         WT_RET(__rec_split_write(session, r, r->cur_ptr, NULL, false));
     else {
         if (r->prev_ptr != NULL) //先把之前这批在prev_ptr指向内存，但是还没有写入磁盘的chunk数据写入磁盘
-            //如果一个page内存部分数据很大，则会多次进入这里把page前面大部分数据通过这里写入磁盘，剩余部分数据在外层
-            //__wt_rec_split_finish中写入磁盘
+            //如果一个page内存部分数据很大，则会多次进入这里把page一部分数据通过这个r->prev_ptr chunk写入磁盘，剩余部分数据在外层
+            //__wt_rec_split_finish中写入磁盘，然后
             WT_RET(__rec_split_write(session, r, r->prev_ptr, NULL, false));
 
         if (r->prev_ptr == NULL) {
@@ -1487,10 +1498,12 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
 
     /* Initialize the next chunk, including the key. */
     //前面交互后，这里cur_ptr指向了新的chunk,对该chunk初始化，成员变量全赋值0, 并从新获取disk_img_buf_size大小image空间
+    //重新初始化一个chunk，重新分配写盘的chunk->image内存空间，继续下一个reconcile chunk磁盘写入
     WT_RET(__rec_split_chunk_init(session, r, r->cur_ptr));
     r->cur_ptr->recno = r->recno;
     if (btree->type == BTREE_ROW)
         //当前操作的KV中的KV赋值给&r->cur_ptr->key, 也就是page拆分的拆分点key
+        //当前操作的KV中的K赋值给r->cur_ptr->key
         WT_RET(__rec_split_row_promote(session, r, &r->cur_ptr->key, r->page->type));
 
     /* Reset tracking information. */
@@ -1537,7 +1550,7 @@ done:
      * aggregated onto the bigger page before or after, if the page happens to hold them, but it
      * won't necessarily happen that way.
      */
-    if (r->space_avail < next_len) //每次写入这里都需要申请空间，会不会反复进入这里面
+    if (r->space_avail < next_len)  
         WT_RET(__wt_rec_split_grow(session, r, next_len));
 
     return (0);
@@ -1580,6 +1593,7 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
         r->cur_ptr->min_recno = r->recno;
         if (S2BT(session)->type == BTREE_ROW)
             //当前操作的KV中的KV赋值给key,也就是splite的拆分点
+            //当前操作的KV中的K赋值给r->cur_ptr->key
             WT_RET(__rec_split_row_promote(session, r, &r->cur_ptr->min_key, r->page->type));
         WT_TIME_AGGREGATE_COPY(&r->cur_ptr->ta_min, &r->cur_ptr->ta);
 
@@ -2187,7 +2201,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
-        //分配WT_IKEY+真实key数据空间，并拷贝数据到对应空间
+        //分配WT_IKEY+真实key数据空间，并拷贝数据到对应空间  
         WT_RET(__wt_row_ikey_alloc(session, 0, chunk->key.data, chunk->key.size, &multi->key.ikey));
     else
         multi->key.recno = chunk->recno;

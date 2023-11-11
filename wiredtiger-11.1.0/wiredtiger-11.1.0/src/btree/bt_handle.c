@@ -482,10 +482,12 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt, bool is_ckpt)
      * leaf page sizes don't change. (We could adjust internal pages but not
      * internal pages, but that seems an unlikely use case.)
      */
+    //不启用压缩默认值
     btree->intlpage_compadjust = false;
     btree->maxintlpage_precomp = btree->maxintlpage;
     btree->leafpage_compadjust = false;
     btree->maxleafpage_precomp = btree->maxleafpage;
+    //启用压缩默认值
     if (btree->compressor != NULL && btree->compressor->compress != NULL &&
       btree->type != BTREE_COL_FIX) {
         /*
@@ -977,8 +979,8 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
      */
     btree->splitmempage = (8 * btree->maxmempage) / 10;
 
-    printf("yang test .....22...................maxmempage:%d, splitmempage:%d, btree->maxleafpage:%d\r\n", 
-        (int)btree->maxmempage, (int)btree->splitmempage, (int)(btree->maxleafpage));
+    printf("yang test .....22...................btree->maxintlpage:%d, btree->maxleafpage:%d, maxmempage:%d, splitmempage:%d, maxmempage_image:%u\r\n", 
+        (int)(btree->maxintlpage),(int)(btree->maxleafpage), (int)btree->maxmempage, (int)btree->splitmempage, (btree->maxmempage_image));
     /*
      * Get the split percentage (reconciliation splits pages into smaller than the maximum page size
      * chunks so we don't split every time a new entry is added). Determine how large newly split

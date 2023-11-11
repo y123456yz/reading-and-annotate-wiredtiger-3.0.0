@@ -9,7 +9,7 @@
 /*
  * __wt_buf_grow --
  *     Grow a buffer that may be in-use, and ensure that all data is local to the buffer.
- *///realloc内存空间，保证buf中有size长度空间
+ *///realloc内存空间，保证buf中有size长度空间，如果mem为空则会申请空间，然后拷贝buf->data内容到mem申请的内存空间
 static inline int
 __wt_buf_grow(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
 {
@@ -18,6 +18,10 @@ __wt_buf_grow(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
      * complex calculations in our callers to decide if the buffer is large enough in the case of
      * buffers with offset data pointers.
      */
+    //以下两种情况需要扩内存并拷贝数据:
+    //1. mem为NULL
+    //1. mem不为NULL，并且data起始地址不在mem空间范围内[(i)->mem, (i)->mem + memsize],
+    //2. mem不为NULL，并且data其实地址在[(i)->mem, (i)->mem + memsize]范围，但是data+size超过了范围
     return (!WT_DATA_IN_ITEM(buf) || size + WT_PTRDIFF(buf->data, buf->mem) > buf->memsize ?
         __wt_buf_grow_worker(session, buf, size) :
         0);
@@ -42,6 +46,7 @@ __wt_buf_extend(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
  * __wt_buf_init --
  *     Create an empty buffer at a specific size.
  */
+//例如前缀压缩就会用到mem空间 参考__wt_row_leaf_key_work
 static inline int
 __wt_buf_init(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
 {
@@ -72,7 +77,7 @@ __wt_buf_initsize(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
 /*
  * __wt_buf_set --
  *     Set the contents of the buffer.
- */
+ */ //申请buf->data空间，并拷贝data数据到buf中
 static inline int
 __wt_buf_set(WT_SESSION_IMPL *session, WT_ITEM *buf, const void *data, size_t size)
 {
@@ -83,6 +88,7 @@ __wt_buf_set(WT_SESSION_IMPL *session, WT_ITEM *buf, const void *data, size_t si
      */
     buf->data = data;
     buf->size = size;
+    //申请buf->data空间，并拷贝data数据到buf中
     return (__wt_buf_grow(session, buf, size));
 }
 

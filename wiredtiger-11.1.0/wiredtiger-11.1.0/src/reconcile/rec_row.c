@@ -98,7 +98,7 @@ __rec_cell_build_leaf_key(
     key = &r->k;
 
     pfx = 0;
-    if (data == NULL)  //如果没有指定data，则直接拷贝cur内容到&r->k
+    if (data == NULL)  //如果没有指定data，则直接赋值cur内容到&r->k
         /*
          * When data is NULL, our caller has a prefix compressed key they can't use (probably
          * because they just crossed a split point). Use the full key saved when last called,
@@ -110,6 +110,7 @@ __rec_cell_build_leaf_key(
          * Save a copy of the key for later reference: we use the full key for prefix-compression
          * comparisons, and if we are, for any reason, unable to use the compressed key we generate.
          */
+        //申请r->cur空间，并拷贝data数据到r->cur中
         WT_RET(__wt_buf_set(session, r->cur, data, size));
 
         /*
@@ -149,7 +150,7 @@ __rec_cell_build_leaf_key(
         }
 
         /* Copy the non-prefix bytes into the key buffer. */
-        //data拷贝到key buf中
+        //data拷贝到r->k buf中
         WT_RET(__wt_buf_set(session, &key->buf, (uint8_t *)data + pfx, size - pfx));
     }
     r->key_pfx_last = pfx;
@@ -172,7 +173,8 @@ __rec_cell_build_leaf_key(
         return (__rec_cell_build_leaf_key(session, r, NULL, 0, is_ovflp));
     }
 
-    //记录key编码方式，返回编码后的key头部长度
+    //1. key长度编码记录到key->cell
+    //2. 返回编码后的key头部长度
     key->cell_len = __wt_cell_pack_leaf_key(&key->cell, pfx, key->buf.size);
     //编码后的key占用的总字节数=长度部分+实际内容
     key->len = key->cell_len + key->buf.size;
@@ -598,12 +600,12 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
             WT_RET(__wt_illegal_value(session, upd->type));
         }
         /* Build key cell. */
-        //对key进行编码后存入r->k中，也就是前面的变量key
+        //对key进行编码后存入r->k中 
         WT_RET(__rec_cell_build_leaf_key(
           session, r, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins), &ovfl_key));
 
         /* Boundary: split or write the page. */
-        //WT_RECONCILE对应page如果较大，超过了一个WT_RECONCILE最大磁盘空间，磁盘空间不够用，则需要split
+        //如果这个KV加进来就会超过一个WT_RECONCILE的可用磁盘空间，磁盘空间不够用，则需要把这个KV以前的一批已经拷贝到r->first_free空间的数据先写入磁盘
         if (__wt_rec_need_split(r, key->len + val->len)) {
           //这里一般会进来两次，第一次是可用空间接近min_space_avail，第二次是可用空间直接接近space_avail
             /*
@@ -618,6 +620,8 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
             }
             //printf("yang test .........__rec_row_leaf_insert.....__wt_rec_need_split.......__wt_rec_split_crossing_bnd.........................\r\n");
             //也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
+
+            //key->len + val->len表示该KV当前还没有添加到r->first_free空间中
             WT_RET(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
 
@@ -721,7 +725,8 @@ __wt_rec_row_leaf(
     cbt->iface.session = (WT_SESSION *)session;
 
     WT_RET(__wt_rec_split_init(session, r, page, 0, btree->maxleafpage_precomp, 0));
-
+    printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
+    
     /*
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
      */

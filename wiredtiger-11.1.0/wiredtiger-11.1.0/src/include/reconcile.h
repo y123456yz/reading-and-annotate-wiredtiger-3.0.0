@@ -10,16 +10,16 @@
  * WT_REC_KV--
  *	An on-page key/value item we're building.
  */
-//参考__rec_cell_build_leaf_key  __wt_rec_cell_build_val
+//参考__rec_cell_build_leaf_key  __wt_rec_cell_build_val赋值，  __wt_rec_image_copy中写入磁盘
 //该结构 = cell + 真实value
-struct __wt_rec_kv {
+struct __wt_rec_kv {//k或者V记录到磁盘，以K为例:首先需要写入编码后的K长度，然后在写入真正的K数据
     //真正的key内容
     WT_ITEM buf;  /* Data */
     //头部长度编码后的内容记录到这里面
     WT_CELL cell; /* Cell and cell's length */
-    //记录key编码方式，返回编码后的key长度占用字节数
+    //记录key编码方式，返回编码后的key或者value长度占用字节数
     size_t cell_len;
-    //编码后的key占用的总字节数=长度部分+实际内容
+    //编码后的key或者value占用的总字节数=长度部分+实际内容
     size_t len; /* Total length of cell + data */
 };
 
@@ -56,7 +56,8 @@ struct __wt_rec_chunk {
     uint32_t entries;
     //colum才用，row store不用该字段
     uint64_t recno;
-    //对应的ref key，赋值参考__wt_rec_split_init, 实际上就是split的拆分点
+    //对应的ref key，赋值参考__rec_split_row_promote __wt_rec_split_init  __rec_split_finish_process_prev, 实际上就是split的拆分点
+    //__rec_split_write中赋值给WT_MULTI.key.ikey, 在__rec_split_dump_keys会打印
     WT_ITEM key;
     //WT_TIME_AGGREGATE_UPDATE中统计赋值
     WT_TIME_AGGREGATE ta;
@@ -75,7 +76,8 @@ struct __wt_rec_chunk {
 
     //磁盘中的数据信息，参考__rec_split_write
     //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
-    //corrected_page_size
+    //__rec_split_chunk_init提前申请需要写入到磁盘的一个reconcile内存image空间
+    
     //r->first_free指向这里面的实际数据位置，也就是(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据)中的实际数据
     //默认空间大小是按照disk_img_buf_size对齐的，参考__rec_split_chunk_init
     WT_ITEM image; /* disk-image */
@@ -180,7 +182,9 @@ struct __wt_reconcile {
      * primary and auxiliary portions.
      */
     //__wt_rec_split_init
-    //默认//= btree->maxmempage_image, 也就是4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
+    
+    //leaf page对应btree->maxleafpage_precomp
+    //internal page对应btree->maxintlpage_precomp 
     uint32_t page_size; /* Page size */
 
     /*
@@ -242,7 +246,8 @@ struct __wt_reconcile {
     //跳过PAGE_HEADER及block header，也就是指向真实data, 记录写入的KV数据的末尾处，见__wt_rec_incr
     //最终这部分buf数据会和PAGE_HEADER、block header一起写入磁盘
 
-    //通过cur_ptr变量可以获取该page对应磁盘其实地址信息，通过后面的first_free成员可以获取该page对应磁盘结尾处
+    //通过r->cur_ptr->image.mem变量可以获取该page对应磁盘起始地址信息，通过后面的first_free成员可以获取该page对应磁盘结尾处
+    //first_free只是移动指针，真正空间是在__rec_split_chunk_init中申请的r->cur_ptr->image
     uint8_t *first_free;    /* Current first free byte */
 
     //__wt_rec_split_init
@@ -346,6 +351,7 @@ struct __wt_reconcile {
 
     //__rec_cell_build_leaf_key中会拷贝需要操作的K或者V内容到这个变量
     //__rec_row_leaf_insert中拷贝insert的数据到该cur中
+    //当前正则操作的K
     WT_ITEM *cur, _cur;   /* Key/Value being built */
     WT_ITEM *last, _last; /* Last key/value built */
 

@@ -88,6 +88,8 @@ struct __wt_storage_source; typedef struct __wt_storage_source WT_STORAGE_SOURCE
  *
  * WT_ITEM structures do not need to be cleared before use.
  */
+//参考WT_DATA_IN_ITEM
+//参考__wt_buf_grow_worker  __wt_buf_set
 struct __wt_item {
 	/*!
 	 * The memory reference of the data item.
@@ -96,6 +98,7 @@ struct __wt_item {
 	 * the next operation on that cursor.  Applications that need to keep
 	 * an item across multiple cursor operations must make a copy.
 	 */
+    
 	const void *data;
 
 	/*!
@@ -108,6 +111,10 @@ struct __wt_item {
 	size_t size;
 
 #ifndef DOXYGEN
+    //参考__wt_buf_grow_worker
+
+    //例如前缀压缩就会用到mem空间 参考__wt_row_leaf_key_work
+    //这时候data代表数据在[mem, mem+memsize]空间中的位置，size就是当前数据长度，也就是当前数据在[mem, mem+memsize]总空间中的[data, size]位置
 	/*! Managed memory chunk (internal use). */
 	void *mem;
 

@@ -749,7 +749,7 @@ __bm_write_readonly(WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *
 /*
  * __bm_write_size --
  *     Return the buffer size required to write a block.
- */
+ */ //获取//block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据sizep
 static int
 __bm_write_size(WT_BM *bm, WT_SESSION_IMPL *session, size_t *sizep)
 {

@@ -11,6 +11,8 @@
 /*
  * __evict_force_check --
  *     Check if a page matches the criteria for forced eviction.
+
+ //__evict_force_check中通过page消耗的内存与，决定走内存split evict(__wt_evict)还是reconcile evict(__evict_reconcile)
  */
 //判断ref page是否需要强制evict
 static bool
@@ -67,7 +69,7 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
 
     //到这里footprint=<splitmempage, maxmempage> = <0.8*maxmempage, maxmempage>
 
-    //内存消耗在maxleafpage级别的判断走这里
+    //分支一: page内存消耗在80% * maxmempage级别的判断走这里
     if (footprint < btree->maxmempage) { //这里面可能会决定是否需要进行page splite
          //之前该page在__split_insert中已经拆分过一次了直接返回, 在外层进入__evict_reconcile流程
         if (__wt_leaf_page_can_split(session, page)) //
@@ -75,9 +77,11 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
         return (false);
     }
 
-    //内存空间在maxmempage级别的情况走这里
+    //如果该page之前拆分过，并带有WT_PAGE_SPLIT_INSERT标识，则直接走reconcile
+    //分支二: page内存空间在"maxmempage=5M"级别的情况走这里, 在外层会走reconcile evict流程
 
     //到这里说明该page占用的内存已经超过btree->maxmempage，说明某个page太大了，消耗的内存
+   //memory_page_max配置默认5M,取MIN(5M, (conn->cache->eviction_dirty_trigger * cache_size) / 1000) example测试也就是默认2M
 
     /* Bump the oldest ID, we're about to do some visibility checks. */
     WT_IGNORE_RET(__wt_txn_update_oldest(session, 0));

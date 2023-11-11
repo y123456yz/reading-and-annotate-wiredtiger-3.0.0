@@ -1820,6 +1820,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     //page中有脏数据
     WT_ASSERT(session, __wt_page_is_modified(page));
 
+    //原来的page设置该标识
     F_SET_ATOMIC_16(page, WT_PAGE_SPLIT_INSERT); /* Only split in-memory once. */
 
     /* Find the last item on the page. */
@@ -2139,11 +2140,13 @@ __split_insert_lock(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_split_insert --
  *     Split a page's last insert list entries into a separate page.
  */
+
 //__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
 //__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
 //__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
 //__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
 
+//__evict_force_check中通过page消耗的内存，决定走内存split evict还是reconcile evict
 int
 __wt_split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
 {

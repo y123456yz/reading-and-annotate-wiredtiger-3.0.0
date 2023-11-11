@@ -1746,7 +1746,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * correctness (the page must be reconciled again before being evicted after the split,
      * information from a previous reconciliation will be wrong, so we can't evict immediately).
      */
-    //一定要大于splitmempage才可以进行内存splite
+    //一定要大于splitmempage(80% * maxmempage)才可以进行内存splite  
     if (page->memory_footprint < btree->splitmempage)
         return (false);
     if (WT_PAGE_IS_INTERNAL(page))
@@ -1775,8 +1775,9 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
  */
 //page消耗的内存较高，大于maxleafpage * 2，并且至少有5个KV
 #define WT_MAX_SPLIT_COUNT 5
-    if ((page->memory_footprint > (size_t)btree->maxleafpage * 2)
-        || (page->memory_footprint > (size_t)btree->splitmempage)) {
+   // if ((page->memory_footprint > (size_t)btree->maxleafpage * 2)
+   //     || (page->memory_footprint > (size_t)btree->splitmempage)) {
+   if ((page->memory_footprint > (size_t)btree->maxleafpage * 2)) {
         for (count1 = 0, ins = ins_head->head[0]; ins != NULL; ins = ins->next[0]) {
             if (++count1 < WT_MAX_SPLIT_COUNT)
                 continue;
@@ -1804,8 +1805,9 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
          ins = ins->next[WT_MIN_SPLIT_DEPTH]) {
         count2 += WT_MIN_SPLIT_MULTIPLIER;
         size += WT_MIN_SPLIT_MULTIPLIER * (WT_INSERT_KEY_SIZE(ins) + WT_UPDATE_MEMSIZE(ins->upd));
-        if (count2 > WT_MIN_SPLIT_COUNT && 
-            (size > (size_t)btree->maxleafpage || size > btree->splitmempage)) {
+       // if (count2 > WT_MIN_SPLIT_COUNT && 
+        //    (size > (size_t)btree->maxleafpage || size > btree->splitmempage)) {
+        if (count2 > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
           //  printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count2:%d..........size:%d................\r\n", (int)count2, (int)size);
             return (true);

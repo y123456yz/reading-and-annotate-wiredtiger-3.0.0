@@ -228,6 +228,7 @@ struct __wt_bm {
     int (*verify_start)(WT_BM *, WT_SESSION_IMPL *, WT_CKPT *, const char *[]);
     //__bm_write
     int (*write)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, uint8_t *, size_t *, bool, bool);
+    //__bm_write_size
     int (*write_size)(WT_BM *, WT_SESSION_IMPL *, size_t *);
 
     //__wt_block_open

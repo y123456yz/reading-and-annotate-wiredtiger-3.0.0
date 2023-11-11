@@ -285,6 +285,7 @@
 #define WT_DECL_RET int ret = 0
 
 /* If a WT_ITEM data field points somewhere in its allocated memory. */
+//mem不为NULL， 并且data起始地址在mem空间范围内[(i)->mem, (i)->mem + memsize]
 #define WT_DATA_IN_ITEM(i) \
     ((i)->mem != NULL && (i)->data >= (i)->mem && WT_PTRDIFF((i)->data, (i)->mem) < (i)->memsize)
 

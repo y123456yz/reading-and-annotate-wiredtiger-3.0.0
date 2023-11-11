@@ -11,10 +11,12 @@
 /*
  * __wt_buf_grow_worker --
  *     Grow a buffer that may be in-use, and ensure that all data is local to the buffer.
- */ //realloc内存
+ */ 
+//如果空间不够，则realloc内存，并拷贝数据。如果mem为NULL则申请内存，并拷贝数据
+//如果空间够，则直接拷贝数据到mem空间
 int
 __wt_buf_grow_worker(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
-  WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+//  WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     size_t offset;
     bool copy_data;
@@ -35,11 +37,12 @@ __wt_buf_grow_worker(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
      * Take the offset of the data pointer in the buffer when calculating the size
      * needed, overflow items use the data pointer to skip the leading data block page header
      */
-    if (WT_DATA_IN_ITEM(buf)) {
-        offset = WT_PTRDIFF(buf->data, buf->mem);
+    //mem不为NULL， 并且data起始地址在mem空间范围内[(i)->mem, (i)->mem + memsize]
+    if (WT_DATA_IN_ITEM(buf)) {//也就是mem空间不够装下buf数据，则需要扩容
+        offset = WT_PTRDIFF(buf->data, buf->mem); //data数据离mem起始内存位置的长度
         size += offset;
         copy_data = false;
-    } else {
+    } else { //mem为NULL或者data不在mem范围，则需要申请空间，并拷贝数据到空间
         offset = 0;
         copy_data = buf->size > 0;
     }
@@ -48,6 +51,7 @@ __wt_buf_grow_worker(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
      * This function is also used to ensure data is local to the buffer, check to see if we actually
      * need to grow anything.
      */
+    //空间不够，需要扩容空间
     if (size > buf->memsize) {
         if (F_ISSET(buf, WT_ITEM_ALIGNED))
             WT_RET(__wt_realloc_aligned(session, &buf->memsize, size, &buf->mem));
@@ -59,7 +63,7 @@ __wt_buf_grow_worker(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
         buf->data = buf->mem;
         buf->size = 0;
     } else {
-        if (copy_data) {
+        if (copy_data) {//拷贝数据到申请的空间
             /*
              * It's easy to corrupt memory if you pass in the wrong size for the final buffer size,
              * which is harder to debug than this assert.

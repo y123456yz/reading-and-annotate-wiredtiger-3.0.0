@@ -178,11 +178,6 @@ __rec_page_time_stats(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 /*
  * __wt_rec_need_split --
  *     Check whether adding some bytes to the page requires a split.
-
- //WT_RECONCILE对应page如果磁盘空间不够用，则需要split
- //WT_RECONCILE对应page如果较大，超过了一个WT_RECONCILE最大磁盘空间，磁盘空间不够用，则需要split
-
- //对应image mem可用空间不足了，则需要split
  */
 static inline bool
 __wt_rec_need_split(WT_RECONCILE *r, size_t len)
@@ -265,12 +260,12 @@ __wt_rec_image_copy(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *kv)
      *
      * WT_CELLs are typically small, 1 or 2 bytes -- don't call memcpy, do the copy in-line.
      */
-    //先拷贝数据长度部分到page header后面
+    //先拷贝K或者V长度部分到page header后面
     for (p = r->first_free, t = (uint8_t *)&kv->cell, len = kv->cell_len; len > 0; --len)
         *p++ = *t++;
 
     /* The data can be quite large -- call memcpy. */
-    //在拷贝真实数据
+    //在拷贝K或者V真实数据
     if (kv->buf.size != 0)
         memcpy(p, kv->buf.data, kv->buf.size);
 

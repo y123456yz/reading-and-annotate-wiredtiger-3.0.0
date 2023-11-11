@@ -89,7 +89,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
         WT_RET(__wt_curhs_cache(session));
     }
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
-    //printf("yang test ................................__wt_page_release_evict.............................................\r\n");
+    printf("yang test ................................__wt_page_release_evict.............................................\r\n");
     ret = __wt_evict(session, ref, previous_state, evict_flags);
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
 
@@ -719,6 +719,16 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
  * __evict_reconcile --
  *     Reconcile the page for eviction.
  */
+
+//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
+//__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
+//__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
+//__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
+
+ 
+//__evict_force_check中通过page消耗的内存与，决定走内存split evict(__wt_evict)还是reconcile evict(__evict_reconcile)
+
+ 
 //__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘
 //__evict_reconcile: 对page拆分为多个page后写入磁盘中
 static int

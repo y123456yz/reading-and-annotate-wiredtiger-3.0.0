@@ -135,7 +135,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     //注意cache_size这里是/1000而不是除100
     //memory_page_max配置默认5M,取MIN(5M, (conn->cache->eviction_dirty_trigger * cache_size) / 1000) example测试也就是默认2M
     uint64_t maxmempage;       /* In-memory page max size */
-    //4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
+    //4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);   reconcile在磁盘上面一个reconcile的磁盘大小
     uint32_t maxmempage_image; /* In-memory page image max size */
     //80% * maxmempage
     uint64_t splitmempage;     /* In-memory split trigger size */
@@ -172,9 +172,12 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
                                    * It's an 8B value because it's updated without a lock.
                                    */
     bool leafpage_compadjust;     /* Run-time compression adjustment */
-    //= btree->maxmempage_image, 也就是4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
+    //启用压缩= btree->maxmempage_image, 也就是4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
+    //不启用压缩=btree->maxleafpage;
     uint64_t maxleafpage_precomp; /* Leaf page pre-compression size */
     bool intlpage_compadjust;     /* Run-time compression adjustment */
+    //启用压缩=btree->maxmempage_image;
+    //不启用压缩=btree->maxleafpage;
     uint64_t maxintlpage_precomp; /* Internal page pre-compression size */
 
     WT_BUCKET_STORAGE *bstorage;    /* Tiered storage source */
