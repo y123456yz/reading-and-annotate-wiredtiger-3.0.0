@@ -108,7 +108,8 @@ err:
         page->entries = alloc_entries;
         break;
     case WT_PAGE_ROW_LEAF:
-         //leaf page上面存储的真实KV数据在这里，page末尾为真实KV数据
+         //leaf page上面存储的真实KV数据在这里，page末尾为真实KV数据,KV数据填充见__inmem_row_leaf
+         //pg_row内存空间在上面的size中分配page的时候一次性分配好了 size += alloc_entries * sizeof(WT_ROW);
         page->pg_row = alloc_entries == 0 ? NULL : (WT_ROW *)((uint8_t *)page + sizeof(WT_PAGE));
         page->entries = alloc_entries;
         break;
@@ -341,7 +342,8 @@ err:
 /*
  * __wt_page_inmem --
  *     Build in-memory page information.
- */
+  //reconcile拆分后每个multi都需要调用一次，用于隐射内存page和磁盘chunk数据
+ */ //__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf
 int
 __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32_t flags,
   WT_PAGE **pagep, bool *preparedp)
@@ -411,15 +413,17 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
         else if (F_ISSET(dsk, WT_PAGE_EMPTY_V_NONE))
             alloc_entries = dsk->u.entries / 2;
         else
+            //遍历磁盘上一个chunk的所有KV数据，解包每个KV存入unpack，从而获取该chunk总共有多少个KV
             WT_RET(__inmem_row_leaf_entries(session, dsk, &alloc_entries));
         break;
     default:
         return (__wt_illegal_value(session, dsk->type));
     }
-    //printf("yang test.......................................__wt_page_inmem....................\r\n");
 
     /* Allocate and initialize a new WT_PAGE. */
+    //获取一个page，并记录该dsk对应chunk在磁盘上的
     WT_RET(__wt_page_alloc(session, dsk->type, alloc_entries, true, &page));
+    //__split_multi_inmem->__wt_page_inmem可以看出，实际上内存也有一份磁盘完全一样的内存数据，也就是disk_image，最终内存中的数据记录到dsk
     page->dsk = dsk;
     F_SET_ATOMIC_16(page, flags);
 
@@ -447,15 +451,17 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
         WT_ERR(__inmem_row_int(session, page, &size));
         break;
     case WT_PAGE_ROW_LEAF:
+        //遍历page对应的 page->dsk磁盘数据，解析出对应WT_ROW K或者V指针赋值给page->pg_row[]，
+        //注意page->pg_row[]每个成员保持的是磁盘上的地址信息
         WT_ERR(__inmem_row_leaf(session, page, preparedp));
         break;
     default:
         WT_ERR(__wt_illegal_value(session, page->type));
     }
-
+    
     /* Update the page's cache statistics. */
     __wt_cache_page_inmem_incr(session, page, size);
-
+    //说明该page数据在磁盘中，从这里可以看出即使page的数据在磁盘中，上面的__wt_cache_page_inmem_incr内存计数也会算上
     if (LF_ISSET(WT_PAGE_DISK_ALLOC))
         __wt_cache_page_image_incr(session, page);
 
@@ -946,6 +952,7 @@ err:
  * __inmem_row_leaf_entries --
  *     Return the number of entries for row-store leaf pages.
  */
+ //遍历磁盘上一个chunk的所有KV数据，解包每个KV存入unpack，从而获取该chunk总共有多少个KV
 static int
 __inmem_row_leaf_entries(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, uint32_t *nindxp)
 {
@@ -963,10 +970,12 @@ __inmem_row_leaf_entries(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, ui
      * overflow (WT_CELL_VALUE_OVFL) item.
      */
     nindx = 0;
+    //遍历磁盘上一个chunk的所有KV数据，解包存入unpack
     WT_CELL_FOREACH_KV (session, dsk, unpack) {
         switch (unpack.type) {
         case WT_CELL_KEY:
         case WT_CELL_KEY_OVFL:
+            //记录这是该chunk第几个KV
             ++nindx;
             break;
         case WT_CELL_VALUE:
@@ -985,6 +994,9 @@ __inmem_row_leaf_entries(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, ui
 /*
  * __inmem_row_leaf --
  *     Build in-memory index for row-store leaf pages.
+//reconcile拆分后每个multi都需要调用一次，用于隐射内存page和磁盘chunk数据
+
+遍历page对应的 page->dsk磁盘数据，解析出对应WT_ROW K或者V指针赋值给page->pg_row[]，注意page->pg_row[]每个成员保持的是磁盘上的地址信息
  */
 static int
 __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
@@ -1008,9 +1020,10 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
     prefix_start = prefix_stop = 0;           /* [-Wconditional-uninitialized] */
     best_prefix_start = best_prefix_stop = 0; /* [-Wconditional-uninitialized] */
 
-    //printf("yang test ......__inmem_row_leaf......... \r\n");
+    printf("yang test ....111..__inmem_row_leaf......... (dsk)->u.entries:%u\r\n", page->dsk->u.entries);
     /* Walk the page, building indices. */
     rip = page->pg_row;
+    //遍历磁盘上面一个chunk的所有KV数据，解包后存入unpack
     WT_CELL_FOREACH_KV (session, page->dsk, unpack) {
         switch (unpack.type) {
         case WT_CELL_KEY:
@@ -1069,6 +1082,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
                     ++prefix_count;
                 }
             }
+            //获取page对应磁盘中的一个K解包后的unpack，然后解析获取对应的key地址赋值给rip
             __wt_row_leaf_key_set(page, rip, &unpack);
             ++rip;
             continue;
@@ -1095,6 +1109,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
               (WT_TIME_WINDOW_IS_EMPTY(&unpack.tw) ||
                 (!WT_TIME_WINDOW_HAS_STOP(&unpack.tw) &&
                   __wt_txn_tw_start_visible_all(session, &unpack.tw))))
+                //获取page对应磁盘中的一个V解包后的unpack，然后解析获取对应的key地址赋值给rip
                 __wt_row_leaf_value_set(rip - 1, &unpack);
             break;
         case WT_CELL_VALUE_OVFL:

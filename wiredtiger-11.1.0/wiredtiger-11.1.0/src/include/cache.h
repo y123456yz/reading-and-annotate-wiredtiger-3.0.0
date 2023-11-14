@@ -80,6 +80,7 @@ struct __wt_cache {
     uint64_t bytes_dirty_total;
     uint64_t bytes_evict;      /* Bytes/pages discarded by eviction */
     uint64_t bytes_image_intl; /* Bytes of disk images (internal) */
+    //在磁盘中的leaf数据有多少 __wt_cache_page_image_incr
     uint64_t bytes_image_leaf; /* Bytes of disk images (leaf) */
     uint64_t bytes_inmem;      /* Bytes/pages in memory */
     uint64_t bytes_internal;   /* Bytes of internal pages */
@@ -238,6 +239,7 @@ struct __wt_cache {
 #define WT_CACHE_EVICT_DIRTY 0x008u        /* Evict dirty pages */
 #define WT_CACHE_EVICT_DIRTY_HARD 0x010u   /* Dirty % blocking app threads */
 #define WT_CACHE_EVICT_NOKEEP 0x020u       /* Don't add read pages to cache */
+//__evict_update_work
 #define WT_CACHE_EVICT_SCRUB 0x040u        /* Scrub dirty pages */
 #define WT_CACHE_EVICT_UPDATES 0x080u      /* Evict pages with updates */
 #define WT_CACHE_EVICT_UPDATES_HARD 0x100u /* Update % blocking app threads */
@@ -292,6 +294,7 @@ struct __wt_cache_pool {
 
 /* Flags used with __wt_evict */
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//__wt_evict_file
 #define WT_EVICT_CALL_CLOSING 0x1u  /* Closing connection or tree */
 #define WT_EVICT_CALL_NO_SPLIT 0x2u /* Splits not allowed */
 #define WT_EVICT_CALL_URGENT 0x4u   /* Urgent eviction */

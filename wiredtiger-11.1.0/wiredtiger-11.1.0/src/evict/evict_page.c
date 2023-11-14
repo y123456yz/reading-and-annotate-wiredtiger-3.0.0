@@ -187,8 +187,12 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
 
     //page内存超过了限制，并且该page之前已经splite过，也就是带有WT_PAGE_SPLIT_INSERT标记，则进入主动reconcile evict流程
 
+    //
     /* No need to reconcile the page if it is from a dead tree or it is clean. */
     if (!tree_dead && __wt_page_is_modified(page)) {
+        //__evict_reconcile:
+        //  evict reconcile把该超过maxmempage大小的大page按照maxleafpage_precomp(__wt_rec_split_init)大小拆分为multi_next个
+        //  multi[]数组成员，然后在下面的__evict_page_dirty_update中和子page隐射，并修改父page的index索引等
         WT_ERR(__evict_reconcile(session, ref, flags));
     }
 
@@ -395,7 +399,11 @@ __evict_page_clean_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
  * __evict_page_dirty_update --
  *     Update a dirty page's reference on eviction.
  */
+//__evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
+//__evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
+
 //__wt_evict->__evict_page_dirty_update
+//__evict_page_dirty_update配合__evict_reconcile阅读
 static int
 __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
 {
@@ -411,7 +419,7 @@ __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_
 
     WT_ASSERT(session, ref->addr == NULL);
 
-    switch (mod->rec_result) {
+    switch (mod->rec_result) {//配合__rec_write_wrapup阅读
     case WT_PM_REC_EMPTY:
         /*
          * Page is empty: Update the parent to reference a deleted page. Reconciliation left the
@@ -424,7 +432,7 @@ __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_
         WT_WITH_PAGE_INDEX(session, ret = __evict_delete_ref(session, ref, evict_flags));
         WT_RET_BUSY_OK(ret);
         break;
-    case WT_PM_REC_MULTIBLOCK:
+    case WT_PM_REC_MULTIBLOCK: //__evict_reconcile中multi split拆分到multi_next了multi
         /*
          * Multiple blocks: Either a split where we reconciled a page and it turned into a lot of
          * pages or an in-memory page that got too large, we forcibly evicted it, and there wasn't
@@ -438,7 +446,7 @@ __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_
          * a single block that we can't write. Take advantage of the fact we have exclusive access
          * to the page and rewrite it in memory.
          */
-        if (mod->mod_multi_entries == 1) {
+        if (mod->mod_multi_entries == 1) {//__evict_reconcile中该page只拆分为了一个page，这个page肯定全部在磁盘中
             WT_ASSERT(session, closing == false);
             WT_RET(__wt_split_rewrite(session, ref, &mod->mod_multi[0]));
         } else
@@ -725,12 +733,12 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
 //__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
 //__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
 
- 
-//__evict_force_check中通过page消耗的内存与，决定走内存split evict(__wt_evict)还是reconcile evict(__evict_reconcile)
+
+//__evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
+//__evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
 
  
-//__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘
-//__evict_reconcile: 对page拆分为多个page后写入磁盘中
+//__evict_force_check中通过page消耗的内存与，决定走内存split evict(__wt_evict)还是reconcile evict(__evict_reconcile)
 static int
 __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
 {
@@ -783,6 +791,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
          *
          * Note that don't scrub if checkpoint is running on the tree.
          */
+        //如果不是WT_CACHE_EVICT_SCRUB，一般都会进来
         if (!WT_SESSION_BTREE_SYNC(session) &&
           (F_ISSET(cache, WT_CACHE_EVICT_SCRUB) ||
             (F_ISSET(cache, WT_CACHE_EVICT_DEBUG_MODE) && __wt_random(&session->rnd) % 3 == 0)))

@@ -252,6 +252,7 @@ struct __wt_cell_unpack_addr {
  * WT_CELL_UNPACK_KV --
  *     Unpacked value cell.
  */
+//²Î¿¼__inmem_row_leaf_entries
 struct __wt_cell_unpack_kv {
     //WT_CELL_COMMON_FIELDS;
     WT_CELL *cell; /* Cell's disk image address */

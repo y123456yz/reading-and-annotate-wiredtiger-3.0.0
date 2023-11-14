@@ -1392,7 +1392,10 @@ err:
 /*
  * __split_multi_inmem --
  *     Instantiate a page from a disk image.
- */
+ //reconcile拆分后每个multi都需要调用一次，用于隐射内存page和磁盘chunk数据
+
+ //新建一个page， 实现一个multi与这个page的映射，主要是实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
+ */ //__wt_multi_to_ref->__split_multi_inmem
 static int
 __split_multi_inmem(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *multi, WT_REF *ref)
 {
@@ -1420,6 +1423,7 @@ __split_multi_inmem(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *multi, WT
      * our caller will not discard the disk image when discarding the original page, and our caller
      * will discard the allocated page on error, when discarding the allocated WT_REF.
      */
+    //为磁盘上面的一个chunk分配一个page，并记录该page在磁盘上面的KV总数
     WT_RET(__wt_page_inmem(session, ref, multi->disk_image, WT_PAGE_DISK_ALLOC, &page, &prepare));
     multi->disk_image = NULL;
 
@@ -1442,6 +1446,7 @@ __split_multi_inmem(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *multi, WT
      * If there are no updates to apply to the page, we're done. Otherwise, there are updates we
      * need to restore.
      */
+    //该page在磁盘上的update相关多版本信息
     if (multi->supd_entries == 0)
         return (0);
     WT_ASSERT(session, multi->supd_restore);
@@ -1688,7 +1693,7 @@ __split_multi_inmem_fail(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *mult
  *     Move a multi-block entry into a WT_REF structure.
  */
 //__wt_evict->__evict_page_dirty_update->__wt_split_multi->__split_multi_lock->__split_multi->__wt_multi_to_ref
-//让page指向拆分后的磁盘元数据
+//新建一个ref， 实现一个multi与这个ref page的映射，主要是实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
 int
 __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_REF **refp,
   size_t *incrp, bool closing)
@@ -1756,14 +1761,17 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
      * freeing the reference array would have to avoid freeing the memory, and it's not worth the
      * confusion.
      */
+    //创建新ref，新ref->addr指向磁盘上的chunk数据
     if (multi->addr.addr != NULL) {
         WT_RET(__wt_calloc_one(session, &addr));
         ref->addr = addr;
         WT_TIME_AGGREGATE_COPY(&addr->ta, &multi->addr.ta);
+        //拷贝page对应的磁盘元数据信息
         WT_RET(__wt_memdup(session, multi->addr.addr, multi->addr.size, &addr->addr));
         addr->size = multi->addr.size;
         addr->type = multi->addr.type;
 
+        //表示该page对应数据在磁盘中
         WT_REF_SET_STATE(ref, WT_REF_DISK);
     }
 
@@ -1772,7 +1780,8 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
      *
      * Discard any page image we don't use.
      */
-    if (multi->disk_image != NULL && !closing) {
+    if (multi->disk_image != NULL && !closing) {//yang add todo xxxx   如果是closin __rec_split_write中是否有必要分配内存拷贝chunk数据到disk_image
+         //新建一个page， 实现一个multi与这个page的映射，主要是实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
         WT_RET(__split_multi_inmem(session, page, multi, ref));
         WT_REF_SET_STATE(ref, WT_REF_MEM);
     }
@@ -2191,12 +2200,14 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      */
     WT_RET(__wt_calloc_def(session, new_entries, &ref_new));
     for (i = 0; i < new_entries; ++i)
-        WT_ERR( //让page指向拆分后的磁盘元数据
+        WT_ERR( //为每一个page指向reconcile拆分后的磁盘元数据
+        //新建一个ref， 实现一个multi与这个ref page的映射，主要是实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
           __wt_multi_to_ref(session, page, &mod->mod_multi[i], &ref_new[i], &parent_incr, closing));
 
     /*
      * Split into the parent; if we're closing the file, we hold it exclusively.
      */
+    //该page拆分为multi_next个page后，重新构建父parent的index索引数组
     WT_ERR(__split_parent(session, ref, ref_new, new_entries, parent_incr, closing, true));
 
     /*

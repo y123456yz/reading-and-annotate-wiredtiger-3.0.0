@@ -80,6 +80,8 @@ struct __wt_rec_chunk {
     
     //r->first_free指向这里面的实际数据位置，也就是(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据)中的实际数据
     //默认空间大小是按照disk_img_buf_size对齐的，参考__rec_split_chunk_init
+
+    //这里一个page通过reconcile拆分为多个page_size大小的chunk的时候，只会分配一次chunk image,后面都重复利用该image，参考__rec_split_chunk_init
     WT_ITEM image; /* disk-image */
 
     /* For fixed-length column store, track where the time windows start and how many we have. */
@@ -190,9 +192,21 @@ struct __wt_reconcile {
     /*
      * Second, the split size: if we're doing the page layout, split to a smaller-than-maximum page
      * size when a split is required so we don't repeatedly split a packed page.
+     [1699932400:350884][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_EVICT][DEBUG_1]: xxxxxxxxxxx page 0x24fc180 (row-store leaf)
+[1699932400:350908][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_RECONCILE][DEBUG_1]: 0x24743c0 reconcile row-store leaf (evict, history store), entries:0
+[1699932400:351296][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 4096-32768
+[1699932400:351322][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_HANDLEOPS][DEBUG_2]: WT_TEST/access.wt: handle-write: 28672 at 4096
+[1699932400:351328][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_WRITE][DEBUG_2]: write: WT_TEST/access.wt, fd=6, offset=4096, len=28672
+[1699932400:351451][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_WRITE][DEBUG_2]: off 4096, size 28672, checksum 0xed50b029
+yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:28663, r->min_split_size:16384,split_size:28672
+[1699932400:351585][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 32768-61440
+[1699932400:351599][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_HANDLEOPS][DEBUG_2]: WT_TEST/access.wt: handle-write: 28672 at 32768
+[1699932400:351603][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_WRITE][DEBUG_2]: write: WT_TEST/access.wt, fd=6, offset=32768, len=28672
+[1699932400:351633][121495:0x7f1c804bc800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_WRITE][DEBUG_2]: off 32768, size 28672, checksum 0x3549d978
      */
     //__wt_rec_split_init
     //默认90% * page_size  //reconcile splite的条件
+    //也就是handle-write: 28672写真实数据(包括header)，也就是reconcile evict拆分为多个chunk时候，单个chunk在磁盘对应的真实数据大小
     uint32_t split_size;     /* Split page size */
     //默认50% * page_size
     uint32_t min_split_size; /* Minimum split page size */
@@ -318,6 +332,7 @@ struct __wt_reconcile {
     //__rec_split_write中把chunk数据写入磁盘，并保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)到WT_MULTI中
     WT_MULTI *multi;
     //__rec_split_write中自增, 也就是该page拆分为了多少个新page，可以参考__rec_split_dump_keys的打印
+    //0:删除该page   1:page和其他page交换了  >=2: 说明一个拆分为多个chunk
     uint32_t multi_next;
     size_t multi_allocated;
 

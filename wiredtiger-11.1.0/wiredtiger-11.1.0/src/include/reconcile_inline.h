@@ -244,7 +244,7 @@ __wt_rec_incr(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t v, size_t size
  * __wt_rec_image_copy --
  *     Copy a key/value cell and buffer pair into the new image.
  */
-//拷贝k或者v数据到r->first_free对应内存空间
+//拷贝编码后的k或者v数据到r->first_free对应内存空间
 //__wt_rec_row_leaf->__rec_row_leaf_insert->__wt_rec_image_copy: 拷贝page内存部分KV数据到r->first_free对应内存空间
 //__wt_rec_row_leaf->__rec_row_leaf_insert: 拷贝磁盘部分KV数据到r->first_free对应内存空间
 static inline void
@@ -260,7 +260,8 @@ __wt_rec_image_copy(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_KV *kv)
      *
      * WT_CELLs are typically small, 1 or 2 bytes -- don't call memcpy, do the copy in-line.
      */
-    //先拷贝K或者V长度部分到page header后面
+    //先拷贝cell_len字节K或者V编码后长度内容cell到first_free
+    //也就是该K的内容有这么多，长度自动后面紧跟着真实数据
     for (p = r->first_free, t = (uint8_t *)&kv->cell, len = kv->cell_len; len > 0; --len)
         *p++ = *t++;
 
@@ -413,7 +414,7 @@ __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *add
 //__wt_rec_cell_build_val: value数据封装到r->v中
 //__rec_cell_build_leaf_key: 对key进行编码后存入r->k中, 同时r->cur指向data数据
 
-//value数据封装到r->v中
+//value数据封装到r->v中，配合__wt_rec_image_copy阅读
 static inline int
 __wt_rec_cell_build_val(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *data, size_t size,
   WT_TIME_WINDOW *tw, uint64_t rle)

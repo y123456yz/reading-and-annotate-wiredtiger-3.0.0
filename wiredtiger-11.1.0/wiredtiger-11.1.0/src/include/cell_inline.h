@@ -237,7 +237,7 @@ __wt_cell_pack_addr(WT_SESSION_IMPL *session, WT_CELL *cell, u_int cell_type, ui
 /*
  * __wt_cell_pack_value --
  *     Set a value item's WT_CELL contents.
- */
+ */ // __wt_cell_pack_value  __wt_cell_pack_leaf_key 与   __wt_cell_unpack_kv  __wt_cell_unpack_safe对应
 //WT_CELL内容填充，主要记录wt信息和size内容到WT_CELL中
 static inline size_t
 __wt_cell_pack_value(
@@ -455,17 +455,21 @@ __wt_cell_pack_int_key(WT_CELL *cell, size_t size)
 /*
  * __wt_cell_pack_leaf_key --
  *     Set a row-store leaf page key's WT_CELL contents.
- */
+ */// __wt_cell_pack_value  __wt_cell_pack_leaf_key 与   __wt_cell_unpack_kv  __wt_cell_unpack_safe对应
 //记录key编码方式，返回编码后的key头部编码长度
+//对size进行编码存入cell->__chunk[]数组前面几个字节中
 static inline size_t
 __wt_cell_pack_leaf_key(WT_CELL *cell, uint8_t prefix, size_t size)
 {
     uint8_t byte, *p;
 
     /* Short keys have 6 bits of data length in the descriptor byte. */
-    if (size <= WT_CELL_SHORT_MAX) {
+    if (size <= WT_CELL_SHORT_MAX) {//key长度小于63
         if (prefix == 0) {//小key + 非前缀压缩
             byte = (uint8_t)size; /* Type + length */
+            /*
+                __chunk[0]左边两位代表类型，右边6位代表长度
+               */
             cell->__chunk[0] = (uint8_t)((byte << WT_CELL_SHORT_SHIFT) | WT_CELL_KEY_SHORT);
             return (1);
         }
@@ -479,6 +483,10 @@ __wt_cell_pack_leaf_key(WT_CELL *cell, uint8_t prefix, size_t size)
 
     //大key + 非前缀压缩
     if (prefix == 0) {
+        /*
+              __chunk[0]写死WT_CELL_KEY，代表真实的key长度
+              __chunk[1]写死WT_CELL_KEY，代表真实的key长度
+          */
         cell->__chunk[0] = WT_CELL_KEY; /* Type */
         p = cell->__chunk + 1;
     } else {//大key + 前缀压缩
@@ -684,6 +692,7 @@ __wt_cell_leaf_value_parse(WT_PAGE *page, WT_CELL *cell)
 /*
  * __wt_cell_unpack_safe --
  *     Unpack a WT_CELL into a structure, with optional boundary checks.
+ // __wt_cell_pack_value  __wt_cell_pack_leaf_key 与   __wt_cell_unpack_kv  __wt_cell_unpack_safe对应
  */
 static inline int
 __wt_cell_unpack_safe(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CELL *cell,
@@ -1181,7 +1190,9 @@ __wt_cell_unpack_addr(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CE
 /*
  * __wt_cell_unpack_kv --
  *     Unpack a value WT_CELL into a structure.
+ // __wt_cell_pack_value  __wt_cell_pack_leaf_key 与   __wt_cell_unpack_kv  __wt_cell_unpack_safe对应
  */
+//__inmem_row_leaf调用，解包磁盘上面的一个cell数据, 配合__wt_rec_image_copy写入封包阅读
 static inline void
 __wt_cell_unpack_kv(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CELL *cell,
   WT_CELL_UNPACK_KV *unpack_value)
@@ -1318,6 +1329,8 @@ __wt_page_cell_data_ref_kv(
              __cell += (unpack).__len, --__i) {                                                 \
             __wt_cell_unpack_addr(session, dsk, (WT_CELL *)__cell, &(unpack));
 
+//遍历磁盘上面一个chunk的所有KV数据，解包后存入unpack
+//跳过WT_PAGE_HEADER_BYTE_SIZE头部，获取真实KV,配合__wt_rec_image_copy写入封包阅读
 #define WT_CELL_FOREACH_KV(session, dsk, unpack)                                                \
     do {                                                                                        \
         uint32_t __i;                                                                           \

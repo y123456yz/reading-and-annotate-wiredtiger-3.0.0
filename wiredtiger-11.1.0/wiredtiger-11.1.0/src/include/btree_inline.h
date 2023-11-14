@@ -261,6 +261,7 @@ __wt_btree_bytes_updates(WT_SESSION_IMPL *session)
 /*
  * __wt_cache_page_inmem_incr --
  *     Increment a page's memory footprint in the cache.
+ page数据在磁盘中，从这里可以看出即使page的数据在磁盘中，上面的__wt_cache_page_inmem_incr内存计数也会算上，参考__wt_page_inmem
  */
 static inline void
 __wt_cache_page_inmem_incr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
@@ -576,7 +577,7 @@ __wt_cache_page_image_decr(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_cache_page_image_incr --
  *     Increment a page image's size to the cache.
- */
+ */ 
 static inline void
 __wt_cache_page_image_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -1158,6 +1159,10 @@ __wt_row_leaf_key_info(WT_PAGE *page, void *copy, WT_IKEY **ikeyp, WT_CELL **cel
  * __wt_row_leaf_key_set --
  *     Set a WT_ROW to reference an on-page row-store leaf key.
  */
+//__wt_row_leaf_key_set: 获取page对应磁盘中的一个K解包后的unpack，然后解析获取对应的key地址赋值给rip
+//__wt_row_leaf_value_set: 获取page对应磁盘中的一个V解包后的unpack，然后解析获取对应的key地址赋值给rip
+
+//获取page对应磁盘中的一个K解包后的unpack，然后解析获取对应的key地址赋值给rip
 static inline void
 __wt_row_leaf_key_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
 {
@@ -1184,8 +1189,8 @@ __wt_row_leaf_key_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
  * __wt_row_leaf_value_set --
  *     Set a WT_ROW to reference an on-page row-store leaf key and value pair, if possible.
  */
-//__wt_row_leaf_key_set:
-//__wt_row_leaf_value_set
+//__wt_row_leaf_key_set: 获取page对应磁盘中的一个K解包后的unpack，然后解析获取对应的key地址赋值给rip
+//__wt_row_leaf_value_set: 获取page对应磁盘中的一个V解包后的unpack，然后解析获取对应的key地址赋值给rip
 static inline void
 __wt_row_leaf_value_set(WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
 {
@@ -1446,7 +1451,7 @@ __wt_row_leaf_value(WT_PAGE *page, WT_ROW *rip, WT_ITEM *value)
 /*
  * __wt_row_leaf_value_cell --
  *     Return the unpacked value for a row-store leaf page key.
- */
+ */ //配合cell写磁盘逻辑__wt_rec_image_copy阅读
 static inline void
 __wt_row_leaf_value_cell(
   WT_SESSION_IMPL *session, WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK_KV *vpack)

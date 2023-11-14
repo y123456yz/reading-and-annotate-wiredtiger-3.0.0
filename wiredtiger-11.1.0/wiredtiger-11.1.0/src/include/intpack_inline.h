@@ -187,7 +187,7 @@ __wt_vunpack_negint(const uint8_t **pp, size_t maxlen, uint64_t *retp)
  * __wt_vpack_uint --
  *     Variable-sized packing for unsigned integers
  */
-//根据x大小进行uint64封包编码
+//根据x大小进行uint64封包编码, 可以减少空间占用
 static inline int
 __wt_vpack_uint(uint8_t **pp, size_t maxlen, uint64_t x)
 {
@@ -195,9 +195,9 @@ __wt_vpack_uint(uint8_t **pp, size_t maxlen, uint64_t x)
 
     WT_SIZE_CHECK_PACK(1, maxlen);
     p = *pp;
-    if (x <= POS_1BYTE_MAX) //
+    if (x <= POS_1BYTE_MAX) //小于6位整数，取第[0-6>位数据，也就是一个字节即可表示x大小
         *p++ = POS_1BYTE_MARKER | GET_BITS(x, 6, 0);
-    else if (x <= POS_2BYTE_MAX) {
+    else if (x <= POS_2BYTE_MAX) {//[6, 13]位整数，也就是2个字节即可表示x大小
         WT_SIZE_CHECK_PACK(2, maxlen);
         x -= POS_1BYTE_MAX + 1;
         *p++ = POS_2BYTE_MARKER | GET_BITS(x, 13, 8);
@@ -207,9 +207,10 @@ __wt_vpack_uint(uint8_t **pp, size_t maxlen, uint64_t x)
          * This is a special case where we could store the value with just a single byte, but we
          * append a zero byte so that the encoding doesn't get shorter for this one value.
          */
+        //这个特殊整数直接用2位表示
         *p++ = POS_MULTI_MARKER | 0x1;
         *p++ = 0;
-    } else {
+    } else {// > POS_2BYTE_MAX + 1的数，则实际需要多少字节就用多少字节表示
         x -= POS_2BYTE_MAX + 1;
         *p = POS_MULTI_MARKER;
         return (__wt_vpack_posint(pp, maxlen, x));

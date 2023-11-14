@@ -507,7 +507,7 @@ err:
 /*
  * __rec_init --
  *     Initialize the reconciliation structure.
- */
+ */ //__rec_init和__rec_cleanup对应
 static int
 __rec_init(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags, WT_SALVAGE_COOKIE *salvage,
   void *reconcilep)
@@ -724,7 +724,7 @@ err:
 /*
  * __rec_cleanup --
  *     Clean up after a reconciliation run, except for structures cached across runs.
- */
+ */  //__rec_init和__rec_cleanup对应
 static int
 __rec_cleanup(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 {
@@ -996,7 +996,9 @@ __rec_split_chunk_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *
      * Clear the disk page header to ensure all of it is initialized, even the unused fields.
      */
     //__rec_split_chunk_init提前申请需要写入到磁盘的一个reconcile内存空间
+    //一个page reconcile完成后__rec_destroy释放这个空间
     WT_RET(__wt_buf_init(session, &chunk->image, r->disk_img_buf_size));
+    //这里一个page通过reconcile拆分为多个page_size大小的chunk的时候，只会分配一次chunk image,后面都重复利用该image
     memset(chunk->image.mem, 0, WT_PAGE_HEADER_SIZE);
 
 #ifdef HAVE_DIAGNOSTIC
@@ -1110,13 +1112,15 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
         r->split_size = 0;
         r->space_avail = r->page_size - WT_PAGE_HEADER_BYTE_SIZE(btree);
     } else {
+        //这里没有加头部自动是因为写磁盘的时候会自动加上头部长度WT_BLOCK_HEADER_BYTE_SIZE，参考__wt_block_write_size
+        //配合下面的bm->write_size
         r->split_size = __wt_split_page_size(btree->split_pct, r->page_size, btree->allocsize);
         r->space_avail = r->split_size - WT_PAGE_HEADER_BYTE_SIZE(btree);
         r->min_split_size =
           __wt_split_page_size(WT_BTREE_MIN_SPLIT_PCT, r->page_size, btree->allocsize);
         r->min_space_avail = r->min_split_size - WT_PAGE_HEADER_BYTE_SIZE(btree);
     }
-    printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
+    //printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
 
     /*
      * Ensure the disk image buffer is large enough for the max object, as corrected by the
@@ -1948,6 +1952,7 @@ __rec_split_write_header(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK
 
     __rec_set_page_write_gen(btree, dsk);
     dsk->mem_size = multi->size;
+    //__wt_rec_split_finish当前reconcile处理的page上面的K和V总数
     dsk->u.entries = chunk->entries;
     dsk->type = page->type;
 
@@ -2311,10 +2316,15 @@ copy_image:
      * If re-instantiating this page in memory (either because eviction wants to, or because we
      * skipped updates to build the disk image), save a copy of the disk image.
      */
-    //拷贝数据到multi->disk_image, 一般不进入该流程
-    if (F_ISSET(r, WT_REC_SCRUB) || multi->supd_restore)
+    //拷贝数据到multi->disk_image,  reconcile会满足WT_REC_SCRUB条件
+    if (F_ISSET(r, WT_REC_SCRUB) || multi->supd_restore) {
+        printf("yang test ......__rec_split_write.......__wt_memdup....supd_restore:%d..size:%d, r->min_split_size:%d,split_size:%d\r\n"
+            , multi->supd_restore, (int)chunk->image.size, (int)r->min_split_size, (int)r->split_size);
+        //yang add todo xxxxxxxxxx  这里会不会有大量的内存拷贝?????
+        //chunk->image.size就是一个chunk的数据大小，也就是split_size大小
         WT_RET(__wt_memdup(session, chunk->image.data, chunk->image.size, &multi->disk_image));
-
+        
+    }
     /* Whether we wrote or not, clear the accumulated time statistics. */
     __rec_page_time_stats_clear(r);
 

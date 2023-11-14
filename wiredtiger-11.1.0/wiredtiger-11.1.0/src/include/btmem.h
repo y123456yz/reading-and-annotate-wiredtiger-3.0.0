@@ -34,6 +34,7 @@
 //__evict_reconcileÖĞÈç¹ûÊÇleaf pageÉèÖÃ¸Ã±êÊ¶
 #define WT_REC_HS 0x040u
 #define WT_REC_IN_MEMORY 0x080u
+//Ò»°ãreconcile¶¼»áÓµÓĞ¸Ã±êÊ¶
 #define WT_REC_SCRUB 0x100u
 #define WT_REC_VISIBILITY_ERR 0x200u
 #define WT_REC_VISIBLE_ALL 0x400u
@@ -55,7 +56,7 @@
  block-manager specific information such as flags and version.
  ²Î¿¼reconcile¹Ù·½ÎÄµµ:https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
  */
-//Ò»¸öpageÊı¾İÔÚ´ÅÅÌÖĞÁ¬Ğø¿Õ¼äÄÚÈİ: __wt_page_header + WT_BLOCK_HEADER +
+//Ò»¸öpageÊı¾İÔÚ´ÅÅÌÖĞÁ¬Ğø¿Õ¼äÄÚÈİ: __wt_page_header + WT_BLOCK_HEADER + WT_CELL
 //·ÖÆ¬¿Õ¼äºÍ¸³Öµ¿ÉÒÔ²Î¿¼__wt_rec_cell_build_ovfl
 struct __wt_page_header {
     /*
@@ -75,10 +76,11 @@ struct __wt_page_header {
      * The page's in-memory size isn't rounded or aligned, it's the actual number of bytes the
      * disk-image consumes when instantiated in memory.
      */
-    //header + data×Ü³¤¶È
+    //header + data×Ü³¤¶È£¬´ú±í¸ÃpageÔÚ´ÅÅÌÉÏÃæµÄ³¤¶È
     uint32_t mem_size; /* 16-19: in-memory page size */
 
     union {
+        //__wt_rec_split_finishµ±Ç°reconcile´¦ÀíµÄpageÉÏÃæµÄKºÍV×ÜÊı
         uint32_t entries; /* 20-23: number of cells on page */
         uint32_t datalen; /* 20-23: overflow data length */
     } u;
@@ -138,7 +140,7 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
  */
 //page header(WT_PAGE_HEADER_SIZE) + block header(WT_BLOCK_HEADER_SIZE)
 #define WT_PAGE_HEADER_BYTE_SIZE(btree) ((u_int)(WT_PAGE_HEADER_SIZE + (btree)->block_header))
-//dsk¿ªÊ¼Ìø¹ıpage header + block header
+//dsk¿ªÊ¼Ìø¹ıpage header + block header,Ò²¾ÍÊÇÕâ¸öpage¶ÔÓ¦µÄÊµ¼ÊÊı¾İÆğÊ¼µØÖ·
 #define WT_PAGE_HEADER_BYTE(btree, dsk) \
     ((void *)((uint8_t *)(dsk) + WT_PAGE_HEADER_BYTE_SIZE(btree)))
 
@@ -285,6 +287,14 @@ struct __wt_multi {
      * A disk image that may or may not have been written, used to re-instantiate the page in
      * memory.
      */
+    //Í¨¹ıreconcile°ÑÒ»¸öchunkÊı¾İĞ´Èë´ÅÅÌºó£¬»á¿½±´Ò»·İµ½disk_image, ²Î¿¼__rec_split_write
+    //Ò²¾ÍÊÇdisk_imageÄÚ´æÒ»¸öÍêÕûµÄchunk(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + Êµ¼ÊÊı¾İ)
+    //×îÖÕÔÚ__wt_page_inmemÖĞ¸³Öµ¸øpage->dsk, È»ºóÔÚ__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf½âÎö
+    //´ÅÅÌpage->dskÖĞµÄKºÍVµØÖ·ĞÅÏ¢´æÈëµ½page->pg_row, ×îºóÔÚ__wt_multi_to_refÖĞÊÍ·Ådisk_image
+
+    //´ÓÉÏÃæµÄ±¸×¢¿ÉÒÔ¿´³ö£¬reconcileÒ»¸ömulti¶ÔÓ¦Êı¾İĞ´Èë´ÅÅÌºó£¬»áÔÚ¿½±´Ò»·İµ½disk_imageÖĞ
+    //È»ºóÔÚ__inmem_row_leaf½âÎö³ö´ÅÅÌÉÏµÄKºÍVµØÖ·±£´æµ½page->pg_row[]ÖĞ, ×îºóÊÍ·Ådisk_image¿Õ¼ä£¬Ò²¾ÍÊÇdisk_imageÖ»ÊÇÒ»¸öÁÙÊ±
+    //±äÁ¿±£´æĞ´Èë´ÅÅÌµÄËùÓĞ·â°üÊı¾İ£¬×îÖÕÄ¿µÄÊÇÎªÁË»ñÈ¡page´ÅÅÌÉÏK»òÕßVÊı¾İ±£´æµ½page->pg_row[]Êı×éÖĞ
     void *disk_image;
 
     /*
@@ -308,6 +318,7 @@ struct __wt_multi {
     //±£´æchunk->imageĞ´Èë´ÅÅÌÊ±ºòµÄÔªÊı¾İĞÅÏ¢(objectid offset size  checksum)
     //¸³Öµ¼û__rec_split_write
     WT_ADDR addr;
+    //Ò²¾ÍÊÇÒ»¸öchunkµÄ´óĞ¡
     uint32_t size;
     uint32_t checksum;
 };
@@ -409,7 +420,7 @@ struct __wt_page_modify {
 //¸³Öµ²Î¿¼__rec_write_wrapup£¬ Ò»´Îreconcile½áÊøºó£¬reconcileµÄmultiĞÅÏ¢×ª´æµ½mod->mod_multiÖĞ
 #define mod_multi u1.m.multi
 #undef mod_multi_entries
-//¸³Öµ²Î¿¼__rec_write_wrapup£¬Ò»´Îreconcile½áÊøºó£¬reconcileµÄmultiĞÅÏ¢×ª´æµ½mod->mod_multiÖĞ
+//¸³Öµ²Î¿¼__rec_write_wrapup£¬Ò»´Îreconcile½áÊøºó£¬reconcileµÄmultiĞÅÏ¢×ª´æµ½mod->mod_multiÖĞ, Ò²¾ÍÊÇr->multi_nextÊı
 #define mod_multi_entries u1.m.multi_entries
     } u1;
 
@@ -704,7 +715,7 @@ struct __wt_page {
 #undef pg_row
 //pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊı¾İWT_ROW_FOREACH±éÀú»ñÈ¡¸ÃpageÔÚ´ÅÅÌµÄKVÊı¾İ£ Õâ¸öÊı¾İÔÚÄÚ´æÖĞ£¬Ö»ÊÇ´Ó´ÅÅÌ¼ÓÔØµÄ£¬ÔÚ´ÅÅÌÉÏÒ²ÓĞÒ»·İÊı¾İ
 //mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊı¾İ£¬mod_row_update¼ÇÂ¼ÄÚ´æÖĞÍ¬Ò»¸öKµÄ±ä¸ü¹ı³Ì
-//Ö¸Ïò¸Ãpage´æ´¢µÄÕæÊµÊı¾İ£¬¼û__wt_page_alloc
+//Ö¸Ïò¸Ãpage´æ´¢µÄÕæÊµÊı¾İ£¬pg_row[]Êı×é(Êı×é´óĞ¡page->entries)¿Õ¼ä·ÖÅä¼û__wt_page_alloc,±£³ÖK»òÕßVµÄ´ÅÅÌµØÖ·£¬Ã¿¸öKV¸³Öµ²Î¿¼__inmem_row_leaf
 #define pg_row u.row
 
         /* Fixed-length column-store leaf page. */
@@ -744,7 +755,8 @@ struct __wt_page {
     // An internal Btree page will have an array of WT_REF structures. 
     //A row-store leaf page will have an array of WT_ROW structures representing the KV pairs stored on the page. 
     //¸³Öµ¼û__wt_page_inmem->__wt_page_inmem
-    //´ú±íÔÚ´ÅÅÌpg_rowÉÏÃæµÄKV×ÜÊı
+    //´ú±íÔÚ´ÅÅÌpg_rowÉÏÃæµÄKV×ÜÊı,¿ÉÒÔ²Î¿¼__wt_evict->__evict_page_dirty_update->__wt_split_multi->__split_multi_lock
+    //->__split_multi->__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__wt_page_alloc
     uint32_t entries; /* Leaf page entries */
 
     uint32_t prefix_start; /* Best page prefix starting slot */
@@ -784,8 +796,9 @@ struct __wt_page {
     size_t memory_footprint; /* Memory attached to the page */
 
     /* Page's on-disk representation: NULL for pages created in memory. */
-    //¸ÃpageÓĞÊı¾İ´æ´¢ÔÚ´ÅÅÌÉÏ£¬´ÅÅÌµÄ½á¹¹ĞÅÏ¢Î»ÖÃ
-    const WT_PAGE_HEADER *dsk;
+    //__split_multi_inmem->__wt_page_inmem¿ÉÒÔ¿´³ö£¬Êµ¼ÊÉÏÄÚ´æÒ²ÓĞÒ»·İ´ÅÅÌÍêÈ«Ò»ÑùµÄÄÚ´æÊı¾İ£¬Ò²¾ÍÊÇdisk_image£¬×îÖÕÄÚ´æÖĞµÄÊı¾İ¼ÇÂ¼µ½dsk
+    //¸ÃpageÓĞÊı¾İ´æ´¢ÔÚ´ÅÅÌÉÏ£¬´ÅÅÌµÄ½á¹¹ĞÅÏ¢Î»ÖÃ, Ö¸ÏòÒ»¸ö´ÅÅÌchunk(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + Êµ¼ÊÊı¾İ)µÄÍ·²¿WT_PAGE_HEADER_SIZE
+    const WT_PAGE_HEADER *dsk; //¸³Öµ¼û__wt_page_inmem£¬Ö¸Ïò´ÅÅÌÊı¾İ
 
     /* If/when the page is modified, we need lots more information. */
     //__wt_page.modify ¸³Öµ¼û__wt_page_modify_init
@@ -1028,6 +1041,7 @@ struct __wt_ref {
                                   /* AUTOMATIC FLAG VALUE GENERATION STOP 8 */
     uint8_t flags;
 
+//±êÊ¶¸ÃpageÊı¾İÔÚdiskÖĞ
 #define WT_REF_DISK 0       /* Page is on disk */
 //__btree_tree_open_empty´´½¨root pageµÄÊ±ºò³õÊ¼»¯Îª¸ÃÖµ
 #define WT_REF_DELETED 1    /* Page is on disk, but deleted */

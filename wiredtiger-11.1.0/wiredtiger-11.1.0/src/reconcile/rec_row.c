@@ -80,7 +80,7 @@ __rec_cell_build_int_key(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *
 //__wt_rec_cell_build_val: value数据封装到r->v中
 //__rec_cell_build_leaf_key: 对key进行编码后存入r->k中, 同时r->cur指向data数据
 
-//对key进行编码后存入r->k中
+//对key进行编码后存入r->k中，配合__wt_rec_image_copy阅读
 static int
 __rec_cell_build_leaf_key(
   WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *data, size_t size, bool *is_ovflp)
@@ -173,8 +173,7 @@ __rec_cell_build_leaf_key(
         return (__rec_cell_build_leaf_key(session, r, NULL, 0, is_ovflp));
     }
 
-    //1. key长度编码记录到key->cell
-    //2. 返回编码后的key头部长度
+    //1. key->buf长度编码记录到key->cell中，同时返回编码后的key buf内容长度编码后占用的字节数
     key->cell_len = __wt_cell_pack_leaf_key(&key->cell, pfx, key->buf.size);
     //编码后的key占用的总字节数=长度部分+实际内容
     key->len = key->cell_len + key->buf.size;
@@ -725,7 +724,7 @@ __wt_rec_row_leaf(
     cbt->iface.session = (WT_SESSION *)session;
 
     WT_RET(__wt_rec_split_init(session, r, page, 0, btree->maxleafpage_precomp, 0));
-    printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
+   // printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
     
     /*
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
