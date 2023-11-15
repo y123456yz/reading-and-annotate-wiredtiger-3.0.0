@@ -150,7 +150,7 @@ __rec_cell_build_leaf_key(
         }
 
         /* Copy the non-prefix bytes into the key buffer. */
-        //data拷贝到r->k buf中
+        //data拷贝到r->k buf中，也就是key->buf
         WT_RET(__wt_buf_set(session, &key->buf, (uint8_t *)data + pfx, size - pfx));
     }
     r->key_pfx_last = pfx;

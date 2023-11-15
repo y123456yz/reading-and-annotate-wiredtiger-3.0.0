@@ -581,7 +581,7 @@ __wt_cell_total_len(void *unpack_arg)
 /*
  * __wt_cell_type --
  *     Return the cell's type (collapsing special types).
- */
+ */ //参考__wt_cell_type，确定类型，判断K或者V的数据长度对应编码类型
 static inline u_int
 __wt_cell_type(WT_CELL *cell)
 {
@@ -609,10 +609,16 @@ __wt_cell_type(WT_CELL *cell)
 /*
  * __wt_cell_type_raw --
  *     Return the cell's type.
+
+ 配合 __wt_cell_pack_value  __wt_cell_pack_leaf_key __wt_rec_image_copy写入封包阅读
  */
+//获取该cell的数据长度类型
 static inline u_int
 __wt_cell_type_raw(WT_CELL *cell)
 {
+    //__chunk[0]最左边两位确定是否为short key或者short value
+    //__chunk[0]最左边两位为0说明是小于等于WT_CELL_SHORT_MAX的K或者V
+    //__chunk[0]最左边两位不为0说明是大于WT_CELL_SHORT_MAX的K或者V
     return (WT_CELL_SHORT_TYPE(cell->__chunk[0]) == 0 ? WT_CELL_TYPE(cell->__chunk[0]) :
                                                         WT_CELL_SHORT_TYPE(cell->__chunk[0]));
 }
@@ -694,6 +700,8 @@ __wt_cell_leaf_value_parse(WT_PAGE *page, WT_CELL *cell)
  *     Unpack a WT_CELL into a structure, with optional boundary checks.
  // __wt_cell_pack_value  __wt_cell_pack_leaf_key 与   __wt_cell_unpack_kv  __wt_cell_unpack_safe对应
  */
+
+//__inmem_row_leaf调用，解包对应磁盘上面的一个cell数据(一个K或者V), 配合 __wt_cell_pack_value  __wt_cell_pack_leaf_key __wt_rec_image_copy写入封包阅读
 static inline int
 __wt_cell_unpack_safe(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CELL *cell,
   WT_CELL_UNPACK_ADDR *unpack_addr, WT_CELL_UNPACK_KV *unpack_value, const void *end)
@@ -747,6 +755,9 @@ copy_cell_restart:
      * following switch. All validity windows default to durability.
      */
     unpack->v = 0;
+    //获取该cell的数据长度类型
+    //__chunk[0]最左边两位为0说明是小于等于WT_CELL_SHORT_MAX的K或者V
+    //__chunk[0]最左边两位不为0说明是大于WT_CELL_SHORT_MAX的K或者V
     unpack->raw = (uint8_t)__wt_cell_type_raw(cell);
     unpack->type = (uint8_t)__wt_cell_type(cell);
     unpack->flags = 0;
@@ -764,15 +775,22 @@ copy_cell_restart:
         unpack->size = cell->__chunk[0] >> WT_CELL_SHORT_SHIFT;
         unpack->__len = 2 + unpack->size;
         goto done; /* Handle copy cells. */
+    //K或者V的长度位short类型，也就是<=WT_CELL_SHORT_MAX
     case WT_CELL_KEY_SHORT:
     case WT_CELL_VALUE_SHORT:
         unpack->prefix = 0;
+        //数据指针，指向数据
         unpack->data = cell->__chunk + 1;
+        //数据总长度
         unpack->size = cell->__chunk[0] >> WT_CELL_SHORT_SHIFT;
+        //存储数据长度的字节数+存储真实数据的长度，1是因为有一个字节存储数据长度字段  
         unpack->__len = 1 + unpack->size;
         goto done; /* Handle copy cells. */
     }
 
+
+    /* 走到这里说明K或者V实际长度大于WT_CELL_SHORT_MAX */
+    
     unpack->prefix = 0;
     unpack->data = NULL;
     unpack->size = 0;
@@ -790,6 +808,7 @@ copy_cell_restart:
     }
 
     /* Check for a validity window. */
+    //真实K或者V数据类型
     switch (unpack->raw) {
     case WT_CELL_ADDR_DEL:
     case WT_CELL_ADDR_INT:
@@ -834,6 +853,8 @@ copy_cell_restart:
         }
         WT_RET(__wt_check_addr_validity(session, ta, end != NULL));
         break;
+
+    //从__chunk中解析出tw相关成员
     case WT_CELL_DEL:
     case WT_CELL_VALUE:
     case WT_CELL_VALUE_COPY:
@@ -938,6 +959,7 @@ copy_cell_restart:
         F_SET(unpack, WT_CELL_UNPACK_OVERFLOW);
         /* FALLTHROUGH */
 
+    //大于WT_CELL_SHORT_MAX字节的K或者V的真实数据获取在这里
     case WT_CELL_ADDR_DEL:
     case WT_CELL_ADDR_INT:
     case WT_CELL_ADDR_LEAF:
@@ -958,9 +980,11 @@ copy_cell_restart:
           (unpack->raw == WT_CELL_VALUE && unpack->v == 0 &&
             (cell->__chunk[0] & WT_CELL_SECOND_DESC) == 0))
             v += WT_CELL_SIZE_ADJUST;
-
+        //指向真实数据
         unpack->data = p;
+        //真实数据长度
         unpack->size = (uint32_t)v;
+        //存储数据长度的字节数+存储真实数据的长度  
         unpack->__len = WT_PTRDIFF32(p, cell) + unpack->size;
         break;
 
@@ -1192,7 +1216,7 @@ __wt_cell_unpack_addr(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CE
  *     Unpack a value WT_CELL into a structure.
  // __wt_cell_pack_value  __wt_cell_pack_leaf_key 与   __wt_cell_unpack_kv  __wt_cell_unpack_safe对应
  */
-//__inmem_row_leaf调用，解包磁盘上面的一个cell数据, 配合__wt_rec_image_copy写入封包阅读
+//__inmem_row_leaf调用，解包磁盘上面的一个cell数据(一个K或者V), 配合__wt_rec_image_copy写入封包阅读
 static inline void
 __wt_cell_unpack_kv(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CELL *cell,
   WT_CELL_UNPACK_KV *unpack_value)

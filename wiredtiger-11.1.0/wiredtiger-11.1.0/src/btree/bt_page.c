@@ -1082,7 +1082,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
                     ++prefix_count;
                 }
             }
-            //获取page对应磁盘中的一个K解包后的unpack，然后解析获取对应的key地址赋值给rip
+            //获取page对应磁盘中的一个K解包后的unpack，然后解析获取对应的key地址赋值给rip，也就是赋值给page->pg_row
             __wt_row_leaf_key_set(page, rip, &unpack);
             ++rip;
             continue;
@@ -1109,7 +1109,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
               (WT_TIME_WINDOW_IS_EMPTY(&unpack.tw) ||
                 (!WT_TIME_WINDOW_HAS_STOP(&unpack.tw) &&
                   __wt_txn_tw_start_visible_all(session, &unpack.tw))))
-                //获取page对应磁盘中的一个V解包后的unpack，然后解析获取对应的key地址赋值给rip
+                //获取page对应磁盘中的一个V解包后的unpack，然后解析获取对应的key地址赋值给rip，也就是赋值给page->pg_row
                 __wt_row_leaf_value_set(rip - 1, &unpack);
             break;
         case WT_CELL_VALUE_OVFL:

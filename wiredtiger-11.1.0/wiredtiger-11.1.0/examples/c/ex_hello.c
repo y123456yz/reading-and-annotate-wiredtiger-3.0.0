@@ -163,6 +163,7 @@ access_example(int argc, char *argv[])
         /*! [access example cursor list] */
 
         /*! [access example close] */
+        printf("yang test .........................close connection.................begin\r\n");
         error_check(conn->close(conn, NULL)); /* Close all handles. */
                                               /*! [access example close] */
     }
@@ -170,7 +171,7 @@ access_example(int argc, char *argv[])
     /* load exist data, for example: when process restart, wo should warmup and load exist data*/
     if (loadDataConfig) {
         /* Open a connection to the database, creating it if necessary. */
-        error_check(wiredtiger_open(home, NULL, "statistics=(all),verbose=[config_all_verbos:5, metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "statistics=(all),verbose=[config_all_verbos:5, metadata:0, api:5]", &conn));
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));

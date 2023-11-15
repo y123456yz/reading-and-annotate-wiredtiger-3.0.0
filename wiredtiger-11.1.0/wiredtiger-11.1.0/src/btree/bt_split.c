@@ -1424,9 +1424,10 @@ __split_multi_inmem(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *multi, WT
      * will discard the allocated page on error, when discarding the allocated WT_REF.
      */
     //为磁盘上面的一个chunk分配一个page，并记录该page在磁盘上面的KV总数
+    //printf("yang test........__split_multi_inmem.......111.............page->dsk:%p\r\n", multi->disk_image);
     WT_RET(__wt_page_inmem(session, ref, multi->disk_image, WT_PAGE_DISK_ALLOC, &page, &prepare));
-    multi->disk_image = NULL;
-
+    multi->disk_image = NULL; //这里加打印可以看出multi->disk_image地址和page->dsk地址相同
+    //printf("yang test........__split_multi_inmem.......222.............page->dsk:%p\r\n", page->dsk);
     /*
      * In-memory databases restore non-obsolete updates directly in this function, don't call the
      * underlying page functions to do it.
@@ -1785,6 +1786,8 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
         WT_RET(__split_multi_inmem(session, page, multi, ref));
         WT_REF_SET_STATE(ref, WT_REF_MEM);
     }
+
+    //在__split_multi_inmem->__wt_page_inmem中赋值给了page->dsk, 并在置为disk_image=NULL， 所以指向的内存空间实际上被page->dsk继承了
     __wt_free(session, multi->disk_image);
 
     return (0);
@@ -1811,7 +1814,6 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     void *key;
     WT_DBG *ds, _ds;
 
-    //yang add todo xxxxx 挪动到后面会更加准确
     WT_STAT_CONN_DATA_INCR(session, cache_inmem_split);
 
     page = ref->page;

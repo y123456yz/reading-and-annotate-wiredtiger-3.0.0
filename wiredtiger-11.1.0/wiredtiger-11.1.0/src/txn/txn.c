@@ -2395,6 +2395,7 @@ __wt_txn_activity_drain(WT_SESSION_IMPL *session)
  * __wt_txn_global_shutdown --
  *     Shut down the global transaction state.
  */
+//__conn_close时候，也就是节点shutdown，需要做一次checkpoint
 int
 __wt_txn_global_shutdown(WT_SESSION_IMPL *session, const char **cfg)
 {

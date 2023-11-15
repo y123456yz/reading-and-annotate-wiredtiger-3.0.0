@@ -306,7 +306,7 @@ __reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, u
     WT_ERR(__rec_write_wrapup(session, r, page));
     __rec_write_page_status(session, r);
     WT_ERR(__reconcile_post_wrapup(session, r, page, flags, page_lockedp));
-    printf("yang test ...................__reconcile................page->entries:%u\r\n", page->entries);
+    //printf("yang test ...................__reconcile................page->entries:%u\r\n", page->entries);
 
     /*
      * Root pages are special, splits have to be done, we can't put it off as the parent's problem

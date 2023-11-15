@@ -74,11 +74,13 @@
  *
  * Bits 5-8 are cell "types".
  */
+//参考__wt_cell_type，确定类型，判断K或者V的数据长度对应编码类型
 #define WT_CELL_KEY_SHORT 0x01     /* Short key */
 #define WT_CELL_KEY_SHORT_PFX 0x02 /* Short key with prefix byte */
 #define WT_CELL_VALUE_SHORT 0x03   /* Short data */
 #define WT_CELL_SHORT_TYPE(v) ((v)&0x03U)
 
+//对应K为WT_CELL_KEY_SHORT类型或者V为WT_CELL_VALUE_SHORT类型
 #define WT_CELL_SHORT_MAX 63  /* Maximum short key/value */
 #define WT_CELL_SHORT_SHIFT 2 /* Shift for short key/value */
 
@@ -202,14 +204,19 @@ struct __wt_cell_unpack_common {
      * The size and __len fields are reasonably type size_t; don't change the type, performance
      * drops significantly if they're type size_t.
      */
+    //指向真实数据
     const void *data; /* Data */
+    //数据长度
     uint32_t size;    /* Data size */
-
+    //存储数据长度的字节数+存储真实数据的长度  
     uint32_t __len; /* Cell + data length (usually) */
 
     uint8_t prefix; /* Cell prefix length */
 
+    //__chunk[0]最左边两位为0说明是小于等于WT_CELL_SHORT_MAX的K或者V
+    //__chunk[0]最左边两位不为0说明是大于WT_CELL_SHORT_MAX的K或者V
     uint8_t raw;  /* Raw cell type (include "shorts") */
+    //K或者V的数据长度对应的type类型，例如是否为WT_CELL_KEY_SHORT
     uint8_t type; /* Cell type */
 
     uint8_t flags;

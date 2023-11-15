@@ -798,6 +798,9 @@ struct __wt_page {
     /* Page's on-disk representation: NULL for pages created in memory. */
     //__split_multi_inmem->__wt_page_inmem可以看出，实际上内存也有一份磁盘完全一样的内存数据，也就是disk_image，最终内存中的数据记录到dsk
     //该page有数据存储在磁盘上，磁盘的结构信息位置, 指向一个磁盘chunk(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据)的头部WT_PAGE_HEADER_SIZE
+
+    //在__split_multi_inmem->__wt_page_inmem中赋值给了page->dsk, 并在置为disk_image=NULL， 所以指向的内存空间实际上被page->dsk继承了
+    //也就是该page在磁盘上的数据同样会存一份到内存中，也就是两份数据
     const WT_PAGE_HEADER *dsk; //赋值见__wt_page_inmem，指向磁盘数据
 
     /* If/when the page is modified, we need lots more information. */
@@ -1275,6 +1278,7 @@ struct __wt_ref {
  */
 //代表磁盘上面的一条KV数据，参考__debug_page_row_leaf
 struct __wt_row { /* On-page key, on-page cell, or off-page WT_IKEY */
+    //真正赋值在WT_ROW_KEY_SET
     void *volatile __key;
 };
 #define WT_ROW_KEY_COPY(rip) ((rip)->__key)

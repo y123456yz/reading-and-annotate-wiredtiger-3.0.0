@@ -266,6 +266,7 @@ __checkpoint_apply_operation(
     /* Step through the targets and optionally operate on each one. */
     WT_ERR(__wt_config_gets(session, cfg, "target", &cval));
     __wt_config_subinit(session, &targetconf, &cval);
+    //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint
     while ((ret = __wt_config_next(&targetconf, &k, &v)) == 0) {
         if (!target_list) {
             WT_ERR(__wt_scr_alloc(session, 512, &tmp));
@@ -474,6 +475,7 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
  *     Try to reduce the amount of dirty data in cache so there is less work do during the critical
  *     section of the checkpoint.
  */
+//一定要等内存中的脏数据小于eviction_checkpoint_target才返回
 static void
 __checkpoint_wait_reduce_dirty_cache(WT_SESSION_IMPL *session)
 {
@@ -621,8 +623,10 @@ __checkpoint_verbose_track(WT_SESSION_IMPL *session, const char *msg)
     conn = S2C(session);
     __wt_epoch(session, &stop);
 
+    //yang add todo ............. 这里最好加一个msec的统计
     /* Get time diff in milliseconds. */
     msec = WT_TIMEDIFF_MS(stop, conn->ckpt_timer_start);
+    //yang add todo xxxxxxxxxxxxxx    time改为wait time会更好
     __wt_verbose(session, WT_VERB_CHECKPOINT,
       "time: %" PRIu64 " ms, gen: %" PRIu64 ": Full database checkpoint %s", msec,
       __wt_gen(session, WT_GEN_CHECKPOINT), msg);
@@ -666,8 +670,14 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
     txn_global = &conn->txn_global;
     txn_shared = WT_SESSION_TXN_SHARED(session);
 
+    //confg0:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg1:use_timestamp=true
+    //printf("yang test ......__checkpoint_prepare...........confg0:%s, cfg1:%s\r\n", cfg[0], cfg[1]);
+
+    //解析checkpoint相关配置
+    //默认值use_timestamp=true
     WT_RET(__wt_config_gets(session, cfg, "use_timestamp", &cval));
     use_timestamp = (cval.val != 0);
+    //flush_tier=(enabled=false,force=false,sync=true,timeout=0)
     WT_RET(__wt_config_gets(session, cfg, "flush_tier.enabled", &cval));
     flush = cval.val;
     WT_RET(__wt_config_gets(session, cfg, "flush_tier.force", &cval));
@@ -967,6 +977,7 @@ __txn_checkpoint_clear_time(WT_SESSION_IMPL *session)
 /*
  * __txn_checkpoint --
  *     Checkpoint a database or a list of objects in the database.
+  //__wt_txn_checkpoint->__txn_checkpoint_wrapper->__txn_checkpoint
  */
 static int
 __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
@@ -1007,6 +1018,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     }
 
     /* Check if this is a named checkpoint. */
+    //检测有没有设置checkpoint名称
     WT_RET(__wt_config_gets(session, cfg, "name", &cval));
     if (cval.len != 0) {
         name = cval.str;
@@ -1028,6 +1040,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     conn->rec_maximum_seconds = 0;
 
     /* Initialize the verbose tracking timer */
+    //checkpoint开始时间
     __wt_epoch(session, &conn->ckpt_timer_start);
 
     /* Initialize the checkpoint progress tracking data */
@@ -1055,12 +1068,13 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
      * Try to reduce the amount of dirty data in cache so there is less work do during the critical
      * section of the checkpoint.
      */
+    //一定要等内存中的脏数据小于eviction_checkpoint_target才返回
     __checkpoint_wait_reduce_dirty_cache(session);
 
     /* Tell logging that we are about to start a database checkpoint. */
     if (full && logging)
         WT_ERR(__wt_txn_checkpoint_log(session, full, WT_TXN_LOG_CKPT_PREPARE, NULL));
-
+    //记录日志 close_ckpt: [WT_VERB_CHECKPOINT][DEBUG_1]: time: 0 ms, gen: 1: Full database checkpoint starting transaction
     __checkpoint_verbose_track(session, "starting transaction");
 
     if (full)
@@ -1077,6 +1091,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
      * or a thread evicting in a tree could ignore the checkpoint's transaction.
      */
     __wt_gen_next(session, WT_GEN_CHECKPOINT, &generation);
+    
     WT_STAT_CONN_SET(session, txn_checkpoint_generation, generation);
 
     /*
@@ -1377,6 +1392,7 @@ err:
 /*
  * __txn_checkpoint_wrapper --
  *     Checkpoint wrapper.
+ //__wt_txn_checkpoint->__txn_checkpoint_wrapper
  */
 static int
 __txn_checkpoint_wrapper(WT_SESSION_IMPL *session, const char *cfg[])
@@ -1411,6 +1427,7 @@ __txn_checkpoint_wrapper(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_txn_checkpoint --
  *     Checkpoint a database or a list of objects in the database.
+ //
  */
 int
 __wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], bool waiting)
