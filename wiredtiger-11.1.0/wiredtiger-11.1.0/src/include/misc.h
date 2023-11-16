@@ -112,6 +112,7 @@
  *     Common case allocate-and-grow function. Starts by allocating the requested number of items
  *     (at least 10), then doubles each time the list needs to grow.
  */
+//在原有addr地址空间(已有内存长度sizep)基础上，再次扩容到MAX(sizep*2, number个addr)，一般这里直接扩容一倍
 #define __wt_realloc_def(session, sizep, number, addr)                          \
     (((number) * sizeof(**(addr)) <= *(sizep)) ?                                \
         0 :                                                                     \

@@ -101,8 +101,14 @@ __wt_malloc(WT_SESSION_IMPL *session, size_t bytes_to_allocate, void *retp)
  *     ANSI realloc function.
  */
 static int
-__realloc_func(WT_SESSION_IMPL *session, size_t *bytes_allocated_ret, size_t bytes_to_allocate,
-  bool clear_memory, void *retp)
+__realloc_func(WT_SESSION_IMPL *session, 
+  //扩容前的bytes_allocated_ret内存大小
+  size_t *bytes_allocated_ret,
+  //realloc的空间，实际上内存为原有空间+需要增加的空间
+  size_t bytes_to_allocate,
+  bool clear_memory, 
+  //扩容前的空间起始地址retp
+  void *retp)
 {
     size_t bytes_allocated;
     void *p, *tmpp;
@@ -140,13 +146,15 @@ __realloc_func(WT_SESSION_IMPL *session, size_t *bytes_allocated_ret, size_t byt
     tmpp = p;
     if (session != NULL && FLD_ISSET(S2C(session)->debug_flags, WT_CONN_DEBUG_REALLOC_MALLOC) &&
       (bytes_allocated_ret != NULL)) {
+        //分配bytes_to_allocate空间
         if ((p = malloc(bytes_to_allocate)) == NULL)
             WT_RET_MSG(session, __wt_errno(), "memory allocation of %" WT_SIZET_FMT " bytes failed",
               bytes_to_allocate);
+        //把扩容前的bytes_allocated_ret字节长度retp内存数据拷贝到新空间p中
         memcpy(p, tmpp, *bytes_allocated_ret);
         memset((uint8_t *)tmpp, WT_DEBUG_BYTE, bytes_allocated);
         free(tmpp);
-    } else {
+    } else { //扩容前bytes_to_allocate长度为0，也就是之前没有分配过内存
         if ((p = realloc(p, bytes_to_allocate)) == NULL)
             WT_RET_MSG(session, __wt_errno(), "memory allocation of %" WT_SIZET_FMT " bytes failed",
               bytes_to_allocate);
@@ -162,6 +170,7 @@ __realloc_func(WT_SESSION_IMPL *session, size_t *bytes_allocated_ret, size_t byt
     if (bytes_allocated_ret != NULL)
         *bytes_allocated_ret = bytes_to_allocate;
 
+    //返回新的内存空间
     *(void **)retp = p;
     return (0);
 }
@@ -307,7 +316,7 @@ __wt_strndup(WT_SESSION_IMPL *session, const void *str, size_t len, void *retp)
  */
 void
 __wt_free_int(WT_SESSION_IMPL *session, const void *p_arg)
-  WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+ // WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     void *p;
 

@@ -441,7 +441,29 @@ err:
 /*
  * __wt_meta_block_metadata --
  *     Build a version of the file's metadata for the block manager to store.
+   {"file.meta",
+    "access_pattern_hint=none,allocation_size=4KB,app_metadata=,"
+    "assert=(commit_timestamp=none,durable_timestamp=none,"
+    "read_timestamp=none,write_timestamp=off),block_allocation=best,"
+    "block_compressor=,cache_resident=false,checkpoint=,"
+    "checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,"
+    "columns=,dictionary=0,encryption=(keyid=,name=),format=btree,"
+    "huffman_key=,huffman_value=,id=,"
+    "ignore_in_memory_cache_size=false,internal_item_max=0,"
+    "internal_key_max=0,internal_key_truncate=true,"
+    "internal_page_max=4KB,key_format=u,key_gap=10,leaf_item_max=0,"
+    "leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,"
+    "log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,"
+    "os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,"
+    "prefix_compression_min=4,readonly=false,split_deepen_min_child=0"
+    ",split_deepen_per_child=0,split_pct=90,tiered_object=false,"
+    "tiered_storage=(auth_token=,bucket=,bucket_prefix=,"
+    "cache_directory=,local_retention=300,name=,object_target_size=0)"
+    ",value_format=u,verbose=[],version=(major=0,minor=0),"
+    "write_timestamp_usage=none",
  */
+//在session对应表的wiredtiger.wt元数据config配置基础上增加
+//encryption=%.*s,block_metadata_encrypted=%s,block_metadata=[%.*s]几个配置保存到ckpt->block_metadata
 int
 __wt_meta_block_metadata(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt)
 {
@@ -451,6 +473,7 @@ __wt_meta_block_metadata(WT_SESSION_IMPL *session, const char *config, WT_CKPT *
     WT_DECL_RET;
     WT_KEYED_ENCRYPTOR *kencryptor;
     size_t encrypt_size, metadata_len;
+    //WT_CONFIG_ENTRY_file_meta默认配置   "file.meta"
     const char *metadata, *filecfg[] = {WT_CONFIG_BASE(session, file_meta), NULL, NULL};
 
     WT_ERR(__wt_scr_alloc(session, 0, &a));
@@ -490,6 +513,7 @@ __wt_meta_block_metadata(WT_SESSION_IMPL *session, const char *config, WT_CKPT *
       "encryption=%.*s,block_metadata_encrypted=%s,block_metadata=[%.*s]", (int)cval.len, cval.str,
       kencryptor == NULL ? "false" : "true", (int)metadata_len, metadata));
     WT_ERR(__wt_strndup(session, b->data, b->size, &ckpt->block_metadata));
+    printf("yang test ...........__wt_meta_block_metadata........block_metadata:%s\r\n", ckpt->block_metadata);
 
 err:
     __wt_scr_free(session, &a);
@@ -648,7 +672,10 @@ __meta_blk_mods_load(
  * __meta_ckptlist_allocate_new_ckpt --
  *     Provided a checkpoint list, allocate a new checkpoint. Either use the last checkpoint in the
  *     list or the file metadata to initialize this new checkpoint.
+ //这里的config也就是指定表在wiredtiger.wt文件中的元数据
  */
+//wiredtiger.wt配置文件中没有session对应表的checkpoint元数据，则直接采用默认配置
+//分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT
 static int
 __meta_ckptlist_allocate_new_ckpt(
   WT_SESSION_IMPL *session, WT_CKPT **ckptbasep, size_t *allocated, const char *config)
@@ -678,12 +705,14 @@ __meta_ckptlist_allocate_new_ckpt(
      *
      * Allocate a slot for a new value, plus a slot to mark the end.
      */
+    //扩slot + 2个ckptbase内存空间
     WT_RET(__wt_realloc_def(session, allocated, slot + 2, &ckptbase));
     *ckptbasep = ckptbase;
 
     ckpt = &ckptbase[slot];
     ckpt->order = (slot == 0) ? 1 : ckptbase[slot - 1].order + 1;
 
+    //记录时间
     ckpt->sec = session->current_ckpt_sec;
     WT_ASSERT(session, ckpt->sec > 0);
 
@@ -788,6 +817,8 @@ __assert_checkpoint_list_matches(WT_SESSION_IMPL *session, WT_CKPT *saved_list, 
  *     Load all available checkpoint information for a file. Either use a cached copy of the
  *     checkpoints or rebuild from the metadata.
  */
+//分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
+//也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
 int
 __wt_meta_ckptlist_get(
   WT_SESSION_IMPL *session, const char *fname, bool update, WT_CKPT **ckptbasep, size_t *allocated)
@@ -817,6 +848,8 @@ __wt_meta_ckptlist_get(
     if (btree != NULL && btree->ckpt != NULL && !WT_IS_METADATA(session->dhandle)) {
         *ckptbasep = btree->ckpt;
         if (update)
+            //分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
+            //也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
             WT_ERR(__meta_ckptlist_allocate_new_ckpt(
               session, ckptbasep, &btree->ckpt_bytes_allocated, NULL));
         if (allocated != NULL)
@@ -834,7 +867,19 @@ __wt_meta_ckptlist_get(
         WT_ERR(ret);
 #endif
     } else {
+        /*
+    yang test ..............__wt_meta_ckptlist_get...........fname:file:access.wt, 
+    config:access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,
+    read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,
+    checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),
+    format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,
+    internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,
+    leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none
+         */
+        //读取fname表对应wiredtiger.wt中的元数据信息
         WT_ERR(__wt_metadata_search(session, fname, &config));
+        //分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
+        //也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
         WT_ERR(__wt_meta_ckptlist_get_from_config(session, update, ckptbasep, allocated, config));
     }
 
@@ -847,6 +892,8 @@ err:
  * __wt_meta_ckptlist_get_from_config --
  *     Provided a metadata config, load all available checkpoint information for a file.
  */
+//分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
+//也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
 int
 __wt_meta_ckptlist_get_from_config(WT_SESSION_IMPL *session, bool update, WT_CKPT **ckptbasep,
   size_t *allocatedp, const char *config)
@@ -865,6 +912,7 @@ __wt_meta_ckptlist_get_from_config(WT_SESSION_IMPL *session, bool update, WT_CKP
     allocated = slot = 0;
 
     /* Load any existing checkpoints into the array. */
+    //config中有checkpoint配置，解析配置加载checkpoint
     if ((ret = __wt_config_getones(session, config, "checkpoint", &v)) == 0) {
         __wt_config_subinit(session, &ckptconf, &v);
         for (; __wt_config_next(&ckptconf, &k, &v) == 0; ++slot) {
@@ -886,7 +934,8 @@ __wt_meta_ckptlist_get_from_config(WT_SESSION_IMPL *session, bool update, WT_CKP
     __wt_qsort(ckptbase, slot, sizeof(WT_CKPT), __ckpt_compare_order);
 
     /* The caller might be asking for a new checkpoint to be allocated. */
-    if (update)
+    if (update) //wiredtiger.wt配置文件中没有session对应表的checkpoint元数据，则直接采用默认配置
+        //分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT
         WT_ERR(__meta_ckptlist_allocate_new_ckpt(session, &ckptbase, &allocated, config));
 
     /* Return the array to our caller. */

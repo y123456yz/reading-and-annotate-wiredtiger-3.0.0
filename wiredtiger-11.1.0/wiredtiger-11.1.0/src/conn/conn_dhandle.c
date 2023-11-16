@@ -642,9 +642,13 @@ err:
 /*
  * __conn_btree_apply_internal --
  *     Apply a function to an open data handle.
- */ //__wt_conn_btree_apply
+ */ 
+ //__wt_conn_btree_apply
 static int
-__conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
+__conn_btree_apply_internal(WT_SESSION_IMPL *session, 
+   //一个dhandle实际上对应一个表
+  WT_DATA_HANDLE *dhandle,
+  //file_func为__wt_checkpoint_get_handles、__statlog_apply
   int (*file_func)(WT_SESSION_IMPL *, const char *[]),
   int (*name_func)(WT_SESSION_IMPL *, const char *, bool *), const char *cfg[])
 {
@@ -668,10 +672,13 @@ __conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
      * We need to pull the handle into the session handle cache and make sure it's referenced to
      * stop other internal code dropping the handle (e.g in LSM when cleaning up obsolete chunks).
      */
+    //根据uri和checkpoint获取一个dhandle赋值给session->dhandle, 这样session就和
+    //根据uri和checkpoint获取一个dhandle赋值给session->dhandle，一个dhandle对应一个表，这样session就和指定表关联上了
     if ((ret = __wt_session_get_dhandle(session, dhandle->name, dhandle->checkpoint, NULL, 0)) != 0)
         return (ret == EBUSY ? 0 : ret);
 
     time_start = WT_SESSION_IS_CHECKPOINT(session) ? __wt_clock(session) : 0;
+    //执行file_func, file_func为__wt_checkpoint_get_handles、__statlog_apply
     WT_SAVE_DHANDLE(session, ret = file_func(session, cfg));
     /* We need to gather this information before releasing the dhandle. */
     if (time_start != 0) {
@@ -692,6 +699,7 @@ __conn_btree_apply_internal(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle,
 /*
  * __wt_conn_btree_apply --
  *     Apply a function to all open btree handles with the given URI.
+ //file_func为__wt_checkpoint_get_handles、__statlog_apply
  */
 int
 __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
@@ -713,6 +721,8 @@ __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
         bucket = __wt_hash_city64(uri, strlen(uri)) & (conn->dh_hash_size - 1);
 
         for (dhandle = NULL;;) {
+            //加S2C(session)->dhandle_lock锁，执行op，然后释放锁
+            //也就是遍历所有dhandle, 也就是获取进程上面所有的table, 一个dhandle实际上对应一个表
             WT_WITH_HANDLE_LIST_READ_LOCK(
               session, WT_DHANDLE_NEXT(session, dhandle, &conn->dhhash[bucket], hashq));
             if (dhandle == NULL)
@@ -721,6 +731,7 @@ __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
             if (!F_ISSET(dhandle, WT_DHANDLE_OPEN) || F_ISSET(dhandle, WT_DHANDLE_DEAD) ||
               dhandle->checkpoint != NULL || strcmp(uri, dhandle->name) != 0)
                 continue;
+                
             WT_ERR(__conn_btree_apply_internal(session, dhandle, file_func, name_func, cfg));
         }
     } else {

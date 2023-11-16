@@ -173,6 +173,7 @@ struct __wt_import_list {
  *	discard handles, and we only expect it to be held across short
  *	operations.
  */
+//加S2C(session)->dhandle_lock锁，执行op，然后释放锁
 #define WT_WITH_HANDLE_LIST_READ_LOCK(session, op)                            \
     do {                                                                      \
         if (FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_HANDLE_LIST)) {  \
@@ -251,6 +252,7 @@ struct __wt_import_list {
  *	to discard handles, and we only expect it to be held across short
  *	operations.
  */
+//上锁&S2C(session)->table_lock，执行op
 #define WT_WITH_TABLE_READ_LOCK(session, op)                                                    \
     do {                                                                                        \
         if (FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_TABLE)) {                          \

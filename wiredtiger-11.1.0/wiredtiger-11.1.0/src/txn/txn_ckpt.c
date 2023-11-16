@@ -244,9 +244,12 @@ __checkpoint_update_generation(WT_SESSION_IMPL *session)
 /*
  * __checkpoint_apply_operation --
  *     Apply a preliminary operation to all files involved in a checkpoint.
+ //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
  */
+//根据配置获取checkpoint name，并判断是否需要执行op操作，执行完成释放锁
 static int
 __checkpoint_apply_operation(
+//op为__wt_checkpoint_get_handles
   WT_SESSION_IMPL *session, const char *cfg[], int (*op)(WT_SESSION_IMPL *, const char *[]))
 {
     WT_CONFIG targetconf;
@@ -264,9 +267,10 @@ __checkpoint_apply_operation(
         WT_RET(__checkpoint_name_ok(session, cval.str, cval.len, false));
 
     /* Step through the targets and optionally operate on each one. */
-    WT_ERR(__wt_config_gets(session, cfg, "target", &cval));
+    //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
+    WT_ERR(__wt_config_gets(session, cfg, "target", &cval)); 
     __wt_config_subinit(session, &targetconf, &cval);
-    //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint
+    //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint  cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
     while ((ret = __wt_config_next(&targetconf, &k, &v)) == 0) {
         if (!target_list) {
             WT_ERR(__wt_scr_alloc(session, 512, &tmp));
@@ -302,11 +306,15 @@ __checkpoint_apply_operation(
          * checkpoint them even if they are quiescent and don't need a checkpoint, believing
          * applications unlikely to checkpoint a list of closed targets.
          */
+         //没指定targe，则需要执行op
         ckpt_closed = named;
         if (!ckpt_closed) {
             WT_ERR(__wt_config_gets(session, cfg, "drop", &cval));
             ckpt_closed = cval.len != 0;
         }
+        //printf("yang test .................__checkpoint_apply_operation...........named:%d, ckpt_closed:%d\r\n",
+        //    named, ckpt_closed);
+        //op为__wt_checkpoint_get_handles
         WT_ERR(ckpt_closed ? __wt_meta_apply_all(session, op, NULL, cfg) :
                              __wt_conn_btree_apply(session, NULL, op, NULL, cfg));
     }
@@ -382,6 +390,9 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
     const char *name;
     bool force;
 
+    //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint  
+    //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
+    
     /* Find out if we have to force a checkpoint. */
     WT_RET(__wt_config_gets_def(session, cfg, "force", 0, &cval));
     force = cval.val != 0;
@@ -409,10 +420,12 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
      * holding the schema lock and have an open btree handle, so if we can't update the metadata,
      * then there has been some state change invisible to the checkpoint transaction.
      */
-    if (!WT_IS_METADATA(session->dhandle)) {
+    //不是元数据文件"file:WiredTiger.wt"对应的BTREE
+    if (!WT_IS_METADATA(session->dhandle)) {//这里只是做检查的，先跳过
         WT_CURSOR *meta_cursor;
 
         WT_ASSERT(session, !F_ISSET(session->txn, WT_TXN_ERROR));
+        //获取一个访问"file:WiredTiger.wt"的cursor
         WT_RET(__wt_metadata_cursor(session, &meta_cursor));
         meta_cursor->set_key(meta_cursor, session->dhandle->name);
         ret = __wt_curfile_insert_check(meta_cursor);
@@ -514,7 +527,8 @@ __checkpoint_wait_reduce_dirty_cache(WT_SESSION_IMPL *session)
 
     /* Set the dirty trigger to the target value. */
     cache->eviction_scrub_target = cache->eviction_checkpoint_target;
-    WT_STAT_CONN_SET(session, txn_checkpoint_scrub_target, 0);
+    //yang add todo xxxxxxxxxx  txn_checkpoint_scrub_target统计没意义
+    WT_STAT_CONN_SET(session, txn_checkpoint_scrub_target, (int64_t)cache->eviction_scrub_target);
 
     /* Wait while the dirty level is going down. */
     for (;;) {
@@ -538,6 +552,7 @@ __checkpoint_wait_reduce_dirty_cache(WT_SESSION_IMPL *session)
 
     time_stop = __wt_clock(session);
     total_ms = WT_CLOCKDIFF_MS(time_stop, time_start);
+    //耗时统计
     WT_STAT_CONN_SET(session, txn_checkpoint_scrub_time, total_ms);
 }
 
@@ -570,6 +585,7 @@ __wt_checkpoint_progress(WT_SESSION_IMPL *session, bool closing)
 /*
  * __checkpoint_stats --
  *     Update checkpoint timer stats.
+ checkpoint相关统计,这里的统计实际上在__wt_txn_stats_update中做了赋值
  */
 static void
 __checkpoint_stats(WT_SESSION_IMPL *session)
@@ -690,6 +706,7 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
      * which applications can hold open across calls to checkpoint.
      */
     WT_STAT_CONN_SET(session, txn_checkpoint_prep_running, 1);
+    //__checkpoint_prepare开始时间
     __wt_epoch(session, &conn->ckpt_prep_start);
 
     WT_RET(__wt_txn_begin(session, txn_cfg));
@@ -797,7 +814,7 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
      * If we are doing a flush_tier, do the metadata naming switch now while holding the schema lock
      * in this function.
      */
-    if (flush)
+    if (flush) //默认false
         WT_RET(__checkpoint_flush_tier(session, flush_force));
 
     /*
@@ -808,9 +825,11 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
      * handles.
      */
     WT_ASSERT(session, session->ckpt_handle_next == 0);
+    //上锁&S2C(session)->table_lock，执行op，执行完成释放锁
     WT_WITH_TABLE_READ_LOCK(
       session, ret = __checkpoint_apply_operation(session, cfg, __wt_checkpoint_get_handles));
 
+    //__checkpoint_prepare结束时间
     __wt_epoch(session, &conn->ckpt_prep_end);
     WT_STAT_CONN_SET(session, txn_checkpoint_prep_running, 0);
 
@@ -820,7 +839,8 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
 /*
  * __txn_checkpoint_can_skip --
  *     Determine whether it's safe to skip taking a checkpoint.
- */
+ //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
+ */ //默认返回fullp=true  can_skipp=false
 static int
 __txn_checkpoint_can_skip(
   WT_SESSION_IMPL *session, const char *cfg[], bool *fullp, bool *use_timestampp, bool *can_skipp)
@@ -848,13 +868,16 @@ __txn_checkpoint_can_skip(
      * Determine if this is going to be a full checkpoint, that is a checkpoint that applies to all
      * data tables in a database.
      */
-    WT_RET(__wt_config_gets(session, cfg, "target", &cval));
+    //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
+    //printf("yang test 11111111111111111111111....__txn_checkpoint_can_skip...cfg[0]:%s, cfg[1]:%s\r\n", cfg[0], cfg[1]);
+    WT_RET(__wt_config_gets(session, cfg, "target", &cval));//不带参数，默认为true
     __wt_config_subinit(session, &targetconf, &cval);
     *fullp = full = __wt_config_next(&targetconf, &k, &v) != 0;
 
     WT_RET(__wt_config_gets(session, cfg, "use_timestamp", &cval));
     *use_timestampp = use_timestamp = cval.val != 0;
 
+    printf("yang test .................... full:%d\r\n", full);
     /* Never skip non-full checkpoints */
     if (!full)
         return (0);
@@ -977,6 +1000,7 @@ __txn_checkpoint_clear_time(WT_SESSION_IMPL *session)
 /*
  * __txn_checkpoint --
  *     Checkpoint a database or a list of objects in the database.
+ //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
   //__wt_txn_checkpoint->__txn_checkpoint_wrapper->__txn_checkpoint
  */
 static int
@@ -1011,6 +1035,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     full = idle = tracking = use_timestamp = false;
 
     /* Avoid doing work if possible. */
+    //默认返回fullp=true  can_skipp=false
     WT_RET(__txn_checkpoint_can_skip(session, cfg, &full, &use_timestamp, &can_skip));
     if (can_skip) {
         WT_STAT_CONN_INCR(session, txn_checkpoint_skipped);
@@ -1031,6 +1056,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     /*
      * Do a pass over the configuration arguments and figure out what kind of checkpoint this is.
      */
+    //根据配置获取checkpoint name，并判断是否需要执行op操作,这里op为NULL，啥也不做
     WT_RET(__checkpoint_apply_operation(session, cfg, NULL));
 
     logging = FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED);
@@ -1133,7 +1159,9 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     /* Add a ten second wait to simulate checkpoint slowness. */
     tsp.tv_sec = 10;
     tsp.tv_nsec = 0;
+    //默认不工作，除非__wt_timing_stress_config测试配置启用
     __checkpoint_timing_stress(session, WT_TIMING_STRESS_CHECKPOINT_SLOW, &tsp);
+    //__checkpoint_tree_helper中进行真正的checkpoint流程
     WT_ERR(__checkpoint_apply_to_dhandles(session, cfg, __checkpoint_tree_helper));
 
     /* Wait prior to checkpointing the history store to simulate checkpoint slowness. */
@@ -1763,6 +1791,9 @@ __checkpoint_lock_dirty_tree_int(WT_SESSION_IMPL *session, bool is_checkpoint, b
  * __checkpoint_lock_dirty_tree --
  *     Decide whether the tree needs to be included in the checkpoint and if so, acquire the
  *     necessary locks.
+
+//判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint  
+//cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
  */
 static int
 __checkpoint_lock_dirty_tree(
@@ -1805,6 +1836,7 @@ __checkpoint_lock_dirty_tree(
     WT_ASSERT(session, !need_tracking || WT_IS_METADATA(dhandle) || WT_META_TRACKING(session));
 
     /* This may be a named checkpoint, check the configuration. */
+    //如果没有指定checkpoint name，则默认为"WiredTigerCheckpoint", 同时is_wt_ckpt置为true
     cval.len = 0;
     is_drop = is_wt_ckpt = false;
     if (cfg != NULL)
@@ -1864,6 +1896,8 @@ __checkpoint_lock_dirty_tree(
     WT_BTREE_CLEAN_CKPT(session, btree, 0);
     F_CLR(btree, WT_BTREE_OBSOLETE_PAGES);
 
+    //分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
+    //也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
     WT_ERR(__wt_meta_ckptlist_get(session, dhandle->name, true, &ckptbase, &ckpt_bytes_allocated));
 
     /* We may be dropping specific checkpoints, check the configuration. */
@@ -2339,6 +2373,7 @@ __checkpoint_tree_helper(WT_SESSION_IMPL *session, const char *cfg[])
 
     btree = S2BT(session);
     txn = session->txn;
+    printf("yang test .....................__checkpoint_tree_helper................................\r\n");
 
     /* Are we using a read timestamp for this checkpoint transaction? */
     with_timestamp = F_ISSET(txn, WT_TXN_SHARED_TS_READ);

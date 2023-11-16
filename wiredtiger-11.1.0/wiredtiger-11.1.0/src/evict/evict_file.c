@@ -24,6 +24,7 @@ __wt_evict_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 
     dhandle = session->dhandle;
     btree = dhandle->handle;
+    printf("yang test ............................__wt_evict_file.......... \r\n");
 
     /*
      * We need exclusive access to the file, we're about to discard the root page. Assert eviction

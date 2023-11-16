@@ -57,6 +57,7 @@ __wt_metadata_turtle_rewrite(WT_SESSION_IMPL *session)
  * __wt_metadata_cursor_open --
  *     Opens a cursor on the metadata.
  */
+//获取一个访问"file:WiredTiger.wt"的cursor
 int
 __wt_metadata_cursor_open(WT_SESSION_IMPL *session, const char *config, WT_CURSOR **cursorp)
 {
@@ -92,6 +93,7 @@ __wt_metadata_cursor_open(WT_SESSION_IMPL *session, const char *config, WT_CURSO
  *     Returns the session's cached metadata cursor, unless it's in use, in which case it opens and
  *     returns another metadata cursor.
  */
+//获取一个访问"file:WiredTiger.wt"的cursor
 int
 __wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
 {
@@ -103,6 +105,7 @@ __wt_metadata_cursor(WT_SESSION_IMPL *session, WT_CURSOR **cursorp)
      */
     cursor = NULL;
     if (session->meta_cursor == NULL || F_ISSET(session->meta_cursor, WT_CURSTD_META_INUSE)) {
+        //获取一个访问"file:WiredTiger.wt"的cursor
         WT_RET(__wt_metadata_cursor_open(session, NULL, &cursor));
         if (session->meta_cursor == NULL) {
             session->meta_cursor = cursor;

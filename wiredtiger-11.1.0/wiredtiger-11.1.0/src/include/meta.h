@@ -138,7 +138,9 @@ struct __wt_block_mods {
 #define WT_CKPT_FOREACH_NAME_OR_ORDER(ckptbase, ckpt) \
     for ((ckpt) = (ckptbase); (ckpt)->name != NULL || (ckpt)->order != 0; ++(ckpt))
 
+//__wt_meta_ckptlist_get_from_config中分配空间
 struct __wt_ckpt {
+    //赋值见__checkpoint_lock_dirty_tree，不指定name，默认为"WiredTigerCheckpoint"
     char *name; /* Name or NULL */
 
     /*
@@ -151,7 +153,7 @@ struct __wt_ckpt {
      * with those cursors, but it's simpler not to worry about it.
      */
     int64_t order; /* Checkpoint order */
-
+    //也就是checkpoint开始时间session->current_ckpt_sec，参考__meta_ckptlist_allocate_new_ckpt
     uint64_t sec; /* Wall clock time */
 
     uint64_t size; /* Checkpoint size */
@@ -159,6 +161,7 @@ struct __wt_ckpt {
     uint64_t write_gen;     /* Write generation */
     uint64_t run_write_gen; /* Runtime write generation. */
 
+    //赋值参考__wt_meta_block_metadata
     char *block_metadata;   /* Block-stored metadata */
     char *block_checkpoint; /* Block-stored checkpoint */
 

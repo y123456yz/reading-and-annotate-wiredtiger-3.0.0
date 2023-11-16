@@ -837,8 +837,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
     else if (!WT_SESSION_BTREE_SYNC(session))
         LF_SET(WT_REC_VISIBLE_ALL);
 
-   // printf("yang test ..........__evict_reconcile..........page->modify->page_state:%u....page:%p....use_snapshot_for_app_thread:%d\r\n",
-    //        page->modify->page_state, page, use_snapshot_for_app_thread);
+    printf("yang test ..........__evict_reconcile.......................\r\n");
 
     WT_ASSERT(session, LF_ISSET(WT_REC_VISIBLE_ALL) || F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT));
 

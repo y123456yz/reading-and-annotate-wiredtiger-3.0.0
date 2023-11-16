@@ -851,7 +851,7 @@ __wt_session_dhandle_try_writelock(WT_SESSION_IMPL *session)
  *     Get a data handle for the given name, set session->dhandle. Optionally if we opened a
  *     checkpoint return its checkpoint order number.
  */
-//获取一个dhandle赋值给session->dhandle，如果没有获取到dhandle
+//根据uri和checkpoint获取一个dhandle赋值给session->dhandle，一个dhandle对应一个表，这样session就和指定表关联上了
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint,
   const char *cfg[], uint32_t flags)

@@ -1020,7 +1020,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
     prefix_start = prefix_stop = 0;           /* [-Wconditional-uninitialized] */
     best_prefix_start = best_prefix_stop = 0; /* [-Wconditional-uninitialized] */
 
-    printf("yang test ....111..__inmem_row_leaf......... (dsk)->u.entries:%u\r\n", page->dsk->u.entries);
+    //printf("yang test ....111..__inmem_row_leaf......... (dsk)->u.entries:%u\r\n", page->dsk->u.entries);
     /* Walk the page, building indices. */
     rip = page->pg_row;
     //遍历磁盘上面一个chunk的所有KV数据，解包后存入unpack

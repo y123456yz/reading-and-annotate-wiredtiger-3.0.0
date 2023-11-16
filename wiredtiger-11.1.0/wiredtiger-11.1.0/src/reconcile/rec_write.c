@@ -496,6 +496,7 @@ __rec_root_write(WT_SESSION_IMPL *session, WT_PAGE *page, uint32_t flags)
     /*
      * Fake up a reference structure, and write the next root page.
      */
+    printf("yang test ............................__rec_root_write.......... \r\n");
     __wt_root_ref_init(session, &fake_ref, next, page->type == WT_PAGE_COL_INT);
     return (__wt_reconcile(session, &fake_ref, NULL, flags));
 
@@ -2040,8 +2041,8 @@ __rec_split_write_reuse(
     /*
      * Pages are written in the same block order every time, only check the appropriate slot.
      */
-    printf("yang test ..............mod->rec_result:%d,mod->mod_multi_entries:%d,r->multi_next:%d....\r\n", 
-        mod->rec_result, (int)mod->mod_multi_entries, (int)r->multi_next);
+    //printf("yang test ..............mod->rec_result:%d,mod->mod_multi_entries:%d,r->multi_next:%d....\r\n", 
+     //   mod->rec_result, (int)mod->mod_multi_entries, (int)r->multi_next);
     if (mod->rec_result != WT_PM_REC_MULTIBLOCK || mod->mod_multi_entries < r->multi_next)
         return (false);
 

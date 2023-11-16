@@ -138,6 +138,7 @@ struct __wt_cache {
     double eviction_updates_target;  /* Percent to allow for updates */
     double eviction_updates_trigger; /* Percent of updates to trigger eviction */
 
+    //Ä¬ÈÏÖµÎª1£¬ eviction_checkpoint_targetÅäÖÃ
     double eviction_checkpoint_target; /* Percent to reduce dirty
                                         to during checkpoint scrubs */
     double eviction_scrub_target;      /* Current scrub target */

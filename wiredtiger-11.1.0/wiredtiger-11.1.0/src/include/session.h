@@ -92,7 +92,8 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     u_int api_call_counter;        /* Depth of api calls */
 
     //赋值见__wt_conn_dhandle_alloc
-    //一个__wt_data_handle实际上对应一个BTREE，通过BTREE btree = (WT_BTREE *)dhandle->handle;获取
+    //一个__wt_data_handle实际上对应一个BTREE，通过BTREE btree = (WT_BTREE *)dhandle->handle; 一个dhandle实际上对应一个表
+    //__wt_session_get_dhandle根据uri和checkpoint获取一个dhandle赋值给session->dhandle，一个dhandle对应一个表，这样session就和指定表关联上了
     WT_DATA_HANDLE *dhandle;           /* Current data handle */
     WT_BUCKET_STORAGE *bucket_storage; /* Current bucket storage and file system */
 
@@ -172,6 +173,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 
     u_int hs_cursor_counter; /* Number of open history store cursors */
 
+    //__wt_metadata_cursor 获取一个访问"file:WiredTiger.wt"的cursor
     WT_CURSOR *meta_cursor;  /* Metadata file */
     void *meta_track;        /* Metadata operation tracking */
     void *meta_track_next;   /* Current position */
@@ -212,6 +214,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     WT_ITEM *ckpt_drop_list;
 
     /* Checkpoint time of current checkpoint, during a checkpoint */
+    //__txn_checkpoint_establish_time中赋值
     uint64_t current_ckpt_sec;
 
     /*

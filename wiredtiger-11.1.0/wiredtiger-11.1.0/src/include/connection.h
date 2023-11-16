@@ -420,6 +420,7 @@ struct __wt_connection_impl {
 
     /* Checkpoint stats and verbosity timers */
     struct timespec ckpt_prep_end;
+    //__checkpoint_prepare开始时间
     struct timespec ckpt_prep_start;
     struct timespec ckpt_timer_start;
     struct timespec ckpt_timer_scrub_end;
@@ -512,6 +513,7 @@ struct __wt_connection_impl {
                                            /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
 
     //journal日志相关，默认mongod配置log=(enabled=true,archive=true,path=journal,compressor=snappy)
+    //默认使能为WT_CONN_LOG_ENABLED，参考__wt_logmgr_create
     uint32_t log_flags;                    /* Global logging configuration */
     WT_CONDVAR *log_cond;                  /* Log server wait mutex */
     WT_SESSION_IMPL *log_session;          /* Log server session */
@@ -669,7 +671,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 #define WT_TIMING_STRESS_SPLIT_7 0x100000u
 #define WT_TIMING_STRESS_TIERED_FLUSH_FINISH 0x200000u
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
-    //__wt_timing_stress_config配置，如果配置了则不会进行随机sleep
+    //__wt_timing_stress_config配置，如果配置了则不会进行随机sleep, 默认为0
     uint32_t timing_stress_flags;
 
 //__wt_os_stdio

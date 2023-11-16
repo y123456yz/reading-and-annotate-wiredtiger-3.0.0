@@ -422,6 +422,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
     txn = session->txn;
     tried_eviction = false;
 
+    printf("yang test ............................__wt_sync_file.......... \r\n");
     /* Don't bump page read generations. */
     flags = WT_READ_NO_GEN;
 
