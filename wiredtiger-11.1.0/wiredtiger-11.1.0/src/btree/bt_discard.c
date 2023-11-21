@@ -52,6 +52,7 @@ __wt_ref_out(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_page_out --
  *     Discard an in-memory page, freeing all memory associated with it.
  */
+//page空间释，包括WT_PAGE_MODIFY page->modify相关空间释放，包括mod_row_insert mod_row_update mod_multi等，以及page->dsk等
 void
 __wt_page_out(WT_SESSION_IMPL *session, WT_PAGE **pagep)
 {
@@ -111,6 +112,7 @@ __wt_page_out(WT_SESSION_IMPL *session, WT_PAGE **pagep)
 
     /* Free the page modification information. */
     if (page->modify != NULL)
+        //WT_PAGE_MODIFY page->modify相关空间释放，包括mod_row_insert mod_row_update mod_multi等
         __free_page_modify(session, page);
 
     switch (page->type) {
@@ -125,11 +127,13 @@ __wt_page_out(WT_SESSION_IMPL *session, WT_PAGE **pagep)
         __free_page_col_var(session, page);
         break;
     case WT_PAGE_ROW_LEAF:
+        //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
         __free_page_row_leaf(session, page);
         break;
     }
 
     /* Discard any allocated disk image. */
+    //page->dsk空间释放
     if (F_ISSET_ATOMIC_16(page, WT_PAGE_DISK_ALLOC))
         __wt_overwrite_and_free_len(session, dsk, dsk->mem_size);
 
@@ -139,7 +143,8 @@ __wt_page_out(WT_SESSION_IMPL *session, WT_PAGE **pagep)
 /*
  * __free_page_modify --
  *     Discard the page's associated modification structures.
- */
+ */ 
+//WT_PAGE_MODIFY page->modify相关空间释放，包括mod_row_insert mod_row_update mod_multi等
 static void
 __free_page_modify(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -383,7 +388,9 @@ __free_page_col_var(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __free_page_row_leaf --
  *     Discard a WT_PAGE_ROW_LEAF page.
- */
+ */ 
+//数据写入磁盘中后，会内存中同样保存一份，这里释放内存中对应磁盘的KV
+//磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
 static void
 __free_page_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page)
 {

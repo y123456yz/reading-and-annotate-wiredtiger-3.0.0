@@ -453,6 +453,8 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
     case WT_PAGE_ROW_LEAF:
         //遍历page对应的 page->dsk磁盘数据，解析出对应WT_ROW K或者V指针赋值给page->pg_row[]，
         //注意page->pg_row[]每个成员保持的是磁盘上的地址信息
+
+        //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
         WT_ERR(__inmem_row_leaf(session, page, preparedp));
         break;
     default:
@@ -997,6 +999,7 @@ __inmem_row_leaf_entries(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, ui
 //reconcile拆分后每个multi都需要调用一次，用于隐射内存page和磁盘chunk数据
 
 遍历page对应的 page->dsk磁盘数据，解析出对应WT_ROW K或者V指针赋值给page->pg_row[]，注意page->pg_row[]每个成员保持的是磁盘上的地址信息
+磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
  */
 static int
 __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
@@ -1024,6 +1027,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
     /* Walk the page, building indices. */
     rip = page->pg_row;
     //遍历磁盘上面一个chunk的所有KV数据，解包后存入unpack
+    //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
     WT_CELL_FOREACH_KV (session, page->dsk, unpack) {
         switch (unpack.type) {
         case WT_CELL_KEY:
@@ -1083,6 +1087,7 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
                 }
             }
             //获取page对应磁盘中的一个K解包后的unpack，然后解析获取对应的key地址赋值给rip，也就是赋值给page->pg_row
+            //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
             __wt_row_leaf_key_set(page, rip, &unpack);
             ++rip;
             continue;

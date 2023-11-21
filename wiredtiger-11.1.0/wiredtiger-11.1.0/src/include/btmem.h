@@ -31,7 +31,7 @@
 #define WT_REC_CHECKPOINT_RUNNING 0x008u
 #define WT_REC_CLEAN_AFTER_REC 0x010u
 #define WT_REC_EVICT 0x020u
-//__evict_reconcile÷–»Áπ˚ «leaf page…Ë÷√∏√±Í ∂
+//__evict_reconcile÷–»Áπ˚ «leaf page…Ë÷√∏√±Í ∂, __wt_sync_file“≤ª·…Ë÷√
 #define WT_REC_HS 0x040u
 #define WT_REC_IN_MEMORY 0x080u
 //“ª∞„reconcile∂ºª·”µ”–∏√±Í ∂
@@ -58,6 +58,7 @@
  */
 //“ª∏ˆpage ˝æ›‘⁄¥≈≈Ã÷–¡¨–¯ø’º‰ƒ⁄»›: __wt_page_header + WT_BLOCK_HEADER + WT_CELL
 //∑÷∆¨ø’º‰∫Õ∏≥÷µø…“‘≤Œøº__wt_rec_cell_build_ovfl
+//page->dskŒ™∏√¿‡–Õ
 struct __wt_page_header {
     /*
      * The record number of the first record of the page is stored on disk so we can figure out
@@ -351,7 +352,7 @@ struct __wt_ovfl_track {
  ≤ŒøºπŸ∑ΩŒƒµµhttps://source.wiredtiger.com/develop/arch-cache.html
  */
 //__wt_page.modify ∏≥÷µº˚__wt_page_modify_init
-//¿˝»Áleaf page÷–Ã¯‘æ±Ì÷–Ω⁄µ„ƒ⁄»›∂º‘⁄∏√modify÷–
+//¿˝»Áleaf page÷–Ã¯‘æ±Ì÷–Ω⁄µ„ƒ⁄»›∂º‘⁄∏√modify÷–, modœ‡πÿø’º‰ Õ∑≈º˚__free_page_modify
 struct __wt_page_modify {
     /* The first unwritten transaction ID (approximate). */
     uint64_t first_dirty_txn;
@@ -638,7 +639,7 @@ struct __wt_col_fix_tw {
 /*
  * WT_PAGE --
  *	The WT_PAGE structure describes the in-memory page information.
- */ //__wt_page_alloc∑÷∆¨ø’º‰∫Õ∏≥÷µ
+ */ //__wt_page_alloc∑÷∆¨ø’º‰∫Õ∏≥÷µ __wt_page_out∂‘pageΩ¯––ø’º‰ Õ∑≈
 struct __wt_page {
     /* Per page-type information. */
     union {
@@ -716,6 +717,7 @@ struct __wt_page {
 //pg_row÷∏œÚ¥≈≈ÃKVœ‡πÿ ˝æ›WT_ROW_FOREACH±È¿˙ªÒ»°∏√page‘⁄¥≈≈ÃµƒKV ˝æ›£ ’‚∏ˆ ˝æ›‘⁄ƒ⁄¥Ê÷–£¨÷ª «¥”¥≈≈Ãº”‘ÿµƒ£¨‘⁄¥≈≈Ã…œ“≤”–“ª∑› ˝æ›
 //mod_row_insert÷∏œÚƒ⁄¥Êœ‡πÿKV ˝æ›£¨mod_row_updateº«¬ºƒ⁄¥Ê÷–Õ¨“ª∏ˆKµƒ±‰∏¸π˝≥Ã
 //÷∏œÚ∏√page¥Ê¥¢µƒ’Ê µ ˝æ›£¨pg_row[] ˝◊È( ˝◊È¥Û–°page->entries)ø’º‰∑÷≈‰º˚__wt_page_alloc,±£≥÷KªÚ’ﬂVµƒ¥≈≈Ãµÿ÷∑£¨√ø∏ˆKV∏≥÷µ≤Œøº__inmem_row_leaf
+//¥≈≈Ã…œµƒ ˝æ›◊Ó÷’”–“ª∑›ÕÍ»´“ª—˘µƒƒ⁄¥Ê ˝æ›¥Ê‘⁄page->dskµÿ÷∑ø™ ºµƒƒ⁄¥Êø’º‰£¨page->pg_row[] ˝◊È µº …œ÷∏œÚpage->dskƒ⁄¥Ê÷–µƒ∂‘”¶KªÚ’ﬂVµÿ÷∑£¨≤Œøº__wt_cell_unpack_safe
 #define pg_row u.row
 
         /* Fixed-length column-store leaf page. */
@@ -805,7 +807,7 @@ struct __wt_page {
 
     /* If/when the page is modified, we need lots more information. */
     //__wt_page.modify ∏≥÷µº˚__wt_page_modify_init
-    //¿˝»Áleaf page÷–Ã¯‘æ±Ì÷–Ω⁄µ„ƒ⁄»›∂º‘⁄∏√modify÷–
+    //¿˝»Áleaf page÷–Ã¯‘æ±Ì÷–Ω⁄µ„ƒ⁄»›∂º‘⁄∏√modify÷–£¨modœ‡πÿø’º‰ Õ∑≈º˚__free_page_modify£¨WT_PAGE_MODIFY page->modifyœ‡πÿø’º‰ Õ∑≈£¨∞¸¿®mod_row_insert mod_row_update mod_multiµ»
     WT_PAGE_MODIFY *modify;//__wt_page.modify
 
     /*

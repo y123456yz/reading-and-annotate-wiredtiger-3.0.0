@@ -92,6 +92,7 @@ __sync_dup_hazard_pointer(WT_SESSION_IMPL *session, WT_REF *walk)
 /*
  * __sync_dup_walk --
  *     Duplicate a tree walk point.
+ //释放入参中的dupp page， 把walk赋值给dupp返回
  */
 static inline int
 __sync_dup_walk(WT_SESSION_IMPL *session, WT_REF *walk, uint32_t flags, WT_REF **dupp)
@@ -550,6 +551,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
             LF_SET(WT_READ_VISIBLE_ALL);
 
         for (;;) {
+            //释放入参中的prev page， 把walk赋值给prev返回
             WT_ERR(__sync_dup_walk(session, walk, flags, &prev));
             WT_ERR(__wt_tree_walk_custom_skip(session, &walk, __sync_page_skip, NULL, flags));
 

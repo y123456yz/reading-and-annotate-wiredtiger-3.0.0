@@ -1236,6 +1236,8 @@ __wt_row_leaf_value_set(WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
  * __wt_row_leaf_key_free --
  *     Discard any memory allocated for an instantiated key.
  */
+//__free_page_row_leaf,
+//数据写入磁盘中后，会内存中同样保存一份，这里释放内存中对应磁盘的KV
 static inline void
 __wt_row_leaf_key_free(WT_SESSION_IMPL *session, WT_PAGE *page, WT_ROW *rip)
 {

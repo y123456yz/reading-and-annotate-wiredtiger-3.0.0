@@ -248,6 +248,7 @@ static const WT_CONFIG_CHECK confchk_WT_SESSION_checkpoint_flush_tier_subconfigs
   {"sync", "boolean", NULL, NULL, NULL, 0}, {"timeout", "int", NULL, NULL, NULL, 0},
   {NULL, NULL, NULL, NULL, NULL, 0}};
 
+//²Î¿¼https://source.wiredtiger.com/11.1.0/struct_w_t___s_e_s_s_i_o_n.html
 static const WT_CONFIG_CHECK confchk_WT_SESSION_checkpoint[] = {
   {"drop", "list", NULL, NULL, NULL, 0},
   {"flush_tier", "category", NULL, NULL, confchk_WT_SESSION_checkpoint_flush_tier_subconfigs, 4},

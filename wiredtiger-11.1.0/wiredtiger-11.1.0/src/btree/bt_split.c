@@ -637,7 +637,10 @@ __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *paren
  */
 static int
 __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t new_entries,
-  size_t parent_incr, bool exclusive, bool discard)
+  size_t parent_incr, 
+  bool exclusive, 
+  //除了internal leaf为false，其他都为true
+  bool discard)
 {
     WT_BTREE *btree;
     WT_DECL_ITEM(scr);
@@ -2200,6 +2203,7 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      * Convert the split page's multiblock reconciliation information into an array of page
      * reference structures.
      */
+    /* 一拆多后，构建新得ref[]及对应page，并和拆分前的page的父page关联 */
     WT_RET(__wt_calloc_def(session, new_entries, &ref_new));
     for (i = 0; i < new_entries; ++i)
         WT_ERR( //为每一个page指向reconcile拆分后的磁盘元数据
@@ -2212,6 +2216,8 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
     //该page拆分为multi_next个page后，重新构建父parent的index索引数组
     WT_ERR(__split_parent(session, ref, ref_new, new_entries, parent_incr, closing, true));
 
+
+    /* 下面逻辑主要是释放老page(也就是拆分前的page)的内存回收 */
     /*
      * The split succeeded, we can no longer fail.
      *
@@ -2225,6 +2231,7 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      * discard the page.
      */
     __wt_page_modify_clear(session, page);
+    //page空间释，包括WT_PAGE_MODIFY page->modify相关空间释放，包括mod_row_insert mod_row_update mod_multi等，以及page->dsk等
     __wt_page_out(session, &page);
 
     if (0) {

@@ -204,7 +204,7 @@ struct __wt_cell_unpack_common {
      * The size and __len fields are reasonably type size_t; don't change the type, performance
      * drops significantly if they're type size_t.
      */
-    //指向真实数据
+    //指向真实数据的指针
     const void *data; /* Data */
     //数据长度
     uint32_t size;    /* Data size */

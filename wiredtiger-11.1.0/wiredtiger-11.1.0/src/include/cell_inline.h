@@ -1217,6 +1217,8 @@ __wt_cell_unpack_addr(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CE
  // __wt_cell_pack_value  __wt_cell_pack_leaf_key 与   __wt_cell_unpack_kv  __wt_cell_unpack_safe对应
  */
 //__inmem_row_leaf调用，解包磁盘上面的一个cell数据(一个K或者V), 配合__wt_rec_image_copy写入封包阅读
+//磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
+
 static inline void
 __wt_cell_unpack_kv(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CELL *cell,
   WT_CELL_UNPACK_KV *unpack_value)
