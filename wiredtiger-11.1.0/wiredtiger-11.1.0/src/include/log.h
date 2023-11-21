@@ -59,6 +59,7 @@ union __wt_lsn {
 
 #define WT_INIT_LSN(l) WT_SET_LSN((l), 1, 0)
 
+//也就是l的高32位和低32位都是UINT32_MAX
 #define WT_MAX_LSN(l) WT_SET_LSN((l), UINT32_MAX, INT32_MAX)
 
 #define WT_ZERO_LSN(l) WT_SET_LSN((l), 0, 0)

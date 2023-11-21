@@ -245,6 +245,7 @@ __bm_checkpoint_resolve_readonly(WT_BM *bm, WT_SESSION_IMPL *session, bool faile
  * __bm_checkpoint_start --
  *     Start the checkpoint.
  */
+//__checkpoint_tree->__bm_checkpoint_start->__wt_block_checkpoint_start
 static int
 __bm_checkpoint_start(WT_BM *bm, WT_SESSION_IMPL *session)
 {

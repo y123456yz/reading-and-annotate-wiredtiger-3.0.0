@@ -49,6 +49,7 @@ struct __wt_evict_queue {
 
 /* Cache operations. */
 typedef enum __wt_cache_op {
+    //__checkpoint_tree
     WT_SYNC_CHECKPOINT,
     WT_SYNC_CLOSE,
     WT_SYNC_DISCARD,

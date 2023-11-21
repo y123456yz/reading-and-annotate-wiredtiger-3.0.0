@@ -113,6 +113,7 @@ struct __wt_blkincr {
  * At the default granularity, this is enough for blocks in a 2G file.
  */
 #define WT_BLOCK_MODS_LIST_MIN 128 /* Initial bits for bitmap. */
+//__ckpt_load_blk_mods中赋值使用
 struct __wt_block_mods {
     const char *id_str;
 
@@ -158,6 +159,7 @@ struct __wt_ckpt {
 
     uint64_t size; /* Checkpoint size */
 
+    //__wt_checkpoint_tree_reconcile_update赋值
     uint64_t write_gen;     /* Write generation */
     uint64_t run_write_gen; /* Runtime write generation. */
 
@@ -167,6 +169,7 @@ struct __wt_ckpt {
 
     WT_BLOCK_MODS backup_blocks[WT_BLKINCR_MAX];
 
+    //__wt_checkpoint_tree_reconcile_update赋值
     WT_TIME_AGGREGATE ta; /* Validity window */
 
     WT_ITEM addr; /* Checkpoint cookie string */
@@ -175,8 +178,10 @@ struct __wt_ckpt {
     void *bpriv; /* Block manager private */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//表示这是新的checkpoint
 #define WT_CKPT_ADD 0x01u        /* Checkpoint to be added */
 #define WT_CKPT_BLOCK_MODS 0x02u /* Return list of modified blocks */
+//__drop
 #define WT_CKPT_DELETE 0x04u     /* Checkpoint to be deleted */
 #define WT_CKPT_FAKE 0x08u       /* Checkpoint is a fake */
 #define WT_CKPT_UPDATE 0x10u     /* Checkpoint requires update */

@@ -88,6 +88,8 @@ __wt_gen_next(WT_SESSION_IMPL *session, int which, uint64_t *genp)
  * __wt_gen_next_drain --
  *     Switch the resource to its next generation, then wait for it to drain.
  */
+//一直等到确保所有session的generation都大于等于最新为该session生成的generation才返回
+//主要是等待evict server线程__wt_evict中完成evict
 void
 __wt_gen_next_drain(WT_SESSION_IMPL *session, int which)
 {
@@ -95,6 +97,8 @@ __wt_gen_next_drain(WT_SESSION_IMPL *session, int which)
 
     v = __wt_atomic_addv64(&S2C(session)->generations[which], 1);
 
+    //一直等到确保所有session的generation都大于入参generation后才返回
+    //主要是等待evict server线程__wt_evict中完成evict
     __wt_gen_drain(session, which, v);
 }
 
@@ -102,6 +106,8 @@ __wt_gen_next_drain(WT_SESSION_IMPL *session, int which)
  * __wt_gen_drain --
  *     Wait for the resource to drain.
  */
+//一直等到确保所有session的generation都大于入参generation后才返回
+//例如等待evict server线程__wt_evict中完成evict
 void
 __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
 {
@@ -112,6 +118,8 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
     uint32_t i, session_cnt;
     int pause_cnt;
     bool verbose_timeout_flags;
+    WT_VERBOSE_LEVEL verbose_tmp[WT_VERB_NUM_CATEGORIES];
+    WT_DECL_RET;
 
     conn = S2C(session);
     verbose_timeout_flags = false;
@@ -124,12 +132,16 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
      * the sessions that could have been active when we started our check.
      */
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
+    //一直等到确保所有session的generation都大于入参generation后才返回
     for (minutes = 0, pause_cnt = 0, s = conn->sessions, i = 0; i < session_cnt; ++s, ++i) {
         if (!s->active)
             continue;
 
+       // printf("yang test ..........__wt_gen_drain...........generation:%d, s->generations[which]:%d\r\n",
+        //    (int)generation, (int)s->generations[which]);
         for (;;) {
             /* Ensure we only read the value once. */
+            //当前session的generation
             WT_ORDERED_READ(v, s->generations[which]);
 
             /*
@@ -138,6 +150,7 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
              *
              * The thread's generation may be 0 (that is, not set).
              */
+            //等到V=0,或者当前session的generation大于入参generation才返回
             if (v == 0 || v >= generation)
                 break;
 
@@ -177,19 +190,27 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
                 else if (!verbose_timeout_flags &&
                   time_diff_ms > (WT_GEN_DRAIN_TIMEOUT_MIN * WT_MINUTE * WT_THOUSAND - 20)) {
                     if (which == WT_GEN_EVICT) {
-                        WT_SET_VERBOSE_LEVEL(session, WT_VERB_EVICT, WT_VERBOSE_DEBUG_1);
-                        WT_SET_VERBOSE_LEVEL(session, WT_VERB_EVICTSERVER, WT_VERBOSE_DEBUG_1);
-                        WT_SET_VERBOSE_LEVEL(session, WT_VERB_EVICT_STUCK, WT_VERBOSE_DEBUG_1);
+                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_EVICT, WT_VERBOSE_DEBUG_1);
+                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_EVICTSERVER, WT_VERBOSE_DEBUG_1);
+                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_EVICT_STUCK, WT_VERBOSE_DEBUG_1);
                     } else if (which == WT_GEN_CHECKPOINT) {
-                        WT_SET_VERBOSE_LEVEL(session, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_1);
-                        WT_SET_VERBOSE_LEVEL(
-                          session, WT_VERB_CHECKPOINT_CLEANUP, WT_VERBOSE_DEBUG_1);
-                        WT_SET_VERBOSE_LEVEL(
-                          session, WT_VERB_CHECKPOINT_PROGRESS, WT_VERBOSE_DEBUG_1);
+                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_1);
+                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT_CLEANUP, WT_VERBOSE_DEBUG_1);
+                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT_PROGRESS, WT_VERBOSE_DEBUG_1);
                     }
                     verbose_timeout_flags = true;
                 }
             }
+        }
+
+        if (which == WT_GEN_EVICT) {
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT);  
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICTSERVER);  
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT_STUCK);  
+        } else if (which == WT_GEN_CHECKPOINT) {
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT);  
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_CLEANUP);  
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_PROGRESS); 
         }
     }
 }

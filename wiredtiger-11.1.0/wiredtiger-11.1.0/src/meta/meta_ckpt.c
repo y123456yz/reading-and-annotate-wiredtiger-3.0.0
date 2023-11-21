@@ -636,6 +636,7 @@ __ckpt_copy_blk_mods(WT_SESSION_IMPL *session, WT_CKPT *src_ckpt, WT_CKPT *dst_c
  *     Load the block mods for a given checkpoint and set up all the information to store. Load from
  *     either the metadata or from a base checkpoint.
  */
+//从元数据或者配置文件中加载信息存储到ckpt->block_metadata
 static int
 __meta_blk_mods_load(
   WT_SESSION_IMPL *session, const char *config, WT_CKPT *base_ckpt, WT_CKPT *ckpt, bool rename)
@@ -647,6 +648,8 @@ __meta_blk_mods_load(
     if (config != NULL) {
         /* Load from metadata. */
         WT_RET(__ckpt_load_blk_mods(session, config, ckpt));
+        //在session对应表的wiredtiger.wt元数据config配置基础上增加
+        //encryption=%.*s,block_metadata_encrypted=%s,block_metadata=[%.*s]几个配置保存到ckpt->block_metadata
         WT_RET(__wt_meta_block_metadata(session, config, ckpt));
     } else {
         /* Load from an existing base checkpoint. */
@@ -660,6 +663,7 @@ __meta_blk_mods_load(
      * Set the add-a-checkpoint flag, and if we're doing incremental backups, request a list of the
      * checkpoint's modified blocks from the block manager.
      */
+    //表示这是新的checkpoint
     F_SET(ckpt, WT_CKPT_ADD);
     if (F_ISSET(S2C(session), WT_CONN_INCR_BACKUP)) {
         F_SET(ckpt, WT_CKPT_BLOCK_MODS);

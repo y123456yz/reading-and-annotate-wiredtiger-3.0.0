@@ -222,6 +222,7 @@ err:
  * __checkpoint_update_generation --
  *     Update the checkpoint generation of the current tree. This indicates that the tree will not
  *     be visited again by the current checkpoint.
+ //checkpoint generation统计
  */
 static void
 __checkpoint_update_generation(WT_SESSION_IMPL *session)
@@ -327,6 +328,7 @@ err:
 /*
  * __checkpoint_apply_to_dhandles --
  *     Apply an operation to all handles locked for a checkpoint.
+ op为__checkpoint_tree_helper __checkpoint_presync __wt_checkpoint_sync
  */
 static int
 __checkpoint_apply_to_dhandles(
@@ -380,7 +382,8 @@ __checkpoint_data_source(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_checkpoint_get_handles --
  *     Get a list of handles to flush.
- */
+ */ 
+//获取session对应btree表的checkpint信息记录到btree->ckpt
 int
 __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -449,6 +452,7 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
      * Decide whether the tree needs to be included in the checkpoint and if so, acquire the
      * necessary locks.
      */
+    //获取session对应btree表的checkpint信息记录到btree->ckpt
     WT_SAVE_DHANDLE(session, ret = __checkpoint_lock_dirty_tree(session, true, force, true, cfg));
     WT_RET(ret);
     if (F_ISSET(btree, WT_BTREE_SKIP_CKPT)) {
@@ -460,6 +464,7 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
      * Make sure there is space for the new entry: do this before getting the handle to avoid
      * cleanup if we can't allocate the memory.
      */
+    //扩容(session->ckpt_handle_next + 1) * (WT_DATA_HANDLE类型)空间
     WT_RET(__wt_realloc_def(session, &session->ckpt_handle_allocated, session->ckpt_handle_next + 1,
       &session->ckpt_handle));
 
@@ -467,9 +472,11 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
      * The current tree will be included: get it again because the handle we have is only valid for
      * the duration of this function.
      */
+    //也就是表名
     name = session->dhandle->name;
     session->dhandle = NULL;
 
+    //根据name重新获取dhandle ?????? 为啥要重新获取呢  因为在前面的WT_SAVE_DHANDLE __checkpoint_lock_dirty_tree中获取了新的checkpoint name
     if ((ret = __wt_session_get_dhandle(session, name, NULL, NULL, 0)) != 0)
         return (ret == EBUSY ? 0 : ret);
 
@@ -826,6 +833,7 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
      */
     WT_ASSERT(session, session->ckpt_handle_next == 0);
     //上锁&S2C(session)->table_lock，执行op，执行完成释放锁
+    //__wt_checkpoint_get_handles获取session对应btree表的checkpint信息记录到btree->ckpt
     WT_WITH_TABLE_READ_LOCK(
       session, ret = __checkpoint_apply_operation(session, cfg, __wt_checkpoint_get_handles));
 
@@ -1566,7 +1574,12 @@ __drop_list_add(WT_SESSION_IMPL *session, WT_ITEM *drop_list, const char *name)
 /*
  * __drop --
  *     Drop all checkpoints with a specific name.
+
+* Drop checkpoints with the same name as the one we're taking. We don't need to add this to the
+* drop list for snapshot/timestamp metadata because the metadata will be replaced by the new
+* checkpoint.
  */
+//如果是指定name(非"WiredTigerCheckpoint")的checkpoint获取需要删除的checkpoint，保存到drop_list，同时设置WT_CKPT_DELETE标识
 static int
 __drop(
   WT_SESSION_IMPL *session, WT_ITEM *drop_list, WT_CKPT *ckptbase, const char *name, size_t len)
@@ -1795,12 +1808,15 @@ __checkpoint_lock_dirty_tree_int(WT_SESSION_IMPL *session, bool is_checkpoint, b
 //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint  
 //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
  */
+//获取session对应btree表的checkpint信息记录到btree->ckpt
 static int
 __checkpoint_lock_dirty_tree(
   WT_SESSION_IMPL *session, bool is_checkpoint, bool force, bool need_tracking, const char *cfg[])
 {
     WT_BTREE *btree;
-    WT_CKPT *ckpt, *ckptbase;
+    WT_CKPT *ckpt, 
+        //为WT_CKPT数组结构
+        *ckptbase;
     WT_CONFIG dropconf;
     WT_CONFIG_ITEM cval, k, v;
     WT_DATA_HANDLE *dhandle;
@@ -1898,6 +1914,8 @@ __checkpoint_lock_dirty_tree(
 
     //分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
     //也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
+
+    //ckpt_bytes_allocated表示为WT_CKPT分配的空间
     WT_ERR(__wt_meta_ckptlist_get(session, dhandle->name, true, &ckptbase, &ckpt_bytes_allocated));
 
     /* We may be dropping specific checkpoints, check the configuration. */
@@ -1942,17 +1960,21 @@ __checkpoint_lock_dirty_tree(
      * drop list for snapshot/timestamp metadata because the metadata will be replaced by the new
      * checkpoint.
      */
+    //如果是指定name(非"WiredTigerCheckpoint")的checkpoint获取需要删除的checkpoint，保存到drop_list，同时设置WT_CKPT_DELETE标识
     WT_ERR(__drop(session, NULL, ckptbase, name, strlen(name)));
 
     /* Set the name of the new entry at the end of the list. */
+    //ckpt执行ckptbase数组末尾
     WT_CKPT_FOREACH (ckptbase, ckpt)
         ;
+    //设置ckptbase末尾成员checkpoint的name
     WT_ERR(__wt_strdup(session, name, &ckpt->name));
 
     /*
      * There is some interaction between backups and checkpoints. Perform all backup related
      * operations that the checkpoint needs now, while holding the hot backup read lock.
      */
+    //先跳过，确定ckptbase数组中的checkpoint是否需要跳过、是否需要删除等
     WT_WITH_HOTBACKUP_READ_LOCK_UNCOND(session,
       ret = __checkpoint_lock_dirty_tree_int(session, is_checkpoint, force, btree, ckpt, ckptbase));
     WT_ERR(ret);
@@ -1961,6 +1983,7 @@ __checkpoint_lock_dirty_tree(
      * If we decided to skip checkpointing, we need to remove the new checkpoint entry we might have
      * appended to the list.
      */
+    //如果改表设置了WT_BTREE_SKIP_CKPT，也就是不需要checkpoint，则需要从ckptbase数组中删除释放所有ckpt
     if (F_ISSET(btree, WT_BTREE_SKIP_CKPT)) {
         WT_CKPT_FOREACH_NAME_OR_ORDER (ckptbase, ckpt) {
             /* Checkpoint(s) to be added are always at the end of the list. */
@@ -2214,6 +2237,7 @@ __checkpoint_tree(WT_SESSION_IMPL *session, bool is_checkpoint, const char *cfg[
      * roll old changes forward over the non-logged changes in this checkpoint. If logging is
      * enabled, a real checkpoint LSN will be assigned for this checkpoint and overwrite this.
      */
+    //也就是ckptlsn的高32位和低32位都是UINT32_MAX
     WT_MAX_LSN(&ckptlsn);
 
     /*
@@ -2227,6 +2251,7 @@ __checkpoint_tree(WT_SESSION_IMPL *session, bool is_checkpoint, const char *cfg[
      * to use the bulk-load's fake checkpoint to delete a physical checkpoint, and that will end in
      * tears.
      */
+    printf("yang test .............__checkpoint_tree.......btree->original:%d...........\r\n", btree->original);
     if (is_checkpoint && btree->original) {
         __wt_checkpoint_tree_reconcile_update(session, &ta);
 
@@ -2234,6 +2259,8 @@ __checkpoint_tree(WT_SESSION_IMPL *session, bool is_checkpoint, const char *cfg[
         goto fake;
     }
 
+    //一般走这里
+    
     /*
      * Mark the root page dirty to ensure something gets written. (If the tree is modified, we must
      * write the root page anyway, this doesn't add additional writes to the process. If the tree is
@@ -2263,6 +2290,8 @@ __checkpoint_tree(WT_SESSION_IMPL *session, bool is_checkpoint, const char *cfg[
         WT_ERR(__wt_txn_checkpoint_log(session, false, WT_TXN_LOG_CKPT_START, &ckptlsn));
 
     /* Tell the block manager that a file checkpoint is starting. */
+    //__bm_checkpoint_start 
+    //设置状态block->ckpt_state = WT_CKPT_INPROGRESS;
     WT_ERR(bm->checkpoint_start(bm, session));
     resolve_bm = true;
 
@@ -2293,6 +2322,8 @@ fake:
      * and open a checkpoint that isn't yet durable.
      */
     if (WT_IS_METADATA(dhandle) || !F_ISSET(session->txn, WT_TXN_RUNNING))
+        //yang add todo xxxxxxxxxxx 这里会不会和__txn_checkpoint重复了，重复fsync了
+        //sync这个btree对应文件，也就是把表中的脏数据刷到磁盘
         WT_ERR(__wt_checkpoint_sync(session, NULL));
 
     WT_ERR(__wt_meta_ckptlist_set(session, dhandle, btree->ckpt, &ckptlsn));
@@ -2392,6 +2423,7 @@ __checkpoint_tree_helper(WT_SESSION_IMPL *session, const char *cfg[])
      * Whatever happened, we aren't visiting this tree again in this checkpoint. Don't keep updates
      * pinned any longer.
      */
+     //checkpoint generation统计
     __checkpoint_update_generation(session);
 
     /*
@@ -2436,6 +2468,7 @@ __wt_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 
     WT_RET(__wt_config_gets_def(session, cfg, "force", 0, &cval));
     force = cval.val != 0;
+    //获取session对应btree表的checkpint信息记录到btree->ckpt
     WT_SAVE_DHANDLE(session, ret = __checkpoint_lock_dirty_tree(session, true, force, true, cfg));
     if (ret != 0 || F_ISSET(S2BT(session), WT_BTREE_SKIP_CKPT))
         goto done;
@@ -2454,6 +2487,7 @@ done:
  * __wt_checkpoint_sync --
  *     Sync a file that has been checkpointed, and wait for the result.
  */
+//sync这个btree对应文件，也就是把表中的脏数据刷到磁盘
 int
 __wt_checkpoint_sync(WT_SESSION_IMPL *session, const char *cfg[])
 {
@@ -2469,7 +2503,7 @@ __wt_checkpoint_sync(WT_SESSION_IMPL *session, const char *cfg[])
     /* Unnecessary if checkpoint_sync has been configured "off". */
     if (!F_ISSET(S2C(session), WT_CONN_CKPT_SYNC))
         return (0);
-
+    //sync这个btree对应文件，也就是把表中的脏数据刷到磁盘
     return (bm->sync(bm, session, true));
 }
 
@@ -2529,6 +2563,7 @@ __wt_checkpoint_close(WT_SESSION_IMPL *session, bool final)
 
     __txn_checkpoint_establish_time(session);
 
+    //获取session对应btree表的checkpint信息记录到btree->ckpt
     WT_SAVE_DHANDLE(
       session, ret = __checkpoint_lock_dirty_tree(session, false, false, need_tracking, NULL));
     WT_ASSERT(session, ret == 0);

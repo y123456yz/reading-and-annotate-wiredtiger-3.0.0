@@ -206,8 +206,11 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     uint64_t checkpoint_write_gen; /* Write generation override, during checkpoint cursor ops */
 
     /* Checkpoint handles */
+    //数组类型，__wt_checkpoint_get_handles获取session对应btree表的checkpint信息记录到btree->ckpt
     WT_DATA_HANDLE **ckpt_handle; /* Handle list */
+    //ckpt_handle[]数组大小
     u_int ckpt_handle_next;       /* Next empty slot */
+    //ckpt_handle[]数组总共分配的真实内存
     size_t ckpt_handle_allocated; /* Bytes allocated */
 
     /* Named checkpoint drop list, during a checkpoint */

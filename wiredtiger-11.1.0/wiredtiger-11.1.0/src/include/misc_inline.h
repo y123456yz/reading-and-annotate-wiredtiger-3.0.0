@@ -42,7 +42,7 @@ __wt_safe_sub(uint64_t v1, uint64_t v2)
 /*
  * __wt_strdup --
  *     ANSI strdup function.
- */
+ */ //×Ö·û´®¿½±´
 static inline int
 __wt_strdup(WT_SESSION_IMPL *session, const char *str, void *retp)
 {

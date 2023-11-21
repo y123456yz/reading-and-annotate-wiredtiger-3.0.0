@@ -185,6 +185,7 @@ __wt_block_ckpt_destroy(WT_SESSION_IMPL *session, WT_BLOCK_CKPT *ci)
 /*
  * __wt_block_checkpoint_start --
  *     Start a checkpoint.
+ //__checkpoint_tree->__bm_checkpoint_start->__wt_block_checkpoint_start
  */
 int
 __wt_block_checkpoint_start(WT_SESSION_IMPL *session, WT_BLOCK *block)
@@ -203,6 +204,7 @@ __wt_block_checkpoint_start(WT_SESSION_IMPL *session, WT_BLOCK *block)
         __wt_blkcache_set_readonly(session);
         break;
     case WT_CKPT_NONE:
+        //正常进入这个状态
         block->ckpt_state = WT_CKPT_INPROGRESS;
         break;
     }

@@ -400,6 +400,7 @@ __sync_page_skip(
 /*
  * __wt_sync_file --
  *     Flush pages for a specific file.
+ //__checkpoint_tree
  */
 int
 __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
@@ -479,7 +480,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
             }
         }
         break;
-    case WT_SYNC_CHECKPOINT:
+    case WT_SYNC_CHECKPOINT: //checkpoint
         /*
          * If we are flushing a file at read-committed isolation, which is of particular interest
          * for flushing the metadata to make a schema-changing operation durable, get a
@@ -513,6 +514,8 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 
         btree->sync_session = session;
         btree->syncing = WT_BTREE_SYNC_WAIT;
+        //一直等到确保所有session的generation都大于等于最新为该session生成的WT_GEN_EVICT generation才返回
+        //主要是等待evict server线程__wt_evict中完成evict
         __wt_gen_next_drain(session, WT_GEN_EVICT);
         btree->syncing = WT_BTREE_SYNC_RUNNING;
         is_hs = WT_IS_HS(btree->dhandle);

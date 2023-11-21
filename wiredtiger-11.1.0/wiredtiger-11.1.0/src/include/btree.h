@@ -99,7 +99,9 @@ typedef enum { /* Start position for eviction walk */
 struct __wt_btree {
     WT_DATA_HANDLE *dhandle;
 
+    //记录进行checkpoint的信息，赋值见__checkpoint_lock_dirty_tree
     WT_CKPT *ckpt;               /* Checkpoint information */
+    //ckpt数组分配的空间
     size_t ckpt_bytes_allocated; /* Checkpoint information array allocation size */
 
     WT_BTREE_TYPE type; /* Type */
@@ -196,6 +198,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     WT_REF root;      /* Root page reference */
     //__wt_tree_modify_set //标记tree被修改了
     bool modified;    /* If the tree ever modified */
+    //__btree_tree_open_empty赋值为1
     uint8_t original; /* Newly created: bulk-load possible
                          (want a bool but needs atomic cas) */
 
@@ -214,7 +217,9 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     uint64_t rec_max_txn;    /* Maximum txn seen (clean trees) */
     wt_timestamp_t rec_max_timestamp;
 
+    //__checkpoint_update_generation中赋值给统计
     uint64_t checkpoint_gen;       /* Checkpoint generation */
+    //__wt_sync_file
     WT_SESSION_IMPL *sync_session; /* Syncing session */
     WT_BTREE_SYNC syncing;         /* Sync status */
 

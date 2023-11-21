@@ -102,7 +102,7 @@ __wt_malloc(WT_SESSION_IMPL *session, size_t bytes_to_allocate, void *retp)
  */
 static int
 __realloc_func(WT_SESSION_IMPL *session, 
-  //扩容前的bytes_allocated_ret内存大小
+  //扩容前的bytes_allocated_ret内存大小，扩容完成后的内存总空间会更新bytes_allocated_ret，也就是扩容完成后bytes_allocated_ret记录扩容后的大小
   size_t *bytes_allocated_ret,
   //realloc的空间，实际上内存为原有空间+需要增加的空间
   size_t bytes_to_allocate,
@@ -287,7 +287,7 @@ __wt_memdup(WT_SESSION_IMPL *session, const void *str, size_t len, void *retp)
 /*
  * __wt_strndup --
  *     ANSI strndup function.
- */
+ */ //字符串拷贝
 int
 __wt_strndup(WT_SESSION_IMPL *session, const void *str, size_t len, void *retp)
 {

@@ -1197,6 +1197,7 @@ err:
      * Shut down the checkpoint and capacity server threads: we don't want to throttle writes and
      * we're about to do a final checkpoint separately from the checkpoint server.
      */
+    printf("yang test .............__conn_close.............\r\n");
     WT_TRET(__wt_capacity_server_destroy(session));
     WT_TRET(__wt_checkpoint_server_destroy(session));
 
@@ -2159,34 +2160,32 @@ __wt_json_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 int
 __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 {
-    static const WT_NAME_FLAG verbtypes[] = {{"config_all_verbos", WT_VERB_OPEN_ALL_VERBOS},
-      {"api", WT_VERB_API}, {"backup", WT_VERB_BACKUP},
-      {"block", WT_VERB_BLOCK}, {"block_cache", WT_VERB_BLKCACHE},
+    static const WT_NAME_FLAG verbtypes[] = {{"config_all_verbos", WT_VERB_ALL}, {"api", WT_VERB_API},
+      {"backup", WT_VERB_BACKUP}, {"block", WT_VERB_BLOCK}, {"block_cache", WT_VERB_BLKCACHE},
       {"checkpoint", WT_VERB_CHECKPOINT}, {"checkpoint_cleanup", WT_VERB_CHECKPOINT_CLEANUP},
-      {"checkpoint_progress", WT_VERB_CHECKPOINT_PROGRESS}, {"compact", WT_VERB_COMPACT},
-      {"compact_progress", WT_VERB_COMPACT_PROGRESS}, {"error_returns", WT_VERB_ERROR_RETURNS},
-      {"evict", WT_VERB_EVICT}, {"evict_stuck", WT_VERB_EVICT_STUCK},
-      {"evictserver", WT_VERB_EVICTSERVER}, {"fileops", WT_VERB_FILEOPS},
-      {"generation", WT_VERB_GENERATION}, {"handleops", WT_VERB_HANDLEOPS}, {"log", WT_VERB_LOG},
-      {"hs", WT_VERB_HS}, {"history_store_activity", WT_VERB_HS_ACTIVITY}, {"lsm", WT_VERB_LSM},
+      {"checkpoint_progress", WT_VERB_CHECKPOINT_PROGRESS}, 
+      {"compact", WT_VERB_COMPACT}, {"compact_progress", WT_VERB_COMPACT_PROGRESS},
+      {"error_returns", WT_VERB_ERROR_RETURNS}, {"evict", WT_VERB_EVICT},
+      {"evict_stuck", WT_VERB_EVICT_STUCK}, {"evictserver", WT_VERB_EVICTSERVER},
+      {"fileops", WT_VERB_FILEOPS}, {"generation", WT_VERB_GENERATION},
+      {"handleops", WT_VERB_HANDLEOPS}, {"log", WT_VERB_LOG}, {"history_store", WT_VERB_HS},
+      {"history_store_activity", WT_VERB_HS_ACTIVITY}, {"lsm", WT_VERB_LSM},
       {"lsm_manager", WT_VERB_LSM_MANAGER}, {"metadata", WT_VERB_METADATA},
-      {"mutex", WT_VERB_MUTEX}, {"out_of_order", WT_VERB_OUT_OF_ORDER},
-      {"overflow", WT_VERB_OVERFLOW}, {"read", WT_VERB_READ}, {"reconcile", WT_VERB_RECONCILE},
-      {"recovery", WT_VERB_RECOVERY}, {"recovery_progress", WT_VERB_RECOVERY_PROGRESS},
-      {"rts", WT_VERB_RTS}, {"salvage", WT_VERB_SALVAGE}, {"shared_cache", WT_VERB_SHARED_CACHE},
+      {"mutex", WT_VERB_MUTEX},
+      {"out_of_order", WT_VERB_OUT_OF_ORDER}, {"overflow", WT_VERB_OVERFLOW},
+      {"read", WT_VERB_READ}, {"reconcile", WT_VERB_RECONCILE}, {"recovery", WT_VERB_RECOVERY},
+      {"recovery_progress", WT_VERB_RECOVERY_PROGRESS}, {"rts", WT_VERB_RTS},
+      {"salvage", WT_VERB_SALVAGE}, {"shared_cache", WT_VERB_SHARED_CACHE},
       {"split", WT_VERB_SPLIT}, {"temporary", WT_VERB_TEMPORARY},
       {"thread_group", WT_VERB_THREAD_GROUP}, {"timestamp", WT_VERB_TIMESTAMP},
       {"tiered", WT_VERB_TIERED}, {"transaction", WT_VERB_TRANSACTION}, {"verify", WT_VERB_VERIFY},
-      {"version", WT_VERB_VERSION}, {"write", WT_VERB_WRITE},
-      {NULL, 0}};
+      {"version", WT_VERB_VERSION}, {"write", WT_VERB_WRITE}, {NULL, 0}};
 
     WT_CONFIG_ITEM cval, sval;
     WT_CONNECTION_IMPL *conn;
     WT_DECL_RET;
     const WT_NAME_FLAG *ft;
-    int i;
-    WT_VERBOSE_LEVEL verbose_value;
-    bool config_all_verbos_flag;
+    WT_VERBOSE_LEVEL verbosity_all;
 
     conn = S2C(session);
 
@@ -2198,76 +2197,69 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
         return (0);
     WT_RET(ret);
 
-    config_all_verbos_flag = true;
     WT_RET(__wt_config_gets(session, cfg, "verbose", &cval));
+
+    /*
+     * Special handling for "all". This determines the verbosity for any categories not explicitly
+     * set in the config string.
+     */
+    ft = &verbtypes[WT_VERB_ALL];
+    ret = __wt_config_subgets(session, &cval, ft->name, &sval);
+    WT_RET_NOTFOUND_OK(ret);
+    if (ret == WT_NOTFOUND)
+        /*
+         * If "all" isn't specified in the configuration string use the default WT_VERBOSE_NOTICE
+         * verbosity level. WT_VERBOSE_NOTICE is an always-on informational verbosity message.
+         */
+        verbosity_all = WT_VERBOSE_NOTICE;
+    else if (sval.type == WT_CONFIG_ITEM_BOOL && sval.len == 0)
+        verbosity_all = WT_VERBOSE_LEVEL_DEFAULT;
+    else if (sval.type == WT_CONFIG_ITEM_NUM && sval.val >= WT_VERBOSE_INFO &&
+      sval.val <= WT_VERBOSE_DEBUG_5)
+        verbosity_all = (WT_VERBOSE_LEVEL)sval.val;
+    else
+        WT_RET_MSG(session, EINVAL, "Failed to parse verbose option '%s' with value '%" PRId64 "'",
+          ft->name, sval.val);
+
     for (ft = verbtypes; ft->name != NULL; ft++) {
         ret = __wt_config_subgets(session, &cval, ft->name, &sval);
         WT_RET_NOTFOUND_OK(ret);
 
-        if (ret == WT_NOTFOUND) {
-            /*
-             * If the given event isn't specified in configuration string, default it to the
-             * WT_VERBOSE_NOTICE verbosity level. WT_VERBOSE_NOTICE being an always-on informational
-             * verbosity message.
-             */
-            if (ft->flag == WT_VERB_OPEN_ALL_VERBOS) {
-                config_all_verbos_flag = false;
-                continue;
-            }
+        /* "all" is a special case we've already handled above. */
+        if (ft->flag == WT_VERB_ALL)
+            continue;
 
-            if (config_all_verbos_flag == true) {
-                continue;
-            } else {
-                verbose_value = WT_VERBOSE_NOTICE;
-                goto verbos_assign;
-            }
-        } else if (sval.type == WT_CONFIG_ITEM_BOOL && sval.len == 0) {
+        if (ret == WT_NOTFOUND)
+            /*
+             * If the given event isn't specified in configuration string, set it to the default
+             * verbosity level.
+             */
+            conn->verbose[ft->flag] = verbosity_all;
+        else if (sval.type == WT_CONFIG_ITEM_BOOL && sval.len == 0)
             /*
              * If no value is associated with the event (i.e passing verbose=[checkpoint]), default
-             * the event to WT_VERBOSE_DEBUG_1. Correspondingly, all legacy uses of '__wt_verbose',
-             * being messages without an explicit verbosity level, will default to
-             * 'WT_VERBOSE_DEBUG_1'.
+             * the event to WT_VERBOSE_LEVEL_DEFAULT. Correspondingly, all legacy uses of
+             * '__wt_verbose', being messages without an explicit verbosity level, will default to
+             * 'WT_VERBOSE_LEVEL_DEFAULT'.
              */
-            verbose_value = WT_VERBOSE_DEBUG_1;
-            goto verbos_assign;
-            //yang add todo xxxxx ,这里应该是
-        } else if (sval.type == WT_CONFIG_ITEM_NUM && sval.val >= WT_VERBOSE_INFO &&
-          sval.val <= WT_VERBOSE_DEBUG_5) {
-            verbose_value = (WT_VERBOSE_LEVEL)sval.val;
-            goto verbos_assign;
-        } else {
+            conn->verbose[ft->flag] = WT_VERBOSE_LEVEL_DEFAULT;
+        else if (sval.type == WT_CONFIG_ITEM_NUM && sval.val >= WT_VERBOSE_INFO &&
+          sval.val <= WT_VERBOSE_DEBUG_5)
+            conn->verbose[ft->flag] = (WT_VERBOSE_LEVEL)sval.val;
+        else
             /*
              * We only support verbosity values in the form of positive numbers (representing
              * verbosity levels e.g. [checkpoint:1,rts:0]) and boolean expressions (e.g.
              * [checkpoint,rts]). Return error for all other unsupported verbosity values e.g
              * negative numbers and strings.
              */
-            WT_RET_MSG(session, EINVAL, "Failed to parse verbose option '%s'", ft->name);
-        }
-
-verbos_assign:
-        if (ft->flag == WT_VERB_OPEN_ALL_VERBOS) {
-            //printf("yang test ............WT_VERB_API:%d............verbose_value:%d\r\n", WT_VERB_API, verbose_value);
-            for (i = 0; i < WT_VERB_NUM_CATEGORIES; i++)
-                conn->verbose[i] = verbose_value;
-        } else {
-         //printf("yang test ............ft->flag:%d............verbose_value:%d\r\n", (int)ft->flag, verbose_value);
-            conn->verbose[ft->flag] = verbose_value;
-        }
+            WT_RET_MSG(session, EINVAL,
+              "Failed to parse verbose option '%s' with value '%" PRId64 "'", ft->name, sval.val);
     }
-
-  // for (i = 0; i < WT_VERB_NUM_CATEGORIES; i++)
-   //    printf("\r\n\r\n\r\nyang test ............i:%d............verbose_value:%d\r\n", i, conn->verbose[i]);
-
-   /* for (ft = verbtypes; ft->name != NULL; ft++) {//yang add change todo
-        if (strcmp(ft->name, "metadata") == 0 || strcmp(ft->name, "api") == 0)
-            continue;
-
-        conn->verbose[ft->flag] = WT_VERBOSE_DEBUG_5;
-    }*/
 
     return (0);
 }
+
 
 /*
 const char*

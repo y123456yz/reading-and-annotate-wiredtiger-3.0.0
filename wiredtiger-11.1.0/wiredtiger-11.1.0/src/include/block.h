@@ -201,6 +201,7 @@ struct __wt_bm {
     int (*checkpoint_load)(
       WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t, uint8_t *, size_t *, bool);
     int (*checkpoint_resolve)(WT_BM *, WT_SESSION_IMPL *, bool);
+    //__bm_checkpoint_start
     int (*checkpoint_start)(WT_BM *, WT_SESSION_IMPL *);
     int (*checkpoint_unload)(WT_BM *, WT_SESSION_IMPL *);
     int (*close)(WT_BM *, WT_SESSION_IMPL *);
@@ -222,6 +223,7 @@ struct __wt_bm {
     int (*size)(WT_BM *, WT_SESSION_IMPL *, wt_off_t *);
     int (*stat)(WT_BM *, WT_SESSION_IMPL *, WT_DSRC_STATS *stats);
     int (*switch_object)(WT_BM *, WT_SESSION_IMPL *, uint32_t);
+    //__bm_sync
     int (*sync)(WT_BM *, WT_SESSION_IMPL *, bool);
     int (*verify_addr)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
     int (*verify_end)(WT_BM *, WT_SESSION_IMPL *);
@@ -298,6 +300,7 @@ struct __wt_block {
     bool live_open;        /* Live system is open */
     enum {                 /* Live checkpoint status */
         WT_CKPT_NONE = 0,
+        //__wt_block_checkpoint_start
         WT_CKPT_INPROGRESS,
         WT_CKPT_PANIC_ON_FAILURE,
         WT_CKPT_SALVAGE

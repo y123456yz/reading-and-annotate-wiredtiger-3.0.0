@@ -373,6 +373,7 @@ struct __wt_connection_impl {
     WT_SESSION_IMPL *sessions; /* Session reference */
     //__conn_session_size中初始化，从配置文件解析后赋值 __conn_session_size
     uint32_t session_size;     /* Session array size */
+    //session总数，包括active的也包括非active的
     uint32_t session_cnt;      /* Session count */
 
     size_t session_scratch_max; /* Max scratch memory per session */
