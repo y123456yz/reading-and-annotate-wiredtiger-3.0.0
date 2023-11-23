@@ -534,7 +534,6 @@ __checkpoint_wait_reduce_dirty_cache(WT_SESSION_IMPL *session)
 
     /* Set the dirty trigger to the target value. */
     cache->eviction_scrub_target = cache->eviction_checkpoint_target;
-    //yang add todo xxxxxxxxxx  txn_checkpoint_scrub_target统计没意义
     WT_STAT_CONN_SET(session, txn_checkpoint_scrub_target, (int64_t)cache->eviction_scrub_target);
 
     /* Wait while the dirty level is going down. */
@@ -646,12 +645,11 @@ __checkpoint_verbose_track(WT_SESSION_IMPL *session, const char *msg)
     conn = S2C(session);
     __wt_epoch(session, &stop);
 
-    //yang add todo ............. 这里最好加一个msec的统计
     /* Get time diff in milliseconds. */
     msec = WT_TIMEDIFF_MS(stop, conn->ckpt_timer_start);
     //yang add todo xxxxxxxxxxxxxx    time改为wait time会更好
     __wt_verbose(session, WT_VERB_CHECKPOINT,
-      "time: %" PRIu64 " ms, gen: %" PRIu64 ": Full database checkpoint %s", msec,
+      "duration time: %" PRIu64 " ms, gen: %" PRIu64 ": Full database checkpoint %s", msec,
       __wt_gen(session, WT_GEN_CHECKPOINT), msg);
 }
 

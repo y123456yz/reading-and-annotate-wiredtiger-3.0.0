@@ -166,6 +166,7 @@ __wt_btree_block_free(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr
     btree = S2BT(session);
     bm = btree->bm;
 
+    //__bm_free
     return (bm->free(bm, session, addr, addr_size));
 }
 
@@ -1589,6 +1590,7 @@ __wt_ref_addr_copy(WT_SESSION_IMPL *session, WT_REF *ref, WT_ADDR_COPY *copy)
  * __wt_ref_block_free --
  *     Free the on-disk block for a reference and clear the address.
  */
+//释放磁盘中的某个chunk空间
 static inline int
 __wt_ref_block_free(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -1783,7 +1785,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
 //page消耗的内存较高，大于maxleafpage * 2，并且至少有5个KV
 #define WT_MAX_SPLIT_COUNT 5
    // if ((page->memory_footprint > (size_t)btree->maxleafpage * 2)
-   //     || (page->memory_footprint > (size_t)btree->splitmempage)) {
+    //    || (page->memory_footprint > (size_t)btree->splitmempage)) {
    if ((page->memory_footprint > (size_t)btree->maxleafpage * 2)) {
         for (count1 = 0, ins = ins_head->head[0]; ins != NULL; ins = ins->next[0]) {
             if (++count1 < WT_MAX_SPLIT_COUNT)
@@ -1812,9 +1814,9 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
          ins = ins->next[WT_MIN_SPLIT_DEPTH]) {
         count2 += WT_MIN_SPLIT_MULTIPLIER;
         size += WT_MIN_SPLIT_MULTIPLIER * (WT_INSERT_KEY_SIZE(ins) + WT_UPDATE_MEMSIZE(ins->upd));
-       // if (count2 > WT_MIN_SPLIT_COUNT && 
-        //    (size > (size_t)btree->maxleafpage || size > btree->splitmempage)) {
-        if (count2 > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
+        if (count2 > WT_MIN_SPLIT_COUNT && 
+            (size > (size_t)btree->maxleafpage || size > btree->splitmempage)) {
+       // if (count2 > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
           //  printf("yang test ..__wt_leaf_page_can_split....sssssssssssssssss........count2:%d..........size:%d................\r\n", (int)count2, (int)size);
             return (true);
@@ -2195,6 +2197,7 @@ __wt_page_swap_func(WT_SESSION_IMPL *session, WT_REF *held, WT_REF *want, uint32
     //printf("yang test .....................__wt_page_swap_func...................................\r\n");
     /* Get the wanted page. */
     //获取ref这个page，如果因为冲突或者evict等则需要等待
+    // 根据ref->state状态判断是从磁盘加载数据到ref page，还是delete page等
     ret = __wt_page_in_func(session, want, flags
 #ifdef HAVE_DIAGNOSTIC
       ,

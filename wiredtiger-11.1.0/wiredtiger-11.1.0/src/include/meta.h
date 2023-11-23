@@ -140,6 +140,7 @@ struct __wt_block_mods {
     for ((ckpt) = (ckptbase); (ckpt)->name != NULL || (ckpt)->order != 0; ++(ckpt))
 
 //__wt_meta_ckptlist_get_from_config中分配空间
+//__wt_btree.ckpt为该类型
 struct __wt_ckpt {
     //赋值见__checkpoint_lock_dirty_tree，不指定name，默认为"WiredTigerCheckpoint"
     char *name; /* Name or NULL */
@@ -175,6 +176,7 @@ struct __wt_ckpt {
     WT_ITEM addr; /* Checkpoint cookie string */
     WT_ITEM raw;  /* Checkpoint cookie raw */
 
+    //创建空间及初始化__ckpt_extlist_read, 类型为WT_BLOCK_CKPT
     void *bpriv; /* Block manager private */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */

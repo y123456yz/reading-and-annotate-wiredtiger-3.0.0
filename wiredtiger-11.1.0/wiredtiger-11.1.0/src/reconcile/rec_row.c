@@ -315,7 +315,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     child = NULL;
     WT_TIME_AGGREGATE_INIT_MERGE(&ft_ta);
 
-    //printf("yang test ...............__wt_rec_row_int...........Reconcile a row-store internal page.........\r\n");
+    printf("yang test ...............__wt_rec_row_int...........Reconcile a row-store internal page.........\r\n");
     key = &r->k;
     kpack = &_kpack;
     WT_CLEAR(*kpack); /* -Wuninitialized */
@@ -353,7 +353,9 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
          * instantiated, off-page key, we don't bother setting them if that's not possible.
          */
         cell = NULL;
+        //获取ref key
         ikey = __wt_ref_key_instantiated(ref);
+        //如果是从磁盘加载的，需要解包，解包后存储到kpack中
         if (ikey != NULL && ikey->cell_offset != 0) {
             cell = WT_PAGE_REF_OFFSET(page, ikey->cell_offset);
             __wt_cell_unpack_addr(session, page->dsk, cell, kpack);

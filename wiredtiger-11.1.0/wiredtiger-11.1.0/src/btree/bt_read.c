@@ -272,8 +272,10 @@ err:
  * __wt_page_in_func --
  *     Acquire a hazard pointer to a page; if the page is not in-memory, read it from the disk and
  *     build an in-memory version.
+ 根据ref->state状态判断是从磁盘加载数据到ref page，还是delete page等
  */ //__wt_row_search->__wt_page_swap_func
 //获取ref这个page，如果因为冲突或者evict等则需要等待
+//根据ref->state状态判断是从磁盘加载数据到ref page，还是delete page等
 int
 __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
 #ifdef HAVE_DIAGNOSTIC

@@ -111,6 +111,8 @@ struct __wt_blkcache {
     u_int hash_size;     /* Number of block cache hash buckets */
     u_int type;          /* Type of block cache (NVRAM or DRAM) */
     uint64_t bytes_used; /* Bytes in the block cache */
+    //参考http://source.wiredtiger.com/mongodb-5.0/struct_w_t___c_o_n_n_e_c_t_i_o_n.html
+    //block_cache.full_target配置,默认值为0
     uint64_t max_bytes;  /* Block cache size */
     uint64_t system_ram; /* Configured size of system RAM */
 

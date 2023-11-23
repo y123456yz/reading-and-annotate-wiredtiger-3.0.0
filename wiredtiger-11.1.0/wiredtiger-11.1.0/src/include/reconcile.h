@@ -340,6 +340,8 @@ yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:2866
      * Root pages are written when wrapping up the reconciliation, remember the image we're going to
      * write.
      */
+    //赋值见__rec_split_write，root的reconcile只有一个page就够了，则在__rec_split_write不会写盘，而是直接记录image
+    //然后在__rec_write_wrapup写盘
     WT_ITEM *wrapup_checkpoint;
     bool wrapup_checkpoint_compressed;
 
@@ -448,6 +450,7 @@ typedef struct {
  *	We review child pages (while holding the child page's WT_REF lock), during internal-page
  * reconciliation. This structure encapsulates the child page's returned information/state.
  */
+//__wt_rec_row_int中使用
 typedef struct {
     enum {
         WT_CHILD_IGNORE,   /* Ignored child */

@@ -666,6 +666,7 @@ struct __wt_page {
          * use a copy macro in all references to the field (so the code
          * doesn't read it multiple times).
          */
+        //配合图形化阅读https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
         struct {
             WT_REF *parent_ref; /* Parent reference */
             uint64_t split_gen; /* Generation of last split */
@@ -682,6 +683,7 @@ struct __wt_page {
  * but it's not always required: for example, if a page is locked for splitting, or being created or
  * destroyed.
  */
+//参考BTREE数图形化 https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
 #define WT_INTL_INDEX_GET_SAFE(page) ((page)->u.intl.__index)
 #define WT_INTL_INDEX_GET(session, page, pindex)                          \
     do {                                                                  \
@@ -835,6 +837,7 @@ struct __wt_page {
  * are places where we manipulate the value, use an initial value well
  * outside of the special range.
  */
+//初始值
 #define WT_READGEN_NOTSET 0
 #define WT_READGEN_OLDEST 1
 #define WT_READGEN_WONT_NEED 2
@@ -1052,6 +1055,7 @@ struct __wt_ref {
 #define WT_REF_DELETED 1    /* Page is on disk, but deleted */
 #define WT_REF_LOCKED 2     /* Page locked for exclusive access */
 //新创建的leaf page就会设置为该状态  __wt_btree_new_leaf_page创建leaf page后，该leaf page对应状态为WT_REF_MEM
+//page上的数据全在内存中
 #define WT_REF_MEM 3        /* Page is in cache and valid */
 #define WT_REF_SPLIT 4      /* Parent page split (WT_REF dead) */
     //WT_REF_SET_STATE WT_REF_CAS_STATE赋值
@@ -1062,7 +1066,7 @@ struct __wt_ref {
      * or NULL if page created in-memory.
      */
     //数据对应的磁盘地址???????
-    //例如evict reconcile流程中的__wt_multi_to_ref，指向该page对应的磁盘元数据信息
+    //例如evict reconcile流程中的__wt_multi_to_ref，指向该page对应的磁盘ext元数据信息
     void *addr;
 
     /*
@@ -1348,8 +1352,9 @@ struct __wt_col {
  *  Normally, a row-store page in-memory key points to the on-page WT_CELL, but in some
  *  cases, we instantiate the key in memory, in which case the row-store page in-memory
  *  key points to a WT_IKEY structure.
- */ //__wt_row_ikey_alloc参考，ref存的真实page上最大数据key
+ */ //__wt_row_ikey_alloc参考，ref存的真实page上最小数据key
 struct __wt_ikey {
+    //key长度
     uint32_t size; /* Key length */
 
     /*
@@ -1360,6 +1365,8 @@ struct __wt_ikey {
      * re-invent short pointers).  The trade-off is 4B per K/V pair on a
      * 64-bit machine vs. a single cycle for the addition of a base pointer.
      */
+    //记录K在内存中的位置，参考__wt_row_ikey_alloc
+    //不为0则对应磁盘page数据加载到内存中page->dsk的位置
     uint32_t cell_offset;
 
 /* The key bytes immediately follow the WT_IKEY structure. */

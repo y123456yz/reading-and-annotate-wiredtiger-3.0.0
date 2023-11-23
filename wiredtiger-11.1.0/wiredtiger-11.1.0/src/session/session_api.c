@@ -2299,7 +2299,6 @@ __session_checkpoint(WT_SESSION *wt_session, const char *config)
     WT_SESSION_IMPL *session;
 
     session = (WT_SESSION_IMPL *)wt_session;
-    //yang add todo xxxxxxxxxxxx 放这里不合适，例如inmem场景这里没做checkpoint
     WT_STAT_CONN_INCR(session, txn_checkpoint);
     SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, checkpoint, __session_checkpoint, config, cfg);
 

@@ -261,7 +261,7 @@ __wt_stats_clear(void *stats_arg, int slot)
     } while (0)
 #define WT_STAT_CONN_DATA_INCR(session, fld) WT_STAT_CONN_DATA_INCRV(session, fld, 1)
 /*
- * Update per session statistics.
+ * Update per session statistics. 
  */
 #define WT_STAT_SESSION_INCRV(session, fld, value) \
     WT_STAT_INCRV_BASE(session, &(session)->stats, fld, value)
@@ -338,12 +338,16 @@ __wt_stats_clear(void *stats_arg, int slot)
 /*
  * Statistics entries for connections.
  */
-//yang add todo xxxxx    example中可以添加一个statistic的统计
-
 //对应mongodb server层的接口为WiredTigerServerStatusSection::generateSection
 //参考test/thread目录下面的t.c文件中的stats(void)函数
 //__wt_connection_stats: 统计是conn级别维度统计，是所有表级别统计之和，对应db.serverstatus().wiredtiger
 //__wt_dsrc_stats: 该统计是表级别维度的统计信息，对应db.collection.serverstatus().wiredtiger
+
+//stat_data.py中的conn_dsrc_stats: 全局及表级别都支持的配置，对应内核代码WT_STAT_CONN_DATA_INCR  WT_STAT_SESSION_INCRV
+//stat_data.py中的conn_stats: 仅全局支持的配置，对应内核代码WT_STAT_CONN_INCR WT_STAT_CONN_INCRV
+//stat_data.py中的dsrc_stats: 表级别相关统计，对应内核代码WT_STAT_DATA_SET
+//stat_data.py中的session_stats: session级别统计，对应内核代码WT_STAT_SESSION_INCR WT_STAT_SESSION_SET
+
 #define WT_CONNECTION_STATS_BASE 1000
 //__wt_connection_impl.stats为该类型, 配合WT_STAT_CONN_DATA_INCR等阅读
 struct __wt_connection_stats {
@@ -948,6 +952,11 @@ struct __wt_connection_stats {
 //参考test/thread目录下面的t.c文件中的stats(void)函数
 //__wt_connection_stats: 统计是conn级别维度统计，是所有表级别统计之和，对应db.serverstatus().wiredtiger
 //__wt_dsrc_stats: 该统计是表级别维度的统计信息，对应db.collection.serverstatus().wiredtiger
+
+//stat_data.py中的conn_dsrc_stats: 全局及表级别都支持的配置，对应内核代码WT_STAT_CONN_DATA_INCR  WT_STAT_SESSION_INCRV
+//stat_data.py中的conn_stats: 仅全局支持的配置，对应内核代码WT_STAT_CONN_INCR WT_STAT_CONN_INCRV
+//stat_data.py中的dsrc_stats: 表级别相关统计，对应内核代码WT_STAT_DATA_SET
+//stat_data.py中的session_stats: session级别统计，对应内核代码WT_STAT_SESSION_INCR WT_STAT_SESSION_SET
 #define WT_DSRC_STATS_BASE 2000
 struct __wt_dsrc_stats {
     int64_t bloom_false_positive;
@@ -1233,6 +1242,16 @@ struct __wt_join_stats {
  * Statistics entries for session.
  */
 #define WT_SESSION_STATS_BASE 4000
+//对应mongodb server层的接口为WiredTigerServerStatusSection::generateSection
+//参考test/thread目录下面的t.c文件中的stats(void)函数
+//__wt_connection_stats: 统计是conn级别维度统计，是所有表级别统计之和，对应db.serverstatus().wiredtiger
+//__wt_dsrc_stats: 该统计是表级别维度的统计信息，对应db.collection.serverstatus().wiredtiger
+
+//stat_data.py中的conn_dsrc_stats: 全局及表级别都支持的配置，对应内核代码WT_STAT_CONN_DATA_INCR  WT_STAT_SESSION_INCRV
+//stat_data.py中的conn_stats: 仅全局支持的配置，对应内核代码WT_STAT_CONN_INCR WT_STAT_CONN_INCRV
+//stat_data.py中的dsrc_stats: 表级别相关统计，对应内核代码WT_STAT_DATA_SET
+//stat_data.py中的session_stats: session级别统计，对应内核代码WT_STAT_SESSION_INCR WT_STAT_SESSION_SET
+
 //session相关的统计  __wt_session_impl.stats为该类型，参考stat.h中的WT_STAT_CONN_DECRV等
 struct __wt_session_stats {
     int64_t bytes_read;

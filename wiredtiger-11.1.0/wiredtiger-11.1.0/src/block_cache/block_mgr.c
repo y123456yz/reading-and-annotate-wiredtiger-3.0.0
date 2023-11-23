@@ -119,7 +119,7 @@ __bm_block_header(WT_BM *bm)
  * __bm_checkpoint --
  *     Write a buffer into a block, creating a checkpoint.
  */
-//__wt_blkcache_write
+//__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
 static int
 __bm_checkpoint(
   WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, WT_CKPT *ckptbase, bool data_checksum)
@@ -130,7 +130,7 @@ __bm_checkpoint(
 
     conn = S2C(session);
     block = bm->block;
-
+    
     WT_RET(__wt_block_checkpoint(session, block, buf, ckptbase, data_checksum));
 
     /*
@@ -427,6 +427,7 @@ __bm_compact_start_readonly(WT_BM *bm, WT_SESSION_IMPL *session)
  * __bm_free --
  *     Free a block of space to the underlying file.
  */
+//__wt_btree_block_free
 static int
 __bm_free(WT_BM *bm, WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size)
 {

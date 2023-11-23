@@ -249,13 +249,17 @@ __wt_block_checkpoint(
         ci->root_offset = WT_BLOCK_INVALID_OFFSET;
         ci->root_objectid = ci->root_size = ci->root_checksum = 0;
     } else
+    //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
+    //数据写入磁盘，并返回objectidp, offsetp, sizep和checksump存储到ci中
         WT_ERR(__wt_block_write_off(session, block, buf, &ci->root_objectid, &ci->root_offset,
           &ci->root_size, &ci->root_checksum, data_checksum, true, false));
 
+    printf("yang test ........__wt_block_checkpoint.............root_objectid:%d\r\n", (int)ci->root_objectid);
     /*
      * Checkpoints are potentially reading/writing/merging lots of blocks, pre-allocate structures
      * for this thread's use.
      */
+    //为session->block_manager提前分配WT_EXT and WT_SIZE structures.
     WT_ERR(__wt_block_ext_prealloc(session, 250));
 
     /* Process the checkpoint list, deleting and updating as required. */
@@ -577,6 +581,7 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
          * are checkpoints for the logical object, including files that are no longer live. Skip any
          * checkpoints that aren't local to the live object.
          */
+        printf("yang test ...........xxxxxxxxxxxxxxx...........__ckpt_process....ckpt->bpriv:%p\r\n", ckpt->bpriv);
         if (ckpt->bpriv == NULL) {
             WT_ERR(__ckpt_extlist_read(session, block, ckpt, &local));
             if (!local)
@@ -686,6 +691,8 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
         /*
          * Roll the "from" alloc and discard extent lists into the "to" checkpoint's lists.
          */
+        printf("yang test ......................__ckpt_process.....a->alloc.entries:%d, a->discard.entries:%d \r\n",
+            (int)a->alloc.entries, (int)a->discard.entries);
         if (a->alloc.entries != 0)
             WT_ERR(__wt_block_extlist_merge(session, block, &a->alloc, &b->alloc));
         if (a->discard.entries != 0)

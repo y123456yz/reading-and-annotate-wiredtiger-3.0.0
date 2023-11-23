@@ -35,13 +35,13 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage
     uint64_t start, now;
     bool no_reconcile_set, page_locked;
 
-    btree = S2BT(session);
+    btree = S2BT(session); 
     page = ref->page;
     
 
     __wt_seconds(session, &start);
 
-    __wt_verbose(session, WT_VERB_RECONCILE, "%p reconcile %s (%s%s), entries:%u", (void *)ref,
+    __wt_verbose(session, WT_VERB_RECONCILE, "ref:%p page:%p reconcile %s (%s%s), entries:%u", (void *)ref, page,
       __wt_page_type_string(page->type), LF_ISSET(WT_REC_EVICT) ? "evict" : "checkpoint",
       LF_ISSET(WT_REC_HS) ? ", history store" : "", page->entries);
 
@@ -306,7 +306,7 @@ __reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, u
     WT_ERR(__rec_write_wrapup(session, r, page));
     __rec_write_page_status(session, r);
     WT_ERR(__reconcile_post_wrapup(session, r, page, flags, page_lockedp));
-    //printf("yang test ...................__reconcile................page->entries:%u\r\n", page->entries);
+    printf("yang test ...................__reconcile................page->entries:%u\r\n", page->entries);
 
     /*
      * Root pages are special, splits have to be done, we can't put it off as the parent's problem
@@ -2233,10 +2233,12 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
      * Track the buffer with the image. (This is bad layering, but we can't write the image until
      * the wrapup code, and we don't have a code path from here to there.)
      */
+    //如果ref对应root page，并且root page只有一个chunk就可以存储，则不会走后面的__rec_write写盘逻辑，这里直接记录wrapup_checkpoint返回
     if (last_block && r->multi_next == 1 && __rec_is_checkpoint(session, r)) {
         WT_ASSERT_ALWAYS(
           session, r->supd_next == 0, "Attempting to write final block but further updates found");
 
+        //root一般在__rec_write_wrapup真正写盘
         if (compressed_image == NULL)
             r->wrapup_checkpoint = &chunk->image;
         else {
@@ -2282,6 +2284,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     /* Write the disk image and get an address. */ 
     //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
     WT_RET(__rec_write(session, compressed_image == NULL ? &chunk->image : compressed_image, addr,
+                                    //注意这里checkpoint直接赋值为false了，即使这里r带有WT_REC_CHECKPOINT
       &addr_size, &compressed_size, false, F_ISSET(r, WT_REC_CHECKPOINT),
       compressed_image != NULL));
 #ifdef HAVE_DIAGNOSTIC
@@ -2434,6 +2437,7 @@ __rec_split_discard(WT_SESSION_IMPL *session, WT_PAGE *page)
     btree = S2BT(session);
     mod = page->modify;
 
+    printf("yang test .................__rec_split_discard...............................\r\n");
     /*
      * A page that split is being reconciled for the second, or subsequent time; discard underlying
      * block space used in the last reconciliation that is not being reused for this reconciliation.
@@ -2557,10 +2561,12 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
      * replaced. Make sure it's discarded at some point, and clear the underlying modification
      * information, we're creating a new reality.
      */
-   // printf("yang test .........__rec_write_wrapup......ref->addr:%p...........mod->rec_result:%d\r\n", 
+    //printf("yang test .........__rec_write_wrapup......ref->addr:%p...........mod->rec_result:%d\r\n", 
     //    ref->addr, mod->rec_result);
+    //该page如果是第一次拆分，这里为0，如果是之前已经reconcile过，则记录的是上一次reconcile时候的rec_result值
     switch (mod->rec_result) {
-    case 0: /*
+    case 0: //第一次拆分该page
+           /*
              * The page has never been reconciled before, free the original
              * address blocks (if any).  The "if any" is for empty trees
              * created when a new tree is opened or previously deleted pages
@@ -2576,12 +2582,15 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         break;
     case WT_PM_REC_EMPTY: /* Page deleted */
         break;
+    //之前已经拆分过该page，之前一拆多
     case WT_PM_REC_MULTIBLOCK: /* Multiple blocks */
                                /*
                                 * Discard the multiple replacement blocks.
                                 */
         WT_RET(__rec_split_discard(session, page));
         break;
+
+    //之前已经拆分过该page，之前一拆一
     case WT_PM_REC_REPLACE: /* 1-for-1 page swap */
                             /*
                              * Discard the replacement leaf page's blocks.
@@ -2657,7 +2666,7 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
             r->multi->addr.addr = NULL;
             mod->mod_disk_image = r->multi->disk_image;
             r->multi->disk_image = NULL;
-        } else {
+        } else {//如果是root page，并且只有reconcile后只有一个page，则在这里写盘
             __wt_checkpoint_tree_reconcile_update(session, &r->multi->addr.ta);
             WT_RET(__rec_write(session, r->wrapup_checkpoint, NULL, NULL, NULL, true,
               F_ISSET(r, WT_REC_CHECKPOINT), r->wrapup_checkpoint_compressed));
@@ -2686,6 +2695,7 @@ split:
         //把本次reconcile的multi信息转存到mod->mod_multi中
         mod->mod_multi = r->multi;
         mod->mod_multi_entries = r->multi_next;
+        //本次拆分记过存储起来
         mod->rec_result = WT_PM_REC_MULTIBLOCK;
 
         r->multi = NULL;

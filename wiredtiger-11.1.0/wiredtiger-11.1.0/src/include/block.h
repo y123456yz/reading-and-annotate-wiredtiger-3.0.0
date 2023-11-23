@@ -48,13 +48,17 @@
  An extent list consists of a series of extents (or WT_EXT elements). Each extent uses a file offset and size to
  track a portion of the file.
  */
+//跳跃表图解参考https://www.jb51.net/article/199510.htm
 //__wt_block_ckpt的alloc avail discard为该类型
 struct __wt_extlist {
+    //赋值见__wt_block_extlist_init
     char *name; /* Name */
 
-    //跳表中所有elem数据字节数总和
+    //跳表中所有elem数据字节数总和，参考__block_append  __block_ext_insert中增加extlist中所有ext保护的数据总数，
+    //__block_off_remove减少extlist删除的ext数据长度
     uint64_t bytes;   /* Byte count */
     //__block_off_insert->__block_ext_insert和__block_append中分配ext空间向跳跃表中添加elem,计数自增
+    //也就是跳跃表中ext的个数
     uint32_t entries; /* Entry count */
 
     //赋值参考__wt_block_extlist_write
@@ -65,8 +69,10 @@ struct __wt_extlist {
 
     bool track_size; /* Maintain per-size skiplist */
 
+    //__block_append
     WT_EXT *last; /* Cached last element */
 
+    //__block_ext_insert添加ext到跳表中
     WT_EXT *off[WT_SKIP_MAXDEPTH]; /* Size/offset skiplists */
     WT_SIZE *sz[WT_SKIP_MAXDEPTH];
 };
@@ -76,9 +82,10 @@ struct __wt_extlist {
  *	Encapsulation of an extent, either allocated or freed within the
  * checkpoint.
  */  //__wt_extlist.off成员为该类型
-//__block_ext_prealloc中分配空间
+//__block_ext_prealloc中分配空间, 成员赋值参考__block_append
+//管理reconcile拆分后的多个chunk磁盘数据，可以由一个ext管理，也可能你由多个ext管理，参考__block_append
 struct __wt_ext {
-    //该ext在磁盘中的其实位置
+    //该ext在磁盘中的起始位置
     wt_off_t off;  /* Extent's file offset */
     //该ext的数据长度
     wt_off_t size; /* Extent's Size */
@@ -148,10 +155,12 @@ struct __wt_size {
  */
 #define WT_BLOCK_CHECKPOINT_BUFFER (1 + 14 * WT_INTPACK64_MAXSIZE)
 //官方文档参考https://github.com/wiredtiger/wiredtiger/wiki/Block-Manager-Overview#source-files-in-block-manager
-//__wt_block.live为该类型
+//__wt_block.live为该类型 
 struct __wt_block_ckpt {
     uint8_t version; /* Version */
 
+    //__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+    //如果是因为checkpoint进行reconcile，则写入磁盘后的元数据记录到这几个变量中
     uint32_t root_objectid;
     wt_off_t root_offset; /* The root */
     uint32_t root_checksum, root_size;
@@ -171,6 +180,7 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     wt_off_t file_size; /* Checkpoint file size */
     uint64_t ckpt_size; /* Checkpoint byte count */
 
+    //分配空间__ckpt_process
     WT_EXTLIST ckpt_avail; /* Checkpoint free'd extents */
 
     /*
@@ -194,7 +204,7 @@ struct __wt_bm {
     int (*addr_string)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, const uint8_t *, size_t);
     //__bm_block_header
     u_int (*block_header)(WT_BM *);
-    //__bm_checkpoint
+    //__wt_blkcache_write中执行，__bm_checkpoint  
     int (*checkpoint)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, WT_CKPT *, bool);
     int (*checkpoint_last)(WT_BM *, WT_SESSION_IMPL *, char **, char **, WT_ITEM *);
     //__bm_checkpoint_load
@@ -212,6 +222,7 @@ struct __wt_bm {
     void (*compact_progress)(WT_BM *, WT_SESSION_IMPL *, u_int *);
     int (*compact_start)(WT_BM *, WT_SESSION_IMPL *);
     int (*corrupt)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
+    //__bm_free
     int (*free)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
     bool (*is_mapped)(WT_BM *, WT_SESSION_IMPL *);
     int (*map_discard)(WT_BM *, WT_SESSION_IMPL *, void *, size_t);
@@ -250,9 +261,10 @@ struct __wt_bm {
  * WT_BLOCK --
  *	Block manager handle, references a single file.
  */
-//分配空间和赋值见__wt_block_open，__wt_bm.block为该类型
+//分配空间和赋值见__wt_block_open， btree->bm  __wt_bm.block为该类型
 struct __wt_block {
     const char *name;  /* Name */
+    //__wt_block_open中赋值
     uint32_t objectid; /* Object id */
     uint32_t ref;      /* References */
 
@@ -266,7 +278,7 @@ struct __wt_block {
     u_int related_next;       /* Next open slot */
 
     WT_FH *fh;            /* Backing file handle */
-    //代表当前已经写入到文件末尾位置，也就是文件大小
+    //代表当前已经写入到文件末尾位置，也就是文件大小, 没写入一块数据就自增，参考__block_extend
     wt_off_t size;        /* File size */
     //file_extend配置，默认为0，所以extend_size也就是是当前block size
     wt_off_t extend_size; /* File extended size */
@@ -278,7 +290,7 @@ struct __wt_block {
 
     /* Configuration information, set when the file is opened. */
     //https://source.wiredtiger.com/develop/arch-block.html
-    //默认为best, block_allocation配置
+    //默认为best, block_allocation配置，也就是默认为0
     uint32_t allocfirst; /* Allocation is first-fit */
     //allocation_size配置，默认4K
     //getconf PAGESIZE获取操作系统page
@@ -296,6 +308,7 @@ struct __wt_block {
      * by one WT_BM handle.
      */
     WT_SPINLOCK live_lock; /* Live checkpoint lock */
+    //WT_BLOCK->live
     WT_BLOCK_CKPT live;    /* Live checkpoint */  //__wt_block.live
     bool live_open;        /* Live system is open */
     enum {                 /* Live checkpoint status */

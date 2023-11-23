@@ -306,7 +306,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
         WT_RET(__wt_vpack_uint(&file_sizep, 0, (uint64_t)block->size));
 
     /* Zero out any unused bytes at the end of the buffer. */
-    //因为1024字节对齐填充的部分先全部置为0
+    //因为1024字节对齐填充的部分先全部置为0，例如buf mem大小1000字节，但是我们进行了1024字节对齐，多了24字节，这里需要用0填充
     memset((uint8_t *)buf->mem + buf->size, 0, align_size - buf->size);
 
     /*
@@ -382,6 +382,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
     WT_STAT_CONN_INCR(session, block_write);
     WT_STAT_CONN_INCRV(session, block_byte_write, align_size);
     if (checkpoint_io)
+        //只统计因为checkpoint产生的写操作
         WT_STAT_CONN_INCRV(session, block_byte_write_checkpoint, align_size);
 
     __wt_verbose_debug2(session, WT_VERB_WRITE,

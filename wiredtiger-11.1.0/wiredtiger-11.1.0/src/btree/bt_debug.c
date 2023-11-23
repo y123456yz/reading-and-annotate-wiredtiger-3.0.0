@@ -1186,7 +1186,7 @@ __debug_page_metadata(WT_DBG *ds, WT_REF *ref)
     if (split_gen != 0)
         WT_RET(ds->f(ds, ", split-gen=%" PRIu64, split_gen));
     if (mod != NULL)
-        //yang add to do  xxxxxxxxxxx 这里可以转换为字符串
+        //yang add todo  xxxxxxxxxxx 这里可以转换为字符串
         WT_RET(ds->f(ds, ", page-state=%" PRIu32, mod->page_state));
     WT_RET(ds->f(ds, ", memory-size %" WT_SIZET_FMT, page->memory_footprint));
     return (ds->f(ds, "\n"));
@@ -1410,7 +1410,7 @@ __debug_page_row_leaf(WT_DBG *ds, WT_PAGE *page)
 
     session = ds->session;
     unpack = &_unpack;
-    //return (0);//yang add test
+   // return (0);//yang add test
 
     /*
      * Dump any K/V pairs inserted into the page before the first from-disk key on the page.

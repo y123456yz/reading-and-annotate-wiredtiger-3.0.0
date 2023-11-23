@@ -235,6 +235,8 @@ __split_prev_race(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp
 /*
  * __tree_walk_internal --
  *     Move to the next/previous page in the tree.
+ 遍历refp下面所有的page，如果ref对应为NULL，则从root遍历如果skip_func不会NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
+ 如果ref对应为NULL，则从root遍历
  */
 static inline int
 __tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, uint64_t *walkcntp,
@@ -278,6 +280,7 @@ __tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, uint64_t *walkcntp
     if (btree->type == BTREE_COL_FIX)
         LF_CLR(WT_READ_TRUNCATE);
 
+    //也就是决定是从index[]数组的前序遍历index[0]-->index[max]，还是index[]数组的反向遍历index[max]-->index[0]
     prev = LF_ISSET(WT_READ_PREV) ? 1 : 0;
 
     /*
@@ -334,9 +337,11 @@ restart:
             couple = NULL;
         }
 
+        //如果入参refp对应ref为NULL
         if ((ref = ref_orig) == NULL) {
             ref = &btree->root;
             WT_INTL_INDEX_GET(session, ref->page, pindex);
+            //也就是决定是从index[]数组的前序遍历index[0]-->index[max]，还是index[]数组的反向遍历index[max]-->index[0]
             slot = prev ? pindex->entries - 1 : 0;
             goto descend;
         }
@@ -414,6 +419,7 @@ restart:
             ++*walkcntp;
 
         for (;;) {
+//遍历该page index[]下的所有子tree 
 descend:
             /*
              * Get a reference, setting the reference hint if it's wrong (used when we continue the
@@ -430,7 +436,7 @@ descend:
             current_state = ref->state;
             if (current_state != WT_REF_DELETED && !LF_ISSET(WT_READ_TRUNCATE))
                 empty_internal = false;
-
+            //只读内存中的page,如果该page不在内存中而是在磁盘，则直接break
             if (LF_ISSET(WT_READ_CACHE)) {
                 /*
                  * Only look at unlocked pages in memory.
@@ -450,11 +456,13 @@ descend:
                 /*
                  * Try to skip deleted pages visible to us.
                  */
+                //如果该page拥有delete标识，则删除该page
                 if (__wt_delete_page_skip(session, ref, LF_ISSET(WT_READ_VISIBLE_ALL)))
                     break;
             }
 
             /* See if our caller wants to skip this page. */
+            //判断skip_func对该ref page判定是否为skip
             if (skip_func != NULL) {
                 WT_ERR(skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip));
                 if (skip)
@@ -554,6 +562,7 @@ __wt_tree_walk_custom_skip(WT_SESSION_IMPL *session, WT_REF **refp,
   int (*skip_func)(WT_SESSION_IMPL *, WT_REF *, void *, bool, bool *), void *func_cookie,
   uint32_t flags)
 {
+    //遍历refp下面所有的page，如果ref对应为NULL，则从root遍历如果skip_func不会NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
     return (__tree_walk_internal(session, refp, NULL, skip_func, func_cookie, flags));
 }
 

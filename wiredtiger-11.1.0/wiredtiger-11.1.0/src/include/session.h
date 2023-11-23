@@ -196,7 +196,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     WT_TXN_ISOLATION isolation;
     WT_TXN *txn; /* Transaction state */
 
-    //__wt_block_ext_prealloc中初始化和赋值
+    //__wt_block_ext_prealloc中初始化和赋值，管理WT_EXT WT_SIZE
     //对应WT_BLOCK_MGR_SESSION结构  参考官方文档https://source.wiredtiger.com/develop/arch-block.html
     void *block_manager; /* Block-manager support */
     //__block_manager_session_cleanup

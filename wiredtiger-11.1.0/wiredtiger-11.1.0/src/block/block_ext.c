@@ -133,6 +133,7 @@ __block_size_srch(WT_SIZE **head, wt_off_t size, WT_SIZE ***stack)
  * __block_off_srch_pair --
  *     Search a by-offset skiplist for before/after records of the specified offset.
  */
+//判断off位置是否在el对应ext跳跃表中
 static inline void
 __block_off_srch_pair(WT_EXTLIST *el, wt_off_t off, WT_EXT **beforep, WT_EXT **afterp)
 {
@@ -169,6 +170,7 @@ __block_off_srch_pair(WT_EXTLIST *el, wt_off_t off, WT_EXT **beforep, WT_EXT **a
  * __block_ext_insert --
  *     Insert an extent into an extent list.
  */
+//ext按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
 static int
 __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
 {
@@ -229,6 +231,7 @@ __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
  * __block_off_insert --
  *     Insert a file range into an extent list.
  */
+//分配一个ext，并按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
 static int
 __block_off_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
 {
@@ -238,6 +241,7 @@ __block_off_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, wt_off_t off, wt_of
     ext->off = off;
     ext->size = size;
 
+    //ext按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
     return (__block_ext_insert(session, el, ext));
 }
 
@@ -246,6 +250,7 @@ __block_off_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, wt_off_t off, wt_of
  * __block_off_match --
  *     Return if any part of a specified range appears on a specified extent list.
  */
+//判断[off,off+size]是否在el这个跳表对应磁盘空间中
 static bool
 __block_off_match(WT_EXTLIST *el, wt_off_t off, wt_off_t size)
 {
@@ -266,6 +271,7 @@ __block_off_match(WT_EXTLIST *el, wt_off_t off, wt_off_t size)
  * __wt_block_misplaced --
  *     Complain if a block appears on the available or discard lists.
  */
+//判断[off,off+size]是否在discard或者这个跳表对应磁盘空间中
 int
 __wt_block_misplaced(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *list, wt_off_t offset,
   uint32_t size, bool live, const char *func, int line)
@@ -294,8 +300,10 @@ __wt_block_misplaced(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *list
      * attempt to free a block from a checkpoint handle has already failed.)
      */
     __wt_spin_lock(session, &block->live_lock);
+    //判断[off,off+size]是否在avail这个跳表对应磁盘空间中
     if (__block_off_match(&block->live.avail, offset, size))
         name = "available";
+    //判断[off,off+size]是否在discard这个跳表对应磁盘空间中
     else if (live && __block_off_match(&block->live.discard, offset, size))
         name = "discard";
     __wt_spin_unlock(session, &block->live_lock);
@@ -487,6 +495,8 @@ __block_extend(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off
 /*
  * __wt_block_alloc --
  *     Alloc a chunk of space from the underlying file.
+ offp实际上说就是该长度size数据在磁盘中的位置，也就是WT_BLOCK.size成员，代表追加的文件末尾位置
+ size为reconcile后的chunk需要写入磁盘的数据长度
  */
 int
 __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_off_t size)
@@ -517,6 +527,9 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
      *
      * If we don't have anything big enough, extend the file.
      */
+    printf("yang test .................__block_append....block->live.avail.bytes:%d............ext entries:%d\r\n", 
+        (int)block->live.avail.bytes, (int)block->live.alloc.entries);
+    //block->live.avail.bytes也就是block_reuse_bytes file bytes available for reuse
     if (block->live.avail.bytes < (uint64_t)size)
         goto append;
     if (block->allocfirst > 0) {
@@ -526,6 +539,8 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
     } else {
         __block_size_srch(block->live.avail.sz, size, sstack);
         if ((szp = *sstack[0]) == NULL) {//block->live.avail.sz跳表中没有找到一个>=size长度的成员WT_SIZE
+        //如果block->live.avail上面一直找不到size这个ext，则后面的__block_append只会用一个ext来管理所有的reconcile的多个chunk数据
+        //参考debug_wt_block_alloc1.c
 append:
             //block->size增加size长度，同时offp记录修改前block->size的长度,
             //也就是向block对应磁盘空间往后移动size字节，在外层通过offp返回这部分空间的其实地址，offp开始的size字节空间就可以被新的WT_EXT使用
@@ -539,6 +554,8 @@ append:
         ext = szp->off[0];
     }
 
+    printf("yang test .................__wt_block_alloc......2222222.............\r\n");
+    //参考debug_wt_block_alloc2.c会走这里
     /* Remove the record, and set the returned offset. */
     WT_RET(__block_off_remove(session, block, &block->live.avail, ext->off, &ext));
     *offp = ext->off;
@@ -553,6 +570,7 @@ append:
 
         ext->off += size;
         ext->size -= size;
+        //ext按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
         WT_RET(__block_ext_insert(session, &block->live.avail, ext));
     } else {
         __wt_verbose(session, WT_VERB_BLOCK, "allocate range %" PRIdMAX "-%" PRIdMAX,
@@ -580,6 +598,7 @@ __wt_block_free(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *addr, 
     WT_STAT_DATA_INCR(session, block_free);
 
     /* Crack the cookie. */
+    //获取[offset, offset+size]这块磁盘空间对应的元数据
     WT_RET(__wt_block_addr_unpack(
       session, block, addr, addr_size, &objectid, &offset, &size, &checksum));
 
@@ -595,10 +614,13 @@ __wt_block_free(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *addr, 
     if (objectid != block->objectid)
         return (0);
 
-    __wt_verbose(session, WT_VERB_BLOCK, "free %" PRIu32 ": %" PRIdMAX "/%" PRIdMAX, objectid,
+    //yang add todo xxxxxxxxxxxxxxx
+    //释放[offset, offset+size]这部分磁盘空间，实际上不是真正的释放，而是
+    __wt_verbose(session, WT_VERB_BLOCK, "block free %" PRIu32 ": %" PRIdMAX "/%" PRIdMAX, objectid,
       (intmax_t)offset, (intmax_t)size);
 
 #ifdef HAVE_DIAGNOSTIC
+    //判断[off,off+size]是否在discard或者这个跳表对应磁盘空间中
     WT_RET(__wt_block_misplaced(
       session, block, "free", offset, size, true, __PRETTY_FUNCTION__, __LINE__));
 #endif
@@ -637,11 +659,17 @@ __wt_block_off_free(
      * modification). If this extent is referenced in a previous checkpoint, merge into the discard
      * list.
      */
+    printf("yang test ...1....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
+        , block->live.avail.entries, block->live.discard.entries);
     if ((ret = __wt_block_off_remove_overlap(session, block, &block->live.alloc, offset, size)) ==
-      0)
+      0) {
+        printf("yang test ...2....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
+            , block->live.avail.entries, block->live.discard.entries);
         ret = __block_merge(session, block, &block->live.avail, offset, size);
-    else if (ret == WT_NOTFOUND)
+    } else if (ret == WT_NOTFOUND)
         ret = __block_merge(session, block, &block->live.discard, offset, size);
+    printf("yang test ...3....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
+        , block->live.avail.entries, block->live.discard.entries);
     return (ret);
 }
 
@@ -928,7 +956,7 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *
  * __block_append --
  *     Append a new entry to the allocation list.
  */
-//获取
+//获取已有的一个ext或者新建一个ext来管理reconcile等拆分后需要写入磁盘的多个chunk数据
 static int
 __block_append(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -948,6 +976,7 @@ __block_append(
      * object in the skiplist, check for a simple extension, and otherwise append a new structure.
      */
     //el->last有指向跳跃表的最后一个ext, 并且最后的这个ext末尾和off刚好相等，也就是可以直接追加数据
+    //也就是可以让一次reconcile生成的多个chunk数据通过一个ext管理
     if ((ext = el->last) != NULL && ext->off + ext->size == off)
         ext->size += size;
     else {
@@ -971,6 +1000,7 @@ __block_append(
     }
     el->bytes += (uint64_t)size;
 
+   // printf("yang test .................__block_append................ext entries:%d\r\n", (int)el->entries);
     return (0);
 }
 
@@ -998,6 +1028,7 @@ __wt_block_insert_ext(
  * __block_merge --
  *     Insert an extent into an extent list, merging if possible (internal version).
  */
+//添加一个
 static int
 __block_merge(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -1008,6 +1039,7 @@ __block_merge(
      * Retrieve the records preceding/following the offset. If the records are contiguous with the
      * free'd offset, combine records.
      */
+    //判断off位置是否在el对应ext跳跃表中
     __block_off_srch_pair(el, off, &before, &after);
     if (before != NULL) {
         if (before->off + before->size > off)
@@ -1030,6 +1062,7 @@ __block_merge(
         if (off + size != after->off)
             after = NULL;
     }
+    //也就是off位置不在el跳跃表中，在alloc一个ext添加到el跳跃表中
     if (before == NULL && after == NULL) {
         __wt_verbose_debug2(session, WT_VERB_BLOCK, "%s: insert range %" PRIdMAX "-%" PRIdMAX,
           el->name, (intmax_t)off, (intmax_t)(off + size));
@@ -1067,6 +1100,7 @@ __block_merge(
 
         ext->size += size;
     }
+    //ext按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
     return (__block_ext_insert(session, el, ext));
 }
 

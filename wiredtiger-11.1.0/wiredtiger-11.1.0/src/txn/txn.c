@@ -2395,7 +2395,7 @@ __wt_txn_activity_drain(WT_SESSION_IMPL *session)
  * __wt_txn_global_shutdown --
  *     Shut down the global transaction state.
  */
-//__conn_close时候，也就是节点shutdown，需要做一次checkpoint
+//__conn_close时候，也就是节点shutdown，获取一个close_ckpt内部session, 然后做checkpoint, 
 int
 __wt_txn_global_shutdown(WT_SESSION_IMPL *session, const char **cfg)
 {
@@ -2437,6 +2437,7 @@ __wt_txn_global_shutdown(WT_SESSION_IMPL *session, const char **cfg)
         }
 
         s = NULL;
+        //获取一个close_ckpt内部session, 然后__wt_txn_checkpoint做checkpoint, 
         WT_TRET(__wt_open_internal_session(conn, "close_ckpt", true, 0, 0, &s));
         if (s != NULL) {
             const char *checkpoint_cfg[] = {

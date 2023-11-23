@@ -553,6 +553,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
         for (;;) {
             //释放入参中的prev page， 把walk赋值给prev返回
             WT_ERR(__sync_dup_walk(session, walk, flags, &prev));
+            //遍历refp下面所有的page，如果ref对应为NULL，则从root遍历如果skip_func不会NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
             WT_ERR(__wt_tree_walk_custom_skip(session, &walk, __sync_page_skip, NULL, flags));
 
             if (walk == NULL)
@@ -620,6 +621,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
              * Once the transaction has given up it's snapshot it is no longer safe to reconcile
              * pages. That happens prior to the final metadata checkpoint.
              */
+            printf("yang test ..............__wt_sync_file......read_gen:%d\r\n", (int)page->read_gen);
             if (F_ISSET(walk, WT_REF_FLAG_LEAF) &&
               (page->read_gen == WT_READGEN_WONT_NEED ||
                 FLD_ISSET(conn->timing_stress_flags, WT_TIMING_STRESS_CHECKPOINT_EVICT_PAGE)) &&

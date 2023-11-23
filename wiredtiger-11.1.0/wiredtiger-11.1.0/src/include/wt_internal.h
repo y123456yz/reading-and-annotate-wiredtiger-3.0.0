@@ -79,7 +79,7 @@ struct __wt_blkincr;
 typedef struct __wt_blkincr WT_BLKINCR;
 
 struct __wt_block;  
-//分配空间和赋值见__wt_block_open，__wt_bm.block为该类型
+//分配空间和赋值见__wt_block_open，btree->bm __wt_bm.block为该类型
 typedef struct __wt_block WT_BLOCK;
 struct __wt_block_ckpt;
 //__wt_block.live为该类型
