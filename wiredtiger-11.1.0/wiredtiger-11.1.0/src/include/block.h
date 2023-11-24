@@ -58,7 +58,7 @@ struct __wt_extlist {
     //__block_off_remove减少extlist删除的ext数据长度
     uint64_t bytes;   /* Byte count */
     //__block_off_insert->__block_ext_insert和__block_append中分配ext空间向跳跃表中添加elem,计数自增
-    //也就是跳跃表中ext的个数
+    //也就是跳跃表中ext的个数,也就是off跳表中的ext个数
     uint32_t entries; /* Entry count */
 
     //赋值参考__wt_block_extlist_write
@@ -67,13 +67,18 @@ struct __wt_extlist {
     uint32_t checksum; /* Written extent checksum */
     uint32_t size;     /* Written extent size */
 
+    //决定是否需要维护下面的sz跳跃表
+    //WT_BLOCK_CKPT.avail或者WT_BLOCK_CKPT.ckpt_avail才会在__wt_block_extlist_init中设置el->track_size为true
     bool track_size; /* Maintain per-size skiplist */
 
     //__block_append
     WT_EXT *last; /* Cached last element */
 
-    //__block_ext_insert添加ext到跳表中
+    //__block_ext_insert添加ext到跳表中 参考__block_ext_insert __block_off_remove
     WT_EXT *off[WT_SKIP_MAXDEPTH]; /* Size/offset skiplists */
+    //只有在track_size为true的时候才生效__block_ext_insert
+    //注意WT_SIZE本身内部还包含两个跳跃表，一个跳表存储sz，一个跳表存储相同sz下面拥有的WT_EXT off
+    //使用两个跳表的优势是，先找size跳表，在找off跳表会更快, 参考__block_ext_insert __block_off_remove
     WT_SIZE *sz[WT_SKIP_MAXDEPTH];
 };
 
@@ -97,18 +102,24 @@ struct __wt_ext {
      * entries are the address skiplist elements, the second depth array entries are the size
      * skiplist.
      */
+    //注意这里是一个动态的数组
+    //这里数组大小不为WT_SKIP_MAXDEPTH的原因是，这里是一个两维的跳表，一个对应size  一个对应off
+    //参考__block_ext_insert
+    //next数组大小实际上是ext->depth*2，next[0-ext->depth]这部分skip depth对应size跳跃表，把所有__wt_size串起来
+    //  next[ext->depth, ext->depth*2]这部分skip depth对应Off跳跃表，代表拥有相同size但是off不相同的所有ext通过这里串起来
     WT_EXT *next[0]; /* Offset, size skiplists */
 };
 
 /*
  * WT_SIZE --
  *	Encapsulation of a block size skiplist entry.
- */ //__wt_extlist.sz成员为该类型
+ */ //__wt_extlist.sz成员为该类型, 参考__block_ext_insert
 struct __wt_size {
     wt_off_t size; /* Size */
 
     uint8_t depth; /* Skip list depth */
 
+    //链接相同size，但是off起始地址不同的ext对应的跳表，使用两个跳表的优势是，先找size跳表，在找off跳表会更快, 参考__block_ext_insert
     WT_EXT *off[WT_SKIP_MAXDEPTH]; /* Per-size offset skiplist */
 
     /*
@@ -116,6 +127,7 @@ struct __wt_size {
      * cached WT_SIZE structure as the head of a list, and we don't know the related WT_EXT
      * structure's depth.
      */
+    //链接不同__wt_size的跳表
     WT_SIZE *next[WT_SKIP_MAXDEPTH]; /* Size skiplist */
 };
 

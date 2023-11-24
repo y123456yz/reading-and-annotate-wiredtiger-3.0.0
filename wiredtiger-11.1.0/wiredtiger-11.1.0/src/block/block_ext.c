@@ -60,10 +60,12 @@ __block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
  *     Search a by-offset skiplist (either the primary by-offset list, or the by-offset list
  *     referenced by a size entry), for the specified offset.
  */
+//skip_off为true代表从__wt_extlist->sz下面的off跳跃表查找，head代表__wt_extlist->sz.off
+//skip_off为false代表从__wt_extlist->off跳跃表查找，head代表__wt_extlist->off
 static inline void
-__block_off_srch(WT_EXT **head, wt_off_t off, WT_EXT ***stack, bool skip_off)
+__block_off_srch(WT_EXT **head, wt_off_t off, WT_EXT ***stack, bool skip_off, WT_EXT **penultimate_ext)
 {
-    WT_EXT **extp;
+    WT_EXT **extp, *ext_tmp;
     int i;
 
     /*
@@ -76,11 +78,20 @@ __block_off_srch(WT_EXT **head, wt_off_t off, WT_EXT ***stack, bool skip_off)
      * the skip_off flag is set, offset the skiplist array by the depth specified in this particular
      * structure.
      */
-    for (i = WT_SKIP_MAXDEPTH - 1, extp = &head[i]; i >= 0;)
-        if (*extp != NULL && (*extp)->off < off)
+    ext_tmp = NULL;
+    for (i = WT_SKIP_MAXDEPTH - 1, extp = &head[i]; i >= 0;) {
+        if (*extp != NULL && (*extp)->off < off) {
+            ext_tmp = *extp;
+           // printf("yang test ....__block_off_srch.......... xxxxxxxxxxxxxxxxxx [%d, %d] \r\n",
+            //    (int)ext_tmp->off, (int)ext_tmp->size);
             extp = &(*extp)->next[i + (skip_off ? (*extp)->depth : 0)];
-        else
+        } else {
             stack[i--] = extp--;
+        }
+    }
+
+    if (penultimate_ext != NULL)
+        *penultimate_ext = ext_tmp;
 }
 
 /*
@@ -102,14 +113,15 @@ __block_first_srch(WT_EXT **head, wt_off_t size, WT_EXT ***stack)
         return (false);
 
     /* Build a stack for the offset we want. */
-    __block_off_srch(head, ext->off, stack, false);
+    __block_off_srch(head, ext->off, stack, false, NULL);
     return (true);
 }
 
 /*
  * __block_size_srch --
  *     Search the by-size skiplist for the specified size.
- */ //head跳表中查找第一个>=size长度的成员WT_SIZE
+ 参考https://www.jb51.net/article/199510.htm图形化理解
+ */ //head跳表中查找第一个>=size长度的成员WT_SIZE，stack实际上就是记录查找的每一层的路径节点
 static inline void
 __block_size_srch(WT_SIZE **head, wt_off_t size, WT_SIZE ***stack)
 {
@@ -169,8 +181,12 @@ __block_off_srch_pair(WT_EXTLIST *el, wt_off_t off, WT_EXT **beforep, WT_EXT **a
 /*
  * __block_ext_insert --
  *     Insert an extent into an extent list.
+  注意__block_ext_insert和__block_append的区别:
+  1. __block_ext_insert:ext会加入到el->size跳表中
+  2. __block_append: ext不会加入el->size跳表中
  */
-//ext按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
+//ext按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表，
+//ext除了添加到el->sz跳表的size相同的el->sz.off中，还好添加到el->off跳表中
 static int
 __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
 {
@@ -182,10 +198,13 @@ __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
      * If we are inserting a new size onto the size skiplist, we'll need a new WT_SIZE structure for
      * that skiplist.
      */
+    //如果track_size为true, 则创建WT_SIZE添加添加到el->sz跳表中
     if (el->track_size) {
+        //size跳表中查找第一个>=size长度的成员WT_SIZE，stack实际上就是记录查找的每一层的路径节点
         __block_size_srch(el->sz, ext->size, sstack);
         szp = *sstack[0];
         if (szp == NULL || szp->size != ext->size) {
+            //这里是ext添加到size跳表的核心逻辑
             WT_RET(__wt_block_size_alloc(session, &szp));
             szp->size = ext->size;
             szp->depth = ext->depth;
@@ -198,8 +217,14 @@ __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
         /*
          * Insert the new WT_EXT structure into the size element's offset skiplist.
          */
-        __block_off_srch(szp->off, ext->off, astack, true);
+        //注意: 这里继续在上面找到的szp对应off跳表中查找和插入，这样做的目的应该是每个ext由唯一的off，但是可能多个ext的size相同
+        //所以先确定size，然后在确定off
+        
+        //off跳表中查找第一个>=size长度的成员WT_SIZE，stack实际上就是记录查找的每一层的路径节点
+        __block_off_srch(szp->off, ext->off, astack, true, NULL);
         for (i = 0; i < ext->depth; ++i) {
+            //next数组大小实际上是ext->depth*2，next[0-ext->depth]这部分skip depth对应size跳跃表，把所有__wt_size串起来
+            //  next[ext->depth, ext->depth*2]这部分skip depth对应Off跳跃表，代表拥有相同size但是off不相同的所有ext通过这里串起来
             ext->next[i + ext->depth] = *astack[i];
             *astack[i] = ext;
         }
@@ -210,8 +235,9 @@ __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
             ext->next[i + ext->depth] = NULL;
 #endif
 
+    //ext添加到el->off跳表中
     /* Insert the new WT_EXT structure into the offset skiplist. */
-    __block_off_srch(el->off, ext->off, astack, false);
+    __block_off_srch(el->off, ext->off, astack, false, NULL);
     for (i = 0; i < ext->depth; ++i) {
         ext->next[i] = *astack[i];
         *astack[i] = ext;
@@ -221,15 +247,18 @@ __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
     el->bytes += (uint64_t)ext->size;
 
     /* Update the cached end-of-list. */
+    //说明这是el跳表中第一个elem
     if (ext->next[0] == NULL)
         el->last = ext;
 
+    //从上面的分析可以看出ext除了添加到el->sz跳表的size相同的el->sz.off中，还好添加到el->off跳表中
     return (0);
 }
 
 /*
  * __block_off_insert --
- *     Insert a file range into an extent list.
+ *     Insert a file range into an extent list.  
+ 注意__block_ext_insert和__block_append的区别
  */
 //分配一个ext，并按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
 static int
@@ -319,16 +348,17 @@ __wt_block_misplaced(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *list
  * __block_off_remove --
  *     Remove a record from an extent list.
  */
+//先从el->off中清除off对应的ext, 在从el->sz中清除对应的ext(包括sz跳跃表的，也包括sz.szp跳跃表的)
 static int
 __block_off_remove(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, WT_EXT **extp)
 {
-    WT_EXT *ext, **astack[WT_SKIP_MAXDEPTH];
+    WT_EXT *ext, *penultimate_ext, **astack[WT_SKIP_MAXDEPTH];
     WT_SIZE *szp, **sstack[WT_SKIP_MAXDEPTH];
     u_int i;
 
     /* Find and remove the record from the by-offset skiplist. */
-    __block_off_srch(el->off, off, astack, false);
+    __block_off_srch(el->off, off, astack, false, &penultimate_ext);
     ext = *astack[0];
     if (ext == NULL || ext->off != off)
         goto corrupt;
@@ -344,7 +374,7 @@ __block_off_remove(
         szp = *sstack[0];
         if (szp == NULL || szp->size != ext->size)
             WT_RET_PANIC(session, EINVAL, "extent not found in by-size list during remove");
-        __block_off_srch(szp->off, off, astack, true);
+        __block_off_srch(szp->off, off, astack, true, NULL);
         ext = *astack[0];
         if (ext == NULL || ext->off != off)
             goto corrupt;
@@ -376,9 +406,15 @@ __block_off_remove(
         *extp = ext;
 
     /* Update the cached end-of-list. */
-    if (el->last == ext)
-        el->last = NULL;
-
+    if (el->last == ext) {
+        //el->last = NULL;
+        
+        if (penultimate_ext == NULL) {
+            el->last = NULL;
+        } else {
+            el->last = penultimate_ext;
+        }
+    }
     return (0);
 
 corrupt:
@@ -389,6 +425,9 @@ corrupt:
 /*
  * __wt_block_off_remove_overlap --
  *     Remove a range from an extent list, where the range may be part of an overlapping entry.
+
+//例如ext=[4096, 1712128], 要删除的off:1409024, size:28672，即删除ext[4096, 1712128]磁盘范围中的[1409024,28672]
+//最终这个ext会被拆分为2个ext=a:[4096, 1404928], b:[1437696, 278528]
  */
 int
 __wt_block_off_remove_overlap(
@@ -403,7 +442,12 @@ __wt_block_off_remove_overlap(
     __block_off_srch_pair(el, off, &before, &after);
 
     /* If "before" or "after" overlaps, retrieve the overlapping entry. */
+    //[off, off+size]在befor这个ext范围中
     if (before != NULL && before->off + before->size > off) {
+        //例如ext=[4096, 1712128], 要删除的off:1409024, size:28672，即删除ext[4096, 1712128]磁盘范围中的[1409024,28672]
+        //最终这个ext会被拆分为2个ext=a:[4096, 1404928], b:[1437696, 278528]
+        printf("yang test ......__wt_block_off_remove_overlap.....befor:[%d, %d], off:%d, size:%d\r\n",
+          (int)before->off, (int)before->size, (int)off, (int)size);
         WT_RET(__block_off_remove(session, block, el, before->off, &ext));
 
         /* Calculate overlapping extents. */
@@ -411,6 +455,9 @@ __wt_block_off_remove_overlap(
         a_size = off - ext->off;
         b_off = off + size;
         b_size = ext->size - (a_size + size);
+        printf("yang test .....__wt_block_off_remove_overlap.......a:[%d, %d], b:[%d, %d]\r\n", 
+            (int)a_off,(int)a_size,(int)b_off,(int)b_size);
+    //[off, off+size]在[befor, after]多个ext空间中
     } else if (after != NULL && off + size > after->off) {
         WT_RET(__block_off_remove(session, block, el, after->off, &ext));
 
@@ -437,6 +484,7 @@ __wt_block_off_remove_overlap(
     }
     if (b_size != 0) {
         if (ext == NULL)
+            //分配一个ext，并按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
             WT_RET(__block_off_insert(session, el, b_off, b_size));
         else {
             ext->off = b_off;
@@ -537,6 +585,7 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
             goto append;
         ext = *estack[0];
     } else {
+        //head跳表中查找第一个>=size长度的成员WT_SIZE，stack实际上就是记录查找的每一层的路径节点
         __block_size_srch(block->live.avail.sz, size, sstack);
         if ((szp = *sstack[0]) == NULL) {//block->live.avail.sz跳表中没有找到一个>=size长度的成员WT_SIZE
         //如果block->live.avail上面一直找不到size这个ext，则后面的__block_append只会用一个ext来管理所有的reconcile的多个chunk数据
@@ -955,8 +1004,12 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *
 /*
  * __block_append --
  *     Append a new entry to the allocation list.
+注意__block_ext_insert和__block_append的区别:
+1. __block_ext_insert:ext会加入到el->size跳表中
+2. __block_append: ext不会加入el->size跳表中
  */
 //获取已有的一个ext或者新建一个ext来管理reconcile等拆分后需要写入磁盘的多个chunk数据
+//注意: 如果这里创建新的ext, 为什么只添加到了el->off跳表中，没有条件到el->size跳表中，原因是只有WT_BLOCK_CKPT.avail或者WT_BLOCK_CKPT.ckpt_avail才会在__wt_block_extlist_init中设置el->track_size为true
 static int
 __block_append(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -965,6 +1018,7 @@ __block_append(
     u_int i;
 
     WT_UNUSED(block);
+    //注意这里，说明不需要加入el->size跳表中
     WT_ASSERT(session, el->track_size == 0);
 
     /*
@@ -994,8 +1048,10 @@ __block_append(
                 *astack[i] = ext;
             ++el->entries;
         }
-
+        
         /* Update the cached end-of-list */
+        //注意: 如果这里创建新的ext, 为什么只添加到了el->off跳表中，没有条件到el->size跳表中，
+        //原因是只有WT_BLOCK_CKPT.avail或者WT_BLOCK_CKPT.ckpt_avail才会在__wt_block_extlist_init中设置el->track_size为true
         el->last = ext;
     }
     el->bytes += (uint64_t)size;
@@ -1448,7 +1504,7 @@ __ut_block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
 void
 __ut_block_off_srch(WT_EXT **head, wt_off_t off, WT_EXT ***stack, bool skip_off)
 {
-    __block_off_srch(head, off, stack, skip_off);
+    __block_off_srch(head, off, stack, skip_off, NULL);
 }
 
 bool

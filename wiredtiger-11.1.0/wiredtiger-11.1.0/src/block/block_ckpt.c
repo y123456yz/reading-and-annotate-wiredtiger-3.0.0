@@ -27,6 +27,7 @@ __wt_block_ckpt_init(WT_SESSION_IMPL *session, WT_BLOCK_CKPT *ci, const char *na
     WT_RET(__wt_block_extlist_init(session, &ci->avail, name, "avail", true));
     WT_RET(__wt_block_extlist_init(session, &ci->discard, name, "discard", false));
     WT_RET(__wt_block_extlist_init(session, &ci->ckpt_avail, name, "ckpt_avail", true));
+    
 
     return (0);
 }
