@@ -427,7 +427,7 @@ __bm_compact_start_readonly(WT_BM *bm, WT_SESSION_IMPL *session)
  * __bm_free --
  *     Free a block of space to the underlying file.
  */
-//__wt_btree_block_free
+//__rec_write_wrapup->__wt_btree_block_free->__bm_free
 static int
 __bm_free(WT_BM *bm, WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size)
 {
@@ -701,7 +701,7 @@ __bm_verify_end(WT_BM *bm, WT_SESSION_IMPL *session)
 /*
  * __bm_verify_start --
  *     Start a block manager verify.
- */
+ */ //__wt_verify
 static int
 __bm_verify_start(WT_BM *bm, WT_SESSION_IMPL *session, WT_CKPT *ckptbase, const char *cfg[])
 {

@@ -16,7 +16,9 @@
 #endif
 
 /* Cache types. */
-#define BLKCACHE_UNCONFIGURED 0
+
+////block_cache.enabled默认值false，block_cache.enabled使能true后block_cache的其他配置才有效
+#define BLKCACHE_UNCONFIGURED 0 //默认type为该值，表示block_cache没启用
 #define BLKCACHE_DRAM 1
 #define BLKCACHE_NVRAM 2
 
@@ -73,6 +75,8 @@ struct __wt_blkcache_item {
 "full_target=95,hashsize=0,max_percent_overhead=10,nvram_path=,"
 "percent_file_in_dram=50,size=0,system_ram=0,type=),"
  */ //默认没启用，参考__wt_blkcache_setup
+
+//block_cache.enabled默认值false，block_cache.enabled使能true后block_cache的其他配置才有效
 struct __wt_blkcache {
     /* Locked: Block manager cache. Locks are per-bucket. */
     TAILQ_HEAD(__wt_blkcache_hash, __wt_blkcache_item) * hash;
@@ -109,6 +113,7 @@ struct __wt_blkcache {
     u_int percent_file_in_os_cache;
 
     u_int hash_size;     /* Number of block cache hash buckets */
+    //默认type为该值BLKCACHE_UNCONFIGURED，表示block_cache没启用
     u_int type;          /* Type of block cache (NVRAM or DRAM) */
     uint64_t bytes_used; /* Bytes in the block cache */
     //参考http://source.wiredtiger.com/mongodb-5.0/struct_w_t___c_o_n_n_e_c_t_i_o_n.html

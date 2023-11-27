@@ -148,17 +148,22 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
 /*
  * WT_ADDR --
  *	An in-memory structure to hold a block's location.
- */ //__wt_multi.addr为该类型
+ */ 
+//保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
+//赋值见__rec_split_write
+//__wt_multi.addr为该类型
 struct __wt_addr {
     WT_TIME_AGGREGATE ta;
 
     //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
     uint8_t *addr; /* Block-manager's cookie */
+    //__wt_multi_to_ref
     uint8_t size;  /* Block-manager's cookie length */
 
 #define WT_ADDR_INT 1     /* Internal page */
 #define WT_ADDR_LEAF 2    /* Leaf page */ //溢出的KEY，也就是大key,
 #define WT_ADDR_LEAF_NO 3 /* Leaf page, no overflow */
+    //__wt_multi_to_ref
     uint8_t type; //和WT_RECONCILE.ovfl_items对应
 
     /*
@@ -293,7 +298,7 @@ struct __wt_multi {
     //最终在__wt_page_inmem中赋值给page->dsk, 然后在__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf解析
     //磁盘page->dsk中的K和V地址信息存入到page->pg_row, 最后在__wt_multi_to_ref中释放disk_image
 
-    //从上面的备注可以看出，reconcile一个multi对应数据写入磁盘后，会在拷贝一份到disk_image中
+    //从上面的备注可以看出，reconcile一个multi对应数据写入磁盘后，会在拷贝一份到disk_image中，最终在__wt_page_inmem中赋值给page->dsk
     //然后在__inmem_row_leaf解析出磁盘上的K和V地址保存到page->pg_row[]中, 最后释放disk_image空间，也就是disk_image只是一个临时
     //变量保存写入磁盘的所有封包数据，最终目的是为了获取page磁盘上K或者V数据保存到page->pg_row[]数组中
     void *disk_image;
@@ -1049,7 +1054,7 @@ struct __wt_ref {
                                   /* AUTOMATIC FLAG VALUE GENERATION STOP 8 */
     uint8_t flags;
 
-//标识该page数据在disk中
+//标识该page数据在disk中,evict把内存page写入磁盘后在__wt_multi_to_ref中置为该状态
 #define WT_REF_DISK 0       /* Page is on disk */
 //__btree_tree_open_empty创建root page的时候初始化为该值
 #define WT_REF_DELETED 1    /* Page is on disk, but deleted */
@@ -1065,9 +1070,9 @@ struct __wt_ref {
      * Address: on-page cell if read from backing block, off-page WT_ADDR if instantiated in-memory,
      * or NULL if page created in-memory.
      */
-    //数据对应的磁盘地址???????
-    //例如evict reconcile流程中的__wt_multi_to_ref，指向该page对应的磁盘ext元数据信息
-    void *addr;
+    //通过ref->addr可以判断除该ref对应page是否罗盘了 __wt_ref_block_free
+    //例如evict reconcile流程中的__wt_multi_to_ref，指向该page对应的磁盘ext元数据信息WT_ADDR(objectid offset size  checksum)
+    void *addr;//对应WT_ADDR，参考__wt_multi_to_ref
 
     /*
      * The child page's key.  Do NOT change this union without reviewing
@@ -1367,6 +1372,7 @@ struct __wt_ikey {
      */
     //记录K在内存中的位置，参考__wt_row_ikey_alloc
     //不为0则对应磁盘page数据加载到内存中page->dsk的位置
+    //表示该ref key对应的ref下面的page已经写入到磁盘或者从磁盘加载的
     uint32_t cell_offset;
 
 /* The key bytes immediately follow the WT_IKEY structure. */

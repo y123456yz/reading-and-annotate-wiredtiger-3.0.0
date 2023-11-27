@@ -116,6 +116,7 @@ __wt_key_string(
  * __wt_page_type_string --
  *     Return a string representing the page type.
  */
+//yang add todo xxxxxxxxxxxxx 这里可以区分下root page 和internal page
 const char *
 __wt_page_type_string(u_int type) // WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
@@ -141,3 +142,34 @@ __wt_page_type_string(u_int type) // WT_GCC_FUNC_ATTRIBUTE((visibility("default"
     }
     /* NOTREACHED */
 }
+
+const char *
+__wt_page_type_string2(WT_REF *ref) // WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+{   
+    
+    switch (ref->page->type) {
+    case WT_PAGE_INVALID:
+        return ("invalid");
+    case WT_PAGE_BLOCK_MANAGER:
+        return ("block manager");
+    case WT_PAGE_COL_FIX:
+        return ("column-store fixed-length leaf");
+    case WT_PAGE_COL_INT:
+        return ("column-store internal");
+    case WT_PAGE_COL_VAR:
+        return ("column-store variable-length leaf");
+    case WT_PAGE_OVFL:
+        return ("overflow");
+    case WT_PAGE_ROW_INT:
+        if (__wt_ref_is_root(ref))
+            return ("row-store root");
+        else
+            return ("row-store internal");
+    case WT_PAGE_ROW_LEAF:
+        return ("row-store leaf");
+    default:
+        return ("unknown");
+    }
+    /* NOTREACHED */
+}
+

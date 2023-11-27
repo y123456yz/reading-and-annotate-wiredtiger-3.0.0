@@ -59,6 +59,10 @@ __block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
  * __block_off_srch --
  *     Search a by-offset skiplist (either the primary by-offset list, or the by-offset list
  *     referenced by a size entry), for the specified offset.
+
+  __block_off_srch根据off搜索
+ __block_off_remove根据off删除
+ __block_off_insert根据off插入跳表
  */
 //skip_off为true代表从__wt_extlist->sz下面的off跳跃表查找，head代表__wt_extlist->sz.off
 //skip_off为false代表从__wt_extlist->off跳跃表查找，head代表__wt_extlist->off
@@ -145,7 +149,11 @@ __block_size_srch(WT_SIZE **head, wt_off_t size, WT_SIZE ***stack)
  * __block_off_srch_pair --
  *     Search a by-offset skiplist for before/after records of the specified offset.
  */
-//判断off位置是否在el对应ext跳跃表中
+
+//例如场景1，a:[4096, 1404928], b:[1404928, 278528]， 删除的newext:[1401928,178528 ]就是横跨[A,B], beforep=a, afterp=b
+//例如场景2，a:[4096, 1404928]， 删除的newext:[1104928,1204928 ]，也就是newext在a范围内，这时候beforep=a, after=NULL
+
+//判断off位置是否在el对应ext跳跃表中，beforep对应最近的>=off的ext, afterp对应最近>=off的ext
 static inline void
 __block_off_srch_pair(WT_EXTLIST *el, wt_off_t off, WT_EXT **beforep, WT_EXT **afterp)
 {
@@ -257,7 +265,12 @@ __block_ext_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, WT_EXT *ext)
 
 /*
  * __block_off_insert --
- *     Insert a file range into an extent list.  
+ *     Insert a file range into an extent list. 
+ __block_off_srch根据off搜索
+ __block_off_remove根据off删除
+ __block_off_insert根据off插入跳表
+
+ 
  注意__block_ext_insert和__block_append的区别
  */
 //分配一个ext，并按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
@@ -347,6 +360,9 @@ __wt_block_misplaced(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *list
 /*
  * __block_off_remove --
  *     Remove a record from an extent list.
+ __block_off_srch根据off搜索
+ __block_off_remove根据off删除
+ __block_off_insert根据off插入跳表
  */
 //先从el->off中清除off对应的ext, 在从el->sz中清除对应的ext(包括sz跳跃表的，也包括sz.szp跳跃表的)
 static int
@@ -426,39 +442,109 @@ corrupt:
  * __wt_block_off_remove_overlap --
  *     Remove a range from an extent list, where the range may be part of an overlapping entry.
 
-//例如ext=[4096, 1712128], 要删除的off:1409024, size:28672，即删除ext[4096, 1712128]磁盘范围中的[1409024,28672]
-//最终这个ext会被拆分为2个ext=a:[4096, 1404928], b:[1437696, 278528]
+场景1:
+                 ext1(add)                                   ext2(add)
+                  /\                                           /\
+    |-------------  ---------|                      |----------  ---------|                                    
+    |        a_size         off                 off+size      b_size      |
+    |<---------------------->|<-------------------->|<------------------->|               
+    |______________________________  _____________________________________|
+befor.off                          \/                            befor.off+befor.size                
+                             befor ext(remove)           
+
+                             
+场景2:
+                                             ext1(add)                                 
+                                                 /\                                        
+                           |---------------------  -----------------------|                                              
+   off                 off+size      b_size      
+    |<-------------------->|<-------------------------------------------->|               
+    |______________________________  _____________________________________|
+after.off                          \/                            after.off+after.size                
+                             after ext(remove)    
+
+
+   
+//例如场景1: ext=[4096, 1712128], 要删除的off:1409024, size:28672，即删除ext[1409024, 1409024+28672]
+//  最终这个ext会被拆分为2个ext=a:[4096, 1404928], b:[1437696, 278528]
+
+//例如场景2: ext=[4096, 1712128], 要删除的off:4096, size:1612128，即删除ext[4096, 1712128]，然后insert一个ext[1612128, 1712128]
+
  */
+//从跳跃表中删除[off, size]这块区间, 分割产生的新ext添加到跳跃表中
 int
 __wt_block_off_remove_overlap(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
 {
     WT_EXT *before, *after, *ext;
     wt_off_t a_off, a_size, b_off, b_size;
+    WT_DECL_RET;
 
     WT_ASSERT(session, off != WT_BLOCK_INVALID_OFFSET);
 
+    //例如场景1，a:[4096, 1404928], b:[1404928, 278528]， 删除的newext:[1401928,178528 ]就是横跨[A,B], beforep=a, afterp=b
+    //例如场景2，a:[4096, 1404928]， 删除的newext:[1104928,1204928 ]，也就是newext在a范围内，这时候beforep=a, after=NULL
     /* Search for before and after entries for the offset. */
     __block_off_srch_pair(el, off, &before, &after);
+
+//例如场景1: ext=[4096, 1712128], 要删除的off:1409024, size:28672，即删除ext[1409024, 1409024+28672]
+//  最终这个ext会被拆分为2个ext=a:[4096, 1404928], b:[1437696, 278528]
+
+//例如场景2: ext=[4096, 1712128], 要删除的off:4096, size:1612128，即删除ext[4096, 1712128]，然后insert一个ext[1612128, 1712128]
+
+//例如场景3(不可能存在跨两个ext的情况，这种情况不可能): ext1:[4096, 1404928], ext2:[1404928, 2178528]， 删除的dekext:[1101928,1581528 ]就是横跨[ext1, ext2]
+//  最终[ext1, ext2]两个ext会被删除，并且重新创建两个ext，范围分别是[4096, 1101928], [1581528, 2178528]
 
     /* If "before" or "after" overlaps, retrieve the overlapping entry. */
     //[off, off+size]在befor这个ext范围中
     if (before != NULL && before->off + before->size > off) {
         //例如ext=[4096, 1712128], 要删除的off:1409024, size:28672，即删除ext[4096, 1712128]磁盘范围中的[1409024,28672]
         //最终这个ext会被拆分为2个ext=a:[4096, 1404928], b:[1437696, 278528]
-        printf("yang test ......__wt_block_off_remove_overlap.....befor:[%d, %d], off:%d, size:%d\r\n",
-          (int)before->off, (int)before->size, (int)off, (int)size);
-        WT_RET(__block_off_remove(session, block, el, before->off, &ext));
-
+        /*
+                         ext1(add)                                   ext2(add)
+                          /\                                           /\
+            |-------------  ---------|                      |----------  ---------|                                    
+            |        a_size         off                 off+size      b_size      |
+            |<---------------------->|<-------------------->|<------------------->|               
+            |______________________________  _____________________________________|
+        befor.off                          \/                            befor.off+befor.size                
+                                     befor ext(remove)      
+        */
+       // printf("yang test ..1....__wt_block_off_remove_overlap.....befor:[%d, %d], off:%d, size:%d\r\n",
+       //   (int)before->off, (int)before->size, (int)off, (int)size);
+      if (before->off + before->size < off + size) {
+          __wt_verbose_error(session, WT_VERB_BLOCK,
+              "block off remove out of bounds befor=[%" PRIu64 ", %" PRIu64 "], off:size=[%" PRIu64 ", %" PRIu64 "]", (uint64_t)before->off, (uint64_t)before->size, (uint64_t)off, (uint64_t)size);
+             WT_ERR_PANIC(session, EINVAL, "block off remove out of bounds");
+      }
+      WT_RET(__block_off_remove(session, block, el, before->off, &ext));
         /* Calculate overlapping extents. */
         a_off = ext->off;
         a_size = off - ext->off;
         b_off = off + size;
         b_size = ext->size - (a_size + size);
-        printf("yang test .....__wt_block_off_remove_overlap.......a:[%d, %d], b:[%d, %d]\r\n", 
-            (int)a_off,(int)a_size,(int)b_off,(int)b_size);
-    //[off, off+size]在[befor, after]多个ext空间中
+       // printf("yang test ..1...__wt_block_off_remove_overlap.......a:[%d, %d], b:[%d, %d]\r\n", 
+         //   (int)a_off,(int)a_size,(int)b_off,(int)b_size);
+    //[off, off+size]在after对应ext空间中，例如a:[4096, 1404928], b:[1404928, 278528]， newext:[1401928,178528 ]就是横跨[A,B]
     } else if (after != NULL && off + size > after->off) {
+      /*
+                         ext1(add)                                   ext2(add)
+                          /\                                           /\
+            |-------------  ---------|                      |----------  ---------|                                    
+            |        a_size         off                 off+size      b_size      |
+            |<---------------------->|<-------------------->|<------------------->|               
+            |______________________________  _____________________________________|
+        befor.off                          \/                            befor.off+befor.size                
+                                     befor ext(remove)      
+        */
+
+      if (off != after->off || off + size > after->off + after->size) {
+          __wt_verbose_error(session, WT_VERB_BLOCK,
+              "block off remove out of bounds after=[%" PRIu64 ", %" PRIu64 "], off:size=[%" PRIu64 ", %" PRIu64 "]", (uint64_t)after->off, (uint64_t)after->size, (uint64_t)off, (uint64_t)size);
+             WT_ERR_PANIC(session, EINVAL, "block off remove out of bounds");
+      }
+
+        //删除after->off这个ext
         WT_RET(__block_off_remove(session, block, el, after->off, &ext));
 
         /*
@@ -469,6 +555,9 @@ __wt_block_off_remove_overlap(
         a_size = 0;
         b_off = off + size;
         b_size = ext->size - (b_off - ext->off);
+
+       // printf("yang test .2....__wt_block_off_remove_overlap.......after:[%d, %d], a:[%d, %d], b:[%d, %d]\r\n", 
+         //   (int)after->off,(int)after->size, (int)a_off,(int)a_size,(int)b_off,(int)b_size);
     } else
         return (WT_NOTFOUND);
 
@@ -483,19 +572,25 @@ __wt_block_off_remove_overlap(
         ext = NULL;
     }
     if (b_size != 0) {
-        if (ext == NULL)
+        if (ext == NULL) //after不存在，则直接分配一个新的off,并添加到跳跃表
             //分配一个ext，并按照ext->size大小添加到el->sz跳表，按照ext->off添加到el->off跳表
             WT_RET(__block_off_insert(session, el, b_off, b_size));
-        else {
+        else {//跳表中已经有这个after，但是after:[after->off, after->size]空间不够，则直接扩容空间即可，扩容后从新插入跳跃表
             ext->off = b_off;
             ext->size = b_size;
             WT_RET(__block_ext_insert(session, el, ext));
             ext = NULL;
         }
     }
+
+    
     if (ext != NULL)
         __wt_block_ext_free(session, ext);
+
     return (0);
+
+err:
+    return (ret);
 }
 
 /*
@@ -578,6 +673,7 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
     printf("yang test .................__block_append....block->live.avail.bytes:%d............ext entries:%d\r\n", 
         (int)block->live.avail.bytes, (int)block->live.alloc.entries);
     //block->live.avail.bytes也就是block_reuse_bytes file bytes available for reuse
+    //也就是avail中可重复利用的空间不够，则在append中重新alloc新的ext来保存[off, size]
     if (block->live.avail.bytes < (uint64_t)size)
         goto append;
     if (block->allocfirst > 0) {
@@ -603,6 +699,8 @@ append:
         ext = szp->off[0];
     }
 
+    //走这里说明直接利用avail中可重复利用的ext来存储[off, size]
+    
     printf("yang test .................__wt_block_alloc......2222222.............\r\n");
     //参考debug_wt_block_alloc2.c会走这里
     /* Remove the record, and set the returned offset. */
@@ -636,7 +734,8 @@ append:
 /*
  * __wt_block_free --
  *     Free a cookie-referenced chunk of space to the underlying file.
- */
+ */ 
+//__rec_write_wrapup->__wt_btree_block_free->__bm_free->__wt_block_free
 int
 __wt_block_free(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *addr, size_t addr_size)
 {
@@ -686,6 +785,8 @@ __wt_block_free(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *addr, 
  * __wt_block_off_free --
  *     Free a file range to the underlying file.
  */
+//从alloc跳跃表中先删除[offset, offset+size]对应的ext，然后添加到avail或者discard跳跃表中
+//如果avail中包含[offset, offset+size]对应ext，则添加到avail中，否则条件到discard中
 int
 __wt_block_off_free(
   WT_SESSION_IMPL *session, WT_BLOCK *block, uint32_t objectid, wt_off_t offset, wt_off_t size)
@@ -708,17 +809,20 @@ __wt_block_off_free(
      * modification). If this extent is referenced in a previous checkpoint, merge into the discard
      * list.
      */
-    printf("yang test ...1....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
-        , block->live.avail.entries, block->live.discard.entries);
+   // printf("yang test ...1....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
+    //    , block->live.avail.entries, block->live.discard.entries);
+    //从alloc跳跃表中删除ext空间[offset, offset+size]，然后__block_merge中把该空间对应ext添加到avail跳跃表中
     if ((ret = __wt_block_off_remove_overlap(session, block, &block->live.alloc, offset, size)) ==
       0) {
-        printf("yang test ...2....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
-            , block->live.avail.entries, block->live.discard.entries);
+       // printf("yang test ...2....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
+         //   , block->live.avail.entries, block->live.discard.entries);
+        //被删除的offset对应的ext重新添加到avail中，代表的实际上就是磁盘碎片
         ret = __block_merge(session, block, &block->live.avail, offset, size);
     } else if (ret == WT_NOTFOUND)
+        //从alloc跳跃表中删除某个范围的ext，如果alloc跳跃表中没找到，则这个要删除范围对应的ext添加到discard跳跃表中，参考__wt_block_off_free
         ret = __block_merge(session, block, &block->live.discard, offset, size);
-    printf("yang test ...3....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
-        , block->live.avail.entries, block->live.discard.entries);
+   /// printf("yang test ...3....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
+   //     , block->live.avail.entries, block->live.discard.entries);
     return (ret);
 }
 
@@ -1084,7 +1188,7 @@ __wt_block_insert_ext(
  * __block_merge --
  *     Insert an extent into an extent list, merging if possible (internal version).
  */
-//添加一个
+//把需要merge的ext[off, off+size]合并到el跳跃表，这个ext不能和el中对应的跳跃表不能有交集
 static int
 __block_merge(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
@@ -1098,13 +1202,17 @@ __block_merge(
     //判断off位置是否在el对应ext跳跃表中
     __block_off_srch_pair(el, off, &before, &after);
     if (before != NULL) {
+        //off和befor[before->off, before->off + before->size]不能有交集
         if (before->off + before->size > off)
             WT_BLOCK_RET(session, block, EINVAL,
               "%s: existing range %" PRIdMAX "-%" PRIdMAX " overlaps with merge range %" PRIdMAX
               "-%" PRIdMAX,
               el->name, (intmax_t)before->off, (intmax_t)(before->off + before->size),
               (intmax_t)off, (intmax_t)(off + size));
+
+        //before != NULL代表befor与[off, off+size]可以直接拼接在一起
         if (before->off + before->size != off)
+            //before = NULL代表befor与[off, off+size]不能直接拼接，没有交集，例如before=[100, 200], off:size=[300,400]
             before = NULL;
     }
     if (after != NULL) {
@@ -1115,10 +1223,12 @@ __block_merge(
               el->name, (intmax_t)off, (intmax_t)(off + size), (intmax_t)after->off,
               (intmax_t)(after->off + after->size));
         }
+
+        //after = NULL说明after与[off,off+size]不能直接拼接，可能after包含[off,off+size]，例如after=[100, 200], off:size=[100,150]
         if (off + size != after->off)
             after = NULL;
     }
-    //也就是off位置不在el跳跃表中，在alloc一个ext添加到el跳跃表中
+    //也就是off位置不在el跳跃表中，直接从新alloc一个ext添加到el跳跃表中
     if (before == NULL && after == NULL) {
         __wt_verbose_debug2(session, WT_VERB_BLOCK, "%s: insert range %" PRIdMAX "-%" PRIdMAX,
           el->name, (intmax_t)off, (intmax_t)(off + size));
@@ -1132,21 +1242,27 @@ __block_merge(
      * offset range abuts, use the "after" offset range as our new record. In either case, remove
      * the record we're going to use, adjust it and re-insert it.
      */
-    if (before == NULL) {
+    //下面流程说明可以和befor直接拼接在一起或者和after直接拼接到一起
+     
+    //例如off:size=[200,400],after=[400, 500], 合并到ext中[400,500]
+    if (before == NULL) {//也就是after!=NULL, ext可以和after直接拼接到一起
         WT_RET(__block_off_remove(session, block, el, after->off, &ext));
 
         __wt_verbose_debug2(session, WT_VERB_BLOCK,
           "%s: range grows from %" PRIdMAX "-%" PRIdMAX ", to %" PRIdMAX "-%" PRIdMAX, el->name,
           (intmax_t)ext->off, (intmax_t)(ext->off + ext->size), (intmax_t)off,
           (intmax_t)(off + ext->size + size));
-
         ext->off = off;
         ext->size += size;
     } else {
-        if (after != NULL) {
+        //ext[off, off+size]和跳跃表中的ext可以直接拼接
+        //例如after=[300,400], off:size=[200,300],合并到ext中[200,400]
+        if (after != NULL) {//也就是before != NULL && after != NULL, 也就是befor, ext, after三个可以直接合并到一起
             size += after->size;
             WT_RET(__block_off_remove(session, block, el, after->off, NULL));
-        }
+        } //如果before != NULL && after = NULL，也就是befor, ext两个可以直接合并到一起
+
+        
         WT_RET(__block_off_remove(session, block, el, before->off, &ext));
 
         __wt_verbose_debug2(session, WT_VERB_BLOCK,

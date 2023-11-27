@@ -157,6 +157,7 @@ __wt_page_is_modified(WT_PAGE *page)
  * __wt_btree_block_free --
  *     Helper function to free a block from the current tree.
  */
+//__rec_write_wrapup
 static inline int
 __wt_btree_block_free(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size)
 {
@@ -873,6 +874,7 @@ __wt_page_parent_modify_set(WT_SESSION_IMPL *session, WT_REF *ref, bool page_onl
  * __wt_off_page --
  *     Return if a pointer references off-page data.
  */
+//判断p点位是否在page对应磁盘空间
 static inline bool
 __wt_off_page(WT_PAGE *page, const void *p)
 {
@@ -1542,6 +1544,7 @@ __wt_ref_addr_copy(WT_SESSION_IMPL *session, WT_REF *ref, WT_ADDR_COPY *copy)
     WT_ORDERED_READ(addr, (WT_ADDR *)ref->addr);
 
     /* If NULL, there is no information. */
+    //通过ref->addr可以判断除该ref对应page是否罗盘了 __wt_ref_block_free
     if (addr == NULL)//ref对应page为NULL则直接返回
         return (false);
 
@@ -1590,15 +1593,16 @@ __wt_ref_addr_copy(WT_SESSION_IMPL *session, WT_REF *ref, WT_ADDR_COPY *copy)
  * __wt_ref_block_free --
  *     Free the on-disk block for a reference and clear the address.
  */
-//释放磁盘中的某个chunk空间
+//释放磁盘中的某个chunk对应ext空间
 static inline int
 __wt_ref_block_free(WT_SESSION_IMPL *session, WT_REF *ref)
 {
     WT_ADDR_COPY addr;
 
+    //通过ref->addr可以判断除该ref对应page是否罗盘了
     if (!__wt_ref_addr_copy(session, ref, &addr))
         return (0);
-
+    //说明之前已经罗盘过，那就需要把之前的释放掉
     WT_RET(__wt_btree_block_free(session, addr.addr, addr.size));
 
     /* Clear the address (so we don't free it twice). */

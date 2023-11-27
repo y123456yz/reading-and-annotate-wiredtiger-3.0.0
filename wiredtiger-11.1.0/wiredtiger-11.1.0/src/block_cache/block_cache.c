@@ -547,6 +547,7 @@ __wt_blkcache_remove(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
     "full_target=95,hashsize=0,max_percent_overhead=10,nvram_path=,"
     "percent_file_in_dram=50,size=0,system_ram=0,type=),"
  */
+//block_cache.enabled默认值false，block_cache.enabled使能true后block_cache的其他配置才有效
 static int
 __blkcache_init(WT_SESSION_IMPL *session, size_t cache_size, u_int hash_size, u_int type,
   char *nvram_device_path, size_t system_ram, u_int percent_file_in_os_cache, bool cache_on_writes,
@@ -743,8 +744,9 @@ __wt_blkcache_setup(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
         WT_RET(ret);
     }
 
+    //false默认值，block_cache.enabled使能true后后面的其他配置才有效
     WT_RET(__wt_config_gets(session, cfg, "block_cache.enabled", &cval));
-    if (cval.val == 0)
+    if (cval.val == 0)//默认false,直接返回
         return (0);
 
     WT_RET(__wt_config_gets(session, cfg, "block_cache.size", &cval));

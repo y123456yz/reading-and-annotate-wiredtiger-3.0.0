@@ -416,7 +416,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
      *
      * Ignore the final checkpoint writes.
      */
-    //默认不使能，直接跳过
+    //默认不使能，直接跳过 
     if (blkcache->type == BLKCACHE_UNCONFIGURED)
         ;
     else if (!blkcache->cache_on_checkpoint && checkpoint_io)

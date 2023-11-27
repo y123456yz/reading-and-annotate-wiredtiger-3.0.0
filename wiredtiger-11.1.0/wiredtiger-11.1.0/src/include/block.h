@@ -186,7 +186,9 @@ The alloc and discard extent lists are maintained as a skiplist sorted by file o
 The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
 */
     WT_EXTLIST alloc;   /* Extents allocated */ //__wt_block_alloc中分配ext空间，添加到alloc跳跃表中
+    //从alloc跳跃表中被删除的offset对应的ext重新添加到avail中，代表的实际上就是磁盘碎片，也就是可重用的空间，参考__wt_block_off_free
     WT_EXTLIST avail;   /* Extents available */
+    //从alloc跳跃表中删除某个范围的ext，如果alloc跳跃表中没找到，则这个要删除范围对应的ext添加到discard跳跃表中，参考__wt_block_off_free
     WT_EXTLIST discard; /* Extents discarded */
 
     wt_off_t file_size; /* Checkpoint file size */
@@ -250,6 +252,7 @@ struct __wt_bm {
     int (*sync)(WT_BM *, WT_SESSION_IMPL *, bool);
     int (*verify_addr)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
     int (*verify_end)(WT_BM *, WT_SESSION_IMPL *);
+    //__bm_verify_start
     int (*verify_start)(WT_BM *, WT_SESSION_IMPL *, WT_CKPT *, const char *[]);
     //__bm_write
     int (*write)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, uint8_t *, size_t *, bool, bool);
@@ -345,6 +348,7 @@ struct __wt_block {
     /* Verification support */
     bool verify;             /* If performing verification */
     bool verify_layout;      /* Print out file layout information */
+    //__wt_block_verify_start strict配置项，默认true
     bool verify_strict;      /* Fail hard on any error */
     wt_off_t verify_size;    /* Checkpoint's file size */
     WT_EXTLIST verify_alloc; /* Verification allocation list */

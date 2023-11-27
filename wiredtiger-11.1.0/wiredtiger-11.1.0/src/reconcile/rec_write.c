@@ -42,7 +42,7 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage
     __wt_seconds(session, &start);
 
     __wt_verbose(session, WT_VERB_RECONCILE, "ref:%p page:%p reconcile %s (%s%s), entries:%u", (void *)ref, page,
-      __wt_page_type_string(page->type), LF_ISSET(WT_REC_EVICT) ? "evict" : "checkpoint",
+      __wt_page_type_string2(ref), LF_ISSET(WT_REC_EVICT) ? "evict" : "checkpoint",
       LF_ISSET(WT_REC_HS) ? ", history store" : "", page->entries);
 
     /*

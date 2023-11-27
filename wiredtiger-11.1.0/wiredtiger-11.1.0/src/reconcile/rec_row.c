@@ -343,6 +343,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     r->cell_zero = true;
 
     /* For each entry in the in-memory page... */
+    //遍历获取internal page所包含的所有子ref page
     WT_INTL_FOREACH_BEGIN (session, page, ref) {
         /*
          * There are different paths if the key is an overflow item vs. a straight-forward on-page
@@ -373,6 +374,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         addr = ref->addr;
         child = ref->page;
 
+        printf("yang test ..................__wt_rec_row_int.................cms.state:%u\r\n", cms.state);
         switch (cms.state) {
         case WT_CHILD_IGNORE:
             /*
@@ -390,6 +392,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
                 WT_CHILD_RELEASE_ERR(session, cms.hazard, ref);
                 continue;
             case WT_PM_REC_MULTIBLOCK:
+                //该page下面的这个page是被拆分为多个page中的一个，则需要考虑对这个子page做合并
                 WT_ERR(__rec_row_merge(session, r, child));
                 WT_CHILD_RELEASE_ERR(session, cms.hazard, ref);
                 continue;

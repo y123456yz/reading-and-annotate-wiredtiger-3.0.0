@@ -245,6 +245,7 @@ __free_page_modify(WT_SESSION_IMPL *session, WT_PAGE *page)
  * __wt_ref_addr_free --
  *     Free the address in a reference, if necessary.
  */
+//判断p点位是否在page对应磁盘空间，如果在则释放该ref-addr，也就是ref对应的addr
 void
 __wt_ref_addr_free(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -261,6 +262,7 @@ __wt_ref_addr_free(WT_SESSION_IMPL *session, WT_REF *ref)
             return;
     } while (!__wt_atomic_cas_ptr(&ref->addr, ref_addr, NULL));
 
+    //判断p点位是否在page对应磁盘空间
     if (ref->home == NULL || __wt_off_page(ref->home, ref_addr)) {
         __wt_free(session, ((WT_ADDR *)ref_addr)->addr);
         __wt_free(session, ref_addr);
