@@ -70,6 +70,9 @@ extern const char *__wt_page_type_string(u_int type) WT_GCC_FUNC_DECL_ATTRIBUTE(
   (visibility("default"))) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
   extern const char *__wt_page_type_string2(WT_REF *ref)  WT_GCC_FUNC_DECL_ATTRIBUTE(
     (visibility("default"))) WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
+  const char *
+  __wt_page_type_string_distinguish_root(WT_REF *ref) ;
+
 extern const char *__wt_session_strerror(WT_SESSION *wt_session, int error)
   WT_GCC_FUNC_DECL_ATTRIBUTE((warn_unused_result));
 extern const char *__wt_strerror(WT_SESSION_IMPL *session, int error, char *errbuf, size_t errlen)

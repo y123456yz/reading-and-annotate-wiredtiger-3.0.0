@@ -262,6 +262,7 @@ struct __wt_cell_unpack_addr {
 //参考__inmem_row_leaf_entries
 struct __wt_cell_unpack_kv {
     //WT_CELL_COMMON_FIELDS;
+    //存储的实际上是位置信息，参考__wt_row_leaf_key_set
     WT_CELL *cell; /* Cell's disk image address */
 
     uint64_t v; /* RLE count or recno */
@@ -270,6 +271,7 @@ struct __wt_cell_unpack_kv {
      * The size and __len fields are reasonably type size_t; don't change the type, performance
      * drops significantly if they're type size_t.
      */
+    //对应一个K或者V的起始地址及其长度
     const void *data; /* Data */
     uint32_t size;    /* Data size */
 

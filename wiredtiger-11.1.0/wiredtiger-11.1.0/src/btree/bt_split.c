@@ -1431,6 +1431,7 @@ __split_multi_inmem(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *multi, WT
     WT_RET(__wt_page_inmem(session, ref, multi->disk_image, WT_PAGE_DISK_ALLOC, &page, &prepare));
     multi->disk_image = NULL; //这里加打印可以看出multi->disk_image地址和page->dsk地址相同
     //printf("yang test........__split_multi_inmem.......222.............page->dsk:%p\r\n", page->dsk);
+    
     /*
      * In-memory databases restore non-obsolete updates directly in this function, don't call the
      * underlying page functions to do it.
@@ -1777,8 +1778,8 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
 
         //表示该page对应数据在磁盘中，注意在下面的__split_multi_inmem后会置为WT_REF_MEM
         WT_REF_SET_STATE(ref, WT_REF_DISK);
-        printf("yang test ......111...........__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n", 
-            ref, ref->page, ref->state);
+       // printf("yang test ......111...........__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n", 
+        //    ref, ref->page, ref->state);
     }
 
     /*
@@ -1789,11 +1790,14 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
     if (multi->disk_image != NULL && !closing) {//yang add todo xxxx   如果是closin __rec_split_write中是否有必要分配内存拷贝chunk数据到disk_image
          //新建一个page， 实现一个multi与这个page的映射，主要是实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
         WT_RET(__split_multi_inmem(session, page, multi, ref));
+
+        //当reconcile evict拆分page为多个，并且写入磁盘ext，这时候page状态进入WT_REF_DISK, 当unpack解包获取到该ext的所有K或者V在相比ext头部
+        //偏移量后，重新置为WT_REF_MEM状态，表示我们已经获取到ext中包含的所有K和V磁盘元数据地址存储到了内存pg_row中
         WT_REF_SET_STATE(ref, WT_REF_MEM);
     }
 
-    printf("yang test ...222..............__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n", 
-            ref, ref->page, ref->state);
+  //  printf("yang test ...222..............__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n", 
+   //         ref, ref->page, ref->state);
     //在__split_multi_inmem->__wt_page_inmem中赋值给了page->dsk, 并在置为disk_image=NULL， 所以指向的内存空间实际上被page->dsk继承了
     __wt_free(session, multi->disk_image);
 
@@ -2207,7 +2211,8 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      * Convert the split page's multiblock reconciliation information into an array of page
      * reference structures.
      */
-    /* 一拆多后，构建新得ref[]及对应page，并和拆分前的page的父page关联 */
+    /* 一拆多后，构建新得ref[]及对应page，并和拆分前的page的父page关联 */ 
+    //new_entries个新ref
     WT_RET(__wt_calloc_def(session, new_entries, &ref_new));
     for (i = 0; i < new_entries; ++i)
         WT_ERR( //为每一个page指向reconcile拆分后的磁盘元数据

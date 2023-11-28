@@ -32,6 +32,7 @@ __cell_check_value_validity(WT_SESSION_IMPL *session, WT_TIME_WINDOW *tw, bool e
  * __cell_pack_value_validity --
  *     Pack the validity window for a value.
  */
+//WT_TIME_WINDOW相关参数复制封包到pp空间
 static inline void
 __cell_pack_value_validity(WT_SESSION_IMPL *session, uint8_t **pp, WT_TIME_WINDOW *tw)
 {
@@ -250,6 +251,7 @@ __wt_cell_pack_value(
     p = cell->__chunk;
     *p = '\0';
 
+    //WT_TIME_WINDOW相关参数复制封包到pp空间
     __cell_pack_value_validity(session, &p, tw);
 
     /*
@@ -779,7 +781,7 @@ copy_cell_restart:
     case WT_CELL_KEY_SHORT:
     case WT_CELL_VALUE_SHORT:
         unpack->prefix = 0;
-        //数据指针，指向数据
+        //数据指针，指向数据，如果数据比较小，真实数据直接用__chunk[1]数组存储
         unpack->data = cell->__chunk + 1;
         //数据总长度
         unpack->size = cell->__chunk[0] >> WT_CELL_SHORT_SHIFT;
@@ -1220,7 +1222,10 @@ __wt_cell_unpack_addr(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CE
 //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
 
 static inline void
-__wt_cell_unpack_kv(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CELL *cell,
+__wt_cell_unpack_kv(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, 
+  //对于一个磁盘块ext内存数据指定K或者V的起始地址
+  WT_CELL *cell,
+  //cell内存空间的内容解析后存储到WT_CELL_UNPACK_KV中
   WT_CELL_UNPACK_KV *unpack_value)
 {
     /*

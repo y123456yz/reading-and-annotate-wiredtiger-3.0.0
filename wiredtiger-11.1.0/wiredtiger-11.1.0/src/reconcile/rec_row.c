@@ -391,6 +391,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
             case WT_PM_REC_EMPTY:
                 WT_CHILD_RELEASE_ERR(session, cms.hazard, ref);
                 continue;
+            //子page是reconcile一拆多生成的page, 一拆多后该page会写入磁盘，并且把该page下面的所有K或者V地址信息存入到pg_row[]
             case WT_PM_REC_MULTIBLOCK:
                 //该page下面的这个page是被拆分为多个page中的一个，则需要考虑对这个子page做合并
                 WT_ERR(__rec_row_merge(session, r, child));

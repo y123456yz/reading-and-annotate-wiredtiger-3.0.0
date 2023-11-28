@@ -284,6 +284,7 @@ __wt_rec_child_modify(
              */
             mod = ref->page->modify;
             if (mod != NULL && mod->rec_result != 0) {
+                //例如子ref对应page有修改，但是没有到evict内存阈值，这时候内存中该page就是modifed有修改
                 cmsp->state = WT_CHILD_MODIFIED;
                 goto done;
             }

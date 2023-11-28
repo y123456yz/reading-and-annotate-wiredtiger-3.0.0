@@ -86,6 +86,7 @@ struct __wt_page_header {
         uint32_t datalen; /* 20-23: overflow data length */
     } u;
 
+    //Ò²¾ÍÊÇ¶ÔÓ¦pageÀàĞÍ£¬ÀıÈçWT_PAGE_ROW_LEAF
     uint8_t type; /* 24: page type */
 
 /*
@@ -724,7 +725,8 @@ struct __wt_page {
 //pg_rowÖ¸Ïò´ÅÅÌKVÏà¹ØÊı¾İWT_ROW_FOREACH±éÀú»ñÈ¡¸ÃpageÔÚ´ÅÅÌµÄKVÊı¾İ£ Õâ¸öÊı¾İÔÚÄÚ´æÖĞ£¬Ö»ÊÇ´Ó´ÅÅÌ¼ÓÔØµÄ£¬ÔÚ´ÅÅÌÉÏÒ²ÓĞÒ»·İÊı¾İ
 //mod_row_insertÖ¸ÏòÄÚ´æÏà¹ØKVÊı¾İ£¬mod_row_update¼ÇÂ¼ÄÚ´æÖĞÍ¬Ò»¸öKµÄ±ä¸ü¹ı³Ì
 //Ö¸Ïò¸Ãpage´æ´¢µÄÕæÊµÊı¾İ£¬pg_row[]Êı×é(Êı×é´óĞ¡page->entries)¿Õ¼ä·ÖÅä¼û__wt_page_alloc,±£³ÖK»òÕßVµÄ´ÅÅÌµØÖ·£¬Ã¿¸öKV¸³Öµ²Î¿¼__inmem_row_leaf
-//´ÅÅÌÉÏµÄÊı¾İ×îÖÕÓĞÒ»·İÍêÈ«Ò»ÑùµÄÄÚ´æÊı¾İ´æÔÚpage->dskµØÖ·¿ªÊ¼µÄÄÚ´æ¿Õ¼ä£¬page->pg_row[]Êı×éÊµ¼ÊÉÏÖ¸Ïòpage->dskÄÚ´æÖĞµÄ¶ÔÓ¦K»òÕßVµØÖ·£¬²Î¿¼__wt_cell_unpack_safe
+//´ÅÅÌÉÏµÄÊı¾İ×îÖÕÓĞÒ»·İÍêÈ«Ò»ÑùµÄÄÚ´æÊı¾İ´æÔÚpage->dskµØÖ·¿ªÊ¼µÄÄÚ´æ¿Õ¼ä£¬page->pg_row[]Êı×éÃ¿¸öK»òÕßV³ÉÔ±Êµ¼ÊÉÏÖ¸ÏòÀëpage->dskÆğÊ¼Î»ÖÃµÄ¾àÀë£¬²Î¿¼__wt_cell_unpack_safe
+//page->dsk´æ´¢ext´ÅÅÌÍ·²¿µØÖ·£¬page->pg_row[]´æ´¢Êµ¼ÊµÄK»òÕßVÏà¶ÔÍ·²¿µÄ¾àÀë£¬Í¨¹ıpage->dskºÍÕâ¸ö¾àÀë¾Í¿ÉÒÔÈ·¶¨ÔÚ´ÅÅÌextÖĞµÄÎ»ÖÃ,²Î¿¼__wt_page_inmem
 #define pg_row u.row
 
         /* Fixed-length column-store leaf page. */
@@ -810,6 +812,12 @@ struct __wt_page {
 
     //ÔÚ__split_multi_inmem->__wt_page_inmemÖĞ¸³Öµ¸øÁËpage->dsk, ²¢ÔÚÖÃÎªdisk_image=NULL£¬ ËùÒÔÖ¸ÏòµÄÄÚ´æ¿Õ¼äÊµ¼ÊÉÏ±»page->dsk¼Ì³ĞÁË
     //Ò²¾ÍÊÇ¸ÃpageÔÚ´ÅÅÌÉÏµÄÊı¾İÍ¬Ñù»á´æÒ»·İµ½ÄÚ´æÖĞ£¬Ò²¾ÍÊÇÁ½·İÊı¾İ
+
+    //Ëæ×Åsplite²ğ·ÖÍê³É£¬ÀıÈç´ÓÀÏpage²ğ·ÖÎª10¸öĞÂpage£¬ÀÏpage×îÖÕ»áÍ¨¹ı__wt_page_outÊÍ·Å
+    //page->dsk´æ´¢ext´ÅÅÌÍ·²¿µØÖ·£¬page->pg_row[]´æ´¢Êµ¼ÊµÄK»òÕßVÏà¶ÔÍ·²¿µÄ¾àÀë£¬Í¨¹ıpage->dskºÍÕâ¸ö¾àÀë¾Í¿ÉÒÔÈ·¶¨ÔÚ´ÅÅÌextÖĞµÄÎ»ÖÃ,²Î¿¼__wt_page_inmem
+    //__wt_page_out->__wt_overwrite_and_free_lenÖĞÊÍ·Å
+
+    //__wt_cache_bytes_imageÖĞ¼ÇÂ¼×ÜµÄimageÄÚ´æÏûºÄ£¬Ò²¾ÍÊÇĞ´ÈëextÊ±ºòÔÚÄÚ´æÖĞÊµ¼ÊÉÏÓĞÍ¬ÑùÒ»·İµÄÄÚ´æ¼ÆËãÍ³¼Æ
     const WT_PAGE_HEADER *dsk; //¸³Öµ¼û__wt_page_inmem£¬Ö¸Ïò´ÅÅÌÊı¾İ
 
     /* If/when the page is modified, we need lots more information. */
@@ -1060,7 +1068,8 @@ struct __wt_ref {
 #define WT_REF_DELETED 1    /* Page is on disk, but deleted */
 #define WT_REF_LOCKED 2     /* Page locked for exclusive access */
 //ĞÂ´´½¨µÄleaf page¾Í»áÉèÖÃÎª¸Ã×´Ì¬  __wt_btree_new_leaf_page´´½¨leaf pageºó£¬¸Ãleaf page¶ÔÓ¦×´Ì¬ÎªWT_REF_MEM
-//pageÉÏµÄÊı¾İÈ«ÔÚÄÚ´æÖĞ
+//µ±reconcile evict²ğ·ÖpageÎª¶à¸ö£¬²¢ÇÒĞ´Èë´ÅÅÌext£¬ÕâÊ±ºòpage×´Ì¬½øÈëWT_REF_DISK, µ±unpack½â°ü»ñÈ¡µ½¸ÃextµÄËùÓĞK»òÕßVÔÚÏà±ÈextÍ·²¿
+//Æ«ÒÆÁ¿ºó£¬ÖØĞÂÖÃÎªWT_REF_MEM×´Ì¬£¬±íÊ¾ÎÒÃÇÒÑ¾­»ñÈ¡µ½extÖĞ°üº¬µÄËùÓĞKºÍV´ÅÅÌÔªÊı¾İµØÖ·´æ´¢µ½ÁËÄÚ´æpg_rowÖĞ£¬²Î¿¼__wt_multi_to_ref
 #define WT_REF_MEM 3        /* Page is in cache and valid */
 #define WT_REF_SPLIT 4      /* Parent page split (WT_REF dead) */
     //WT_REF_SET_STATE WT_REF_CAS_STATE¸³Öµ

@@ -452,8 +452,10 @@ typedef struct {
  */
 //__wt_rec_row_int中使用
 typedef struct {
+    //internal page对应的子ref状态
     enum {
         WT_CHILD_IGNORE,   /* Ignored child */
+        //例如子ref对应page有修改，但是没有到evict内存阈值，这时候内存中该page就是modifed有修改
         WT_CHILD_MODIFIED, /* Modified child */
         WT_CHILD_ORIGINAL, /* Original child */
         WT_CHILD_PROXY     /* Deleted child: proxy */

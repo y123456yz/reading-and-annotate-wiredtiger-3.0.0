@@ -57,7 +57,7 @@ __wt_page_alloc(
          * Row-store leaf page: allocate memory to describe the page's contents with the initial
          * allocation.
          */
-        //leaf page上面存储的真实KV数据在这里
+        //leaf page上面存储的真实KV数据在这里, 注意这里只分配WT_ROW.__key指针空间
         size += alloc_entries * sizeof(WT_ROW);
         break;
     default:
@@ -343,6 +343,9 @@ err:
  * __wt_page_inmem --
  *     Build in-memory page information.
   //reconcile拆分后每个multi都需要调用一次，用于隐射内存page和磁盘chunk数据
+
+  这里函数名为inmem的原因是，加载磁盘ext中所有K和V的磁盘地址信息到内存pg_row[]中，每个成员实际上存储的是相比ext头部位置的偏移量，
+  也就是该磁盘ext的所有K V地址信息存储到了内存pg_row[]中
  */ //__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf
 int
 __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32_t flags,
@@ -413,7 +416,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
         else if (F_ISSET(dsk, WT_PAGE_EMPTY_V_NONE))
             alloc_entries = dsk->u.entries / 2;
         else
-            //遍历磁盘上一个chunk的所有KV数据，解包每个KV存入unpack，从而获取该chunk总共有多少个KV
+            //遍历磁盘上一个chunk ext的所有KV数据，解包每个KV存入unpack，从而获取该chunk ext总共有多少个KV
             WT_RET(__inmem_row_leaf_entries(session, dsk, &alloc_entries));
         break;
     default:
@@ -421,7 +424,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
     }
 
     /* Allocate and initialize a new WT_PAGE. */
-    //获取一个page，并记录该dsk对应chunk在磁盘上的
+    //获取一个page，并记录该dsk对应chunk在磁盘上的K或者V内容信息，注意这里只分配WT_ROW.__key指针空间
     WT_RET(__wt_page_alloc(session, dsk->type, alloc_entries, true, &page));
     //__split_multi_inmem->__wt_page_inmem可以看出，实际上内存也有一份磁盘完全一样的内存数据，也就是disk_image，最终内存中的数据记录到dsk
     page->dsk = dsk;
@@ -1027,7 +1030,8 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
     /* Walk the page, building indices. */
     rip = page->pg_row;
     //遍历磁盘上面一个chunk的所有KV数据，解包后存入unpack
-    //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
+    //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk对应K或者V地址，参考__wt_cell_unpack_safe
+    //page->dsk存储ext磁盘头部地址，page->pg_row[]存储实际的K或者V相对头部的距离，通过page->dsk和这个距离就可以确定在磁盘ext中的位置
     WT_CELL_FOREACH_KV (session, page->dsk, unpack) {
         switch (unpack.type) {
         case WT_CELL_KEY:
@@ -1116,6 +1120,8 @@ __inmem_row_leaf(WT_SESSION_IMPL *session, WT_PAGE *page, bool *preparedp)
                   __wt_txn_tw_start_visible_all(session, &unpack.tw))))
                 //获取page对应磁盘中的一个V解包后的unpack，然后解析获取对应的key地址赋值给rip，也就是赋值给page->pg_row
                 __wt_row_leaf_value_set(rip - 1, &unpack);
+           // printf("yang test ........__inmem_row_leaf..........page->dsk:%p, disk-len:%u, data:%p\r\n",
+           //     page->dsk, page->dsk->mem_size, (rip-1)->__key);
             break;
         case WT_CELL_VALUE_OVFL:
             break;

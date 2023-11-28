@@ -6,6 +6,119 @@
  * See the file LICENSE for redistribution information.
  */
 
+
+/*
+ * A row-store leaf page key is in one of two places: if instantiated, the WT_ROW pointer
+ * references a WT_IKEY structure, otherwise, it references an on-page item. Further, on-page
+ * items are in one of two states: if the key is a simple key (not an overflow key, which is
+ * likely), the key's offset, size and prefix is encoded in the 8B of pointer. Otherwise, the
+ * offset is to the key's on-page cell.
+ *
+ * This function returns information from a set of things about the key (WT_IKEY reference, cell
+ * reference and/or key/length/prefix triplet). Our callers know the order we resolve items and
+ * what information will be returned. Specifically, the caller gets a key (in the form of a
+ * pointer to the bytes, a length and a prefix length in all cases where we can get it without
+ * unpacking a cell), plus an optional WT_IKEY reference, and in all cases, a pointer to the
+ * on-page cell. Our caller's test is generally if there is a returned key or not, falling back
+ * to the returned cell.
+ *
+ * Now the magic: allocated memory must be aligned to store any standard type and we expect some
+ * standard type to require at least quad-byte alignment, so allocated memory should have two
+ * clear low-order bits. On-page objects consist of an offset/length pair and a prefix in the
+ * case of a key: the maximum page size is 29 bits (512MB), the remaining bits hold the key or
+ * value location and bytes. This breaks if allocated memory isn't aligned, of course.
+ *
+ * In this specific case, we use bit 0x01 to mark an on-page cell, bit 0x02 to mark an on-page
+ * key, 0x03 to mark an on-page key/value pair, otherwise it's a WT_IKEY reference. The bit
+ * pattern for on-page cells is:
+ *
+ *  29 bits		offset of the key's cell (512MB)
+ *   2 bits		0x01 flag
+ *
+ * The on-page cell is our fallback: if a key or value won't fit into our encoding (unlikely,
+ * but possible), we fall back to using a cell reference, which obviously has enough room for
+ * all possible values.
+ *
+ * The next encoding is for on-page keys:
+ *
+ *  19 bits		key's length (512KB)
+ *   6 bits		offset of the key's bytes from the key's cell (32B)
+ *   8 bits		key's prefix length (256B, the maximum possible value)
+ *  29 bits		offset of the key's cell (512MB)
+ *   2 bits		0x02 flag
+ *
+ * But, while that allows us to skip decoding simple key cells, we also want to skip decoding
+ * value cells in the case where the value cell is also simple/short. We use bit 0x03 to mark
+ * an encoded on-page key and value pair. The encoding for on-page key/value pairs is:
+ *
+ *  13 bits		value's length (8KB)
+ *   6 bits		offset of the value's bytes from the end of the key's cell (32B)
+ *  12 bits		key's length (4KB)
+ *   6 bits		offset of the key's bytes from the key's cell (32B)
+ *   8 bits		key's prefix length (256B, the maximum possible value)
+ *  17 bits		offset of the key's cell (128KB)
+ *   2 bits		0x03 flag
+ *
+ * A reason for the complexity here is we need to be able to find the key and value cells from
+ * the encoded form: for that reason we store an offset to the key cell plus a second offset to
+ * the start of the key's bytes. Finding the value cell is reasonably straight-forward, we use
+ * the location of the key to find the cell immediately following the key.
+ *
+ * A simple extension of this encoding would be to encode zero-length values similarly to how we
+ * encode short values. However, zero-length values are noted by adjacent key cells on the page,
+ * and we detect that without decoding the second cell by checking the cell's type byte. Tests
+ * indicate it's slightly slower to encode missing value cells than to check the cell type, so
+ * we don't bother with the encoding.
+ *
+ * Generally, the bitfields are expected to be larger than the stored items (4/8KB keys/values,
+ * 128KB pages), but the underlying limits are larger and we can see items we cannot encode in
+ * this way.  For example, if an application creates pages larger than 128KB, encoded key/value
+ * offsets after the maximum offset (the offsets of cells at the end of the page), couldn't be
+ * encoded. If that's not working, these bit patterns can be changed as they are in-memory only
+ * (we could even tune for specific workloads in specific trees).
+ */
+#define WT_KEY_FLAG_BITS 0x03
+
+#define WT_CELL_FLAG 0x01
+/* key cell offset field size can hold maximum value, WT_CELL_MAX_KEY_CELL_OFFSET not needed. */
+#define WT_CELL_ENCODE_OFFSET(v) ((uintptr_t)(v) << 2)
+#define WT_CELL_DECODE_OFFSET(v) ((v) >> 2)
+
+#define WT_K_FLAG 0x02
+#define WT_K_MAX_KEY_LEN (0x80000 - 1)
+#define WT_K_DECODE_KEY_LEN(v) (((v)&0xffffe00000000000) >> 45)
+#define WT_K_ENCODE_KEY_LEN(v) ((uintptr_t)(v) << 45)
+#define WT_K_MAX_KEY_OFFSET (0x40 - 1)
+#define WT_K_DECODE_KEY_OFFSET(v) (((v)&0x001f8000000000) >> 39)
+#define WT_K_ENCODE_KEY_OFFSET(v) ((uintptr_t)(v) << 39)
+/* Key prefix field size can hold maximum value, WT_K_MAX_KEY_PREFIX not needed. */
+#define WT_K_DECODE_KEY_PREFIX(v) (((v)&0x00007f80000000) >> 31)
+#define WT_K_ENCODE_KEY_PREFIX(v) ((uintptr_t)(v) << 31)
+/* Key cell offset field size can hold maximum value, WT_K_MAX_KEY_CELL_OFFSET not needed. */
+#define WT_K_DECODE_KEY_CELL_OFFSET(v) (((v)&0x0000007ffffffc) >> 2)
+#define WT_K_ENCODE_KEY_CELL_OFFSET(v) ((uintptr_t)(v) << 2)
+
+#define WT_KV_FLAG 0x03
+#define WT_KV_MAX_VALUE_LEN (0x2000 - 1)
+#define WT_KV_DECODE_VALUE_LEN(v) (((v)&0xfff8000000000000) >> 51)
+#define WT_KV_ENCODE_VALUE_LEN(v) ((uintptr_t)(v) << 51)
+#define WT_KV_MAX_VALUE_OFFSET (0x40 - 1)
+#define WT_KV_DECODE_VALUE_OFFSET(v) (((v)&0x07e00000000000) >> 45)
+#define WT_KV_ENCODE_VALUE_OFFSET(v) ((uintptr_t)(v) << 45)
+#define WT_KV_MAX_KEY_LEN (0x1000 - 1)
+#define WT_KV_DECODE_KEY_LEN(v) (((v)&0x001ffe00000000) >> 33)
+#define WT_KV_ENCODE_KEY_LEN(v) ((uintptr_t)(v) << 33)
+/* Key offset encoding is the same for key and key/value forms, WT_KV_MAX_KEY_OFFSET not needed. */
+#define WT_KV_DECODE_KEY_OFFSET(v) (((v)&0x000001f8000000) >> 27)
+#define WT_KV_ENCODE_KEY_OFFSET(v) ((uintptr_t)(v) << 27)
+/* Key prefix encoding is the same for key and key/value forms, WT_KV_MAX_KEY_PREFIX not needed. */
+#define WT_KV_DECODE_KEY_PREFIX(v) (((v)&0x00000007f80000) >> 19)
+#define WT_KV_ENCODE_KEY_PREFIX(v) ((uintptr_t)(v) << 19)
+#define WT_KV_MAX_KEY_CELL_OFFSET (0x20000 - 1)
+#define WT_KV_DECODE_KEY_CELL_OFFSET(v) (((v)&0x0000000007fffc) >> 2)
+#define WT_KV_ENCODE_KEY_CELL_OFFSET(v) ((uintptr_t)(v) << 2)
+
+
 /*
  * __wt_ref_is_root --
  *     Return if the page reference is for the root page.
@@ -994,117 +1107,6 @@ __wt_row_leaf_key_info(WT_PAGE *page, void *copy, WT_IKEY **ikeyp, WT_CELL **cel
 
     v = (uintptr_t)copy;
 
-    /*
-     * A row-store leaf page key is in one of two places: if instantiated, the WT_ROW pointer
-     * references a WT_IKEY structure, otherwise, it references an on-page item. Further, on-page
-     * items are in one of two states: if the key is a simple key (not an overflow key, which is
-     * likely), the key's offset, size and prefix is encoded in the 8B of pointer. Otherwise, the
-     * offset is to the key's on-page cell.
-     *
-     * This function returns information from a set of things about the key (WT_IKEY reference, cell
-     * reference and/or key/length/prefix triplet). Our callers know the order we resolve items and
-     * what information will be returned. Specifically, the caller gets a key (in the form of a
-     * pointer to the bytes, a length and a prefix length in all cases where we can get it without
-     * unpacking a cell), plus an optional WT_IKEY reference, and in all cases, a pointer to the
-     * on-page cell. Our caller's test is generally if there is a returned key or not, falling back
-     * to the returned cell.
-     *
-     * Now the magic: allocated memory must be aligned to store any standard type and we expect some
-     * standard type to require at least quad-byte alignment, so allocated memory should have two
-     * clear low-order bits. On-page objects consist of an offset/length pair and a prefix in the
-     * case of a key: the maximum page size is 29 bits (512MB), the remaining bits hold the key or
-     * value location and bytes. This breaks if allocated memory isn't aligned, of course.
-     *
-     * In this specific case, we use bit 0x01 to mark an on-page cell, bit 0x02 to mark an on-page
-     * key, 0x03 to mark an on-page key/value pair, otherwise it's a WT_IKEY reference. The bit
-     * pattern for on-page cells is:
-     *
-     *  29 bits		offset of the key's cell (512MB)
-     *   2 bits		0x01 flag
-     *
-     * The on-page cell is our fallback: if a key or value won't fit into our encoding (unlikely,
-     * but possible), we fall back to using a cell reference, which obviously has enough room for
-     * all possible values.
-     *
-     * The next encoding is for on-page keys:
-     *
-     *  19 bits		key's length (512KB)
-     *   6 bits		offset of the key's bytes from the key's cell (32B)
-     *   8 bits		key's prefix length (256B, the maximum possible value)
-     *  29 bits		offset of the key's cell (512MB)
-     *   2 bits		0x02 flag
-     *
-     * But, while that allows us to skip decoding simple key cells, we also want to skip decoding
-     * value cells in the case where the value cell is also simple/short. We use bit 0x03 to mark
-     * an encoded on-page key and value pair. The encoding for on-page key/value pairs is:
-     *
-     *  13 bits		value's length (8KB)
-     *   6 bits		offset of the value's bytes from the end of the key's cell (32B)
-     *  12 bits		key's length (4KB)
-     *   6 bits		offset of the key's bytes from the key's cell (32B)
-     *   8 bits		key's prefix length (256B, the maximum possible value)
-     *  17 bits		offset of the key's cell (128KB)
-     *   2 bits		0x03 flag
-     *
-     * A reason for the complexity here is we need to be able to find the key and value cells from
-     * the encoded form: for that reason we store an offset to the key cell plus a second offset to
-     * the start of the key's bytes. Finding the value cell is reasonably straight-forward, we use
-     * the location of the key to find the cell immediately following the key.
-     *
-     * A simple extension of this encoding would be to encode zero-length values similarly to how we
-     * encode short values. However, zero-length values are noted by adjacent key cells on the page,
-     * and we detect that without decoding the second cell by checking the cell's type byte. Tests
-     * indicate it's slightly slower to encode missing value cells than to check the cell type, so
-     * we don't bother with the encoding.
-     *
-     * Generally, the bitfields are expected to be larger than the stored items (4/8KB keys/values,
-     * 128KB pages), but the underlying limits are larger and we can see items we cannot encode in
-     * this way.  For example, if an application creates pages larger than 128KB, encoded key/value
-     * offsets after the maximum offset (the offsets of cells at the end of the page), couldn't be
-     * encoded. If that's not working, these bit patterns can be changed as they are in-memory only
-     * (we could even tune for specific workloads in specific trees).
-     */
-#define WT_KEY_FLAG_BITS 0x03
-
-#define WT_CELL_FLAG 0x01
-/* key cell offset field size can hold maximum value, WT_CELL_MAX_KEY_CELL_OFFSET not needed. */
-#define WT_CELL_ENCODE_OFFSET(v) ((uintptr_t)(v) << 2)
-#define WT_CELL_DECODE_OFFSET(v) ((v) >> 2)
-
-#define WT_K_FLAG 0x02
-#define WT_K_MAX_KEY_LEN (0x80000 - 1)
-#define WT_K_DECODE_KEY_LEN(v) (((v)&0xffffe00000000000) >> 45)
-#define WT_K_ENCODE_KEY_LEN(v) ((uintptr_t)(v) << 45)
-#define WT_K_MAX_KEY_OFFSET (0x40 - 1)
-#define WT_K_DECODE_KEY_OFFSET(v) (((v)&0x001f8000000000) >> 39)
-#define WT_K_ENCODE_KEY_OFFSET(v) ((uintptr_t)(v) << 39)
-/* Key prefix field size can hold maximum value, WT_K_MAX_KEY_PREFIX not needed. */
-#define WT_K_DECODE_KEY_PREFIX(v) (((v)&0x00007f80000000) >> 31)
-#define WT_K_ENCODE_KEY_PREFIX(v) ((uintptr_t)(v) << 31)
-/* Key cell offset field size can hold maximum value, WT_K_MAX_KEY_CELL_OFFSET not needed. */
-#define WT_K_DECODE_KEY_CELL_OFFSET(v) (((v)&0x0000007ffffffc) >> 2)
-#define WT_K_ENCODE_KEY_CELL_OFFSET(v) ((uintptr_t)(v) << 2)
-
-#define WT_KV_FLAG 0x03
-#define WT_KV_MAX_VALUE_LEN (0x2000 - 1)
-#define WT_KV_DECODE_VALUE_LEN(v) (((v)&0xfff8000000000000) >> 51)
-#define WT_KV_ENCODE_VALUE_LEN(v) ((uintptr_t)(v) << 51)
-#define WT_KV_MAX_VALUE_OFFSET (0x40 - 1)
-#define WT_KV_DECODE_VALUE_OFFSET(v) (((v)&0x07e00000000000) >> 45)
-#define WT_KV_ENCODE_VALUE_OFFSET(v) ((uintptr_t)(v) << 45)
-#define WT_KV_MAX_KEY_LEN (0x1000 - 1)
-#define WT_KV_DECODE_KEY_LEN(v) (((v)&0x001ffe00000000) >> 33)
-#define WT_KV_ENCODE_KEY_LEN(v) ((uintptr_t)(v) << 33)
-/* Key offset encoding is the same for key and key/value forms, WT_KV_MAX_KEY_OFFSET not needed. */
-#define WT_KV_DECODE_KEY_OFFSET(v) (((v)&0x000001f8000000) >> 27)
-#define WT_KV_ENCODE_KEY_OFFSET(v) ((uintptr_t)(v) << 27)
-/* Key prefix encoding is the same for key and key/value forms, WT_KV_MAX_KEY_PREFIX not needed. */
-#define WT_KV_DECODE_KEY_PREFIX(v) (((v)&0x00000007f80000) >> 19)
-#define WT_KV_ENCODE_KEY_PREFIX(v) ((uintptr_t)(v) << 19)
-#define WT_KV_MAX_KEY_CELL_OFFSET (0x20000 - 1)
-#define WT_KV_DECODE_KEY_CELL_OFFSET(v) (((v)&0x0000000007fffc) >> 2)
-#define WT_KV_ENCODE_KEY_CELL_OFFSET(v) ((uintptr_t)(v) << 2)
-
     switch (v & WT_KEY_FLAG_BITS) {
     case WT_CELL_FLAG: /* On-page cell. */
         if (ikeyp != NULL)
@@ -1179,6 +1181,7 @@ __wt_row_leaf_key_set(WT_PAGE *page, WT_ROW *rip, WT_CELL_UNPACK_KV *unpack)
     key_offset = (uintptr_t)WT_PTRDIFF(unpack->data, unpack->cell);
     if (unpack->type != WT_CELL_KEY || key_offset > WT_K_MAX_KEY_OFFSET ||
       unpack->size > WT_K_MAX_KEY_LEN)
+        //也就是该v离该ext(WT_BLOCK_HEADER_BYTE_SIZE+多个KV数据)起始地址的距离
         v = WT_CELL_ENCODE_OFFSET(WT_PAGE_DISK_OFFSET(page, unpack->cell)) | WT_CELL_FLAG;
     else
         v = WT_K_ENCODE_KEY_CELL_OFFSET(WT_PAGE_DISK_OFFSET(page, unpack->cell)) |
