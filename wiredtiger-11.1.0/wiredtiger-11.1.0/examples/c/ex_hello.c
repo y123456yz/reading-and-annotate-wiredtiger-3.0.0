@@ -121,7 +121,7 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "create,verbose=[config_all_verbos:5, metadata:3, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "create,eviction_target=96,eviction_trigger=99, verbose=[config_all_verbos:5, metadata:0, api:0]", &conn));
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));
@@ -147,6 +147,9 @@ access_example(int argc, char *argv[])
             cursor->set_value(cursor, "old value  ###############################################################################################################################################################################################################\0");
             error_check(cursor->insert(cursor));
         }
+
+        testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, verbose=[config_all_verbos:4, metadata:2, api:2]"));
+        
          error_check(cursor->close(cursor));
 
         /*! [access example cursor insert] */

@@ -745,6 +745,7 @@ __btree_tree_open_empty(WT_SESSION_IMPL *session, bool creation)
         ref->addr = NULL;
         F_SET(ref, WT_REF_FLAG_LEAF);
         WT_REF_SET_STATE(ref, WT_REF_DELETED);
+        //__wt_rec_row_int 每一层internal page中最左边的page对应的ref key="",长度写死为1，1是因为有个'\0'，和这里的规则实际上一致
         WT_ERR(__wt_row_ikey_incr(session, root, 0, "", 1, ref));
         break;
     }

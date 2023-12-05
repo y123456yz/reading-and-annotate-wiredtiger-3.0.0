@@ -1302,6 +1302,7 @@ err:
     API_END_RET(session, ret);
 }
 
+
 /*
  * __conn_open_session --
  *     WT_CONNECTION->open_session method.

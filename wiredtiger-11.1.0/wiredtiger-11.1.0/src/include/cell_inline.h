@@ -198,6 +198,7 @@ __cell_pack_addr_validity(WT_SESSION_IMPL *session, uint8_t **pp, WT_TIME_AGGREG
  * __wt_cell_pack_addr --
  *     Pack an address cell.
  */
+//WT_TIME_AGGREGATE信息封包存储到__chunk
 static inline size_t
 __wt_cell_pack_addr(WT_SESSION_IMPL *session, WT_CELL *cell, u_int cell_type, uint64_t recno,
   WT_PAGE_DELETED *page_del, WT_TIME_AGGREGATE *ta, size_t size)

@@ -350,6 +350,7 @@ yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:2866
      * nothing can sort less by definition. There's some trickiness here, see the code for comments
      * on how these fields work.
      */
+    //确保每一层internal page中最左边的page对应的ref key="",长度写死为1，1是因为有个'\0'
     bool cell_zero; /* Row-store internal page 0th key */
 
     /*

@@ -28,19 +28,44 @@ static int __block_ext_overlap(
 static int __block_extlist_dump(WT_SESSION_IMPL *, WT_BLOCK *, WT_EXTLIST *, const char *);
 static int __block_merge(WT_SESSION_IMPL *, WT_BLOCK *, WT_EXTLIST *, wt_off_t, wt_off_t);
 
+
+static inline void
+print_extent_list(WT_EXTLIST *el)
+{
+    WT_EXT *extp;
+
+    if (el->off[0] == NULL)
+        return;
+        
+    extp = el->off[0];
+    printf("yang test .................print_extent_list..........\r\n");
+    while (extp != NULL) {
+        printf("%p -> ", extp);
+        extp = extp->next[0];
+    }
+
+    printf("NULL -> %p\r\n", el->last);
+}
+
+
 /*
  * __block_off_srch_last --
  *     Return the last element in the list, along with a stack for appending.
  */
 //获取head对应跳表的最后一个WT_EXT成员
 static inline WT_EXT *
-__block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
+__block_off_srch_last(WT_EXTLIST *el, WT_EXT ***stack, bool need_traverse)
 {
     WT_EXT **extp, *last;
+    WT_EXT **head;
     int i;
-
+    
+    if (need_traverse == false)
+        return el->last;
+    
     last = NULL; /* The list may be empty */
-
+    head = el->off;
+    
     /*
      * Start at the highest skip level, then go as far as possible at each level before stepping
      * down to the next.
@@ -430,6 +455,9 @@ __block_off_remove(
         } else {
             el->last = penultimate_ext;
         }
+
+        printf("yang test ............__block_off_remove:");
+        print_extent_list(el);
     }
     return (0);
 
@@ -670,8 +698,8 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
      *
      * If we don't have anything big enough, extend the file.
      */
-    printf("yang test .................__block_append....block->live.avail.bytes:%d............ext entries:%d\r\n", 
-        (int)block->live.avail.bytes, (int)block->live.alloc.entries);
+   // printf("yang test .................__block_append....block->live.avail.bytes:%d............ext entries:%d\r\n", 
+   //     (int)block->live.avail.bytes, (int)block->live.alloc.entries);
     //block->live.avail.bytes也就是block_reuse_bytes file bytes available for reuse
     //也就是avail中可重复利用的空间不够，则在append中重新alloc新的ext来保存[off, size]
     if (block->live.avail.bytes < (uint64_t)size)
@@ -701,7 +729,7 @@ append:
 
     //走这里说明直接利用avail中可重复利用的ext来存储[off, size]
     
-    printf("yang test .................__wt_block_alloc......2222222.............\r\n");
+   // printf("yang test .................__wt_block_alloc......2222222.............\r\n");
     //参考debug_wt_block_alloc2.c会走这里
     /* Remove the record, and set the returned offset. */
     WT_RET(__block_off_remove(session, block, &block->live.avail, ext->off, &ext));
@@ -1139,7 +1167,9 @@ __block_append(
         ext->size += size;
     else {
         //从跳跃表中查找获取el->off对应跳表的最后一个WT_EXT成员
-        ext = __block_off_srch_last(el->off, astack);
+        ext = __block_off_srch_last(el, astack, true);
+        printf("yang test ............__block_append:");
+        print_extent_list(el);
         if (ext != NULL && ext->off + ext->size == off)
             ext->size += size;
         else {
@@ -1401,6 +1431,7 @@ __wt_block_extlist_write(
     uint32_t entries;
     uint8_t *p;
 
+    //yang add todo xxxxx 日志完善
     WT_RET(__block_extlist_dump(session, block, el, "write"));
 
     /*
@@ -1477,6 +1508,7 @@ err:
  * __wt_block_extlist_truncate --
  *     Truncate the file based on the last available extent in the list.
  */
+//也就是判断avail的最后一个ext不为NULL，并且最后一个ext就是文件的末尾，说明文件末尾的ext可以truncate
 int
 __wt_block_extlist_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el)
 {
@@ -1487,12 +1519,14 @@ __wt_block_extlist_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIS
      * Check if the last available extent is at the end of the file, and if so, truncate the file
      * and discard the extent.
      */
-    if ((ext = __block_off_srch_last(el->off, astack)) == NULL)
+    if ((ext = __block_off_srch_last(el, astack, false)) == NULL)
         return (0);
     WT_ASSERT(session, ext->off + ext->size <= block->size);
     if (ext->off + ext->size < block->size)
         return (0);
 
+    //走到这里说明是最后的一个ext, 因为ext->off + ext->size = block->size
+    
     /*
      * Remove the extent list entry. (Save the value, we need it to reset the cached file size, and
      * that can't happen until after the extent list removal succeeds.)
@@ -1614,8 +1648,9 @@ err:
 WT_EXT *
 __ut_block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
 {
-    return (__block_off_srch_last(head, stack));
+    return (__block_off_srch_last(head, stack, true));
 }
+
 
 void
 __ut_block_off_srch(WT_EXT **head, wt_off_t off, WT_EXT ***stack, bool skip_off)

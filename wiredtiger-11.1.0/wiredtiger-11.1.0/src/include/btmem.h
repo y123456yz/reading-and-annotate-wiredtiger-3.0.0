@@ -625,7 +625,7 @@ struct __wt_col_fix_tw {
 /*
  * Macro to walk the list of references in an internal page.
  */
-//遍历获取internal page所包含的所有子ref page
+//遍历获取internal page所包含的所有子ref
 #define WT_INTL_FOREACH_BEGIN(session, page, ref)                                    \
     do {                                                                             \
         WT_PAGE_INDEX *__pindex;                                                     \

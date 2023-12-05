@@ -332,6 +332,7 @@ __wt_rec_auximage_copy(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t count
  * __wt_rec_cell_build_addr --
  *     Process an address or unpack reference and return a cell structure to be stored on the page.
  */
+//addr信息封包存储到r->v中
 static inline void
 __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *addr,
   WT_CELL_UNPACK_ADDR *vpack, uint64_t recno, WT_PAGE_DELETED *page_del)
@@ -393,6 +394,7 @@ __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *add
      * data/length fields.
      */
     if (vpack == NULL) {
+        //获取addr对应WT_ADDR信息存入val(r->v)中
         WT_ASSERT(session, addr != NULL);
         val->buf.data = addr->addr;
         val->buf.size = addr->size;
@@ -403,6 +405,7 @@ __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *add
     }
 
     val->cell_len =
+      //WT_TIME_AGGREGATE信息封包存储到__chunk
       __wt_cell_pack_addr(session, &val->cell, cell_type, recno, page_del, ta, val->buf.size);
     val->len = val->cell_len + val->buf.size;
 }

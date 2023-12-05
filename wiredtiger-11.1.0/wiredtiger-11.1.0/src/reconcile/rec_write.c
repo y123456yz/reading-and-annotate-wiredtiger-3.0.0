@@ -26,6 +26,13 @@ static int __reconcile(WT_SESSION_IMPL *, WT_REF *, WT_SALVAGE_COOKIE *, uint32_
  * __wt_reconcile --
  *     Reconcile an in-memory page into its on-disk format, and write it.
  */
+//checkpoint流程:
+//    __checkpoint_tree->__wt_sync_file，注意这个流程只会把拆分后的元数据记录到multi_next个multi[multi_next]中，但是不会通过__evict_page_dirty_update和父page关联
+//    而是通过__wt_rec_row_int->__rec_row_merge中获取multi[multi_next]进行持久化
+//evict reconcile流程:
+//    __evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
+//    __evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
+
 int
 __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, uint32_t flags)
 {
@@ -1019,6 +1026,7 @@ __rec_split_chunk_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *
  * __wt_rec_split_init --
  *     Initialization for the reconciliation split functions.
  */
+//reconcile相关的初始化工作，指定成员赋值
 int
 __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, uint64_t recno,
   uint64_t primary_size, uint32_t auxiliary_size)

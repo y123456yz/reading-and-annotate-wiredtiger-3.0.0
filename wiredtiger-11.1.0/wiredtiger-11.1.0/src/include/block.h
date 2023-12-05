@@ -50,6 +50,7 @@
  */
 //跳跃表图解参考https://www.jb51.net/article/199510.htm
 //__wt_block_ckpt的alloc avail discard为该类型
+//__wt_block_alloc中如果需要从avail中获取指定size的ext, 有了size跳跃表，可以方便快速查找指定长度可用的ext
 struct __wt_extlist {
     //赋值见__wt_block_extlist_init
     char *name; /* Name */
@@ -185,8 +186,10 @@ There are three extent lists that are maintained per checkpoint:
 The alloc and discard extent lists are maintained as a skiplist sorted by file offset.
 The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
 */
+    //ckpt_avail、ckpt_alloc、ckpt_discard用于checkpoint相关的ext管理，alloc、avail、discard用户普通reconcile evict
     WT_EXTLIST alloc;   /* Extents allocated */ //__wt_block_alloc中分配ext空间，添加到alloc跳跃表中
     //从alloc跳跃表中被删除的offset对应的ext重新添加到avail中，代表的实际上就是磁盘碎片，也就是可重用的空间，参考__wt_block_off_free
+    //__wt_block_alloc中如果需要从avail中获取指定size的ext, 有了size跳跃表，可以方便快速查找指定长度可用的ext
     WT_EXTLIST avail;   /* Extents available */
     //从alloc跳跃表中删除某个范围的ext，如果alloc跳跃表中没找到，则这个要删除范围对应的ext添加到discard跳跃表中，参考__wt_block_off_free
     WT_EXTLIST discard; /* Extents discarded */
@@ -194,9 +197,10 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     wt_off_t file_size; /* Checkpoint file size */
     uint64_t ckpt_size; /* Checkpoint byte count */
 
-    //分配空间__ckpt_process
+    //ckpt_avail、ckpt_alloc、ckpt_discard用于checkpoint相关的ext管理，alloc、avail、discard用户普通reconcile evict
+    
+    //分配空间__ckpt_process  
     WT_EXTLIST ckpt_avail; /* Checkpoint free'd extents */
-
     /*
      * Checkpoint archive: the block manager may potentially free a lot of memory from the
      * allocation and discard extent lists when checkpoint completes. Put it off until the

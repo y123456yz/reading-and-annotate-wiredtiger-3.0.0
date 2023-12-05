@@ -560,6 +560,7 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
      * waiting allows the btree layer to continue eviction sooner. As for the checkpoint-available
      * list, make sure they get cleaned out.
      */
+    //ckpt_avail、ckpt_alloc、ckpt_discard用于checkpoint相关的ext管理，alloc、avail、discard用户普通reconcile evict
     __wt_block_extlist_free(session, &ci->ckpt_avail);
     WT_RET(__wt_block_extlist_init(session, &ci->ckpt_avail, "live", "ckpt_avail", true));
     __wt_block_extlist_free(session, &ci->ckpt_alloc);
@@ -739,6 +740,7 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
 
 live_update:
     /* Truncate the file if that's possible. */
+    //也就是判断avail的最后一个ext不为NULL，并且最后一个ext就是文件的末尾，说明文件末尾的ext可以truncate
     WT_ERR(__wt_block_extlist_truncate(session, block, &ci->avail));
 
     /* Update the final, added checkpoint based on the live system. */

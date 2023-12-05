@@ -119,7 +119,8 @@ __bm_block_header(WT_BM *bm)
  * __bm_checkpoint --
  *     Write a buffer into a block, creating a checkpoint.
  */
-//__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+//reconcile evict流程: __rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+//checkpoint流程: __rec_write->__wt_blkcache_write->__bm_write->__wt_block_write
 static int
 __bm_checkpoint(
   WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, WT_CKPT *ckptbase, bool data_checksum)
@@ -714,6 +715,10 @@ __bm_verify_start(WT_BM *bm, WT_SESSION_IMPL *session, WT_CKPT *ckptbase, const 
  //buf数据内容 = 包括page header + block header + 实际数据
  //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
  */
+
+//reconcile evict流程: __rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+//checkpoint流程: __rec_write->__wt_blkcache_write->__bm_write->__wt_block_write
+
 
 //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
 

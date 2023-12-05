@@ -401,7 +401,7 @@ __sync_page_skip(
 /*
  * __wt_sync_file --
  *     Flush pages for a specific file.
- //__checkpoint_tree
+ //__checkpoint_tree->__wt_sync_file
  */
 int
 __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
@@ -461,7 +461,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
         if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT))
             LF_SET(WT_READ_VISIBLE_ALL);
 
-        for (;;) {
+        for (;;) {//遍历整个btree，先扫描最下层的leaf page，然后在逐层获取internal page
             WT_ERR(__wt_tree_walk(session, &walk, flags));
             if (walk == NULL)
                 break;
@@ -477,6 +477,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
                     __wt_txn_get_snapshot(session);
                 leaf_bytes += page->memory_footprint;
                 ++leaf_pages;
+                //对遍历出的page执行reconcile
                 WT_ERR(__wt_reconcile(session, walk, NULL, WT_REC_CHECKPOINT));
             }
         }
