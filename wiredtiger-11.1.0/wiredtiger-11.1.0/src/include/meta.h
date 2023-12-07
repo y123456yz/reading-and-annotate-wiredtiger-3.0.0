@@ -166,6 +166,9 @@ struct __wt_ckpt {
 
     //赋值参考__wt_meta_block_metadata
     char *block_metadata;   /* Block-stored metadata */
+    //把所有checkpoint核心元数据: 【root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息
+    //  +avail跳表持久化到磁盘的核心元数据信息】转换为wiredtiger.wt中对应的checkpoint=xxx字符串
+    //转换后的字符串存储到block_checkpoint中，赋值参考__ckpt_update
     char *block_checkpoint; /* Block-stored checkpoint */
 
     WT_BLOCK_MODS backup_blocks[WT_BLKINCR_MAX];
@@ -174,6 +177,7 @@ struct __wt_ckpt {
     WT_TIME_AGGREGATE ta; /* Validity window */
 
     WT_ITEM addr; /* Checkpoint cookie string */
+    //赋值参考__ckpt_update
     WT_ITEM raw;  /* Checkpoint cookie raw */
 
     //创建空间及初始化__ckpt_extlist_read, 类型为WT_BLOCK_CKPT

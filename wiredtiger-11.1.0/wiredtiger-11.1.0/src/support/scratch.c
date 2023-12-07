@@ -231,6 +231,8 @@ err:
  * __wt_buf_set_size --
  *     Set the contents of the buffer to a printable representation of a byte size.
  */
+//例如2326528，2326528/1024/1024= 2MB  
+//字节转换为M G T P E
 const char *
 __wt_buf_set_size(WT_SESSION_IMPL *session, uint64_t size, bool exact, WT_ITEM *buf)
 {

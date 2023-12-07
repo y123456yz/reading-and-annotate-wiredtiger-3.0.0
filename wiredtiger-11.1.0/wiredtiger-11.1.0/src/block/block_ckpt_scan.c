@@ -37,6 +37,7 @@
 /*
  * __wt_block_checkpoint_final --
  *     Append metadata and checkpoint information to a buffer.
+ 在buf中追加checkpoint相关信息
  */
 int
 __wt_block_checkpoint_final(

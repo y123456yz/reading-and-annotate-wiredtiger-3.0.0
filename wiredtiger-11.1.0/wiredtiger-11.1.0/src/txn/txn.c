@@ -112,6 +112,8 @@ __txn_sort_snapshot(WT_SESSION_IMPL *session, uint32_t n, uint64_t snap_max)
 /*
  * __wt_txn_release_snapshot --
  *     Release the snapshot in the current transaction.
+ //[1701957314:925541][56918:0x7fe1ab82e800], close_ckpt: [WT_VERB_CHECKPOINT_PROGRESS][DEBUG_1]: saving checkpoint snapshot 
+ //  min: 10005, snapshot max: 10005 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0) base write gen: 1
  */
 void
 __wt_txn_release_snapshot(WT_SESSION_IMPL *session)

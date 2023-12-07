@@ -53,6 +53,7 @@
  * Size checks: return ENOMEM if not enough room when writing, EINVAL if the length is wrong when
  * reading (presumably the value is corrupted).
  */
+//检查maxl空间是否足够存储l长度
 #define WT_SIZE_CHECK_PACK(l, maxl) WT_RET_TEST((maxl) != 0 && (size_t)(l) > (maxl), ENOMEM)
 #define WT_SIZE_CHECK_UNPACK(l, maxl) WT_RET_TEST((maxl) != 0 && (size_t)(l) > (maxl), EINVAL)
 

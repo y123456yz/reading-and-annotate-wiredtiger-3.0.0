@@ -184,6 +184,12 @@ __wt_block_write_size(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t *sizep)
 }
 
 /*
+ //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_checkpoint->__wt_block_checkpoint
+ 
+ //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
  * __wt_block_write --
  *     Write a buffer into a block, returning the block's address cookie.
  //buf数据内容 = 包括page header + block header + 实际数据
@@ -250,6 +256,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
     /*
      * File checkpoint/recovery magic: done before sizing the buffer as it may grow the buffer.
      */
+    //如果需要对checkpoint元数据信息持久化，则持久化到wiredtiger.wt中
     if (block->final_ckpt != NULL)
         WT_RET(__wt_block_checkpoint_final(session, block, buf, &file_sizep));
 

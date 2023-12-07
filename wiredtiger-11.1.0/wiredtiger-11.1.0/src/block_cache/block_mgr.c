@@ -41,8 +41,8 @@ __bm_close_block(WT_SESSION_IMPL *session, WT_BLOCK *block)
     bool found;
 
     conn = S2C(session);
-
-    __wt_verbose(session, WT_VERB_BLKCACHE, "close: %s", block->name);
+    //yang add todo xxxxxxxx  日志完善
+    __wt_verbose(session, WT_VERB_BLKCACHE, "block close: %s", block->name);
 
     __wt_spin_lock(session, &conn->block_lock);
     if (block->ref > 0 && --block->ref > 0) {
@@ -119,8 +119,17 @@ __bm_block_header(WT_BM *bm)
  * __bm_checkpoint --
  *     Write a buffer into a block, creating a checkpoint.
  */
-//reconcile evict流程: __rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
-//checkpoint流程: __rec_write->__wt_blkcache_write->__bm_write->__wt_block_write
+//checkpoint流程: __rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+//reconcile evict流程: __rec_write->__wt_blkcache_write->__bm_write->__wt_block_write
+
+//internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_checkpoint->__wt_block_checkpoint
+
+//leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
+
+//buf内容为internal page的ref key及其下面所有子page的磁盘元数据信息，参考__wt_rec_row_int
 static int
 __bm_checkpoint(
   WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, WT_CKPT *ckptbase, bool data_checksum)
@@ -131,7 +140,9 @@ __bm_checkpoint(
 
     conn = S2C(session);
     block = bm->block;
-    
+
+    //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息 
+    //然后持久化到磁盘
     WT_RET(__wt_block_checkpoint(session, block, buf, ckptbase, data_checksum));
 
     /*
@@ -714,6 +725,12 @@ __bm_verify_start(WT_BM *bm, WT_SESSION_IMPL *session, WT_CKPT *ckptbase, const 
  *     Write a buffer into a block, returning the block's address cookie.
  //buf数据内容 = 包括page header + block header + 实际数据
  //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
+
+ //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_checkpoint->__wt_block_checkpoint
+
+//leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_write->__wt_block_write
  */
 
 //reconcile evict流程: __rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint

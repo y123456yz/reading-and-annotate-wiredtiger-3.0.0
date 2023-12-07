@@ -1206,6 +1206,7 @@ __cell_unpack_window_cleanup(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk
  * __wt_cell_unpack_addr --
  *     Unpack an address WT_CELL into a structure.
  */
+//∞—cell∂‘”¶WT_ADDR
 static inline void
 __wt_cell_unpack_addr(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CELL *cell,
   WT_CELL_UNPACK_ADDR *unpack_addr)

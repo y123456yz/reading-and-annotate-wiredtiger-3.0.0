@@ -1232,6 +1232,7 @@ err:
     if (cval.val != 0)
         F_SET(conn, WT_CONN_LEAK_MEMORY);
 
+    printf("yang test ...........................__conn_close..\r\n");
     WT_TRET(__wt_connection_close(conn));
 
     /* We no longer have a session, don't try to update it. */
@@ -2258,6 +2259,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
               "Failed to parse verbose option '%s' with value '%" PRId64 "'", ft->name, sval.val);
     }
 
+    conn->verbose[WT_VERB_API] = 0; //yang add test xxxxxxxxxxxx
     return (0);
 }
 

@@ -194,7 +194,10 @@ __wt_block_addr_string(
 /*
  * __block_ckpt_unpack --
  *     Convert a checkpoint cookie into its components.
- */
+  //__wt_block_ckpt_pack和__block_ckpt_unpack对应
+ //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+ 
+ */ //参考__wt_ckpt_verbose阅读，//从checkpoint核心元数据中解析处对应的成员赋值给ci
 static int
 __block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ckpt,
   size_t ckpt_size, WT_BLOCK_CKPT *ci)
@@ -255,7 +258,10 @@ __block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ck
 /*
  * __wt_block_ckpt_unpack --
  *     Convert a checkpoint cookie into its components, block manager version.
+ //__wt_block_ckpt_pack和__block_ckpt_unpack对应
+ //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
  */
+//参考__wt_ckpt_verbose阅读，//从checkpoint核心元数据中解析处对应的成员赋值给ci
 int
 __wt_block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ckpt,
   size_t ckpt_size, WT_BLOCK_CKPT *ci)
@@ -280,7 +286,11 @@ __wt_block_ckpt_decode(WT_SESSION *wt_session, WT_BLOCK *block, const uint8_t *c
 /*
  * __wt_block_ckpt_pack --
  *     Convert the components into its checkpoint cookie.
+  //__wt_block_ckpt_pack和__block_ckpt_unpack对应
+ //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+ 
  */
+//封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 int
 __wt_block_ckpt_pack(
   WT_SESSION_IMPL *session, WT_BLOCK *block, uint8_t **pp, WT_BLOCK_CKPT *ci, bool skip_avail)
@@ -290,6 +300,7 @@ __wt_block_ckpt_pack(
     if (ci->version != WT_BM_CHECKPOINT_VERSION)
         WT_RET_MSG(session, WT_ERROR, "unsupported checkpoint version");
 
+    //填充version字段
     (*pp)[0] = ci->version;
     (*pp)++;
 
@@ -298,6 +309,7 @@ __wt_block_ckpt_pack(
      *
      * Passing an object ID of 0 so the pack function doesn't store an object ID.
      */
+    //把internal page
     WT_RET(__wt_block_addr_pack(block, pp, 0, ci->root_offset, ci->root_size, ci->root_checksum));
     WT_RET(
       __wt_block_addr_pack(block, pp, 0, ci->alloc.offset, ci->alloc.size, ci->alloc.checksum));
@@ -326,10 +338,16 @@ __wt_block_ckpt_pack(
 /*
  * __wt_ckpt_verbose --
  *     Display a printable string representation of a checkpoint.
+ //[1701918183:985010][29780:0x7f475f045800], file:access.wt, close_ckpt: [WT_VERB_CHECKPOINT][DEBUG_4]: access.wt: 
+ //create: WiredTigerCheckpoint: version=1, object ID=0, root=[1470464-1474560, 4096, 3802611306], alloc=[1474560-1478656, 4096, 976509849], 
+ //avail=[1478656-1482752, 4096, 3835723351], discard=[Empty], file size=2363392, checkpoint size=2322432
  */
+//checkpoint对应持久化日志信息
 void
-__wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag, const char *ckpt_name,
-  const uint8_t *ckpt_string, size_t ckpt_size)
+__wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag, 
+    //ckpt_name代表checkpoint的核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+    const char *ckpt_name,
+    const uint8_t *ckpt_string, size_t ckpt_size)
 {
     WT_BLOCK_CKPT *ci, _ci;
     WT_DECL_ITEM(tmp);
@@ -345,6 +363,7 @@ __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag, co
     /* Initialize the checkpoint, crack the cookie. */
     ci = &_ci;
     WT_ERR(__wt_block_ckpt_init(session, ci, "string"));
+    //从checkpoint核心元数据中解析处对应的成员赋值
     WT_ERR(__wt_block_ckpt_unpack(session, block, ckpt_string, ckpt_size, ci));
 
     WT_ERR(__wt_scr_alloc(session, 0, &tmp));

@@ -616,6 +616,7 @@ __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *paren
     __wt_free(session, ref->page_del);
 
     /* Free the backing block and address. */
+    printf("yang test ...................__split_parent_discard_ref............ \r\n");
     WT_TRET(__wt_ref_block_free(session, ref));
 
     /*

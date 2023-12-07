@@ -62,7 +62,7 @@ struct __wt_extlist {
     //也就是跳跃表中ext的个数,也就是off跳表中的ext个数
     uint32_t entries; /* Entry count */
 
-    //赋值参考__wt_block_extlist_write
+    //赋值参考__wt_block_extlist_write，也就是跳表持久化到磁盘的核心元数据信息
     uint32_t objectid; /* Written object ID */
     wt_off_t offset;   /* Written extent offset */
     uint32_t checksum; /* Written extent checksum */
@@ -174,6 +174,9 @@ struct __wt_block_ckpt {
 
     //__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
     //如果是因为checkpoint进行reconcile，则写入磁盘后的元数据记录到这几个变量中
+
+    //__wt_rec_row_int把该internal page的ref key及其下面所有子page的磁盘元数据信息写入到一个新的ext持久化
+    //配合__wt_ckpt_verbose阅读, 这里存储的就是__wt_rec_row_int封包的internal ref key+该internal page下面的持久化后在磁盘的元数据信息
     uint32_t root_objectid;
     wt_off_t root_offset; /* The root */
     uint32_t root_checksum, root_size;
@@ -186,7 +189,8 @@ There are three extent lists that are maintained per checkpoint:
 The alloc and discard extent lists are maintained as a skiplist sorted by file offset.
 The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
 */
-    //ckpt_avail、ckpt_alloc、ckpt_discard用于checkpoint相关的ext管理，alloc、avail、discard用户普通reconcile evict
+    //ext信息打印可以配合__wt_ckpt_verbose阅读
+    
     WT_EXTLIST alloc;   /* Extents allocated */ //__wt_block_alloc中分配ext空间，添加到alloc跳跃表中
     //从alloc跳跃表中被删除的offset对应的ext重新添加到avail中，代表的实际上就是磁盘碎片，也就是可重用的空间，参考__wt_block_off_free
     //__wt_block_alloc中如果需要从avail中获取指定size的ext, 有了size跳跃表，可以方便快速查找指定长度可用的ext
@@ -194,10 +198,11 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     //从alloc跳跃表中删除某个范围的ext，如果alloc跳跃表中没找到，则这个要删除范围对应的ext添加到discard跳跃表中，参考__wt_block_off_free
     WT_EXTLIST discard; /* Extents discarded */
 
+    //赋值参考__ckpt_update， 也就是block->size，也就是做checkpoint时候的文件大小
     wt_off_t file_size; /* Checkpoint file size */
+    //赋值见__ckpt_process，
+    //ckpt_size实际上就是真实ext数据空间=file_size - avail空间(也就是磁盘碎片)
     uint64_t ckpt_size; /* Checkpoint byte count */
-
-    //ckpt_avail、ckpt_alloc、ckpt_discard用于checkpoint相关的ext管理，alloc、avail、discard用户普通reconcile evict
     
     //分配空间__ckpt_process  
     WT_EXTLIST ckpt_avail; /* Checkpoint free'd extents */
@@ -206,6 +211,9 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
      * allocation and discard extent lists when checkpoint completes. Put it off until the
      * checkpoint resolves, that lets the upper btree layer continue eviction sooner.
      */
+
+    //alloc、discard临时赋值给ckpt_alloc、ckpt_discard，因为alloc discard跳表上有很多ext，遍历是否内存非常耗时，因此在外层释放，避免lock过程太长
+    //参考__ckpt_process
     WT_EXTLIST ckpt_alloc;   /* Checkpoint archive */
     WT_EXTLIST ckpt_discard; /* Checkpoint archive */
 };
@@ -247,6 +255,7 @@ struct __wt_bm {
     int (*read)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, const uint8_t *, size_t);
     int (*salvage_end)(WT_BM *, WT_SESSION_IMPL *);
     int (*salvage_next)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t *, bool *);
+    //__bm_salvage_start
     int (*salvage_start)(WT_BM *, WT_SESSION_IMPL *);
     int (*salvage_valid)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t, bool);
     int (*size)(WT_BM *, WT_SESSION_IMPL *, wt_off_t *);
@@ -282,6 +291,7 @@ struct __wt_bm {
  */
 //分配空间和赋值见__wt_block_open， btree->bm  __wt_bm.block为该类型
 struct __wt_block {
+    //例如access.wt
     const char *name;  /* Name */
     //__wt_block_open中赋值
     uint32_t objectid; /* Object id */

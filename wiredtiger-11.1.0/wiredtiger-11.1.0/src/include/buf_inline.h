@@ -47,6 +47,7 @@ __wt_buf_extend(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
  *     Create an empty buffer at a specific size.
  */
 //例如前缀压缩就会用到mem空间 参考__wt_row_leaf_key_work
+//内存复用参考__ckpt_update->__wt_buf_init
 static inline int
 __wt_buf_init(WT_SESSION_IMPL *session, WT_ITEM *buf, size_t size)
 {

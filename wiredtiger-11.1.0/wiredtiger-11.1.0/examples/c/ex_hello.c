@@ -121,14 +121,14 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "create,eviction_target=96,eviction_trigger=99, verbose=[config_all_verbos:5, metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "create,eviction_target=96,eviction_trigger=99, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));
         /*! [access example connection] */
 
         /*! [access example table create] */
-        error_check(session->create(session, "table:access", "key_format=S,value_format=S"));
+        error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=S,value_format=S"));
         /*! [access example table create] */
 
         /*! [access example cursor open] */

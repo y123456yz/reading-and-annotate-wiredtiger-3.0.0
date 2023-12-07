@@ -86,7 +86,7 @@ struct __wt_page_header {
         uint32_t datalen; /* 20-23: overflow data length */
     } u;
 
-    //也就是对应page类型，例如WT_PAGE_ROW_LEAF
+    //也就是对应page类型，例如WT_PAGE_ROW_LEAF WT_PAGE_BLOCK_MANAGER(表示checkpoint的ext)
     uint8_t type; /* 24: page type */
 
 /*
@@ -776,6 +776,7 @@ struct __wt_page {
 #define WT_PAGE_IS_INTERNAL(page) \
     ((page)->type == WT_PAGE_COL_INT || (page)->type == WT_PAGE_ROW_INT)
 #define WT_PAGE_INVALID 0       /* Invalid page */
+//__wt_block_extlist_write，表示checkpoint的ext
 #define WT_PAGE_BLOCK_MANAGER 1 /* Block-manager page */
 #define WT_PAGE_COL_FIX 2       /* Col-store fixed-len leaf */
 #define WT_PAGE_COL_INT 3       /* Col-store internal page */

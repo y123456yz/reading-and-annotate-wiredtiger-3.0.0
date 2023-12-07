@@ -74,6 +74,7 @@ __wt_backup_open(WT_SESSION_IMPL *session)
          * general configuration in the global table.
          */
         blkincr = &conn->incr_backups[i++];
+        printf("yang test .....................__wt_backup_open.......\r\n");
         F_SET(conn, WT_CONN_INCR_BACKUP);
         WT_ERR(__wt_strndup(session, k.str, k.len, &blkincr->id_str));
         WT_ERR(__wt_config_subgets(session, &v, "granularity", &b));
@@ -488,6 +489,7 @@ __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[
             __wt_verbose(session, WT_VERB_BACKUP, "Backup config set granularity value %" PRIu64,
               conn->incr_granularity);
         }
+        printf("yang test .....................__backup_config.......\r\n");
         /* Granularity can only be set once at the beginning */
         F_SET(conn, WT_CONN_INCR_BACKUP);
         incremental_config = true;

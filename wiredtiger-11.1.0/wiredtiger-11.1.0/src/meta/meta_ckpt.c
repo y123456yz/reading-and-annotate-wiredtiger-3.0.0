@@ -513,7 +513,7 @@ __wt_meta_block_metadata(WT_SESSION_IMPL *session, const char *config, WT_CKPT *
       "encryption=%.*s,block_metadata_encrypted=%s,block_metadata=[%.*s]", (int)cval.len, cval.str,
       kencryptor == NULL ? "false" : "true", (int)metadata_len, metadata));
     WT_ERR(__wt_strndup(session, b->data, b->size, &ckpt->block_metadata));
-    printf("yang test ...........__wt_meta_block_metadata........block_metadata:%s\r\n", ckpt->block_metadata);
+   // printf("yang test ...........__wt_meta_block_metadata........block_metadata:%s\r\n", ckpt->block_metadata);
 
 err:
     __wt_scr_free(session, &a);
@@ -1159,6 +1159,8 @@ err:
  * __wt_meta_ckptlist_to_meta --
  *     Convert a checkpoint list into its metadata representation.
  */
+//把所有checkpoint核心元数据: 【root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息
+//  +avail跳表持久化到磁盘的核心元数据信息】转换为wiredtiger.wt中对应的checkpoint=xxx字符串
 int
 __wt_meta_ckptlist_to_meta(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_ITEM *buf)
 {

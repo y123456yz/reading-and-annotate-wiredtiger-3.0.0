@@ -305,6 +305,14 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
  * __wt_rec_row_int --
  *     Reconcile a row-store internal page.
 
+//internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+
+//leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
+
+
   //checkpoint流程:
  //    __checkpoint_tree->__wt_sync_file，注意这个流程只会把拆分后的元数据记录到multi_next个multi[multi_next]中，但是不会通过__evict_page_dirty_update和父page关联
  //    而是通过__wt_rec_row_int->__rec_row_merge中获取multi[multi_next]进行持久化
@@ -312,8 +320,9 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
  //    __evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
  //    __evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
  */
-//把该internal page的ref key及其下面所有子page的磁盘元数据信息写入到一个新的ext持久化(__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint)
-int
+//__reconcile->__wt_rec_row_int
+//__wt_rec_row_int把该internal page的ref key及其下面所有子page的磁盘元数据信息写入到一个新的ext持久化(__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint)
+int 
 __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 {
     WT_ADDR *addr;
@@ -501,7 +510,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         //例如root的ref key也是这个规则，参考__btree_tree_open_empty
         if (r->cell_zero)
             size = 1;
-        //把该page对应持久化的addr信息封包存储到r->v中
+        //把该page对应ref key封包到r->k中
         WT_ERR(__rec_cell_build_int_key(session, r, p, size));
         r->cell_zero = false;
 

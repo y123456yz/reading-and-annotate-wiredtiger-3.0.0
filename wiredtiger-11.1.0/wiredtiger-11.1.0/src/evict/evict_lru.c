@@ -247,7 +247,7 @@ __wt_evict_server_wake(WT_SESSION_IMPL *session)
           bytes_inuse <= bytes_max ? "<=" : ">", bytes_inuse / WT_MEGABYTE,
           bytes_inuse <= bytes_max ? "<=" : ">", bytes_max / WT_MEGABYTE);
     }
-    printf("yang test ...........__wt_evict_server_wake...................\r\n");
+    //printf("yang test ...........__wt_evict_server_wake...................\r\n");
     __wt_cond_signal(session, cache->evict_cond);
 }
 

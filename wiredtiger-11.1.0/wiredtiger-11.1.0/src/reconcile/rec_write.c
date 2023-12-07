@@ -223,6 +223,12 @@ __reconcile_post_wrapup(
  * __reconcile --
  *     Reconcile an in-memory page into its on-disk format, and write it.
  */
+//internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+
+//leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
 static int
 __reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, uint32_t flags,
   bool *page_lockedp)
@@ -313,7 +319,6 @@ __reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, u
     WT_ERR(__rec_write_wrapup(session, r, page));
     __rec_write_page_status(session, r);
     WT_ERR(__reconcile_post_wrapup(session, r, page, flags, page_lockedp));
-    printf("yang test ...................__reconcile................page->entries:%u\r\n", page->entries);
 
     /*
      * Root pages are special, splits have to be done, we can't put it off as the parent's problem
@@ -816,7 +821,16 @@ __rec_destroy_session(WT_SESSION_IMPL *session)
 /*
  * __rec_write --
  *     Write a block, with optional diagnostic checks.
+ //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+
+//leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+//    ->__wt_blkcache_write->__bm_write->__wt_block_write
  */
+
+//internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+
+ 
 //buf数据内容 = 包括page header + block header + 实际数据
 //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
 
@@ -1744,6 +1758,7 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 /*
  * __wt_rec_split_finish --
  *     Finish processing a page.
+ internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write
  */
 int
 __wt_rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
@@ -2146,6 +2161,12 @@ __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compress
 /*
  * __rec_split_write --
  *     Write a disk block out for the split helper functions.
+ //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+ 
+ //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
  */
 //chunk就是某page对应的需要写入磁盘的数据信息,WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
 

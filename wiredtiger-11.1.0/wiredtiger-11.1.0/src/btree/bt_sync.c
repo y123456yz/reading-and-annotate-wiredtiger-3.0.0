@@ -596,12 +596,14 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
             }
 
             if (F_ISSET(walk, WT_REF_FLAG_INTERNAL)) {
+                //internal page统计
                 internal_bytes += page->memory_footprint;
                 ++internal_pages;
                 /* Slow down checkpoints. */
                 if (FLD_ISSET(conn->debug_flags, WT_CONN_DEBUG_SLOW_CKPT))
                     __wt_sleep(0, 10000);
             } else {
+                //leaf page相关计数
                 leaf_bytes += page->memory_footprint;
                 ++leaf_pages;
             }
@@ -638,6 +640,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
             }
             tried_eviction = false;
 
+            //checkpoint相关持久化
             WT_ERR(__wt_reconcile(session, walk, NULL, rec_flags));
 
             /*
