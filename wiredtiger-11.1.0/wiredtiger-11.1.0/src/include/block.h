@@ -63,6 +63,7 @@ struct __wt_extlist {
     uint32_t entries; /* Entry count */
 
     //赋值参考__wt_block_extlist_write，也就是跳表持久化到磁盘的核心元数据信息
+    //重启的时候通过checkpoint元数据从__wt_block_ckpt_unpack加载起来对应跳表元数据
     uint32_t objectid; /* Written object ID */
     wt_off_t offset;   /* Written extent offset */
     uint32_t checksum; /* Written extent checksum */
@@ -177,6 +178,8 @@ struct __wt_block_ckpt {
 
     //__wt_rec_row_int把该internal page的ref key及其下面所有子page的磁盘元数据信息写入到一个新的ext持久化
     //配合__wt_ckpt_verbose阅读, 这里存储的就是__wt_rec_row_int封包的internal ref key+该internal page下面的持久化后在磁盘的元数据信息
+
+    //重启的时候从__wt_block_ckpt_unpack加载起来
     uint32_t root_objectid;
     wt_off_t root_offset; /* The root */
     uint32_t root_checksum, root_size;
@@ -190,7 +193,7 @@ The alloc and discard extent lists are maintained as a skiplist sorted by file o
 The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
 */
     //ext信息打印可以配合__wt_ckpt_verbose阅读
-    
+    //重启的时候通过checkpoint元数据从__wt_block_ckpt_unpack加载起来对应跳表元数据
     WT_EXTLIST alloc;   /* Extents allocated */ //__wt_block_alloc中分配ext空间，添加到alloc跳跃表中
     //从alloc跳跃表中被删除的offset对应的ext重新添加到avail中，代表的实际上就是磁盘碎片，也就是可重用的空间，参考__wt_block_off_free
     //__wt_block_alloc中如果需要从avail中获取指定size的ext, 有了size跳跃表，可以方便快速查找指定长度可用的ext
@@ -199,7 +202,9 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     WT_EXTLIST discard; /* Extents discarded */
 
     //赋值参考__ckpt_update， 也就是block->size，也就是做checkpoint时候的文件大小
+    //重启的时候从checkpoint元数据中获取，赋值见__block_ckpt_unpack
     wt_off_t file_size; /* Checkpoint file size */
+    //重启的时候从checkpoint元数据中获取，赋值见__block_ckpt_unpack
     //赋值见__ckpt_process，
     //ckpt_size实际上就是真实ext数据空间=file_size - avail空间(也就是磁盘碎片)
     uint64_t ckpt_size; /* Checkpoint byte count */
@@ -227,6 +232,7 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
 struct __wt_bm {
     /* Methods */
     int (*addr_invalid)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
+    //__bm_addr_string
     int (*addr_string)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, const uint8_t *, size_t);
     //__bm_block_header
     u_int (*block_header)(WT_BM *);
@@ -275,6 +281,7 @@ struct __wt_bm {
     //__wt_block_open
     WT_BLOCK *block; /* Underlying file */
 
+    //只有WT_BTREE_READONLY状态设置，才会进行map，赋值见__bm_checkpoint_load
     void *map; /* Mapped region */
     size_t maplen;
     void *mapped_cookie;

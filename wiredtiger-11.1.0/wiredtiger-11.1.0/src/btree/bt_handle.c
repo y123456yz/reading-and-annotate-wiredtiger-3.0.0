@@ -89,6 +89,9 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
         F_SET(btree, WT_BTREE_READONLY);
 
     /* Get the checkpoint information for this name/checkpoint pair. */
+    //从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
+    printf("yang test .......__wt_btree_open......11...........name:%s, checkpoint:%s\r\n", 
+        dhandle->name, dhandle->checkpoint);
     WT_RET(__wt_meta_checkpoint(session, dhandle->name, dhandle->checkpoint, &ckpt));
 
     /* Set the order number. */
@@ -141,12 +144,14 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
          * checkpoint (the file is being created), or the load call returns no root page (the
          * checkpoint is for an empty file).
          */
+        //__bm_checkpoint_load, 上面的__wt_meta_checkpoint从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
+        //加载磁盘中的root、avail元数据到内存中
         WT_ERR(bm->checkpoint_load(bm, session, ckpt.raw.data, ckpt.raw.size, root_addr,
           &root_addr_size, F_ISSET(btree, WT_BTREE_READONLY)));
         //printf("yang test ...__wt_btree_open.....__btree_tree_open_empty..name:%s..creation:%d.....root_addr_size:%d\r\n", dhandle->name, creation, (int)root_addr_size);
         if (creation || root_addr_size == 0) //BTREE还没有任何数据，走这里
             WT_ERR(__btree_tree_open_empty(session, creation));
-        else {//从磁盘加载了数据到BTREE走这里
+        else {//前面的checkpoint_load获取到了磁盘中的元数据，这里开始加载真正的磁盘KV数据
             WT_ERR(__wt_btree_tree_open(session, root_addr, root_addr_size));
 
             /* Warm the cache, if possible. */
@@ -637,6 +642,7 @@ __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
      * Create a printable version of the address to pass to verify.
      */
     WT_ERR(__wt_scr_alloc(session, 0, &tmp));
+    //__bm_addr_string
     WT_ERR(bm->addr_string(bm, session, tmp, addr, addr_size));
 
     F_SET(session, WT_SESSION_QUIET_CORRUPT_FILE);

@@ -1169,7 +1169,6 @@ __block_append(
     else {
         //从跳跃表中查找获取el->off对应跳表的最后一个WT_EXT成员
         ext = __block_off_srch_last(el, astack, true);
-        printf("yang test ............__block_append:");
         print_extent_list(el);
         if (ext != NULL && ext->off + ext->size == off)
             ext->size += size;
@@ -1310,6 +1309,7 @@ __block_merge(
 /*
  * __wt_block_extlist_read_avail --
  *     Read an avail extent list, includes minor special handling.
+ //加载ext跳表元数据到内存中
  */
 int
 __wt_block_extlist_read_avail(
@@ -1318,6 +1318,7 @@ __wt_block_extlist_read_avail(
     WT_DECL_RET;
 
     /* If there isn't a list, we're done. */
+    //重启的时候通过checkpoint元数据在外层从__wt_block_ckpt_unpack加载起来对应跳表元数据获取到offset
     if (el->offset == WT_BLOCK_INVALID_OFFSET)
         return (0);
 
@@ -1350,6 +1351,8 @@ err:
 /*
  * __wt_block_extlist_read --
  *     Read an extent list.
+ yang add todo xxxxxxxxxxxx, 如果文件有很多ext空洞，也就是有很多avail，这里会不会很慢??????????????????????// 
+ //从磁盘加载ext到内存中
  */
 int
 __wt_block_extlist_read(
@@ -1368,6 +1371,7 @@ __wt_block_extlist_read(
         return (0);
 
     WT_RET(__wt_scr_alloc(session, el->size, &tmp));
+    // 读取磁盘上面的avail或者alloc跳跃表中的ext元数据到内存中
     WT_ERR(
       __wt_block_read_off(session, block, tmp, el->objectid, el->offset, el->size, el->checksum));
 
@@ -1385,6 +1389,7 @@ __wt_block_extlist_read(
      * is short-hand for "are we reading the available-blocks list".
      */
     func = el->track_size == 0 ? __block_append : __block_merge;
+    //把从磁盘上面加载的ext元数据信息，加载所有ext到内存中
     for (;;) {
         WT_ERR(__wt_extlist_read_pair(&p, &off, &size));
         if (off == WT_BLOCK_INVALID_OFFSET)
@@ -1406,10 +1411,11 @@ corrupted:
               el->name, (intmax_t)off, (intmax_t)(off + size));
         }
 
+        //执行 __block_append或者__block_merge;
         WT_ERR(func(session, block, el, off, size));
     }
 
-    WT_ERR(__block_extlist_dump(session, block, el, "read"));
+    WT_ERR(__block_extlist_dump(session, block, el, "extlist read"));
 
 err:
     __wt_scr_free(session, &tmp);

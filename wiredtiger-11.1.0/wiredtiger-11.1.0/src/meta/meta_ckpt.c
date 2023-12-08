@@ -97,7 +97,10 @@ __ckpt_load_blk_mods(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt
 /*
  * __wt_meta_checkpoint --
  *     Return a file's checkpoint information.
+  //__ckpt_process进行checkpoint相关元数据持久化
+ //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  */
+//从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
 int
 __wt_meta_checkpoint(
   WT_SESSION_IMPL *session, const char *fname, const char *checkpoint, WT_CKPT *ckpt)
@@ -111,6 +114,7 @@ __wt_meta_checkpoint(
     memset(ckpt, 0, sizeof(*ckpt));
 
     /* Retrieve the metadata entry for the file. */
+    //从wiredtiger.wt元数据文件中获取表的配置信息存入config中
     WT_ERR(__wt_metadata_search(session, fname, &config));
 
 /*
@@ -360,7 +364,14 @@ __ckpt_named(WT_SESSION_IMPL *session, const char *checkpoint, const char *confi
 /*
  * __ckpt_last --
  *     Return the information associated with the file's last checkpoint.
+ checkpoint=(WiredTigerCheckpoint.1=(addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0",order=1,time=1702006313,size=2355200,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=227,run_write_gen=1))
  */
+
+//__ckpt_process进行checkpoint相关元数据持久化
+//__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+ 
+//__wt_meta_checkpoint->__ckpt_last->__ckpt_load
+//获取config的checkpoint=xxx的信息, 并解析存储到WT_CKPT相关成员
 static int
 __ckpt_last(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt)
 {
@@ -958,7 +969,13 @@ err:
 /*
  * __ckpt_load --
  *     Load a single checkpoint's information into a WT_CKPT structure.
- */
+ checkpoint=(WiredTigerCheckpoint.1=(addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0",order=1,time=1702006313,size=2355200,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=227,run_write_gen=1))
+
+  //__ckpt_process进行checkpoint相关元数据持久化
+ //__wt_meta_checkpoint->__ckpt_last->__ckpt_load获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+
+ */ //__wt_meta_checkpoint->__ckpt_last->__ckpt_load
+//获取config的checkpoint=xxx的信息, 并解析存储到WT_CKPT相关成员
 static int
 __ckpt_load(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *k, WT_CONFIG_ITEM *v, WT_CKPT *ckpt)
 {
@@ -976,6 +993,7 @@ __ckpt_load(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *k, WT_CONFIG_ITEM *v, WT_C
     if (a.len == 0)
         F_SET(ckpt, WT_CKPT_FAKE);
     else
+        //
         WT_RET(__wt_nhex_to_raw(session, a.str, a.len, &ckpt->raw));
 
     WT_RET(__wt_config_subgets(session, v, "order", &a));

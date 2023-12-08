@@ -148,6 +148,7 @@ err:
 /*
  * __wt_block_read_off --
  *     Read an addr/size pair referenced block into a buffer.
+ 读取磁盘上面的avail或者alloc跳跃表中的ext元数据到内存中
  */
 int
 __wt_block_read_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint32_t objectid,
@@ -156,8 +157,9 @@ __wt_block_read_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uin
     WT_BLOCK_HEADER *blk, swap;
     size_t bufsize;
 
+    //yang add todo xxxxxx 日志完善， 保障checksum输出和__wt_ckpt_verbose中的checksum一致
     __wt_verbose_debug2(session, WT_VERB_READ,
-      "off %" PRIuMAX ", size %" PRIu32 ", checksum %#" PRIx32, (uintmax_t)offset, size, checksum);
+      "block read off %" PRIuMAX ", size %" PRIu32 ", checksum %" PRIx32, (uintmax_t)offset, size, checksum);
 
     WT_STAT_CONN_INCR(session, block_read);
     WT_STAT_CONN_INCRV(session, block_byte_read, size);
@@ -192,6 +194,7 @@ __wt_block_read_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uin
     WT_RET(__wt_buf_init(session, buf, bufsize));
     buf->size = size;
 
+    //读取磁盘上面[offset, offset+size]的元数据到内存buf中
     WT_RET(__wt_read(session, block->fh, offset, size, buf->mem));
 
     /*
@@ -200,6 +203,7 @@ __wt_block_read_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uin
      */
     blk = WT_BLOCK_HEADER_REF(buf->mem);
     __wt_block_header_byteswap_copy(blk, &swap);
+    //checksum检查
     if (swap.checksum == checksum) {
         blk->checksum = 0;
         if (__wt_checksum_match(buf->mem,

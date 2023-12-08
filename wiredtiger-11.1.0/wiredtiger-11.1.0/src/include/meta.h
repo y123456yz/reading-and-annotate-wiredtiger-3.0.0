@@ -139,7 +139,7 @@ struct __wt_block_mods {
 #define WT_CKPT_FOREACH_NAME_OR_ORDER(ckptbase, ckpt) \
     for ((ckpt) = (ckptbase); (ckpt)->name != NULL || (ckpt)->order != 0; ++(ckpt))
 
-//__wt_meta_ckptlist_get_from_config中分配空间
+//__wt_meta_ckptlist_get_from_config中分配空间, 实例重启的时候通过__wt_btree_open->__wt_meta_checkpoint加载checkpoint元数据
 //__wt_btree.ckpt为该类型
 struct __wt_ckpt {
     //赋值见__checkpoint_lock_dirty_tree，不指定name，默认为"WiredTigerCheckpoint"
@@ -176,8 +176,11 @@ struct __wt_ckpt {
     //__wt_checkpoint_tree_reconcile_update赋值
     WT_TIME_AGGREGATE ta; /* Validity window */
 
+    //wiredtiger.wt中的checkpoint.addr中的原始checkpoint二进制元数据信息
     WT_ITEM addr; /* Checkpoint cookie string */
     //赋值参考__ckpt_update
+    //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+    //重启的时候在__ckpt_load中加载，存储addr二进制解析后的数据，见__ckpt_load
     WT_ITEM raw;  /* Checkpoint cookie raw */
 
     //创建空间及初始化__ckpt_extlist_read, 类型为WT_BLOCK_CKPT

@@ -204,16 +204,19 @@ __bm_checkpoint_readonly(
  *     Load a checkpoint.
  */
 //__wt_btree_open调用，从配置文件加载checkpoint
+//加载磁盘中的root、avail元数据到内存中
 static int
 __bm_checkpoint_load(WT_BM *bm, WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size,
   uint8_t *root_addr, size_t *root_addr_sizep, bool checkpoint)
 {
+    printf("yang test ..................__bm_checkpoint_load........................checkpoint:%d\r\n", checkpoint);
     /* If not opening a checkpoint, we're opening the live system. */
     bm->is_live = !checkpoint;
     WT_RET(__wt_block_checkpoint_load(
       session, bm->block, addr, addr_size, root_addr, root_addr_sizep, checkpoint));
 
     if (checkpoint) {
+        //只有使能了F_ISSET(btree, WT_BTREE_READONLY)才会走到这里面
         /*
          * Read-only objects are optionally mapped into memory instead of being read into cache
          * buffers.
@@ -496,6 +499,7 @@ __bm_map_discard(WT_BM *bm, WT_SESSION_IMPL *session, void *map, size_t len)
  * __bm_read --
  *     Read an address cookie referenced block into a buffer.
  */
+//__wt_blkcache_read
 static int
 __bm_read(WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, size_t addr_size)
 {

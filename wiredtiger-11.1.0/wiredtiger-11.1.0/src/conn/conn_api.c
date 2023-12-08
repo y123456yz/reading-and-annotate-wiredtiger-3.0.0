@@ -3173,6 +3173,7 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
           event_handler, &conn->iface, NULL, WT_EVENT_CONN_READY, NULL));
 
     /* Start the worker threads and run recovery. */
+    //从持久化数据中通过__session_checkpoint恢复数据
     WT_ERR(__wt_connection_workers(session, cfg));
 
     /*

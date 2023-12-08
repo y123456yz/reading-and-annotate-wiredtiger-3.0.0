@@ -15,6 +15,8 @@
  *     Unpack an address cookie into components, UPDATING the caller's buffer reference so this
  *     function can be called repeatedly to unpack a buffer containing multiple address cookies.
  */
+//__block_ckpt_unpack->__block_addr_unpack
+//从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
 static int
 __block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t **pp, size_t addr_size,
   uint32_t *objectidp, wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump)
@@ -126,6 +128,8 @@ __wt_block_addr_pack(WT_BLOCK *block, uint8_t **pp, uint32_t objectid, wt_off_t 
  * __wt_block_addr_unpack --
  *     Unpack an address cookie into components, NOT UPDATING the caller's buffer reference.
  */
+
+//从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
 int
 __wt_block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *p,
   size_t addr_size, uint32_t *objectidp, wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump)
@@ -196,7 +200,9 @@ __wt_block_addr_string(
  *     Convert a checkpoint cookie into its components.
   //__wt_block_ckpt_pack和__block_ckpt_unpack对应
  //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
- 
+
+ //从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
+    
  */ //参考__wt_ckpt_verbose阅读，//从checkpoint核心元数据中解析处对应的成员赋值给ci
 static int
 __block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ckpt,
@@ -262,6 +268,7 @@ __block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ck
  //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
  */
 //参考__wt_ckpt_verbose阅读，//从checkpoint核心元数据中解析处对应的成员赋值给ci
+//从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
 int
 __wt_block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ckpt,
   size_t ckpt_size, WT_BLOCK_CKPT *ci)
@@ -343,11 +350,15 @@ __wt_block_ckpt_pack(
  //avail=[1478656-1482752, 4096, 3835723351], discard=[Empty], file size=2363392, checkpoint size=2322432
  */
 //checkpoint对应持久化日志信息
+//从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原
+//  到WT_BLOCK_CKPT对应成员变量中,然后日志输出
 void
 __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag, 
-    //ckpt_name代表checkpoint的核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
     const char *ckpt_name,
-    const uint8_t *ckpt_string, size_t ckpt_size)
+    //ckpt_name代表checkpoint的核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+    //ckpt_string为二进制数据
+    const uint8_t *ckpt_string, 
+    size_t ckpt_size)
 {
     WT_BLOCK_CKPT *ci, _ci;
     WT_DECL_ITEM(tmp);
@@ -363,7 +374,7 @@ __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag,
     /* Initialize the checkpoint, crack the cookie. */
     ci = &_ci;
     WT_ERR(__wt_block_ckpt_init(session, ci, "string"));
-    //从checkpoint核心元数据中解析处对应的成员赋值
+    //从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
     WT_ERR(__wt_block_ckpt_unpack(session, block, ckpt_string, ckpt_size, ci));
 
     WT_ERR(__wt_scr_alloc(session, 0, &tmp));

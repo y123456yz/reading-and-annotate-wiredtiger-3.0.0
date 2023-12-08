@@ -94,6 +94,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
     WT_TRET(__wt_statlog_destroy(session, true));
     WT_TRET(__wt_tiered_storage_destroy(session, false));
     WT_TRET(__wt_sweep_destroy(session));
+    printf("yang test ............22...............__wt_connection_close..\r\n");
 
     /* The eviction server is shut down last. */
     WT_TRET(__wt_evict_destroy(session));
@@ -132,6 +133,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
 
     /* Disconnect from shared cache - must be before cache destroy. */
     WT_TRET(__wt_conn_cache_pool_destroy(session));
+    printf("yang test ............11...............__wt_connection_close..\r\n");
 
     /* Discard the cache. */
     WT_TRET(__wt_cache_destroy(session));
@@ -154,7 +156,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
 
     /* Close any file handles left open. */
     WT_TRET(__wt_close_connection_close(session));
-
+    
     /*
      * Close the internal (default) session, and switch back to the dummy session in case of any
      * error messages from the remaining operations while destroying the connection handle.
@@ -199,7 +201,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
 /*
  * __wt_connection_workers --
  *     Start the worker threads.
- */
+ */ /* Start the worker threads and run recovery. */
 //wiredtiger_open
 int
 __wt_connection_workers(WT_SESSION_IMPL *session, const char *cfg[])

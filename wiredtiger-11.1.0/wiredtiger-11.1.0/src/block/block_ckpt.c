@@ -34,7 +34,13 @@ __wt_block_ckpt_init(WT_SESSION_IMPL *session, WT_BLOCK_CKPT *ci, const char *na
 /*
  * __wt_block_checkpoint_load --
  *     Load a checkpoint.
+ //__ckpt_process进行checkpoint相关元数据持久化
+ //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  */
+
+//__wt_btree_open->__wt_block_checkpoint_load
+
+//加载磁盘中的root、avail元数据到内存中
 int
 __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *addr,
   size_t addr_size, uint8_t *root_addr, size_t *root_addr_sizep, bool checkpoint)
@@ -52,13 +58,16 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
 
     ci = NULL;
 
+    //[1702006455:256088][66407:0x7fb24ed4b800], file:access.wt, WT_SESSION.__session_open_cursor: [WT_VERB_CHECKPOINT]
+    //[DEBUG_5]: access.wt: __wt_block_checkpoint_load load: version=1, object ID=0, root=[53248-57344, 4096, 2869582413], 
+    //alloc=[57344-61440, 4096, 1994842353], avail=[106496-110592, 4096, 1222571001], discard=[Empty], file size=2568192, checkpoint size=2351104
     if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_1))
         __wt_ckpt_verbose(session, block, "__wt_block_checkpoint_load load", NULL, addr, addr_size);
 
     /*
      * There's a single checkpoint in the file that can be written, all of the others are read-only.
      * We use the same initialization calls for readonly checkpoints, but the information doesn't
-     * persist.
+     * persist. 
      */
     if (checkpoint) {
         ci = &_ci;
@@ -93,6 +102,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
         if (block->verify)
             WT_ERR(__wt_verify_ckpt_load(session, block, ci));
 
+        //root page相关元数据加载
         /* Read any root page. */
         if (ci->root_offset != WT_BLOCK_INVALID_OFFSET) {
             endp = root_addr;
@@ -106,6 +116,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
          * allocate.
          */
         if (!checkpoint)
+             //加载ext跳表元数据到内存中
             WT_ERR(__wt_block_extlist_read_avail(session, block, &ci->avail, ci->file_size));
     }
 
@@ -115,6 +126,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
      * of the file, that was done when the checkpoint was first written (re-writing the checkpoint
      * might possibly make it relevant here, but it's unlikely enough I don't bother).
      */
+    //提前把文件长度调整到file_size长度
     if (!checkpoint)
         WT_ERR(__wt_block_truncate(session, block, ci->file_size));
 
@@ -512,6 +524,9 @@ __ckpt_add_blk_mods_ext(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_BLOCK_CK
 /*
  * __ckpt_process --
  *     Process the list of checkpoints.
+  //__ckpt_process进行checkpoint相关元数据持久化
+  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+
  */ 
 //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 //然后持久化到磁盘
@@ -607,7 +622,6 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
          * are checkpoints for the logical object, including files that are no longer live. Skip any
          * checkpoints that aren't local to the live object.
          */
-        printf("yang test ...........xxxxxxxxxxxxxxx...........__ckpt_process....ckpt->bpriv:%p\r\n", ckpt->bpriv);
         if (ckpt->bpriv == NULL) {
             WT_ERR(__ckpt_extlist_read(session, block, ckpt, &local));
             if (!local)

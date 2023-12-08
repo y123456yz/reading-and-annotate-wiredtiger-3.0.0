@@ -136,6 +136,7 @@ __ckpt_server_start(WT_CONNECTION_IMPL *conn)
 
     FLD_SET(conn->server_flags, WT_CONN_SERVER_CHECKPOINT);
 
+    printf("yang test ............__ckpt_server_start................\r\n");
     /*
      * The checkpoint server gets its own session.
      *
