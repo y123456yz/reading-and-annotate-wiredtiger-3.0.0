@@ -20,7 +20,8 @@ __wt_block_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t len)
 
     conn = S2C(session);
 
-    __wt_verbose(session, WT_VERB_BLOCK, "truncate file to %" PRIuMAX, (uintmax_t)len);
+    //yang add todo xxxxx 完善日志
+    __wt_verbose(session, WT_VERB_BLOCK, "truncate file:%s to %" PRIuMAX, block->name, (uintmax_t)len);
 
     /*
      * Truncate requires serialization, we depend on our caller for that.
@@ -224,6 +225,7 @@ __wt_block_write(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint8_
  //数据写入磁盘
  //bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
 
+//从avail中查找一个可用ext或者alloc一个新的ext来存储buf数据在磁盘上面的off元数据信息，
 //数据写入磁盘，并返回objectidp, offsetp, sizep和checksump
  */
 static int
@@ -258,6 +260,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
      */
     //如果需要对checkpoint元数据信息持久化，则持久化到wiredtiger.wt中
     if (block->final_ckpt != NULL)
+        //Append metadata and checkpoint information to a buffer.
         WT_RET(__wt_block_checkpoint_final(session, block, buf, &file_sizep));
 
     /*

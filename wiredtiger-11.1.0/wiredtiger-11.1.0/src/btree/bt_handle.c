@@ -145,13 +145,17 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
          * checkpoint is for an empty file).
          */
         //__bm_checkpoint_load, 上面的__wt_meta_checkpoint从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
-        //加载磁盘中的root、avail元数据到内存中
+        
+        //addr空间信息解包，然后获取解析出来的root、alloc、avail对应ext元数据信息，同时对root(root_objectid, root_offset, root_size, root_checksum)
+        //进行root_addr封包返回
         WT_ERR(bm->checkpoint_load(bm, session, ckpt.raw.data, ckpt.raw.size, root_addr,
           &root_addr_size, F_ISSET(btree, WT_BTREE_READONLY)));
-        //printf("yang test ...__wt_btree_open.....__btree_tree_open_empty..name:%s..creation:%d.....root_addr_size:%d\r\n", dhandle->name, creation, (int)root_addr_size);
+
+          __wt_ckpt_verbose(session, bm->block, "__wt_block_checkpoint_load load after: ", NULL, root_addr, root_addr_size);
+
         if (creation || root_addr_size == 0) //BTREE还没有任何数据，走这里
             WT_ERR(__btree_tree_open_empty(session, creation));
-        else {//前面的checkpoint_load获取到了磁盘中的元数据，这里开始加载真正的磁盘KV数据
+        else {//前面的checkpoint_load获取到了磁盘中的root元数据，通过root在磁盘中的位置就可以读取到root相关的所有信息
             WT_ERR(__wt_btree_tree_open(session, root_addr, root_addr_size));
 
             /* Warm the cache, if possible. */
@@ -616,6 +620,8 @@ __wt_root_ref_init(WT_SESSION_IMPL *session, WT_REF *root_ref, WT_PAGE *root, bo
  */
 //__wt_btree_open->__btree_tree_open_empty: 创建root page
 //__wt_btree_open->__wt_btree_tree_open: 从磁盘加载数据到page
+
+//前面的checkpoint_load获取到了磁盘中的root元数据 
 int
 __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size)
 {
@@ -646,6 +652,8 @@ __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
     WT_ERR(bm->addr_string(bm, session, tmp, addr, addr_size));
 
     F_SET(session, WT_SESSION_QUIET_CORRUPT_FILE);
+    //根据root addr读取磁盘上面的数据到dsk空间，也就是 root=[53248-57344, 4096, 2869582413]这个元数据对应的磁盘上53248-57344这4096字节
+    //root addr对应的dsk原始内容参考__wt_rec_row_int
     if ((ret = __wt_blkcache_read(session, &dsk, addr, addr_size)) == 0)
         ret = __wt_verify_dsk(session, tmp->data, &dsk);
     /*
@@ -675,11 +683,13 @@ __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
      * Build the in-memory version of the page. Clear our local reference to the allocated copy of
      * the disk image on return, the in-memory object steals it.
      */
+    //从dsk中解析出对应的root page信息
     WT_ERR(__wt_page_inmem(session, NULL, dsk.data,
       WT_DATA_IN_ITEM(&dsk) ? WT_PAGE_DISK_ALLOC : WT_PAGE_DISK_MAPPED, &page, NULL));
     dsk.mem = NULL;
 
     /* Finish initializing the root, root reference links. */
+    //dsk中获取的page信息和btree->root关联
     __wt_root_ref_init(session, &btree->root, page, btree->type != BTREE_ROW);
 
 err:
@@ -816,6 +826,9 @@ __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __btree_preload --
  *     Pre-load internal pages.
+ //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
+ //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+ //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
  */
 static int
 __btree_preload(WT_SESSION_IMPL *session)

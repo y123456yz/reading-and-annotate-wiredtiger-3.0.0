@@ -11,6 +11,7 @@
 /*
  * __wt_bm_read --
  *     Map or read address cookie referenced block into a buffer.
+解包addr，获取磁盘offset size信息
  */
 int
 __wt_bm_read(
@@ -23,6 +24,7 @@ __wt_bm_read(
     block = bm->block;
 
     /* Crack the cookie. */
+    //从addr中解析出对应的off size checksum等信息
     WT_RET(__wt_block_addr_unpack(
       session, block, addr, addr_size, &objectid, &offset, &size, &checksum));
 

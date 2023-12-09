@@ -86,7 +86,7 @@ __block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t **p
  * __wt_block_addr_pack --
  *     Pack components into an address cookie, UPDATING the caller's buffer reference.
  */
-//对objectid offset size  checksum四个字段进行封包存入pp[]数组中
+//对objectid offset size  checksum四个字段进行封包存入pp[]数组中, 
 int
 __wt_block_addr_pack(WT_BLOCK *block, uint8_t **pp, uint32_t objectid, wt_off_t offset,
   uint32_t size, uint32_t checksum)
@@ -298,6 +298,7 @@ __wt_block_ckpt_decode(WT_SESSION *wt_session, WT_BLOCK *block, const uint8_t *c
  
  */
 //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+//注意这里是封包后存储的，补上直接把root_offset等原样存储，这样可以节省磁盘空间
 int
 __wt_block_ckpt_pack(
   WT_SESSION_IMPL *session, WT_BLOCK *block, uint8_t **pp, WT_BLOCK_CKPT *ci, bool skip_avail)
@@ -364,6 +365,7 @@ __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag,
     WT_DECL_ITEM(tmp);
     WT_DECL_RET;
 
+    printf("yang test 1111111111111111111111111111111111111111111 __wt_ckpt_verbose\r\n");
     if (ckpt_string == NULL) {
         __wt_verbose_worker(session, WT_VERB_CHECKPOINT, S2C(session)->verbose[WT_VERB_CHECKPOINT],
           "%s: %s: %s%s[Empty]", block->name, tag, ckpt_name ? ckpt_name : "",
@@ -414,7 +416,7 @@ __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag,
     __wt_verbose_worker(session, WT_VERB_CHECKPOINT, S2C(session)->verbose[WT_VERB_CHECKPOINT],
       "%s: %s: %s%s%s", block->name, tag, ckpt_name ? ckpt_name : "", ckpt_name ? ": " : "",
       (const char *)tmp->data);
-
+    printf("yang test 22222222222222222222222222222222222222222222222222222 __wt_ckpt_verbose\r\n");
 err:
     __wt_scr_free(session, &tmp);
     __wt_block_ckpt_destroy(session, ci);

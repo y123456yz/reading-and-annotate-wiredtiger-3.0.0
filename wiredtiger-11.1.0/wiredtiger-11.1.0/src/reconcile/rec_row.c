@@ -455,7 +455,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         page_del = NULL;
         if (__wt_off_page(page, addr)) {
             page_del = cms.state == WT_CHILD_PROXY ? &cms.del : NULL;
-            //把该page对应持久化的addr信息封包存储到r->v中
+            //把该page对应持久化的磁盘addr WT_ADDR信息封包存储到r->v中
             __wt_rec_cell_build_addr(session, r, addr, NULL, WT_RECNO_OOB, page_del);
             source_ta = &addr->ta;
         } else if (cms.state == WT_CHILD_PROXY) {

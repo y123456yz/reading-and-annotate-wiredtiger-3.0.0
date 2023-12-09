@@ -1309,6 +1309,8 @@ __block_merge(
 /*
  * __wt_block_extlist_read_avail --
  *     Read an avail extent list, includes minor special handling.
+
+ __wt_block_extlist_read与__wt_block_extlist_write对应
  //加载ext跳表元数据到内存中
  */
 int
@@ -1425,6 +1427,7 @@ err:
 /*
  * __wt_block_extlist_write --
  *     Write an extent list at the tail of the file.
+  __wt_block_extlist_read与__wt_block_extlist_write对应
  */
 //把el跳跃表管理的所有ext持久化到磁盘中，这样就可以直接从磁盘加载还原内存中的有序ext跳跃表
 int
@@ -1501,7 +1504,7 @@ __wt_block_extlist_write(
 
     /* Write the extent list to disk. */
     //上面组织的内存tmp mem内存数据写入磁盘，并返回对应磁盘的元数据信息objectidp, offsetp, sizep和checksump
-    //checkpoint相关的元数据信息追加到磁盘末尾，末尾这个ext是存储checkpoint元数据的，
+    //从avail或者alloc中获取一个ext来存储checkpoint相关的元数据信息 
     //不用保存到alloc中, 因此下面的__wt_block_off_remove_overlap需要删除该ext
     WT_ERR(__wt_block_write_off(
       session, block, tmp, &el->objectid, &el->offset, &el->size, &el->checksum, true, true, true));
@@ -1511,7 +1514,7 @@ __wt_block_extlist_write(
      * any allocation list.
      */
 
-    //checkpoint对应的磁盘ext元数据不用记录到内存中
+    //checkpoint对应的磁盘ext元数据不用记录到内存中，这个持久化到磁盘就可以了
     WT_TRET(
       __wt_block_off_remove_overlap(session, block, &block->live.alloc, el->offset, el->size));
 

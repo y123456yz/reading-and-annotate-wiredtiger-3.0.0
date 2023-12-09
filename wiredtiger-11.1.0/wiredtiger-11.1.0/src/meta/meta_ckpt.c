@@ -97,8 +97,11 @@ __ckpt_load_blk_mods(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt
 /*
  * __wt_meta_checkpoint --
  *     Return a file's checkpoint information.
-  //__ckpt_process进行checkpoint相关元数据持久化
- //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+  //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
+  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+  //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
+
+
  */
 //从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
 int
@@ -524,7 +527,17 @@ __wt_meta_block_metadata(WT_SESSION_IMPL *session, const char *config, WT_CKPT *
       "encryption=%.*s,block_metadata_encrypted=%s,block_metadata=[%.*s]", (int)cval.len, cval.str,
       kencryptor == NULL ? "false" : "true", (int)metadata_len, metadata));
     WT_ERR(__wt_strndup(session, b->data, b->size, &ckpt->block_metadata));
-   // printf("yang test ...........__wt_meta_block_metadata........block_metadata:%s\r\n", ckpt->block_metadata);
+    //yang test ...........__wt_meta_block_metadata........block_metadata:encryption=(keyid=,name=),block_metadata_encrypted=false,
+    //block_metadata=[access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,
+    //read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checkpoint=,
+    //checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,
+    //huffman_key=,huffman_value=,id=1,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,
+    //internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,
+    //log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,
+    //prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,
+    //tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=QQQu,
+    //verbose=[],version=(major=2,minor=1),write_timestamp_usage=none]
+    //printf("yang test ...........__wt_meta_block_metadata........block_metadata:%s\r\n", ckpt->block_metadata);
 
 err:
     __wt_scr_free(session, &a);

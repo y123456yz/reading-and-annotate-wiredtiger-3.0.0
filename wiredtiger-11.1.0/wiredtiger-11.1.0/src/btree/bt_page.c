@@ -344,8 +344,9 @@ err:
  *     Build in-memory page information.
   //reconcile拆分后每个multi都需要调用一次，用于隐射内存page和磁盘chunk数据
 
-  这里函数名为inmem的原因是，加载磁盘ext中所有K和V的磁盘地址信息到内存pg_row[]中，每个成员实际上存储的是相比ext头部位置的偏移量，
+leafpage:这里函数名为inmem的原因是，加载磁盘ext中所有K和V的磁盘地址信息到内存pg_row[]中，每个成员实际上存储的是相比ext头部位置的偏移量，
   也就是该磁盘ext的所有K V地址信息存储到了内存pg_row[]中
+internal page: 
  */ //__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf
 int
 __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32_t flags,

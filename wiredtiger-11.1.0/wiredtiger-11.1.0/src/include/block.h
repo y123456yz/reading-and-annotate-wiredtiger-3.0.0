@@ -179,7 +179,7 @@ struct __wt_block_ckpt {
     //__wt_rec_row_int把该internal page的ref key及其下面所有子page的磁盘元数据信息写入到一个新的ext持久化
     //配合__wt_ckpt_verbose阅读, 这里存储的就是__wt_rec_row_int封包的internal ref key+该internal page下面的持久化后在磁盘的元数据信息
 
-    //重启的时候从__wt_block_ckpt_unpack加载起来
+    //重启的时候从__wt_block_checkpoint_load加载起来, root元数据来源见__wt_rec_row_int
     uint32_t root_objectid;
     wt_off_t root_offset; /* The root */
     uint32_t root_checksum, root_size;
@@ -258,6 +258,7 @@ struct __wt_bm {
     int (*free)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
     bool (*is_mapped)(WT_BM *, WT_SESSION_IMPL *);
     int (*map_discard)(WT_BM *, WT_SESSION_IMPL *, void *, size_t);
+    //__bm_read
     int (*read)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, const uint8_t *, size_t);
     int (*salvage_end)(WT_BM *, WT_SESSION_IMPL *);
     int (*salvage_next)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t *, bool *);

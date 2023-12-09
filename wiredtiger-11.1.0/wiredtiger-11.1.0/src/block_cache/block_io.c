@@ -42,6 +42,13 @@ __blkcache_read_corrupt(WT_SESSION_IMPL *session, int error, const uint8_t *addr
 /*
  * __wt_blkcache_read --
  *     Read an address-cookie referenced block into a buffer.
+ //__ckpt_process进行checkpoint相关元数据持久化
+ //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+ //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
+
+ 
+ //__wt_btree_open->__wt_btree_tree_open->__wt_blkcache_read: 根据root addr读取磁盘上面的echeckpoint avail或者alloc跳跃表中的ext元数据到内存中
+ //__wt_btree_open->__btree_preload->__wt_blkcache_read: 根据ext的元数据地址addr信息从磁盘读取真实ext到buf内存中
  */
 int
 __wt_blkcache_read(WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, size_t addr_size)
@@ -109,7 +116,8 @@ __wt_blkcache_read(WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, 
     if (!found) {
         timer = WT_STAT_ENABLED(session) && !F_ISSET(session, WT_SESSION_INTERNAL);
         time_start = timer ? __wt_clock(session) : 0;
-        //__bm_read
+        //__bm_read 从root addr对应磁盘地址开始读取数据
+        //根据root addr读取磁盘上面的avail或者alloc跳跃表中的ext元数据到内存中
         WT_ERR(bm->read(bm, session, ip, addr, addr_size));
         if (timer) {
             time_stop = __wt_clock(session);
