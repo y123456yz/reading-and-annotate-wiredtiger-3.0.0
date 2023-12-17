@@ -94,7 +94,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
     WT_TRET(__wt_statlog_destroy(session, true));
     WT_TRET(__wt_tiered_storage_destroy(session, false));
     WT_TRET(__wt_sweep_destroy(session));
-    printf("yang test ............22...............__wt_connection_close..\r\n");
+  //  printf("yang test ............22...............__wt_connection_close..\r\n");
 
     /* The eviction server is shut down last. */
     WT_TRET(__wt_evict_destroy(session));
@@ -133,7 +133,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
 
     /* Disconnect from shared cache - must be before cache destroy. */
     WT_TRET(__wt_conn_cache_pool_destroy(session));
-    printf("yang test ............11...............__wt_connection_close..\r\n");
+   // printf("yang test ............11...............__wt_connection_close..\r\n");
 
     /* Discard the cache. */
     WT_TRET(__wt_cache_destroy(session));

@@ -28,27 +28,6 @@ static int __block_ext_overlap(
 static int __block_extlist_dump(WT_SESSION_IMPL *, WT_BLOCK *, WT_EXTLIST *, const char *);
 static int __block_merge(WT_SESSION_IMPL *, WT_BLOCK *, WT_EXTLIST *, wt_off_t, wt_off_t);
 
-
-static inline void
-print_extent_list(WT_EXTLIST *el)
-{
-    WT_EXT *extp;
-    return;
-
-    if (el->off[0] == NULL)
-        return;
-        
-    extp = el->off[0];
-    printf("yang test .................print_extent_list..........\r\n");
-    while (extp != NULL) {
-        printf("%p -> ", extp);
-        extp = extp->next[0];
-    }
-
-    printf("NULL -> %p\r\n", el->last);
-}
-
-
 /*
  * __block_off_srch_last --
  *     Return the last element in the list, along with a stack for appending.
@@ -79,6 +58,53 @@ __block_off_srch_last(WT_EXTLIST *el, WT_EXT ***stack, bool need_traverse)
             stack[i--] = extp--;
 
     return (last);
+}
+
+static inline void
+print_extent_list(const char *name, const char* filename, WT_EXTLIST *el)
+{
+    WT_EXT *extp, **astack[WT_SKIP_MAXDEPTH];
+
+    return;
+    if (el->off[0] == NULL || strcmp(el->name, "live.avail") != 0)
+        return;
+
+    extp = el->off[0];
+    printf("yang test ....%s:%s..%s.ext list:", name, el->name, filename);
+    while (extp != NULL) {
+        printf("[%d, %d] -> ", (int)extp->off, (int)extp->size);
+        extp = extp->next[0];
+    }
+    if (el->last)
+        printf(" last:[%d:%d]\r\n", (int)el->last->off, (int)el->last->size);
+    else
+        printf(" last: NULL\r\n");
+
+
+    extp = __block_off_srch_last(el, astack, true);
+    if (extp != NULL && el->last!= NULL && extp->off != el->last->off)
+        printf("yang test xxxxxxxxxxxxxxxxxxxxxxx error: %d, %d\r\n", (int)extp->off, (int)el->last->off);
+}
+
+static inline void
+print_extent_list_not_printlast(const char *name, const char* filename, WT_EXTLIST *el)
+{
+    WT_EXT *extp;//, **astack[WT_SKIP_MAXDEPTH];
+
+    return;;
+    if (el->off[0] == NULL || strcmp(el->name, "live.avail") != 0)
+        return;
+
+    extp = el->off[0];
+    printf("yang test ....%s:%s....%s.ext list:", name, el->name, filename);
+    while (extp != NULL) {
+        printf("[%d, %d] -> ", (int)extp->off, (int)extp->size);
+        extp = extp->next[0];
+    }
+    if (el->last)
+        printf(" last:[%d:%d]\r\n", (int)el->last->off, (int)el->last->size);
+    else
+        printf(" last: NULL\r\n");
 }
 
 /*
@@ -457,7 +483,6 @@ __block_off_remove(
             el->last = penultimate_ext;
         }
 
-        print_extent_list(el);
     }
     return (0);
 
@@ -551,8 +576,24 @@ __wt_block_off_remove_overlap(
         a_size = off - ext->off;
         b_off = off + size;
         b_size = ext->size - (a_size + size);
-       // printf("yang test ..1...__wt_block_off_remove_overlap.......a:[%d, %d], b:[%d, %d]\r\n", 
-         //   (int)a_off,(int)a_size,(int)b_off,(int)b_size);
+
+      if (a_size > 0 && b_size > 0) {
+         __wt_verbose(session, WT_VERB_BLOCK,
+          "%s: %" PRIdMAX "-%" PRIdMAX " range shrinks to %" PRIdMAX "-%" PRIdMAX " and %" PRIdMAX "-%" PRIdMAX,
+          el->name, (intmax_t)before->off, (intmax_t)before->off + (intmax_t)before->size, 
+          (intmax_t)(a_off), (intmax_t)(a_off + a_size),
+          (intmax_t)(b_off), (intmax_t)(b_off + b_size));
+      } else if (a_size > 0) {
+         __wt_verbose(session, WT_VERB_BLOCK,
+          "%s: %" PRIdMAX "-%" PRIdMAX " range shrinks to %" PRIdMAX "-%" PRIdMAX,
+          el->name, (intmax_t)before->off, (intmax_t)before->off + (intmax_t)before->size, 
+          (intmax_t)(a_off), (intmax_t)(a_off + a_size));
+      } else if (b_size > 0) {
+         __wt_verbose(session, WT_VERB_BLOCK,
+          "%s: %" PRIdMAX "-%" PRIdMAX " range shrinks to %" PRIdMAX "-%" PRIdMAX,
+          el->name, (intmax_t)before->off, (intmax_t)before->off + (intmax_t)before->size, 
+          (intmax_t)(b_off), (intmax_t)(b_off + b_size));
+      } 
     //[off, off+size]在after对应ext空间中，例如a:[4096, 1404928], b:[1404928, 278528]， newext:[1401928,178528 ]就是横跨[A,B]
     } else if (after != NULL && off + size > after->off) {
       /*
@@ -585,8 +626,12 @@ __wt_block_off_remove_overlap(
         b_off = off + size;
         b_size = ext->size - (b_off - ext->off);
 
-       // printf("yang test .2....__wt_block_off_remove_overlap.......after:[%d, %d], a:[%d, %d], b:[%d, %d]\r\n", 
-         //   (int)after->off,(int)after->size, (int)a_off,(int)a_size,(int)b_off,(int)b_size);
+        if (b_size > 0)
+            __wt_verbose(session, WT_VERB_BLOCK,
+                "%s: %" PRIdMAX "-%" PRIdMAX " range shrinks to %" PRIdMAX "-%" PRIdMAX,
+                el->name, (intmax_t)after->off, (intmax_t)after->off + (intmax_t)after->size, 
+                (intmax_t)(b_off), (intmax_t)(b_off + b_size));
+
     } else
         return (WT_NOTFOUND);
 
@@ -611,7 +656,6 @@ __wt_block_off_remove_overlap(
             ext = NULL;
         }
     }
-
     
     if (ext != NULL)
         __wt_block_ext_free(session, ext);
@@ -791,7 +835,6 @@ __wt_block_free(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *addr, 
     if (objectid != block->objectid)
         return (0);
 
-    //yang add todo xxxxxxxxxxxxxxx
     //释放[offset, offset+size]这部分磁盘空间，实际上不是真正的释放，而是
     __wt_verbose(session, WT_VERB_BLOCK, "block free %" PRIu32 ": %" PRIdMAX "/%" PRIdMAX, objectid,
       (intmax_t)offset, (intmax_t)size);
@@ -1107,7 +1150,7 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *
     WT_EXTLIST tmp;
     u_int i;
 
-    __wt_verbose_debug2(session, WT_VERB_BLOCK, "merging %s into %s", a->name, b->name);
+    __wt_verbose_debug2(session, WT_VERB_BLOCK, "block_extlist merging %s into %s", a->name, b->name);
 
     /*
      * Sometimes the list we are merging is much bigger than the other: if so, swap the lists around
@@ -1169,7 +1212,6 @@ __block_append(
     else {
         //从跳跃表中查找获取el->off对应跳表的最后一个WT_EXT成员
         ext = __block_off_srch_last(el, astack, true);
-        print_extent_list(el);
         if (ext != NULL && ext->off + ext->size == off)
             ext->size += size;
         else {
@@ -1309,6 +1351,13 @@ __block_merge(
 /*
  * __wt_block_extlist_read_avail --
  *     Read an avail extent list, includes minor special handling.
+
+ //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
+ //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+ //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
+
+
+ //__wt_btree_open->__wt_block_checkpoint_load->__wt_block_extlist_read_avail
 
  __wt_block_extlist_read与__wt_block_extlist_write对应
  //加载ext跳表元数据到内存中
@@ -1518,7 +1567,7 @@ __wt_block_extlist_write(
     WT_TRET(
       __wt_block_off_remove_overlap(session, block, &block->live.alloc, el->offset, el->size));
 
-    //yang add xxx todo 完善日志  yang add todo xxxx
+    //yang add todo xxxxxxxx  日志完善
     __wt_verbose(session, WT_VERB_BLOCK, "%s written extent list %" PRIdMAX "/%" PRIu32, el->name,
       (intmax_t)el->offset, el->size);
 
@@ -1544,6 +1593,7 @@ __wt_block_extlist_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIS
      */
     if ((ext = __block_off_srch_last(el, astack, false)) == NULL)
         return (0);
+   
     WT_ASSERT(session, ext->off + ext->size <= block->size);
     if (ext->off + ext->size < block->size)
         return (0);

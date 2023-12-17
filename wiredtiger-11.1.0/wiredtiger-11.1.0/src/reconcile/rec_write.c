@@ -508,7 +508,7 @@ __rec_root_write(WT_SESSION_IMPL *session, WT_PAGE *page, uint32_t flags)
     /*
      * Fake up a reference structure, and write the next root page.
      */
-    printf("yang test ............................__rec_root_write.......... \r\n");
+   // printf("yang test ............................__rec_root_write.......... \r\n");
     __wt_root_ref_init(session, &fake_ref, next, page->type == WT_PAGE_COL_INT);
     return (__wt_reconcile(session, &fake_ref, NULL, flags));
 
@@ -2351,8 +2351,8 @@ copy_image:
      */
     //拷贝数据到multi->disk_image,  reconcile会满足WT_REC_SCRUB条件
     if (F_ISSET(r, WT_REC_SCRUB) || multi->supd_restore) {
-        printf("yang test ......__rec_split_write.......__wt_memdup....supd_restore:%d..size:%d, r->min_split_size:%d,split_size:%d\r\n"
-            , multi->supd_restore, (int)chunk->image.size, (int)r->min_split_size, (int)r->split_size);
+       // printf("yang test ......__rec_split_write.......__wt_memdup....supd_restore:%d..size:%d, r->min_split_size:%d,split_size:%d\r\n"
+        //    , multi->supd_restore, (int)chunk->image.size, (int)r->min_split_size, (int)r->split_size);
         //yang add todo xxxxxxxxxx  这里会不会有大量的内存拷贝?????
         //chunk->image.size就是一个chunk的数据大小，也就是split_size大小
         WT_RET(__wt_memdup(session, chunk->image.data, chunk->image.size, &multi->disk_image));

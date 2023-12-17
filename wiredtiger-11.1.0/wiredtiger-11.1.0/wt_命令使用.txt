@@ -1,0 +1,2 @@
+../../../wt -C verbose=[verify:5] verify -d dump_address file:access.wt 
+

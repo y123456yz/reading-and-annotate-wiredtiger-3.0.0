@@ -883,7 +883,7 @@ __txn_checkpoint_can_skip(
     WT_RET(__wt_config_gets(session, cfg, "use_timestamp", &cval));
     *use_timestampp = use_timestamp = cval.val != 0;
 
-    printf("yang test .................... full:%d\r\n", full);
+   // printf("yang test .................... full:%d\r\n", full);
     /* Never skip non-full checkpoints */
     if (!full)
         return (0);
@@ -2339,6 +2339,7 @@ fake:
         if (WT_META_TRACKING(session) && is_checkpoint)
             WT_ERR(__wt_meta_track_checkpoint(session));
         else
+            //__bm_checkpoint_resolve
             WT_ERR(bm->checkpoint_resolve(bm, session, false));
     }
 
@@ -2349,6 +2350,7 @@ fake:
 err:
     /* Resolved the checkpoint for the block manager in the error path. */
     if (resolve_bm)
+        //__bm_checkpoint_resolve
         WT_TRET(bm->checkpoint_resolve(bm, session, ret != 0));
 
     /*
@@ -2404,7 +2406,7 @@ __checkpoint_tree_helper(WT_SESSION_IMPL *session, const char *cfg[])
 
     btree = S2BT(session);
     txn = session->txn;
-    printf("yang test .....................__checkpoint_tree_helper................................\r\n");
+   // printf("yang test .....................__checkpoint_tree_helper................................\r\n");
 
     /* Are we using a read timestamp for this checkpoint transaction? */
     with_timestamp = F_ISSET(txn, WT_TXN_SHARED_TS_READ);

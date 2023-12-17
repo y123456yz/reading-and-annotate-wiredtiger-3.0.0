@@ -159,9 +159,8 @@ __wt_block_read_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uin
     WT_BLOCK_HEADER *blk, swap;
     size_t bufsize;
 
-    //yang add todo xxxxxx 日志完善， 保障checksum输出和__wt_ckpt_verbose中的checksum一致
     __wt_verbose_debug2(session, WT_VERB_READ,
-      "block read off %" PRIuMAX ", size %" PRIu32 ", checksum %" PRIx32, (uintmax_t)offset, size, checksum);
+      "block read off %" PRIuMAX ", size %" PRIu32 ", checksum %#" PRIx32, (uintmax_t)offset, size, checksum);
 
     WT_STAT_CONN_INCR(session, block_read);
     WT_STAT_CONN_INCRV(session, block_byte_read, size);

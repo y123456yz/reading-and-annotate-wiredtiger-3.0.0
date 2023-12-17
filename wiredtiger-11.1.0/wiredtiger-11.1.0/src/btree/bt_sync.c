@@ -424,7 +424,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
     txn = session->txn;
     tried_eviction = false;
 
-    printf("yang test ............................__wt_sync_file.......... \r\n");
+    //printf("yang test ............................__wt_sync_file.......... \r\n");
     /* Don't bump page read generations. */
     flags = WT_READ_NO_GEN;
 
@@ -624,7 +624,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
              * Once the transaction has given up it's snapshot it is no longer safe to reconcile
              * pages. That happens prior to the final metadata checkpoint.
              */
-            printf("yang test ..............__wt_sync_file......read_gen:%d\r\n", (int)page->read_gen);
+            //printf("yang test ..............__wt_sync_file......read_gen:%d\r\n", (int)page->read_gen);
             if (F_ISSET(walk, WT_REF_FLAG_LEAF) &&
               (page->read_gen == WT_READGEN_WONT_NEED ||
                 FLD_ISSET(conn->timing_stress_flags, WT_TIMING_STRESS_CHECKPOINT_EVICT_PAGE)) &&

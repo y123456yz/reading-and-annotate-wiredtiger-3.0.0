@@ -89,7 +89,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
         WT_RET(__wt_curhs_cache(session));
     }
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
-    printf("yang test ................................__wt_page_release_evict.............................................\r\n");
+   // printf("yang test ................................__wt_page_release_evict.............................................\r\n");
     ret = __wt_evict(session, ref, previous_state, evict_flags);
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
 
@@ -424,7 +424,7 @@ __evict_page_dirty_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_
     bool closing;
     void *tmp;
 
-    printf("yang test ............__evict_page_dirty_update..........\r\n");
+  //  printf("yang test ............__evict_page_dirty_update..........\r\n");
     mod = ref->page->modify;
     closing = FLD_ISSET(evict_flags, WT_EVICT_CALL_CLOSING);
 

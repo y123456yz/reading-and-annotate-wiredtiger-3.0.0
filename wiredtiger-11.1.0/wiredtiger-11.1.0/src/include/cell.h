@@ -106,6 +106,7 @@
  * if the two values are the same, we only store them once and have any second and subsequent uses
  * reference the original.
  */
+//对应输出参考__wt_cell_type_string
 #define WT_CELL_ADDR_DEL (0)            /* Address: deleted */
 #define WT_CELL_ADDR_INT (1 << 4)       /* Address: internal  */
 #define WT_CELL_ADDR_LEAF (2 << 4)      /* Address: leaf */

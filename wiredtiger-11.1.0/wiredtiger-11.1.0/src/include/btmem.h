@@ -819,6 +819,9 @@ struct __wt_page {
     //__wt_page_out->__wt_overwrite_and_free_len中释放
 
     //__wt_cache_bytes_image中记录总的image内存消耗，也就是写入ext时候在内存中实际上有同样一份的内存计算统计
+
+     //配合__wt_rec_cell_build_addr阅读，[page->dsk, page->dsk + page->dsk->mem_size]对应磁盘一个ext块
+    //这个ext中存储的是一个一个的WT_ADDR，一个WT_ADDR对应一个子page的磁盘元数据
     const WT_PAGE_HEADER *dsk; //赋值见__wt_page_inmem，指向磁盘数据
 
     /* If/when the page is modified, we need lots more information. */
@@ -1082,6 +1085,7 @@ struct __wt_ref {
      */
     //通过ref->addr可以判断除该ref对应page是否罗盘了 __wt_ref_block_free
     //例如evict reconcile流程中的__wt_multi_to_ref，指向该page对应的磁盘ext元数据信息WT_ADDR(objectid offset size  checksum)
+    //如果是root page，其addr=NULL, 如果page在内存中，例如internal page(不包括root page)或者leaf page在内存中，还没有持久化
     void *addr;//对应WT_ADDR，参考__wt_multi_to_ref
 
     /*

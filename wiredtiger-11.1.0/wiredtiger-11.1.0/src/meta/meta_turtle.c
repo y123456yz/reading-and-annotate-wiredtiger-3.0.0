@@ -335,7 +335,7 @@ __wt_turtle_validate_version(WT_SESSION_IMPL *session)
     WT_WITH_TURTLE_LOCK(
       session, ret = __wt_turtle_read(session, WT_METADATA_VERSION, &version_string));
 
-    printf("yang test .........__wt_turtle_validate_version..........111111111111111\r\n");
+    //printf("yang test .........__wt_turtle_validate_version..........111111111111111\r\n");
     if (ret != 0)
         WT_ERR_MSG(session, ret, "Unable to read version string from turtle file");
 

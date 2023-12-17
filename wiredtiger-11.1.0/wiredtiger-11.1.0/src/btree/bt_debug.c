@@ -339,7 +339,7 @@ err:
 /*
  * __wt_debug_offset_blind --
  *     Read and dump a disk page in debugging mode, using a file offset.
- */
+ */ //直接读取offset块的内容打印
 int
 __wt_debug_offset_blind(WT_SESSION_IMPL *session, wt_off_t offset, const char *ofile)
 {
@@ -1648,7 +1648,7 @@ __debug_ref(WT_DBG *ds, WT_REF *ref)
 
     session = ds->session;
 
-    WT_RET(ds->f(ds, "\t%p, ", (void *)ref));
+    WT_RET(ds->f(ds, "\tref:%p, ", (void *)ref));
     WT_RET(ds->f(ds, "%s", __debug_ref_state(ref->state)));
     if (F_ISSET(ref, WT_REF_FLAG_INTERNAL))
         WT_RET(ds->f(ds, ", %s", "internal"));

@@ -1803,6 +1803,9 @@ err:
 /*
  * __session_verify --
  *     WT_SESSION->verify method.
+ //util_verify
+ 
+ wt  verify -d dump_pages file:access.wt
  */ //./wt verify
 static int
 __session_verify(WT_SESSION *wt_session, const char *uri, const char *config)

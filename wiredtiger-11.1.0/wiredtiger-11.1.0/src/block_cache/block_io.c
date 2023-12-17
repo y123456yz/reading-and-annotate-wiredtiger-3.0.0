@@ -116,8 +116,8 @@ __wt_blkcache_read(WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, 
     if (!found) {
         timer = WT_STAT_ENABLED(session) && !F_ISSET(session, WT_SESSION_INTERNAL);
         time_start = timer ? __wt_clock(session) : 0;
-        //__bm_read 从root addr对应磁盘地址开始读取数据
-        //根据root addr读取磁盘上面的avail或者alloc跳跃表中的ext元数据到内存中
+        //__bm_read 从addr对应磁盘地址开始读取数据
+        //根据  addr读取磁盘上面的avail或者alloc跳跃表中的ext元数据到内存中
         WT_ERR(bm->read(bm, session, ip, addr, addr_size));
         if (timer) {
             time_stop = __wt_clock(session);

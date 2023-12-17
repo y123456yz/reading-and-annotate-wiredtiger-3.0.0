@@ -272,7 +272,7 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     key = &r->k;
     val = &r->v;
 
-    printf("yang test .....................__rec_row_merge........mod->mod_multi_entries:%d\n", (int)mod->mod_multi_entries);
+  //  printf("yang test .....................__rec_row_merge........mod->mod_multi_entries:%d\n", (int)mod->mod_multi_entries);
     /* For each entry in the split array... */
     for (multi = mod->mod_multi, i = 0; i < mod->mod_multi_entries; ++multi, ++i) {
         /* Build the key and value cells. */
@@ -312,6 +312,11 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
 
+//__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
+//__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
+//__btree_preload->__wt_blkcache_read循环进行真正的数据加载
+
+
 
   //checkpoint流程:
  //    __checkpoint_tree->__wt_sync_file，注意这个流程只会把拆分后的元数据记录到multi_next个multi[multi_next]中，但是不会通过__evict_page_dirty_update和父page关联
@@ -320,8 +325,13 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
  //    __evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
  //    __evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
  */
+
+//对应的root下面internal page加载流程见__wt_meta_checkpoint  __btree_preload
+
+ 
 //__reconcile->__wt_rec_row_int
 //__wt_rec_row_int把该internal page的ref key及其下面所有子page的磁盘元数据信息写入到一个新的ext持久化(__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint)
+
 int 
 __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 {
@@ -339,7 +349,12 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     WT_TIME_AGGREGATE ft_ta, *source_ta, ta;
     size_t size;
     const void *p;
-
+    
+    ref = page->pg_intl_parent_ref;
+    if(__wt_ref_is_root(ref))
+        printf("yang test ..............................page is root, page:%p, ref:%p\r\n", page, ref);
+    else
+        printf("yang test ..............................page is not root, page:%p, ref:%p\r\n", page, ref);
     btree = S2BT(session);
     child = NULL;
     WT_TIME_AGGREGATE_INIT_MERGE(&ft_ta);
@@ -404,7 +419,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         addr = ref->addr;
         child = ref->page;
 
-        printf("yang test ..................__wt_rec_row_int.................cms.state:%u\r\n", cms.state);
+        //printf("yang test ..................__wt_rec_row_int.................cms.state:%u\r\n", cms.state);
         switch (cms.state) {
         case WT_CHILD_IGNORE:
             /*
@@ -517,6 +532,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         /* Boundary: split or write the page. */
         //internal page通过下属的所有ref key来判断是否内存超限需要split，超限通过evict写入磁盘
         if (__wt_rec_need_split(r, key->len + val->len))
+            //最终持久化在__ckpt_process
             WT_ERR(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
 
         /* Copy the key and value onto the page. */
@@ -532,7 +548,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     }
     WT_INTL_FOREACH_END;
 
-    //没有到__wt_rec_need_split阀值的ref key通过这里持久化到磁盘
+    //没有到__wt_rec_need_split阀值的ref key通过这里持久化到磁盘, 最终持久化在__ckpt_process
     /* Write the remnant page. */
     return (__wt_rec_split_finish(session, r));
 

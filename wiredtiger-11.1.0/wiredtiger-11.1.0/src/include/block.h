@@ -173,6 +173,11 @@ struct __wt_size {
 struct __wt_block_ckpt {
     uint8_t version; /* Version */
 
+//[1702810336:479719][75841:0x7efec67c3800], wt, file:access.wt, WT_SESSION.verify: [WT_VERB_CHECKPOINT][DEBUG_5]: 
+//access.wt: load: version=1, object ID=0, root=[off: 8192-12288, size: 4096, checksum: 0x7f509c85], 
+//alloc=[off: 12288-16384, size: 4096, checksum: 0xd8d745a6], avail=[off: 16384-20480, size: 4096, checksum: 0x99ff2904], 
+//discard=[Empty], file size=73728, checkpoint size=49152
+
     //__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
     //如果是因为checkpoint进行reconcile，则写入磁盘后的元数据记录到这几个变量中
 
@@ -209,7 +214,7 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     //ckpt_size实际上就是真实ext数据空间=file_size - avail空间(也就是磁盘碎片)
     uint64_t ckpt_size; /* Checkpoint byte count */
     
-    //分配空间__ckpt_process  
+    //分配空间__ckpt_proces, 赋值见__ckpt_extlist_fblocks
     WT_EXTLIST ckpt_avail; /* Checkpoint free'd extents */
     /*
      * Checkpoint archive: the block manager may potentially free a lot of memory from the
@@ -242,6 +247,7 @@ struct __wt_bm {
     //__bm_checkpoint_load
     int (*checkpoint_load)(
       WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t, uint8_t *, size_t *, bool);
+    //__bm_checkpoint_resolve
     int (*checkpoint_resolve)(WT_BM *, WT_SESSION_IMPL *, bool);
     //__bm_checkpoint_start
     int (*checkpoint_start)(WT_BM *, WT_SESSION_IMPL *);
@@ -270,6 +276,7 @@ struct __wt_bm {
     int (*switch_object)(WT_BM *, WT_SESSION_IMPL *, uint32_t);
     //__bm_sync
     int (*sync)(WT_BM *, WT_SESSION_IMPL *, bool);
+    //__bm_verify_addr
     int (*verify_addr)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
     int (*verify_end)(WT_BM *, WT_SESSION_IMPL *);
     //__bm_verify_start
@@ -374,8 +381,11 @@ struct __wt_block {
     bool verify_strict;      /* Fail hard on any error */
     wt_off_t verify_size;    /* Checkpoint's file size */
     WT_EXTLIST verify_alloc; /* Verification allocation list */
+    //也就是有多少个block->allocsize长度大小
     uint64_t frags;          /* Maximum frags in the file */
+    //赋值参考__verify_filefrag_add
     uint8_t *fragfile;       /* Per-file frag tracking list */
+    //参考__wt_verify_ckpt_load  //以4092为单位，把verify_alloc中的ext对应的fragckpt[]位置位
     uint8_t *fragckpt;       /* Per-checkpoint frag tracking list */
 
    //yang add change 挪动位置

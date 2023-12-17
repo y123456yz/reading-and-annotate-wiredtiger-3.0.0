@@ -470,7 +470,7 @@ __wt_schema_get_colgroup(
     *colgroupp = NULL;
 
     tablename = uri;
-    printf("yang test ..........tablename:%s, tablename:%s\r\n", tablename, tablename);
+ //   printf("yang test ..........tablename:%s, tablename:%s\r\n", tablename, tablename);
     //app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=S,verbose=[],write_timestamp_usage=none
     //mongodb默认不会指定colgroup，
     if (!WT_PREFIX_SKIP(tablename, "colgroup:"))
@@ -480,13 +480,13 @@ __wt_schema_get_colgroup(
     if ((tend = strchr(tablename, ':')) == NULL)
         tend = tablename + strlen(tablename);
 
-    printf("yang test ..........tend:%s, tablename:%s\r\n", tend, tablename);
+   // printf("yang test ..........tend:%s, tablename:%s\r\n", tend, tablename);
     WT_RET(
       __wt_schema_get_table(session, tablename, WT_PTRDIFF(tend, tablename), false, 0, &table));
 
     for (i = 0; i < WT_COLGROUPS(table); i++) {
         colgroup = table->cgroups[i];
-        printf("yang test ..........uri:%s, colgroup->name:%s\r\n", uri, colgroup->name);
+       // printf("yang test ..........uri:%s, colgroup->name:%s\r\n", uri, colgroup->name);
 
         if (strcmp(colgroup->name, uri) == 0) {
             *colgroupp = colgroup;

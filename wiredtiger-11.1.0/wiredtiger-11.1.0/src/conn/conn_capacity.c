@@ -99,7 +99,7 @@ __capacity_server(void *arg)
 
         /* Check if we're quitting or being reconfigured. */
         if (!__capacity_server_run_chk(session)) {
-            printf("yang test .............__capacity_server.............\r\n");
+          //  printf("yang test .............__capacity_server.............\r\n");
             break;
         }
         cap->signalled = false;
@@ -200,7 +200,7 @@ __wt_capacity_server_destroy(WT_SESSION_IMPL *session)
 
     FLD_CLR(conn->server_flags, WT_CONN_SERVER_CAPACITY);
     if (conn->capacity_tid_set) {
-        printf("yang test ...........11.......__wt_capacity_server_destroy........................\r\n");
+        //printf("yang test ...........11.......__wt_capacity_server_destroy........................\r\n");
         __wt_cond_signal(session, conn->capacity_cond);
         WT_TRET(__wt_thread_join(session, &conn->capacity_tid));
         conn->capacity_tid_set = false;
@@ -216,7 +216,7 @@ __wt_capacity_server_destroy(WT_SESSION_IMPL *session)
      */
     conn->capacity_session = NULL;
     conn->capacity_tid_set = false;
-    printf("yang test .........22.........__wt_capacity_server_destroy........................\r\n");
+   // printf("yang test .........22.........__wt_capacity_server_destroy........................\r\n");
     conn->capacity_cond = NULL;
 
     return (ret);

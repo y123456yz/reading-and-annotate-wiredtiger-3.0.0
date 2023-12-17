@@ -34,13 +34,22 @@ __wt_block_ckpt_init(WT_SESSION_IMPL *session, WT_BLOCK_CKPT *ci, const char *na
 /*
  * __wt_block_checkpoint_load --
  *     Load a checkpoint.
+
+ //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+ 
+ //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
+ 
  //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
 
  */
 
-//__wt_btree_open->__wt_block_checkpoint_load
+//__wt_btree_open->__bm_checkpoint_load->__wt_block_checkpoint_load
+
 
 //addr空间信息解包，然后获取解析出来的root、alloc、avail对应ext元数据信息，同时对root(root_objectid, root_offset, root_size, root_checksum)
 //进行封包返回
@@ -102,10 +111,12 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
         ci->file_size = block->allocsize;
     else {
         /* Crack the checkpoint cookie. */
+        //从checkpoint addr核心元数据中解析处对应的成员赋值给ci
         WT_ERR(__wt_block_ckpt_unpack(session, block, addr, addr_size, ci));
 
         /* Verify sets up next. */
-        if (block->verify)
+        if (block->verify) 
+            //磁盘对应ext数据以4096位单位对block->fragckpt变量对应位置位
             WT_ERR(__wt_verify_ckpt_load(session, block, ci));
 
         //root page相关元数据加载
@@ -113,7 +124,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
         if (ci->root_offset != WT_BLOCK_INVALID_OFFSET) {
             endp = root_addr;
 
-            //对root封包
+            //对root封包 //对objectid offset size  checksum四个字段进行封包存入root_addr[]数组中, 
             WT_ERR(__wt_block_addr_pack(
               block, &endp, ci->root_objectid, ci->root_offset, ci->root_size, ci->root_checksum));
             *root_addr_sizep = WT_PTRDIFF(endp, root_addr);
@@ -471,8 +482,8 @@ __ckpt_add_blk_mods_alloc(
 
     WT_CKPT_FOREACH (ckptbase, ckpt) {
         if (F_ISSET(ckpt, WT_CKPT_ADD)) {
-            printf("yang test ....2..__ckpt_add_blk_mods_alloc...........checkpoint name:%s, block->created_during_backup:%d\r\n", 
-                ckpt->name, block->created_during_backup);
+            //printf("yang test ....2..__ckpt_add_blk_mods_alloc...........checkpoint name:%s, block->created_during_backup:%d\r\n", 
+            //    ckpt->name, block->created_during_backup);
             break;
         }
     }
@@ -488,7 +499,7 @@ __ckpt_add_blk_mods_alloc(
         if (block->created_during_backup)
             WT_RET(__ckpt_add_blkmod_entry(session, blk_mod, 0, block->allocsize));
 
-        printf("yang test ....3..__ckpt_add_blk_mods_alloc...........checkpoint name:%s\r\n", ckpt->name);
+        //printf("yang test ....3..__ckpt_add_blk_mods_alloc...........checkpoint name:%s\r\n", ckpt->name);
         WT_EXT_FOREACH (ext, ci->alloc.off) {
             WT_RET(__ckpt_add_blkmod_entry(session, blk_mod, ext->off, ext->size));
         }
@@ -535,6 +546,14 @@ __ckpt_add_blk_mods_ext(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_BLOCK_CK
 /*
  * __ckpt_process --
  *     Process the list of checkpoints.
+
+  //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+  //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+  
+  //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+  //    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
+ 
   //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
   //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
   //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
@@ -745,8 +764,8 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
         /*
          * Roll the "from" alloc and discard extent lists into the "to" checkpoint's lists.
          */
-        printf("yang test ......................__ckpt_process.....a->alloc.entries:%d, a->discard.entries:%d \r\n",
-            (int)a->alloc.entries, (int)a->discard.entries);
+      //  printf("yang test ......................__ckpt_process.....a->alloc.entries:%d, a->discard.entries:%d \r\n",
+          //  (int)a->alloc.entries, (int)a->discard.entries);
         if (a->alloc.entries != 0)
             WT_ERR(__wt_block_extlist_merge(session, block, &a->alloc, &b->alloc));
         if (a->discard.entries != 0)

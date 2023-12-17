@@ -41,7 +41,6 @@ __bm_close_block(WT_SESSION_IMPL *session, WT_BLOCK *block)
     bool found;
 
     conn = S2C(session);
-    //yang add todo xxxxxxxx  日志完善
     __wt_verbose(session, WT_VERB_BLKCACHE, "block close: %s", block->name);
 
     __wt_spin_lock(session, &conn->block_lock);
@@ -102,6 +101,7 @@ static int
 __bm_addr_string(
   WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, size_t addr_size)
 {
+    //解析addr中的ext内容元数据存储到buf中
     return (__wt_block_addr_string(session, bm->block, buf, addr, addr_size));
 }
 
@@ -202,6 +202,8 @@ __bm_checkpoint_readonly(
 /*
  * __bm_checkpoint_load --
  *     Load a checkpoint.
+
+ __wt_btree_open->__bm_checkpoint_load
  */
 //__wt_btree_open调用，从配置文件加载checkpoint
 //addr空间信息解包，然后获取解析出来的root、alloc、avail对应ext元数据信息，同时对root(root_objectid, root_offset, root_size, root_checksum)
@@ -210,7 +212,7 @@ static int
 __bm_checkpoint_load(WT_BM *bm, WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size,
   uint8_t *root_addr, size_t *root_addr_sizep, bool checkpoint)
 {
-    printf("yang test ..................__bm_checkpoint_load........................checkpoint:%d\r\n", checkpoint);
+    //printf("yang test ..................__bm_checkpoint_load........................checkpoint:%d\r\n", checkpoint);
     /* If not opening a checkpoint, we're opening the live system. */
     bm->is_live = !checkpoint;
     WT_RET(__wt_block_checkpoint_load(
@@ -719,7 +721,7 @@ __bm_verify_end(WT_BM *bm, WT_SESSION_IMPL *session)
 /*
  * __bm_verify_start --
  *     Start a block manager verify.
- */ //__wt_verify
+ */ //__wt_verify 
 static int
 __bm_verify_start(WT_BM *bm, WT_SESSION_IMPL *session, WT_CKPT *ckptbase, const char *cfg[])
 {

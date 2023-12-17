@@ -24,7 +24,7 @@ __wt_evict_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
 
     dhandle = session->dhandle;
     btree = dhandle->handle;
-    printf("yang test ............................__wt_evict_file.......... \r\n");
+    //printf("yang test ............................__wt_evict_file.......... \r\n");
 
     /*
      * We need exclusive access to the file, we're about to discard the root page. Assert eviction
@@ -90,7 +90,7 @@ __wt_evict_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
         switch (syncop) {
         case WT_SYNC_CLOSE:
             /* Evict the page. */
-            printf("yang test ................................__wt_evict_file.............................................\r\n");
+          //  printf("yang test ................................__wt_evict_file.............................................\r\n");
             WT_ERR(__wt_evict(session, ref, ref->state, WT_EVICT_CALL_CLOSING));
             break;
         case WT_SYNC_DISCARD:

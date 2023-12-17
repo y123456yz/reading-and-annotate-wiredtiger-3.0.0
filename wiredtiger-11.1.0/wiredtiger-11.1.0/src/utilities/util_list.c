@@ -31,6 +31,7 @@ usage(void)
 /*
  * util_list --
  *     The list command.
+ ../../../wt  list -c file:access.wt
  */
 int
 util_list(WT_SESSION *session, int argc, char *argv[])
@@ -213,6 +214,16 @@ list_print_size(uint64_t v)
 /*
  * list_print_checkpoint --
  *     List the checkpoint information.
+ ../../../wt  list -c file:access.wt
+
+WiredTigerCheckpoint.1: Sat Dec 16 15:22:41 2023 (size 8 KB)
+    file-size: 20 KB, checkpoint-size: 4 KB
+
+              offset, size, checksum
+    root    : 8192, 4096, 2288676953 (0x886a7059)
+    alloc   : 12288, 4096, 356965718 (0x1546dd56)
+    discard : 0, 0, 0 (0)
+    avail   : 16384, 4096, 3435849225 (0xcccae609)
  */
 static int
 list_print_checkpoint(WT_SESSION *session, const char *key)

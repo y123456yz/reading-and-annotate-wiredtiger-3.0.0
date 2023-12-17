@@ -16,7 +16,7 @@
  *     function can be called repeatedly to unpack a buffer containing multiple address cookies.
  */
 //__block_ckpt_unpack->__block_addr_unpack
-//从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
+//从checkpoint核心二进制元数据pp数组addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到objectidp offsetp sizep checksump对应成员变量中
 static int
 __block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t **pp, size_t addr_size,
   uint32_t *objectidp, wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump)
@@ -130,6 +130,7 @@ __wt_block_addr_pack(WT_BLOCK *block, uint8_t **pp, uint32_t objectid, wt_off_t 
  */
 
 //从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
+//对应p内容解析打印也可以参考__wt_block_addr_string
 int
 __wt_block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *p,
   size_t addr_size, uint32_t *objectidp, wt_off_t *offsetp, uint32_t *sizep, uint32_t *checksump)
@@ -176,6 +177,7 @@ __wt_block_addr_invalid(
  * __wt_block_addr_string --
  *     Return a printable string representation of an address cookie.
  */
+//解析addr中的ext内容元数据存储到buf中
 int
 __wt_block_addr_string(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, const uint8_t *addr, size_t addr_size)
@@ -188,8 +190,9 @@ __wt_block_addr_string(
       session, block, addr, addr_size, &objectid, &offset, &size, &checksum));
 
     /* Printable representation. */
+    //yang add todo xxxxxxxxxxxxxxx 日志完善
     WT_RET(__wt_buf_fmt(session, buf,
-      "[%" PRIu32 ": %" PRIuMAX "-%" PRIuMAX ", %" PRIu32 ", %" PRIu32 "]", objectid,
+      "[objectid: %" PRIu32 "off : %" PRIuMAX "-%" PRIuMAX ", size: %" PRIu32 ", checksum: %" PRIu32 "]", objectid,
       (uintmax_t)offset, (uintmax_t)offset + size, size, checksum));
 
     return (0);
@@ -216,6 +219,7 @@ __block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ck
     begin = ckpt;
 
     ci->version = ckpt[0];
+    //printf("yang test .......................__block_ckpt_unpack...........:%d\r\n", ci->version);
     if (ci->version != WT_BM_CHECKPOINT_VERSION)
         WT_RET_MSG(session, WT_ERROR, "unsupported checkpoint version");
 
@@ -272,17 +276,17 @@ __block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ck
 int
 __wt_block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ckpt,
   size_t ckpt_size, WT_BLOCK_CKPT *ci)
-{
+{//从checkpoint核心元数据中解析处对应的成员赋值给ci
     return (__block_ckpt_unpack(session, block, ckpt, ckpt_size, ci));
 }
 
 /*
  * __wt_block_ckpt_decode --
  *     Convert a checkpoint cookie into its components, external utility version.
- */
+ */ //__wt_block_ckpt_decode(session, block, ckpt->raw.data, ckpt->raw.size, &ci)
 int
 __wt_block_ckpt_decode(WT_SESSION *wt_session, WT_BLOCK *block, const uint8_t *ckpt,
-  size_t ckpt_size, WT_BLOCK_CKPT *ci) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+  size_t ckpt_size, WT_BLOCK_CKPT *ci) //WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     WT_SESSION_IMPL *session;
 
@@ -365,7 +369,7 @@ __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag,
     WT_DECL_ITEM(tmp);
     WT_DECL_RET;
 
-    printf("yang test 1111111111111111111111111111111111111111111 __wt_ckpt_verbose\r\n");
+    //printf("yang test 1111111111111111111111111111111111111111111 __wt_ckpt_verbose\r\n");
     if (ckpt_string == NULL) {
         __wt_verbose_worker(session, WT_VERB_CHECKPOINT, S2C(session)->verbose[WT_VERB_CHECKPOINT],
           "%s: %s: %s%s[Empty]", block->name, tag, ckpt_name ? ckpt_name : "",
@@ -416,8 +420,9 @@ __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag,
     __wt_verbose_worker(session, WT_VERB_CHECKPOINT, S2C(session)->verbose[WT_VERB_CHECKPOINT],
       "%s: %s: %s%s%s", block->name, tag, ckpt_name ? ckpt_name : "", ckpt_name ? ": " : "",
       (const char *)tmp->data);
-    printf("yang test 22222222222222222222222222222222222222222222222222222 __wt_ckpt_verbose\r\n");
+   // printf("yang test 22222222222222222222222222222222222222222222222222222 __wt_ckpt_verbose\r\n");
 err:
     __wt_scr_free(session, &tmp);
+    //yang add doto xxxxxxxxxxxxxxx 这里不应该释放
     __wt_block_ckpt_destroy(session, ci);
 }

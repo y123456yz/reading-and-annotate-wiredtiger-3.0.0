@@ -986,6 +986,8 @@ __wt_page_parent_modify_set(WT_SESSION_IMPL *session, WT_REF *ref, bool page_onl
 /*
  * __wt_off_page --
  *     Return if a pointer references off-page data.
+ //配合__wt_rec_cell_build_addr阅读，[page->dsk, page->dsk + page->dsk->mem_size]对应磁盘一个ext块
+//这个ext中存储的是一个一个的WT_ADDR，一个WT_ADDR对应一个子page的磁盘元数据
  */
 //判断p点位是否在page对应磁盘空间
 static inline bool
@@ -1510,6 +1512,7 @@ __wt_row_leaf_value_cell(
  *	We have to lock the WT_REF to look at a WT_ADDR: a structure we can use to quickly get a
  * copy of the WT_REF address information.
  */
+//addr打印可以参考__verify_addr_string
 struct __wt_addr_copy {
     uint8_t type;
 
@@ -1525,7 +1528,9 @@ struct __wt_addr_copy {
 /*
  * __wt_ref_addr_copy --
  *     Return a copy of the WT_REF address information.
+ 
  */
+//拷贝ref addr信息到copy中
 static inline bool
 __wt_ref_addr_copy(WT_SESSION_IMPL *session, WT_REF *ref, WT_ADDR_COPY *copy)
 {
@@ -1548,10 +1553,14 @@ __wt_ref_addr_copy(WT_SESSION_IMPL *session, WT_REF *ref, WT_ADDR_COPY *copy)
 
     /* If NULL, there is no information. */
     //通过ref->addr可以判断除该ref对应page是否罗盘了 __wt_ref_block_free
-    if (addr == NULL)//ref对应page为NULL则直接返回
+    if (addr == NULL)//ref对应page为NULL则直接返回, 一般代表没有持久化到磁盘，或者位root page
         return (false);
 
     /* If off-page, the pointer references a WT_ADDR structure. */
+    //配合__wt_rec_row_int阅读，[page->dsk, page->dsk + page->dsk->mem_size]对应磁盘一个ext块
+    //这个ext中存储的是一个一个的WT_ADDR，一个WT_ADDR对应一个子page的磁盘元数据
+
+   // printf("yang test .........__wt_ref_addr_copy........%p, %p\r\n", page->dsk, ref->addr);
     if (__wt_off_page(page, addr)) {
         WT_TIME_AGGREGATE_COPY(&copy->ta, &addr->ta);
         copy->type = addr->type;

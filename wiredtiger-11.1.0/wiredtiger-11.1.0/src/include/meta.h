@@ -133,7 +133,7 @@ struct __wt_block_mods {
  * WT_CKPT --
  *	Encapsulation of checkpoint information, shared by the metadata, the
  * btree engine, and the block manager.
- */
+ */ //每生成一个checkpoint就会自增，见__meta_ckptlist_allocate_new_ckpt  __wt_meta_ckptlist_to_meta
 #define WT_CHECKPOINT "WiredTigerCheckpoint"
 #define WT_CKPT_FOREACH(ckptbase, ckpt) for ((ckpt) = (ckptbase); (ckpt)->name != NULL; ++(ckpt))
 #define WT_CKPT_FOREACH_NAME_OR_ORDER(ckptbase, ckpt) \
@@ -143,6 +143,8 @@ struct __wt_block_mods {
 //__wt_btree.ckpt为该类型
 struct __wt_ckpt {
     //赋值见__checkpoint_lock_dirty_tree，不指定name，默认为"WiredTigerCheckpoint"
+    //wreidtiger.wt中checkpoint=(WiredTigerCheckpoint.1=(addr="018181e4886a50198281e41546bd168381e4fa0c608a808080e22fc0cfc0"
+    //这个对应的name就是WiredTigerCheckpoint.1
     char *name; /* Name or NULL */
 
     /*
@@ -154,6 +156,7 @@ struct __wt_ckpt {
      * open on those checkpoints. I can't think of any way to return incorrect results by racing
      * with those cursors, but it's simpler not to worry about it.
      */
+    //每生成一个checkpoint就会自增，见__meta_ckptlist_allocate_new_ckpt  __wt_meta_ckptlist_to_meta
     int64_t order; /* Checkpoint order */
     //也就是checkpoint开始时间session->current_ckpt_sec，参考__meta_ckptlist_allocate_new_ckpt
     uint64_t sec; /* Wall clock time */
@@ -181,6 +184,9 @@ struct __wt_ckpt {
     //赋值参考__ckpt_update
     //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
     //重启的时候在__ckpt_load中加载，存储addr二进制解析后的数据，见__ckpt_load
+
+    //内容输出可以参考 list_print_checkpoint  ../../../wt  list -c file:access.wt命令可以可视化输出raw内容
+    //也可以参考__wt_ckpt_verbose
     WT_ITEM raw;  /* Checkpoint cookie raw */
 
     //创建空间及初始化__ckpt_extlist_read, 类型为WT_BLOCK_CKPT

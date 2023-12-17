@@ -90,8 +90,8 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 
     /* Get the checkpoint information for this name/checkpoint pair. */
     //从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
-    printf("yang test .......__wt_btree_open......11...........name:%s, checkpoint:%s\r\n", 
-        dhandle->name, dhandle->checkpoint);
+   // printf("yang test .......__wt_btree_open......11...........name:%s, checkpoint:%s\r\n", 
+   //     dhandle->name, dhandle->checkpoint);
     WT_RET(__wt_meta_checkpoint(session, dhandle->name, dhandle->checkpoint, &ckpt));
 
     /* Set the order number. */
@@ -155,7 +155,8 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 
         if (creation || root_addr_size == 0) //BTREE还没有任何数据，走这里
             WT_ERR(__btree_tree_open_empty(session, creation));
-        else {//前面的checkpoint_load获取到了磁盘中的root元数据，通过root在磁盘中的位置就可以读取到root相关的所有信息
+        else {
+            //前面的checkpoint_load获取到了磁盘中的root元数据，并构建内存中root结构
             WT_ERR(__wt_btree_tree_open(session, root_addr, root_addr_size));
 
             /* Warm the cache, if possible. */
@@ -621,7 +622,7 @@ __wt_root_ref_init(WT_SESSION_IMPL *session, WT_REF *root_ref, WT_PAGE *root, bo
 //__wt_btree_open->__btree_tree_open_empty: 创建root page
 //__wt_btree_open->__wt_btree_tree_open: 从磁盘加载数据到page
 
-//前面的checkpoint_load获取到了磁盘中的root元数据 
+//前面的checkpoint_load获取到了磁盘中的root元数据，并构建内存中root结构
 int
 __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_size)
 {
@@ -826,6 +827,14 @@ __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __btree_preload --
  *     Pre-load internal pages.
+
+ //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+ 
+ //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+ //    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
+ 
  //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
@@ -845,6 +854,7 @@ __btree_preload(WT_SESSION_IMPL *session)
 
     WT_RET(__wt_scr_alloc(session, 0, &tmp));
 
+    //root的内存结构在外层的__wt_btree_tree_open中从磁盘加载到内存中
     /* Pre-load the second-level internal pages. */
     WT_INTL_FOREACH_BEGIN (session, btree->root.page, ref)
         if (__wt_ref_addr_copy(session, ref, &addr)) {

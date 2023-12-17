@@ -97,6 +97,14 @@ __ckpt_load_blk_mods(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt
 /*
  * __wt_meta_checkpoint --
  *     Return a file's checkpoint information.
+
+  //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
+  //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
+  
+  //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
+  //    ->__wt_blkcache_write->__bm_write->__wt_block_write
+
+
   //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
   //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
   //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
@@ -1222,6 +1230,7 @@ __wt_meta_ckptlist_to_meta(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_ITEM 
         sep = ",";
 
         if (strcmp(ckpt->name, WT_CHECKPOINT) == 0)
+            //WiredTigerCheckpoint.x，没生成一个checkpoint在
             WT_RET(__wt_buf_catfmt(session, buf, ".%" PRId64, ckpt->order));
 
         /* Use PRId64 formats: WiredTiger's configuration code handles signed 8B values. */

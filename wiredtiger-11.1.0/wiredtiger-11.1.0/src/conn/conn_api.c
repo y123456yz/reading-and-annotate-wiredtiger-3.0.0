@@ -1197,7 +1197,7 @@ err:
      * Shut down the checkpoint and capacity server threads: we don't want to throttle writes and
      * we're about to do a final checkpoint separately from the checkpoint server.
      */
-    printf("yang test .............__conn_close.............\r\n");
+    //printf("yang test .............__conn_close.............\r\n");
     WT_TRET(__wt_capacity_server_destroy(session));
     WT_TRET(__wt_checkpoint_server_destroy(session));
 
@@ -1232,7 +1232,7 @@ err:
     if (cval.val != 0)
         F_SET(conn, WT_CONN_LEAK_MEMORY);
 
-    printf("yang test ...........................__conn_close..\r\n");
+   // printf("yang test ...........................__conn_close..\r\n");
     WT_TRET(__wt_connection_close(conn));
 
     /* We no longer have a session, don't try to update it. */

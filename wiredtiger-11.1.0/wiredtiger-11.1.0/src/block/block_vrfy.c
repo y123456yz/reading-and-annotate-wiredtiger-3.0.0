@@ -23,6 +23,7 @@ static int __verify_set_file_size(WT_SESSION_IMPL *, WT_BLOCK *, WT_CKPT *);
 /*
  * __wt_block_verify_start --
  *     Start file verification.
+ 例如./wt  verify -d dump_pages file:access.wt
  */
 int
 __wt_block_verify_start(
@@ -35,7 +36,7 @@ __wt_block_verify_start(
     /* Configuration: strict behavior on any error. */
     WT_RET(__wt_config_gets(session, cfg, "strict", &cval));
     block->verify_strict = cval.val != 0;
-    printf("yang test .......__wt_block_verify_start.......strict:%d\r\n", block->verify_strict);
+   // printf("yang test .......__wt_block_verify_start.......strict:%d\r\n", block->verify_strict);
     
     /* Configuration: dump the file's layout. */
     WT_RET(__wt_config_gets(session, cfg, "dump_layout", &cval));
@@ -46,9 +47,11 @@ __wt_block_verify_start(
      * fake, there's no work to do. Don't complain, that's not our problem to solve.
      */
     ckpt = NULL;
-    WT_CKPT_FOREACH (ckptbase, t)
-        if (t->name != NULL && !F_ISSET(t, WT_CKPT_FAKE))
+    WT_CKPT_FOREACH (ckptbase, t) {
+        if (t->name != NULL && !F_ISSET(t, WT_CKPT_FAKE)) {
             ckpt = t;
+        }
+    }
     if (ckpt == NULL)
         return (0);
 
@@ -201,6 +204,7 @@ __wt_block_verify_end(WT_SESSION_IMPL *session, WT_BLOCK *block)
 /*
  * __wt_verify_ckpt_load --
  *     Verify work done when a checkpoint is loaded.
+//磁盘对应ext数据以4096位单位对block->fragckpt变量对应位置位
  */
 int
 __wt_verify_ckpt_load(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_BLOCK_CKPT *ci)
@@ -211,12 +215,15 @@ __wt_verify_ckpt_load(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_BLOCK_CKPT *
 
     /* Set the maximum file size for this checkpoint. */
     block->verify_size = ci->file_size;
+    __wt_verbose(session, WT_VERB_VERIFY,
+      "__wt_verify_ckpt_load file size %" PRIuMAX, (uintmax_t)block->verify_size);
 
     /*
      * Add the root page and disk blocks used to store the extent lists to the list of blocks we've
      * "seen" from the file.
      */
     if (ci->root_offset != WT_BLOCK_INVALID_OFFSET)
+        //yang add todo xxxx 这里"checkpoint"用root最好
         WT_RET(__verify_filefrag_add(
           session, block, "checkpoint", ci->root_offset, (wt_off_t)ci->root_size, true));
     if (ci->alloc.offset != WT_BLOCK_INVALID_OFFSET)
@@ -236,11 +243,14 @@ __wt_verify_ckpt_load(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_BLOCK_CKPT *
      * one-to-one mapping to the pages we find in this specific checkpoint.
      */
     el = &ci->alloc;
+    //ci->alloc跳表中的ext合并到block->verify_alloc跳表
     if (el->offset != WT_BLOCK_INVALID_OFFSET) {
         WT_RET(__wt_block_extlist_read(session, block, el, ci->file_size));
         WT_RET(__wt_block_extlist_merge(session, block, el, &block->verify_alloc));
         __wt_block_extlist_free(session, el);
     }
+
+    //从block->verify_alloc跳表中删除discard跳表中的ext
     el = &ci->discard;
     if (el->offset != WT_BLOCK_INVALID_OFFSET) {
         WT_RET(__wt_block_extlist_read(session, block, el, ci->file_size));
@@ -269,6 +279,7 @@ __wt_verify_ckpt_load(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_BLOCK_CKPT *
      * accumulated list of checkpoint pages, so it doesn't add a new requirement for subsequent
      * checkpoints.
      */
+    //删除root ext
     if (ci->root_offset != WT_BLOCK_INVALID_OFFSET)
         WT_RET(__wt_block_off_remove_overlap(
           session, block, &block->verify_alloc, ci->root_offset, ci->root_size));
@@ -281,6 +292,7 @@ __wt_verify_ckpt_load(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_BLOCK_CKPT *
      */
     WT_RET(__bit_alloc(session, block->frags, &block->fragckpt));
     el = &block->verify_alloc;
+    //以4096为单位，把verify_alloc中的ext对应的fragckpt[]位置位
     WT_EXT_FOREACH (ext, el->off) {
         frag = (uint64_t)WT_wt_off_TO_FRAG(block, ext->off);
         frags = (uint64_t)(ext->size / block->allocsize);
