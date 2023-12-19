@@ -656,6 +656,7 @@ __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
     //根据root addr读取磁盘上面的数据到dsk空间，也就是 root=[53248-57344, 4096, 2869582413]这个元数据对应的磁盘上53248-57344这4096字节
     //root addr对应的dsk原始内容参考__wt_rec_row_int
     if ((ret = __wt_blkcache_read(session, &dsk, addr, addr_size)) == 0)
+        //root元数据比较小，可以做一次校验
         ret = __wt_verify_dsk(session, tmp->data, &dsk);
     /*
      * Flag any failed read or verification: if we're in startup, it may be fatal.
@@ -684,13 +685,17 @@ __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
      * Build the in-memory version of the page. Clear our local reference to the allocated copy of
      * the disk image on return, the in-memory object steals it.
      */
-    //从dsk中解析出对应的root page信息
+    //从dsk中解析出对应的root page信息，及其下面的index[]数组
+    
+    //重启时候从page dsk(也就是checkpoint的root ext信息)中解析出子page信息、ref key信、page对应磁盘信息等，
+    // 然后与page关联，配合__rec_split_write阅读
     WT_ERR(__wt_page_inmem(session, NULL, dsk.data,
       WT_DATA_IN_ITEM(&dsk) ? WT_PAGE_DISK_ALLOC : WT_PAGE_DISK_MAPPED, &page, NULL));
     dsk.mem = NULL;
 
     /* Finish initializing the root, root reference links. */
-    //dsk中获取的page信息和btree->root关联
+    //dsk中获取的page信息和btree->root关联，这样root page和root ref就关联了
+    //然后在外层的checkpoint_load中
     __wt_root_ref_init(session, &btree->root, page, btree->type != BTREE_ROW);
 
 err:

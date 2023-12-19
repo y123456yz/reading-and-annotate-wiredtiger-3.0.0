@@ -2188,6 +2188,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
     WT_DECL_RET;
     const WT_NAME_FLAG *ft;
     WT_VERBOSE_LEVEL verbosity_all;
+    //int i;
 
     conn = S2C(session);
 
@@ -2259,7 +2260,8 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
               "Failed to parse verbose option '%s' with value '%" PRId64 "'", ft->name, sval.val);
     }
 
-    conn->verbose[WT_VERB_API] = 0; //yang add test xxxxxxxxxxxx
+  //  for (i = 0;i < WT_VERB_NUM_CATEGORIES; i++)
+   //     conn->verbose[i] = 0; //yang add test xxxxxxxxxxxx
     return (0);
 }
 

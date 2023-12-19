@@ -190,6 +190,7 @@ struct __wt_ckpt {
     WT_ITEM raw;  /* Checkpoint cookie raw */
 
     //创建空间及初始化__ckpt_extlist_read, 类型为WT_BLOCK_CKPT
+    //ext list的真实数据ext内存元数据存储在这里__ckpt_extlist_read
     void *bpriv; /* Block manager private */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */

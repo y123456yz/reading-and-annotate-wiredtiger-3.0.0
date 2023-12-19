@@ -50,6 +50,26 @@ __blkcache_read_corrupt(WT_SESSION_IMPL *session, int error, const uint8_t *addr
  //__wt_btree_open->__wt_btree_tree_open->__wt_blkcache_read: 根据root addr读取磁盘上面的echeckpoint avail或者alloc跳跃表中的ext元数据到内存中
  //__wt_btree_open->__btree_preload->__wt_blkcache_read: 根据ext的元数据地址addr信息从磁盘读取真实ext到buf内存中
  */
+
+//可以参考在__wt_sync_file中会遍历所有的btree过程，看__wt_sync_file是如何遍历btree的，然后走到这里
+/*
+                        root page                           (root page ext持久化__wt_rec_row_int)
+                        /         \
+                      /             \
+                    /                 \
+       internal-1 page             internal-2 page          (internal page ext持久化__wt_rec_row_int)
+         /      \                      /    \
+        /        \                    /       \
+       /          \                  /          \
+leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化__wt_rec_row_leaf)
+
+上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
+
+//从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page元数据[ref key, leaf page ext addr元数据]
+//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据], 
+//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据], 
+*/
+
 int
 __wt_blkcache_read(WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, size_t addr_size)
 {

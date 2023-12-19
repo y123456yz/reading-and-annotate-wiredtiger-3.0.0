@@ -696,6 +696,8 @@ struct __wt_page {
         WT_ASSERT(session, __wt_session_gen(session, WT_GEN_SPLIT) != 0); \
         (pindex) = WT_INTL_INDEX_GET_SAFE(page);                          \
     } while (0)
+    
+//page的__index数组赋值，见__wt_page_alloc
 #define WT_INTL_INDEX_SET(page, v)      \
     do {                                \
         WT_WRITE_BARRIER();             \
@@ -1086,6 +1088,25 @@ struct __wt_ref {
     //通过ref->addr可以判断除该ref对应page是否罗盘了 __wt_ref_block_free
     //例如evict reconcile流程中的__wt_multi_to_ref，指向该page对应的磁盘ext元数据信息WT_ADDR(objectid offset size  checksum)
     //如果是root page，其addr=NULL, 如果page在内存中，例如internal page(不包括root page)或者leaf page在内存中，还没有持久化
+
+    //重启时候从__inmem_row_int中从root元数据ext中加载每个page的磁盘addr信息
+//可以参考在__wt_sync_file中会遍历所有的btree过程，看__wt_sync_file是如何遍历btree的，然后走到这里
+/*
+                        root page
+                        /         \
+                      /             \
+                    /                 \
+       internal-1 page             internal-2 page
+         /      \                      /    \
+        /        \                    /       \
+       /          \                  /          \
+leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
+
+上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
+*/ 
+//从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page addr元数据[ref key, leaf page ext元数据]
+//  internal2记录leaf3和leaf4的page addr元数据[ref key, leaf page ext元数据], 
+//  root记录internal1和internal2的 addr元数据[ref key, leaf page ext元数据], 
     void *addr;//对应WT_ADDR，参考__wt_multi_to_ref
 
     /*

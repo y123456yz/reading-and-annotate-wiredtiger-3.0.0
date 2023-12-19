@@ -192,7 +192,7 @@ __wt_block_addr_string(
     /* Printable representation. */
     //yang add todo xxxxxxxxxxxxxxx 日志完善
     WT_RET(__wt_buf_fmt(session, buf,
-      "[objectid: %" PRIu32 "off : %" PRIuMAX "-%" PRIuMAX ", size: %" PRIu32 ", checksum: %" PRIu32 "]", objectid,
+      "[objectid: %" PRIu32 ", off : %" PRIuMAX "-%" PRIuMAX ", size: %" PRIu32 ", checksum: %" PRIu32 "]", objectid,
       (uintmax_t)offset, (uintmax_t)offset + size, size, checksum));
 
     return (0);
@@ -415,6 +415,10 @@ __wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag,
           (uintmax_t)ci->discard.offset, (uintmax_t)(ci->discard.offset + ci->discard.size),
           ci->discard.size, ci->discard.checksum));
     WT_ERR(__wt_buf_catfmt(session, tmp, ", file size=%" PRIuMAX, (uintmax_t)ci->file_size));
+    //yang add todo xxxxxxxxxxx 日志完善
+    WT_ERR(__wt_buf_catfmt(session, tmp, ", alloc list size=%" PRIuMAX, (uintmax_t)ci->alloc.bytes));
+    WT_ERR(__wt_buf_catfmt(session, tmp, ", avail list size=%" PRIuMAX, (uintmax_t)ci->avail.bytes));
+    WT_ERR(__wt_buf_catfmt(session, tmp, ", discard list size=%" PRIuMAX, (uintmax_t)ci->discard.bytes));
     WT_ERR(__wt_buf_catfmt(session, tmp, ", checkpoint size=%" PRIu64, ci->ckpt_size));
 
     __wt_verbose_worker(session, WT_VERB_CHECKPOINT, S2C(session)->verbose[WT_VERB_CHECKPOINT],

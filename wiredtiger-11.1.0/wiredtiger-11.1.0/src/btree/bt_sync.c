@@ -461,6 +461,22 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
         if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT))
             LF_SET(WT_READ_VISIBLE_ALL);
 
+
+/*
+                        root page
+                        /         \
+                      /             \
+                    /                 \
+       internal-1 page             internal-2 page
+         /      \                      /    \
+        /        \                    /       \
+       /          \                  /          \
+leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
+
+上面这课数的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
+*/
+
+
         for (;;) {//遍历整个btree，先扫描最下层的leaf page，然后在逐层获取internal page
             WT_ERR(__wt_tree_walk(session, &walk, flags));
             if (walk == NULL)

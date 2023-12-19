@@ -86,6 +86,7 @@ __wt_page_alloc(
         pindex = p;
         pindex->index = (WT_REF **)((WT_PAGE_INDEX *)p + 1);
         pindex->entries = alloc_entries;
+        //page的__index数组赋值
         WT_INTL_INDEX_SET(page, pindex);
         if (alloc_refs)
             for (i = 0; i < pindex->entries; ++i) {
@@ -347,6 +348,7 @@ err:
 leafpage:这里函数名为inmem的原因是，加载磁盘ext中所有K和V的磁盘地址信息到内存pg_row[]中，每个成员实际上存储的是相比ext头部位置的偏移量，
   也就是该磁盘ext的所有K V地址信息存储到了内存pg_row[]中
 internal page: 
+  重启时候从page dsk(也就是checkpoint的root ext信息)中解析出子page信息、ref key信、page对应磁盘信息等，然后与page关联，配合__rec_split_write阅读
  */ //__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf
 int
 __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32_t flags,
@@ -364,6 +366,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
     if (preparedp != NULL)
         *preparedp = false;
 
+    //WT_PAGE_HEADER + refkey, page addr对
     dsk = image;
     alloc_entries = 0;
 
@@ -425,9 +428,11 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
     }
 
     /* Allocate and initialize a new WT_PAGE. */
-    //获取一个page，并记录该dsk对应chunk在磁盘上的K或者V内容信息，注意这里只分配WT_ROW.__key指针空间
+    //获取一个page，如果是leaf page记录该dsk对应chunk在磁盘上的K或者V内容信息，注意这里只分配WT_ROW.__key指针空间
+    //如果是internal page则对应
     WT_RET(__wt_page_alloc(session, dsk->type, alloc_entries, true, &page));
     //__split_multi_inmem->__wt_page_inmem可以看出，实际上内存也有一份磁盘完全一样的内存数据，也就是disk_image，最终内存中的数据记录到dsk
+    //internal page只有root page拥有dsk信息(也就是checkpoint的root元数据信息)，其他internal page只有addr(也就是)
     page->dsk = dsk;
     F_SET_ATOMIC_16(page, flags);
 
@@ -452,6 +457,8 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
         WT_ERR(__inmem_col_var(session, page, dsk->recno, preparedp, &size));
         break;
     case WT_PAGE_ROW_INT:
+        //page的子page赋值，并与page关联
+         //重启时候从page dsk(也就是checkpoint的root ext信息)中解析出子page信息、ref key信、page对应磁盘信息等，然后与page关联，配合__rec_split_write阅读
         WT_ERR(__inmem_row_int(session, page, &size));
         break;
     case WT_PAGE_ROW_LEAF:
@@ -840,6 +847,7 @@ __inmem_col_var(
 /*
  * __inmem_row_int --
  *     Build in-memory index for row-store internal pages.
+ //重启时候从page dsk(也就是checkpoint的root ext信息)中解析出子page信息、ref key信、page对应磁盘信息等，然后与page关联，配合__rec_split_write阅读
  */
 static int
 __inmem_row_int(WT_SESSION_IMPL *session, WT_PAGE *page, size_t *sizep)

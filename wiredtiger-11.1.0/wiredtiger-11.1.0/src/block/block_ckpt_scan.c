@@ -296,7 +296,9 @@ __wt_block_checkpoint_last(WT_SESSION_IMPL *session, WT_BLOCK *block, char **met
 
         p = WT_BLOCK_HEADER_BYTE(tmp->mem);
         WT_BLOCK_SKIP(__wt_extlist_read_pair(&p, &ext_off, &ext_size));
-        if (ext_off != WT_BLOCK_EXTLIST_MAGIC || ext_size != 0)
+        // 这里可以加上tmp变量，最终对el->byte做检查
+        // if (ext_off != WT_BLOCK_EXTLIST_MAGIC || ext_size != 0)
+        if (ext_off != WT_BLOCK_EXTLIST_MAGIC)
             continue;
         for (;;) {
             if ((ret = __wt_extlist_read_pair(&p, &ext_off, &ext_size)) != 0)

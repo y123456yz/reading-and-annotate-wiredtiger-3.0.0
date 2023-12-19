@@ -330,6 +330,7 @@ err:
  * __ckpt_extlist_read --
  *     Read a checkpoint's extent lists.
  */
+//读取ext list元数据信息加载到ckpt->bpriv
 static int
 __ckpt_extlist_read(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckpt, bool *localp)
 {
@@ -654,6 +655,7 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
          * checkpoints that aren't local to the live object.
          */
         if (ckpt->bpriv == NULL) {
+            //读取ext list元数据信息加载到ckpt->bpriv
             WT_ERR(__ckpt_extlist_read(session, block, ckpt, &local));
             if (!local)
                 continue;

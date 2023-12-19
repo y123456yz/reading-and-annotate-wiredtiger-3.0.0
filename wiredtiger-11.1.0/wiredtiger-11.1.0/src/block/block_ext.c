@@ -1156,6 +1156,8 @@ __wt_block_extlist_merge(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *
      * Sometimes the list we are merging is much bigger than the other: if so, swap the lists around
      * to reduce the amount of work we need to do during the merge. The size lists have to match as
      * well, so this is only possible if both lists are tracking sizes, or neither are.
+     * Attention:
+     * We can no longer use the "a" variable inside and outside the function because it's value has changed
      */
     if (a->track_size == b->track_size && a->entries > b->entries) {
         tmp = *a;
@@ -1428,9 +1430,10 @@ __wt_block_extlist_read(
 
     p = WT_BLOCK_HEADER_BYTE(tmp->mem);
     WT_ERR(__wt_extlist_read_pair(&p, &off, &size));
-    if (off != WT_BLOCK_EXTLIST_MAGIC || size != 0)
+    //if (off != WT_BLOCK_EXTLIST_MAGIC || size != 0)  这里可以加上tmp变量，最终对el->byte做检查
+    if (off != WT_BLOCK_EXTLIST_MAGIC)
         goto corrupted;
-
+    
     /*
      * If we're not creating both offset and size skiplists, use the simpler append API, otherwise
      * do a full merge. There are two reasons for the test: first, checkpoint "available" lists are
@@ -1527,6 +1530,8 @@ __wt_block_extlist_write(
     p = WT_BLOCK_HEADER_BYTE(dsk);
     /* Extent list starts */
     //写magic到头部后面
+    //yang add todo xxxxxxxxx 这里带上byte，也就是整个ext list对应真实数据长度会不会更好? 这样可以计算大数据节点数据加载进度
+    //WT_ERR(__wt_extlist_write_pair(&p, WT_BLOCK_EXTLIST_MAGIC, (wt_off_t)el->bytes));
     WT_ERR(__wt_extlist_write_pair(&p, WT_BLOCK_EXTLIST_MAGIC, 0));
     //所有ext，包括root、internal page、leaf page对应的ext:[off, off+size]写入tmp mem内存
     WT_EXT_FOREACH (ext, el->off) /* Free ranges */
