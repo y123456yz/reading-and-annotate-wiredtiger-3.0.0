@@ -576,7 +576,8 @@ struct __wt_col_rle {
 //https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
 //__wt_page_alloc分配空间，通过WT_INTL_INDEX_GET(session, page, pindex);获取page对应的__wt_page_index
 //可以参考__split_parent
-struct __wt_page_index {
+struct __wt_page_index {/* Sanity check for a reasonable number of on-page keys. */
+#define WT_INTERNAL_SPLIT_MIN_KEYS 100
     //数组大小
     uint32_t entries;
     uint32_t deleted_entries;
@@ -637,6 +638,7 @@ struct __wt_col_fix_tw {
             (ref) = *__refp++;
 
 #undef pg_intl_parent_ref
+//指向父节点的page
 #define pg_intl_parent_ref u.intl.parent_ref
 #undef pg_intl_split_gen
 //记录该internal page分裂的次数  __split_parent中赋值
@@ -674,6 +676,7 @@ struct __wt_page {
          */
         //配合图形化阅读https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
         struct {
+            //指向父节点的page
             WT_REF *parent_ref; /* Parent reference */
             uint64_t split_gen; /* Generation of last split */
 

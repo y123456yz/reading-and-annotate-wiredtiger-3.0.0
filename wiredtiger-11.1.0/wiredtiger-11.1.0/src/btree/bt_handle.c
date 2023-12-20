@@ -844,6 +844,25 @@ __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_REF *ref)
  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
  */
+
+//可以参考在__wt_sync_file中会遍历所有的btree过程，看__wt_sync_file是如何遍历btree的，然后走到这里
+/*
+                        root page                           (root page ext持久化__wt_rec_row_int)
+                        /         \
+                      /             \
+                    /                 \
+       internal-1 page             internal-2 page          (internal page ext持久化__wt_rec_row_int)
+         /      \                      /    \
+        /        \                    /       \
+       /          \                  /          \
+leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化__wt_rec_row_leaf)
+
+上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
+
+//从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page元数据[ref key, leaf page ext addr元数据]
+//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据], 
+//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据], 
+*/
 static int
 __btree_preload(WT_SESSION_IMPL *session)
 {
@@ -859,13 +878,26 @@ __btree_preload(WT_SESSION_IMPL *session)
 
     WT_RET(__wt_scr_alloc(session, 0, &tmp));
 
-    //root的内存结构在外层的__wt_btree_tree_open中从磁盘加载到内存中
+    do {
+        WT_PAGE_INDEX *__pindex;                                                     
+
+        WT_INTL_INDEX_GET(session, btree->root.page, __pindex); 
+        printf("yang test ............__btree_preload..............., page count:%u\r\n", __pindex->entries);
+    } while(0);
+    
+    //第一层root的内存结构在外层的__wt_btree_tree_open中从磁盘加载到内存中
+
+    //这里加载第二层的每个page管理的下一层数据的ext信息
+
+    //从这里可以看出preload只会加载到第二层管理的ext数据，假设有更多层，这时候其他层的数据会通过用户测session 接口最终调用
+    //  __page_read接口的时候加载
     /* Pre-load the second-level internal pages. */
-    WT_INTL_FOREACH_BEGIN (session, btree->root.page, ref)
+    WT_INTL_FOREACH_BEGIN (session, btree->root.page, ref) {
         if (__wt_ref_addr_copy(session, ref, &addr)) {
             WT_ERR(__wt_blkcache_read(session, tmp, addr.addr, addr.size));
             ++block_preload;
         }
+    }
     WT_INTL_FOREACH_END;
 
 err:

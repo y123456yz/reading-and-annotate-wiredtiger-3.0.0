@@ -386,6 +386,32 @@ err:
 /*
  * __split_root --
  *     Split the root page in-memory, deepening the tree.
+
+root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存超过btree->maxmempage大小
+这时候__split_internal_should_split满足条件，root page开始拆分，拆分过程是增加一层internal page, meig
+                       root page                               第一层:1个root page              
+                      /     |     \
+                    /       |       \
+                  /         |         \
+       leaf-1 page      .........   leaf-185 page              第二层:185个root page
+
+                            |
+                            |
+                            |                     
+                            |
+                            |
+                           \|/
+                         root page                              第一层:1个root page,index[]大小10              
+                         /   |      \
+                       /     |       \
+                     /       |         \
+         internal-1 page   .......    internal-10 page          第二层:10个internal page，前面9个internal page的index[]大小18，最后一个internal page的index[]大小23
+          /      \           |           /    \
+         /        \          |          /       \
+        /          \      .......      /          \
+ leaf-1 page    leaf-18 page   leaf-162 page   leaf-185 page    第三层:185个leaf page     
+ 
+
  */
 static int
 __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
@@ -426,6 +452,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
      * remains. Sanity check the number of children: the decision to split matched to the
      * deepen-per-child configuration might get it wrong.
      */
+    //计算出有多少个child， 每个child包含多少个chunk，最后一个child的entries数要加上平均后遗留的entries
     children = pindex->entries / btree->split_deepen_per_child;
     if (children < 10) {
         if (pindex->entries < 100)
@@ -434,6 +461,10 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
     }
     chunk = pindex->entries / children;
     remain = pindex->entries - chunk * (children - 1);
+
+    //yang test .........__split_root.....................children:10, chunk:18, remain:23
+    //printf("yang test .........__split_root.....................children:%d, chunk:%d, remain:%d\r\n",
+    //    (int)children, (int)chunk, (int)remain);
 
     __wt_verbose(session, WT_VERB_SPLIT,
       "%p: %" PRIu32 " root page elements, splitting into %" PRIu32 " children", (void *)root,
@@ -916,6 +947,67 @@ err:
 /*
  * __split_internal --
  *     Split an internal page into its parent.
+
+ root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存超过btree->maxmempage大小
+这时候__split_internal_should_split满足条件，root page开始拆分，拆分过程是增加一层internal page, meig
+                       root page                               第一层:1个root page              
+                      /     |     \
+                    /       |       \
+                  /         |         \
+       leaf-1 page      .........   leaf-185 page              第二层:185个root page
+
+                            |
+                            |               \
+                            | ---------------  root page内存超限的拆分过程                               
+                            |               /
+                            |
+                           \|/
+                         root page                              第一层:1个root page,index[]大小10              
+                         /   |      \
+                       /     |       \
+                     /       |         \
+         internal-1 page   .......    internal-10 page          第二层:10个internal page，前面9个internal page的index[]大小18，最后一个internal page的index[]大小23
+          /      \           |           /      \
+         /        \          |          /         \
+        /          \       .......     /            \
+ leaf-1 page ...leaf-18 page   leaf-162 page  .... leaf-185 page    第三层:拆分完成后internal[1-9]每个包含18个子page, internal-10包含23个子page
+                             |
+                             |
+                             |
+                             |                   \ 
+                             |-------------------- internal(非root page)的拆分过程, 假设internal-10下面的子page增长过多，这时候internal-10内存超过btree->maxmempage大小
+                             |                   /
+                             |
+                             |
+                            \|/
+                           root page                              第一层:1个root page,index[]大小10              
+                         /   |        \
+                       /     |         \
+                     /       |          \
+         internal-1 page   .......     internal-10 page          第二层:10个internal page，前面9个internal page的index[]大小18，最后一个internal page的index[]大小23
+          /      \           |             /      \
+         /        \          |            /         \
+        /          \       .......       /  ........ \
+ leaf-1 page .... leaf-18 page      leaf-162 page  .... leaf-347(internal-10下面的page从最开始的23个增加到185个) ，这时候internal-10内存超过btree->maxmempage大小
+
+                             |
+                             |                   \ 
+                             |-------------------- internal-10超限，开始拆分
+                             |                   /
+                             |
+                             |
+                            \|/
+                           root  page
+                           / |    \              \                                           \
+                         /   |     \                \                                          \
+                        /    |     \                   \                                         \
+                       /     |      \                    \                                         \
+                     /       |       \(复用拆分前page)      \                                       \
+         internal-1 page   .......  internal-10 page       internal-11 page   ................. internal-19 page        第2层: 从10个增加到19个inter page,为什么是增加9个，原因是复用了原来的internal-11
+          /      \           |          /      \                     /   \                          /    \
+         /        \          |         /        \                   /      \                       /      \
+        /          \       .......    /          \                 /        \                     /        \
+ leaf-1 page .... leaf-18 page    leaf-162 page   leaf-180      leaf-198   leaf-198 ......   leaf-329     leaf-347      第3层: 之前internal 10page下面的185个page拆分到了新的10个internal page下面
  */
 static int
 __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
@@ -940,6 +1032,7 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
 
     btree = S2BT(session);
     alloc_index = replace_index = NULL;
+    //也就是需要拆分的page ref
     page_ref = page->pg_intl_parent_ref;
     locked = NULL;
     page_decr = page_incr = parent_incr = 0;
@@ -949,6 +1042,7 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
      * Our caller is holding the page locked to single-thread splits, which means we can safely look
      * at the page's index without setting a split generation.
      */
+    //需要拆分的page的index[], 也就是需要拆分的page下面的所有子page数组
     pindex = WT_INTL_INDEX_GET_SAFE(page);
 
     /*
@@ -962,9 +1056,13 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
             return (__wt_set_return(session, EBUSY));
         children = 10;
     }
-    chunk = pindex->entries / children;
-    remain = pindex->entries - chunk * (children - 1);
+    //例如需要拆分的page下面有185个子page，则这185个子page可以细分位10组，第1-9组各包含18个，第10个page包含23个
+    chunk = pindex->entries / children;  //第1-9组各包含18个，
+    remain = pindex->entries - chunk * (children - 1); //第10组page包含23个
 
+    //yang test .........__split_internal.....................children:10, chunk:18, remain:23
+    // printf("yang test .........__split_internal.....................children:%d, chunk:%d, remain:%d\r\n",
+    //    (int)children, (int)chunk, (int)remain);
     __wt_verbose(session, WT_VERB_SPLIT,
       "%p: %" PRIu32 " internal page elements, splitting %" PRIu32 " children into parent %p",
       (void *)page, pindex->entries, children, (void *)parent);
@@ -977,13 +1075,16 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
      *
      * Create and initialize a replacement WT_PAGE_INDEX for the original page.
      */
+    //分配一个chunk大小的index[]，命名位replace_index
     size = sizeof(WT_PAGE_INDEX) + chunk * sizeof(WT_REF *);
     WT_ERR(__wt_calloc(session, 1, size, &replace_index));
     page_incr += size;
     replace_index->index = (WT_REF **)(replace_index + 1);
     replace_index->entries = chunk;
+    //replace_index这个index[]存储需要拆分的page index的前面chunk个
     for (page_refp = pindex->index, i = 0; i < chunk; ++i)
         replace_index->index[i] = *page_refp++;
+    //到这里后，page_refp指向需要拆分的page的第chunk个子page，也就是跳过分组后的第1组
 
     /*
      * Allocate a new WT_PAGE_INDEX and set of WT_REF objects to be inserted into the page's parent,
@@ -992,18 +1093,24 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
      * The first slot of the new WT_PAGE_INDEX is the original page WT_REF. The remainder of the
      * slots are allocated WT_REFs.
      */
-    size = sizeof(WT_PAGE_INDEX) + children * sizeof(WT_REF *);
+    //分配一个children大小的index[]，命名位alloc_index
+    //alloc_index[0]指向原来需要拆分的page的第一组子page[0-chunk], alloc_index[1-children]指向其余children-1组子page
+    size = sizeof(WT_PAGE_INDEX) + children * sizeof(WT_REF *);//这里分配的是ref指针空间
     WT_ERR(__wt_calloc(session, 1, size, &alloc_index));
     parent_incr += size;
     alloc_index->index = (WT_REF **)(alloc_index + 1);
     alloc_index->entries = children;
     alloc_refp = alloc_index->index;
+
+    //alloc_index这个index[]的第0个ref指向需要拆分的这个page ref  
     *alloc_refp++ = page_ref;
+    //注意这里从1开始，分配剩余的1到children个ref的真实空间
     for (i = 1; i < children; ++alloc_refp, ++i)
         WT_ERR(__wt_calloc_one(session, alloc_refp));
     parent_incr += children * sizeof(WT_REF);
 
     /* Allocate child pages, and connect them into the new page index. */
+    //到这里后，page_refp指向需要拆分的page的第chunk个子page, 也就是跳过了需要拆分page的第一组子page
     WT_ASSERT(session, page_refp == pindex->index + chunk);
     for (alloc_refp = alloc_index->index + 1, i = 1; i < children; ++i) {
         slots = i == children - 1 ? remain : chunk;
@@ -1013,12 +1120,15 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
         /*
          * Initialize the page's child reference; we need a copy of the page's key.
          */
+        //这里可以看出新增的ref page的父节点实际上指向需要拆分的page的父节点
         ref = *alloc_refp++;
         ref->home = parent;
         ref->page = child;
         ref->addr = NULL;
         if (page->type == WT_PAGE_ROW_INT) {
+            //新的page ref对应的key赋值位需要拆分的page key
             __wt_ref_key(page, *page_refp, &p, &size);
+            //设置ref对应ref_ikey为分组拆分点的ref key
             WT_ERR(__wt_row_ikey(session, 0, p, size, ref));
             parent_incr += sizeof(WT_IKEY) + size;
         } else
@@ -1042,6 +1152,7 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
          */
         child_pindex = WT_INTL_INDEX_GET_SAFE(child);
         child_incr = 0;
+        //也就是把需要拆分的这个internal page的第n组重新挂载到父page
         for (child_refp = child_pindex->index, j = 0; j < slots; ++child_refp, ++page_refp, ++j)
             WT_ERR(__split_ref_move(session, page, page_refp, &page_decr, child_refp, &child_incr));
 
@@ -1062,6 +1173,8 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
     __wt_timing_stress(session, WT_TIMING_STRESS_SPLIT_5, NULL);
 
     /* Split into the parent. */
+    //需要拆分的page按照chunk大小分组为children个组，没组对应一个alloc_index(也就是一个internal page), 然后对page的父
+    //  page对应index[]数组进行扩容，然后挂载alloc_index数组到父page的index[]上面
     WT_ERR(__split_parent(
       session, page_ref, alloc_index->index, alloc_index->entries, parent_incr, false, false));
 
@@ -1256,6 +1369,9 @@ __split_internal_unlock(WT_SESSION_IMPL *session, WT_PAGE *parent)
 /*
  * __split_internal_should_split --
  *     Return if we should split an internal page.
+internal page(包括root)的split条件，以下满足任何一个即可
+条件1: 子page超过10000个
+条件2: 子page超过100个并且page->memory_footprint > btree->maxmempage
  */
 static bool
 __split_internal_should_split(WT_SESSION_IMPL *session, WT_REF *ref)
@@ -1273,8 +1389,11 @@ __split_internal_should_split(WT_SESSION_IMPL *session, WT_REF *ref)
      */
     pindex = WT_INTL_INDEX_GET_SAFE(page);
 
+   //yang test .....__split_internal_should_split........entries:185, [32905, 32768]
+   // printf("yang test .....__split_internal_should_split........entries:%u, [%d, %d]\r\n",
+   //     pindex->entries, (int)page->memory_footprint, (int)btree->maxmempage);
     /* Sanity check for a reasonable number of on-page keys. */
-    if (pindex->entries < 100)
+    if (pindex->entries < WT_INTERNAL_SPLIT_MIN_KEYS)
         return (false);
 
     /*
@@ -1344,12 +1463,18 @@ __split_parent_climb(WT_SESSION_IMPL *session, WT_PAGE *page)
      */
     for (;;) {
         parent = NULL;
+        //指向父节点的page ref
         ref = page->pg_intl_parent_ref;
 
         /* If we don't need to split the page, we're done. */
+        /*
+            internal page(包括root)的split条件，以下满足任何一个即可
+            条件1: 子page超过10000个
+            条件2: 子page超过100个并且page->memory_footprint > btree->maxmempage
+         */
         if (!__split_internal_should_split(session, ref))
             break;
-
+        
         /*
          * If we've reached the root page, there are no subsequent pages to review, deepen the tree
          * and quit.
