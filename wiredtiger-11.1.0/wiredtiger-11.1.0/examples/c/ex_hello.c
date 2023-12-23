@@ -159,11 +159,11 @@ access_example(int argc, char *argv[])
             
             error_check(cursor->remove(cursor));
         }
-        __wt_sleep(3, 0);
+        //__wt_sleep(3, 0);
 
-        testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,verbose=[config_all_verbos:5, metadata:0, api:0]"));
+        //testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,verbose=[config_all_verbos:5, metadata:0, api:0]"));
         
-         error_check(cursor->close(cursor));
+        // error_check(cursor->close(cursor));
 
         /*! [access example cursor insert] */
 
