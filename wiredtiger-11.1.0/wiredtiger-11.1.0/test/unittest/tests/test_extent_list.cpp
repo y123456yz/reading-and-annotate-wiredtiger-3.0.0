@@ -101,24 +101,13 @@ print_list(WT_EXT **head)
     }
 }
 
-/*
- * Creates a sane-looking "default" extent list suitable for testing:
- * L0: 1 -> 2 -> 3 -> X
- * L1: 2 -> 3 -> X
- * L2: 3 -> X
- * L3: X
- * ...
- * L9: X
- */
 void
 create_default_test_extent_list(ExtentListWrapper &wrapper)
 {
-	//初始化3个create_new_ext跳表赋值给_list数组
     auto &head = wrapper._list;
     for (int i = 0; i < 3; i++)
         head.push_back(create_new_ext());
 
-	//分别指向第几个create_new_ext， 把3个create_new_ext通过next链接在一起
     auto first = head[0]->_raw;
     auto second = head[1]->_raw;
     auto third = head[2]->_raw;
@@ -161,15 +150,18 @@ TEST_CASE("Extent Lists: block_off_srch_last", "[extent_list]")
 {
     std::vector<WT_EXT **> stack(WT_SKIP_MAXDEPTH, nullptr);
 
-	printf("yang test block_off_srch_last 11111111111111111111\r\n");
     SECTION("empty list has empty final element")
     {
         std::vector<WT_EXT *> head(WT_SKIP_MAXDEPTH, nullptr);
+        WT_EXTLIST el;
 
-        REQUIRE(__ut_block_off_srch_last(&head[0], &stack[0]) == nullptr);
+        for (int i = 0; i < WT_SKIP_MAXDEPTH; i++)
+            el.off[i] = head[i];
+
+        REQUIRE(__ut_block_off_srch_last(&el, &stack[0], true) == nullptr);
 
         for (int i = 0; i < WT_SKIP_MAXDEPTH; i++) {
-            REQUIRE(stack[i] == &head[i]);
+            REQUIRE(stack[i] == &el.off[i]);
         }
     }
 
@@ -177,28 +169,36 @@ TEST_CASE("Extent Lists: block_off_srch_last", "[extent_list]")
     {
         auto wrapper = ExtentListWrapper();
         auto &head = wrapper._raw_list;
+        WT_EXTLIST el;
 
         auto first = create_new_ext();
         head.push_back(first->_raw);
         for (int i = 1; i < WT_SKIP_MAXDEPTH; i++)
             head.push_back(nullptr);
 
-        REQUIRE(__ut_block_off_srch_last(&head[0], &stack[0]) == head[0]);
+        for (int i = 0; i < WT_SKIP_MAXDEPTH; i++)
+            el.off[i] = head[i];
+
+        REQUIRE(__ut_block_off_srch_last(&el, &stack[0], true) == el.off[0]);
     }
 
     SECTION("list with identical skip entries returns identical stack entries")
     {
         auto wrapper = ExtentListWrapper();
         auto &head = wrapper._raw_list;
+        WT_EXTLIST el;
 
         auto first = create_new_ext();
         for (int i = 0; i < WT_SKIP_MAXDEPTH; i++)
             head.push_back(first->_raw);
 
-        WT_IGNORE_RET(__ut_block_off_srch_last(&head[0], &stack[0]));
+        for (int i = 0; i < WT_SKIP_MAXDEPTH; i++)
+            el.off[i] = head[i];
+
+        WT_IGNORE_RET(__ut_block_off_srch_last(&el, &stack[0], true));
 
         for (int i = 0; i < WT_SKIP_MAXDEPTH; i++) {
-            REQUIRE(stack[i] == &head[i]->next[i]);
+            REQUIRE(stack[i] == &el.off[i]->next[i]);
         }
     }
 
@@ -206,16 +206,19 @@ TEST_CASE("Extent Lists: block_off_srch_last", "[extent_list]")
     {
         auto wrapper = ExtentListWrapper();
         auto &head = wrapper._raw_list;
+        WT_EXTLIST el;
 
         create_default_test_extent_list(wrapper);
+        for (int i = 0; i < WT_SKIP_MAXDEPTH; i++)
+            el.off[i] = head[i];
 
-        WT_IGNORE_RET(__ut_block_off_srch_last(&head[0], &stack[0]));
+        WT_IGNORE_RET(__ut_block_off_srch_last(&el, &stack[0], true));
 
-        REQUIRE(stack[0] == &head[2]->next[0]);
-        REQUIRE(stack[1] == &head[2]->next[1]);
-        REQUIRE(stack[2] == &head[2]->next[2]);
+        REQUIRE(stack[0] == &el.off[2]->next[0]);
+        REQUIRE(stack[1] == &el.off[2]->next[1]);
+        REQUIRE(stack[2] == &el.off[2]->next[2]);
         for (int i = 3; i < WT_SKIP_MAXDEPTH; i++) {
-            REQUIRE(stack[i] == &head[i]);
+            REQUIRE(stack[i] == &el.off[i]);
         }
     }
 
@@ -223,6 +226,7 @@ TEST_CASE("Extent Lists: block_off_srch_last", "[extent_list]")
     {
         auto wrapper = ExtentListWrapper();
         auto &head = wrapper._raw_list;
+        WT_EXTLIST el;
 
         auto first = create_new_ext();
         auto second = create_new_ext();
@@ -232,9 +236,13 @@ TEST_CASE("Extent Lists: block_off_srch_last", "[extent_list]")
         for (int i = 1; i < WT_SKIP_MAXDEPTH; i++)
             head.push_back(second->_raw);
 
-        REQUIRE(__ut_block_off_srch_last(&head[0], &stack[0]) == second->_raw);
+        for (int i = 0; i < WT_SKIP_MAXDEPTH; i++)
+            el.off[i] = head[i];
+
+        REQUIRE(__ut_block_off_srch_last(&el, &stack[0], true) == second->_raw);
     }
 }
+
 
 TEST_CASE("Extent Lists: block_off_srch", "[extent_list]")
 {
@@ -317,9 +325,10 @@ TEST_CASE("Extent Lists: block_off_srch", "[extent_list]")
 
         __ut_block_off_srch(&head[0], 2, &stack[0], true);
 
-        // For each level of the extent list, if the searched-for element was
-        // visible, we should point to it. otherwise, we should point to the
-        // next-largest item.
+        /*
+         * For each level of the extent list, if the searched-for element was visible, we should
+         * point to it. otherwise, we should point to the next-largest item.
+         */
         REQUIRE((*stack[0])->off == 2);
         REQUIRE((*stack[1])->off == 2);
         REQUIRE((*stack[2])->off == 3);
@@ -427,3 +436,4 @@ TEST_CASE("Extent Lists: block_size_srch", "[extent_list]")
             REQUIRE(stack[i] == &head[i]);
     }
 }
+
