@@ -310,11 +310,11 @@ __wt_evict_thread_run(WT_SESSION_IMPL *session, WT_THREAD *thread)
               F_ISSET(thread, WT_THREAD_RUN))
                 __wt_yield();
         else {
-            __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "sleeping");
+            __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "__wt_evict_thread_run sleeping");
 
             /* Don't rely on signals: check periodically. */
             __wt_cond_auto_wait(session, cache->evict_cond, did_work, NULL);
-            __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "waking");
+            __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "__wt_evict_thread_run waking");
         }
     } else
         WT_ERR(__evict_lru_pages(session, false));
@@ -1112,7 +1112,7 @@ __evict_tune_workers(WT_SESSION_IMPL *session)
         for (i = cur_threads; i < target_threads; ++i) {
             __wt_thread_group_start_one(session, &conn->evict_threads, false);
             WT_STAT_CONN_INCR(session, cache_eviction_worker_created);
-            __wt_verbose(session, WT_VERB_EVICTSERVER, "%s", "added worker thread");
+            __wt_verbose(session, WT_VERB_EVICTSERVER, "%s", "__evict_tune_workers added worker thread");
         }
         cache->evict_tune_last_action_time = current_time;
     }
@@ -2049,7 +2049,7 @@ fast:
         if (F_ISSET(ref, WT_REF_FLAG_INTERNAL))
             internal_pages_queued++;
 
-        __wt_verbose(session, WT_VERB_EVICTSERVER, "select: %p, size %" WT_SIZET_FMT, (void *)page,
+        __wt_verbose(session, WT_VERB_EVICTSERVER, "__evict_walk_tree select: %p, size %" WT_SIZET_FMT, (void *)page,
           page->memory_footprint);
     }
     WT_RET_NOTFOUND_OK(ret);
@@ -2057,7 +2057,7 @@ fast:
     *slotp += (u_int)(evict - start);
     WT_STAT_CONN_INCRV(session, cache_eviction_pages_queued, (u_int)(evict - start));
 
-    __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s walk: seen %" PRIu64 ", queued %" PRIu64,
+    __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "__evict_walk_tree, %s walk: seen %" PRIu64 ", queued %" PRIu64,
       session->dhandle->name, pages_seen, pages_queued);
 
     /*
@@ -2326,7 +2326,7 @@ __evict_page(WT_SESSION_IMPL *session, bool is_server)
      * by the time we look at it.
      */
     __wt_cache_read_gen_bump(session, ref->page);
-  //  printf("yang test ................................__wt_evict.............................................\r\n");
+    printf("yang test ................................__wt_evict.............................................\r\n");
     WT_WITH_BTREE(session, btree, ret = __wt_evict(session, ref, previous_state, flags));
 
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
@@ -2583,7 +2583,7 @@ __verbose_dump_cache_single(WT_SESSION_IMPL *session, uint64_t *total_bytesp,
 
     dhandle = session->dhandle;
     btree = dhandle->handle;
-    WT_RET(__wt_msg(session, "%s(%s%s)%s%s:", dhandle->name,
+    WT_RET(__wt_msg(session, "__verbose_dump_cache_single %s(%s%s)%s%s:", dhandle->name,
       WT_DHANDLE_IS_CHECKPOINT(dhandle) ? "checkpoint=" : "",
       WT_DHANDLE_IS_CHECKPOINT(dhandle) ? dhandle->checkpoint : "<live>",
       btree->evict_disabled != 0 ? " eviction disabled" : "",
@@ -2628,11 +2628,11 @@ __verbose_dump_cache_single(WT_SESSION_IMPL *session, uint64_t *total_bytesp,
     }
 
     if (intl_pages == 0)
-        WT_RET(__wt_msg(session, "internal: 0 pages"));
+        WT_RET(__wt_msg(session, "__verbose_dump_cache_single internal: 0 pages"));
     else
         WT_RET(
           __wt_msg(session,
-            "internal: "
+            "__verbose_dump_cache_single internal: "
             "%" PRIu64 " pages, %.2f KB, "
             "%" PRIu64 "/%" PRIu64 " clean/dirty pages, "
             "%.2f/%.2f clean / dirty KB, "
@@ -2647,7 +2647,7 @@ __verbose_dump_cache_single(WT_SESSION_IMPL *session, uint64_t *total_bytesp,
     else
         WT_RET(
           __wt_msg(session,
-            "leaf: "
+            "__verbose_dump_cache_single leaf: "
             "%" PRIu64 " pages, %.2f KB, "
             "%" PRIu64 "/%" PRIu64 " clean/dirty pages, "
             "%.2f /%.2f /%.2f clean/dirty/updates KB, "

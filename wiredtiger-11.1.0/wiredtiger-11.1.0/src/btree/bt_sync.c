@@ -645,6 +645,7 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
               (page->read_gen == WT_READGEN_WONT_NEED ||
                 FLD_ISSET(conn->timing_stress_flags, WT_TIMING_STRESS_CHECKPOINT_EVICT_PAGE)) &&
               !tried_eviction && F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT)) {
+                printf("yang test ..............__wt_sync_file......read_gen:%d\r\n", (int)page->read_gen);
                 ret = __wt_page_release_evict(session, walk, 0);
                 walk = NULL;
                 WT_ERR_ERROR_OK(ret, EBUSY, false);

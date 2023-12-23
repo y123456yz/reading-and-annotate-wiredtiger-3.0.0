@@ -910,6 +910,7 @@ __wt_upd_alloc(WT_SESSION_IMPL *session, const WT_ITEM *value, u_int modify_type
      *    WT_UPDATE.flags = 0;
      */
     WT_RET(__wt_calloc(session, 1, WT_UPDATE_SIZE + (value == NULL ? 0 : value->size), &upd));
+    //如果value为NULL，也就是WT_CURSOR->remove操作删除一个key的时候，实际上是生成一个新的udp,udp的value长度为0
     if (value != NULL && value->size != 0) {
         upd->size = WT_STORE_SIZE(value->size);
         memcpy(upd->data, value->data, value->size);

@@ -102,7 +102,9 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
      * Insert: allocate an insert array as necessary, build a WT_INSERT and WT_UPDATE structure
      * pair, and call a serialized function to insert the WT_INSERT structure.
      */
+   
     if (cbt->compare == 0) {
+        //找出需要update或者remove的K对应的update位置，也就是修改前的value upd
         if (cbt->ins == NULL) {
             /* Allocate an update array as necessary. */
             WT_PAGE_ALLOC_AND_SWAP(session, page, mod->mod_row_update, upd_entry, page->entries);
@@ -118,12 +120,14 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
               __wt_txn_modify_check(session, cbt, old_upd = *upd_entry, &prev_upd_ts, modify_type));
 
             /* Allocate a WT_UPDATE structure and transaction ID. */
+            //如果value为NULL，也就是WT_CURSOR->remove操作删除一个key的时候，实际上是生成一个新的udp,udp的value长度为0
             WT_ERR(__wt_upd_alloc(session, value, modify_type, &upd, &upd_size));
             upd->prev_durable_ts = prev_upd_ts;
             WT_ERR(__wt_txn_modify(session, upd));
             added_to_txn = true;
 
             /* Avoid WT_CURSOR.update data copy. */
+            //记录当前正在操作的key的upd value信息到cbt->modify_update
             __wt_upd_value_assign(cbt->modify_update, upd);
         } else {
             /*
@@ -171,9 +175,12 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
          * Point the new WT_UPDATE item to the next element in the list. If we get it right, the
          * serialization function lock acts as our memory barrier to flush this write.
          */
+        //不管是remove还是update，都是新生成一个udp，新生成的upd next指向老的upd
         upd->next = old_upd;
 
         /* Serialize the update. */
+        //也就是cbt->ins->upd---->udp, udp->next----------->old_upd
+        //也就是在cbt->ins->upd链表头部增加一个前面新创建的udp
         WT_ERR(__wt_update_serial(session, cbt, page, upd_entry, &upd, upd_size, exclusive));
     } else {
         /*
@@ -230,7 +237,7 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
         }
 
         ins->upd = upd;
-        //整个KV消耗的总内存
+        //整个KV消耗的总内存,K对应的V有多了一个upd
         ins_size += upd_size;
 
         /*

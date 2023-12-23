@@ -455,7 +455,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
     //计算出有多少个child， 每个child包含多少个chunk，最后一个child的entries数要加上平均后遗留的entries
     children = pindex->entries / btree->split_deepen_per_child;
     if (children < 10) {
-        if (pindex->entries < 100)
+        if (pindex->entries < WT_INTERNAL_SPLIT_MIN_KEYS)
             return (__wt_set_return(session, EBUSY));
         children = 10;
     }
@@ -1052,9 +1052,9 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
      */
     children = pindex->entries / btree->split_deepen_per_child;
     if (children < 10) {
-        if (pindex->entries < 100)
+        if (pindex->entries < WT_INTERNAL_SPLIT_MIN_KEYS)
             return (__wt_set_return(session, EBUSY));
-        children = 10;
+        children = 10;//WT_SPLIT_DEEPEN_MIN_CREATE_CHILD_PAGES  
     }
     //例如需要拆分的page下面有185个子page，则这185个子page可以细分位10组，第1-9组各包含18个，第10个page包含23个
     chunk = pindex->entries / children;  //第1-9组各包含18个，

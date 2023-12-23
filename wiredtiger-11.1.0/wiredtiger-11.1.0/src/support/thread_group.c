@@ -60,6 +60,7 @@ err:
  *     Decrease the number of threads in the group and free memory associated with slots larger than
  *     the new count.
  */
+//假设threads_max之前有10个，现在threads_max只有5个，这时候就需要缩容
 static int
 __thread_group_shrink(WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, uint32_t new_count)
 {
@@ -89,6 +90,7 @@ __thread_group_shrink(WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, uint32_t
         /*
          * Signal the thread in case it is in a long timeout.
          */
+        //__thread_run中等待
         __wt_cond_signal(session, thread->pause_cond);
         __wt_cond_signal(session, group->wait_cond);
     }
@@ -162,6 +164,7 @@ __thread_group_resize(WT_SESSION_IMPL *session, WT_THREAD_GROUP *group, uint32_t
      * Call shrink to reduce the number of thread structures and running threads if required by the
      * change in group size.
      */
+    //假设threads_max之前有10个，现在threads_max只有5个，这时候就需要缩容
     WT_ERR(__thread_group_shrink(session, group, new_max));
 
     /*

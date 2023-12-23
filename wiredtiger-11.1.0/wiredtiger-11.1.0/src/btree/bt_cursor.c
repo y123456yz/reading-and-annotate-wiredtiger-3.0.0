@@ -1430,6 +1430,7 @@ __wt_btcur_remove(WT_CURSOR_BTREE *cbt, bool positioned)
     searched = false;
 
     WT_STAT_CONN_DATA_INCR(session, cursor_remove);
+    //yang add todo xxxxxxxxxxxxxxxx
     WT_STAT_CONN_DATA_INCRV(session, cursor_remove_bytes, cursor->key.size);
 
     /* Save the cursor state. */

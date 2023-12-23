@@ -1,3 +1,26 @@
+**/.DS_Store
+**/tags
+**/*.sw?
+.vscode/
+.cache/
+.ccls-cache/
+compile_commands.json
+cscope.in.out
+cscope.out
+cscope.po.out
+build/
+dist/clang-format
+/docs/
+test-compatibility-run/
+
+# Python artifacts
+**/*.pyc
+
+# CLion related files & directories
+.idea
+cmake-build-release
+cmake-build-debug
+
 *.o
 **/tags
 *.swp
@@ -7,7 +30,6 @@ dist/clang-format
 /docs/
 test-compatibility-run/
 
-test
 # Python artifacts
 **/*.pyc
 *.[oa]

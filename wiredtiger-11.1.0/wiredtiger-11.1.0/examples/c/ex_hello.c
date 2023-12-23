@@ -121,21 +121,21 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "create, cache_size=1G,eviction_target=96,eviction_trigger=99, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=8, threads_max=12),create, cache_size=1M,eviction_target=96,eviction_trigger=99, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));
         /*! [access example connection] */
 
         /*! [access example table create] */
-        error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=S,value_format=S"));
+        error_check(session->create(session, "table:access", "memory_page_max=32K,key_format=S,value_format=S"));
         /*! [access example table create] */
 
         /*! [access example cursor open] */
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
         
-        #define MAX_TEST_KV_NUM 65000
+        #define MAX_TEST_KV_NUM 2000
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
             snprintf(buf, sizeof(buf), "key%d", i);
@@ -143,12 +143,25 @@ access_example(int argc, char *argv[])
 
             //value_item.data = "old value  ###############################################################################################################################################################################################################\0";
             //value_item.size = strlen(value_item.data) + 1;
-            
-            cursor->set_value(cursor, "old value  ###############################################################################################################################################################################################################\0");
+
+            //printf("yang test 111111111111111111111111111111111111111111\r\n");
+            cursor->set_value(cursor, "old value  ###############################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################\0");
             error_check(cursor->insert(cursor));
         }
-        
-        testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,verbose=[config_all_verbos:0, metadata:0, api:0]"));
+
+        for (i = 5; i < MAX_TEST_KV_NUM; i++) {
+            continue;
+            snprintf(buf, sizeof(buf), "key%d", i);
+            cursor->set_key(cursor, buf);
+
+            //value_item.data = "old value  ###############################################################################################################################################################################################################\0";
+            //value_item.size = strlen(value_item.data) + 1;
+            
+            error_check(cursor->remove(cursor));
+        }
+        __wt_sleep(3, 0);
+
+        testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,verbose=[config_all_verbos:5, metadata:0, api:0]"));
         
          error_check(cursor->close(cursor));
 

@@ -716,6 +716,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 #define WT_CONN_CLOSING_NO_MORE_OPENS 0x0000080u
 #define WT_CONN_COMPATIBILITY 0x0000100u
 #define WT_CONN_DATA_CORRUPTION 0x0000200u
+//Check to decide if the eviction thread should continue running.
 #define WT_CONN_EVICTION_RUN 0x0000400u
 #define WT_CONN_HS_OPEN 0x0000800u
 #define WT_CONN_INCR_BACKUP 0x0001000u

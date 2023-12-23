@@ -138,6 +138,7 @@ struct __wt_cursor_btree {
      * return the relationship of the search key to the found key.
      */
     WT_REF *ref;   /* Current page */
+    //也就是标识rip对应KV在page内存pg_row中的游标
     uint32_t slot; /* WT_COL/WT_ROW 0-based slot */
 
     //__cursor_pos_clear中会清理掉
@@ -239,6 +240,7 @@ struct __wt_cursor_btree {
      * data copy in the WT_CURSOR.update call.
      */
     //写入KV的value会零时记录到这里面，参考__wt_row_modify
+    //记录当前正在操作的key的upd value信息到cbt->modify_update
     WT_UPDATE_VALUE *modify_update, _modify_update;//__wt_cursor_btree.modify_update
 
     /* An intermediate structure to hold the update value to be assigned to the cursor buffer. */

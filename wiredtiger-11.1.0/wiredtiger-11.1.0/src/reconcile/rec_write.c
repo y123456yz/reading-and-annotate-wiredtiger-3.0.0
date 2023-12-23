@@ -2594,7 +2594,7 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     //    ref->addr, mod->rec_result);
     //该page如果是第一次拆分，这里为0，如果是之前已经reconcile过，则记录的是上一次reconcile时候的rec_result值
     switch (mod->rec_result) {
-    case 0: //第一次拆分该page
+    case 0: //例如该page的数据已经全被删除了
            /*
              * The page has never been reconciled before, free the original
              * address blocks (if any).  The "if any" is for empty trees

@@ -2017,6 +2017,7 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
      * If the session is configured with the release_evict_pages debug option, we will attempt to
      * evict the pages when they are no longer needed.
      */
+ 
     if (F_ISSET(session, WT_SESSION_DEBUG_RELEASE_EVICT)) {
         WT_TRET_BUSY_OK(__wt_page_release_evict(session, ref, flags));
         return (0);
@@ -2032,6 +2033,7 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
           (inmem_split ? LF_ISSET(WT_READ_NO_SPLIT) : F_ISSET(session, WT_SESSION_NO_RECONCILE)))
             WT_IGNORE_RET_BOOL(__wt_page_evict_urgent(session, ref));
         else {
+            printf("yang test ............................__wt_page_release......\r\n");
             WT_RET_BUSY_OK(__wt_page_release_evict(session, ref, flags));
             return (0);
         }

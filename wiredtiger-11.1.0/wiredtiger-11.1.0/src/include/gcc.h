@@ -98,6 +98,7 @@
 #error "Clang versions 3.5 and earlier are unsupported by WiredTiger"
 #endif
 
+//比较ptr、oldp指向内容，若相同则将newv中的值写到ptr,否则将ptr中的值写入oldp
 #define WT_ATOMIC_CAS(ptr, oldp, newv) \
     __atomic_compare_exchange_n(ptr, oldp, newv, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 #define WT_ATOMIC_CAS_FUNC(name, vp_arg, old_arg, newv_arg)             \
@@ -122,6 +123,7 @@ WT_ATOMIC_CAS_FUNC(size, size_t *vp, size_t old, size_t newv)
  * __wt_atomic_cas_ptr --
  *     Pointer compare and swap.
  */
+//比较vp、old指向内容，若相同则将newv中的值写到vp,否则将ptr中的值写入oldp
 static inline bool
 __wt_atomic_cas_ptr(void *vp, void *old, void *newv)
 {

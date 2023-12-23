@@ -773,6 +773,7 @@ struct __wt_page {
     //赋值见__wt_page_inmem->__wt_page_inmem
     //代表在磁盘pg_row上面的KV总数,可以参考__wt_evict->__evict_page_dirty_update->__wt_split_multi->__split_multi_lock
     //->__split_multi->__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__wt_page_alloc
+    //磁盘上pg_row[]中的KV数量
     uint32_t entries; /* Leaf page entries */
 
     uint32_t prefix_start; /* Best page prefix starting slot */
@@ -861,6 +862,7 @@ struct __wt_page {
  */
 //初始值
 #define WT_READGEN_NOTSET 0
+//__wt_page_evict_soon  Set a page to be evicted as soon as possible.
 #define WT_READGEN_OLDEST 1
 #define WT_READGEN_WONT_NEED 2
 #define WT_READGEN_EVICT_SOON(readgen) \
@@ -1348,6 +1350,7 @@ struct __wt_row { /* On-page key, on-page cell, or off-page WT_IKEY */
  * WT_ROW_SLOT --
  *	Return the 0-based array offset based on a WT_ROW reference.
  */
+//也就是标识rip对应KV在page内存pg_row中的游标
 #define WT_ROW_SLOT(page, rip) ((uint32_t)((rip) - (page)->pg_row))
 
 /*
@@ -1429,7 +1432,7 @@ struct __wt_ikey {
   
  */ //分配__wt_upd_alloc空间
 //分配__wt_upd_alloc空间 //KV中的key对应WT_INSERT，value对应WT_UPDATE(WT_INSERT.upd)
-//__wt_insert.upd为该类型
+//__wt_insert.upd为该类型,记录的是V的变化过程
 struct __wt_update {
     /*
      * Transaction IDs are set when updates are created (before they become visible) and only change
@@ -1594,7 +1597,9 @@ struct __wt_update_vector {
  * to re-implement, IMNSHO.)
   跳跃表图解参考https://www.jb51.net/article/199510.htm
 
- */ //__wt_row_insert_alloc  WT_INSERT头部+level空间+真实数据key
+ */ 
+//__wt_row_insert_alloc  WT_INSERT头部+level空间+真实数据key
+//mod_row_insert为该类型，一个insertKV对应的__wt_insert都在mod_row_insert对应跳跃表中
 struct __wt_insert {
     WT_UPDATE *upd; /* value */ //value在这里  __wt_insert.upd为该类型
 

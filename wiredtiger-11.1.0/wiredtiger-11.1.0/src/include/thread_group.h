@@ -32,6 +32,7 @@ struct __wt_thread {
     /*
      * Condition signalled when a thread becomes active. Paused threads wait on this condition.
      */
+    //__thread_run中等待
     WT_CONDVAR *pause_cond;
 
     /* The check function used by all threads. */
@@ -47,9 +48,11 @@ struct __wt_thread {
  *	Encapsulation of a group of utility threads.
  */
 struct __wt_thread_group {
+    //总的thread，包括活跃的也包括不活跃的
     uint32_t alloc;           /* Size of allocated group */
     uint32_t max;             /* Max threads in group */
     uint32_t min;             /* Min threads in group */
+    //WT_THREAD_ACTIVE状态的evict thread
     uint32_t current_threads; /* Number of active threads */
 
     const char *name; /* Name */
@@ -61,6 +64,7 @@ struct __wt_thread_group {
      * when shutting down. This condition can also be used by group owners to ensure state changes
      * are noticed.
      */
+    //__evict_lru_pages  __wt_cache_eviction_worker中等待
     WT_CONDVAR *wait_cond;
 
     /*
@@ -70,6 +74,8 @@ struct __wt_thread_group {
      */
     WT_THREAD **threads;
 
+    //__wt_evict_thread_chk, __wt_evict_thread_run, __wt_evict_thread_stop));
+    //赋值见__wt_evict_create
     /* The check function used by all threads. */
     bool (*chk_func)(WT_SESSION_IMPL *session);
     /* The runner function used by all threads. */
