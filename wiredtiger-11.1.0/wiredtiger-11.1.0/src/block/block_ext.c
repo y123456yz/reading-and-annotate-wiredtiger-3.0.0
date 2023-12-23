@@ -1729,12 +1729,24 @@ err:
 }
 
 #ifdef HAVE_UNITTEST
-WT_EXT *
-__ut_block_off_srch_last(WT_EXT **head, WT_EXT ***stack)
+int
+__ut_block_off_insert(WT_SESSION_IMPL *session, WT_EXTLIST *el, wt_off_t off, wt_off_t size)
 {
-    return (__block_off_srch_last(head, stack, true));
+    return (__block_off_insert(session, el, off, size));
 }
 
+int
+__ut_block_off_remove(
+  WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, wt_off_t off, WT_EXT **extp)
+{
+    return (__block_off_remove(session, block, el, off, extp));
+}
+
+WT_EXT *
+__ut_block_off_srch_last(WT_EXTLIST *el, WT_EXT ***stack, bool need_traverse)
+{
+    return (__block_off_srch_last(el, stack, need_traverse));
+}
 
 void
 __ut_block_off_srch(WT_EXT **head, wt_off_t off, WT_EXT ***stack, bool skip_off)
@@ -1753,4 +1765,5 @@ __ut_block_size_srch(WT_SIZE **head, wt_off_t size, WT_SIZE ***stack)
 {
     __block_size_srch(head, size, stack);
 }
+
 #endif
