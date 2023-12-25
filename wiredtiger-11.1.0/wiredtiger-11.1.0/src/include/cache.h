@@ -75,7 +75,7 @@ struct __wt_cache {
      * the values don't have to be exact, they can't be garbage, we track what comes in and what
      * goes out and calculate the difference as needed.
      */
-
+    //所有page相关的数据统计
     uint64_t bytes_dirty_intl; /* Bytes/pages currently dirty */
     uint64_t bytes_dirty_leaf;
     uint64_t bytes_dirty_total;
@@ -96,6 +96,7 @@ struct __wt_cache {
     uint64_t bytes_hs;       /* History store bytes inmem */
     uint64_t bytes_hs_dirty; /* History store bytes inmem dirty */
 
+    //脏页page数量统计
     uint64_t pages_dirty_intl;
     uint64_t pages_dirty_leaf;
     uint64_t pages_evicted;
@@ -131,7 +132,7 @@ struct __wt_cache {
      * one.
      */
     //赋值参考__cache_config_local
-    //eviction_dirty_target=5, eviction_dirty_trigger=20,eviction_target=80,eviction_trigger=95
+    //eviction_dirty_target=5, eviction_dirty_trigger=20,eviction_target=80,eviction_trigger=95,eviction_updates_target=0,eviction_updates_trigger=0
     double eviction_dirty_target;    /* Percent to allow dirty */
     double eviction_dirty_trigger;   /* Percent to trigger dirty eviction */
     double eviction_trigger;         /* Percent to trigger eviction */
@@ -143,7 +144,8 @@ struct __wt_cache {
     double eviction_checkpoint_target; /* Percent to reduce dirty
                                         to during checkpoint scrubs */
     double eviction_scrub_target;      /* Current scrub target */
-
+    //cache_overhead=8，默认等于8
+    //assume the heap allocator overhead is the specified percentage, and adjust the cache usage by that amount (for example, if there is 10GB of data in cache, a percentage of 10 means WiredTiger treats this as 11GB). This value is configurable because different heap allocators have different overhead and different workloads will have different heap allocation sizes and patterns, therefore applications may need to adjust this value based on allocator choice and behavior in measured workloads.
     u_int overhead_pct;         /* Cache percent adjustment */
     uint64_t cache_max_wait_us; /* Maximum time an operation waits for
                                  * space in cache */
@@ -235,16 +237,21 @@ struct __wt_cache {
     uint32_t pool_flags;           /* Cache pool flags */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//超过了eviction_target(默认80%)配置
 #define WT_CACHE_EVICT_CLEAN 0x001u        /* Evict clean pages */
+//超过了总内存的eviction_trigger(默认95%)
 #define WT_CACHE_EVICT_CLEAN_HARD 0x002u   /* Clean % blocking app threads */
 #define WT_CACHE_EVICT_DEBUG_MODE 0x004u   /* Aggressive debugging mode */
+//脏数据内存超过了总内存eviction_dirty_trigger(默认20%)
 #define WT_CACHE_EVICT_DIRTY 0x008u        /* Evict dirty pages */
+//leaf page脏数据内存超过了总内存eviction_dirty_trigger(默认20%)
 #define WT_CACHE_EVICT_DIRTY_HARD 0x010u   /* Dirty % blocking app threads */
 #define WT_CACHE_EVICT_NOKEEP 0x020u       /* Don't add read pages to cache */
 //__evict_update_work
 #define WT_CACHE_EVICT_SCRUB 0x040u        /* Scrub dirty pages */
 #define WT_CACHE_EVICT_UPDATES 0x080u      /* Evict pages with updates */
 #define WT_CACHE_EVICT_UPDATES_HARD 0x100u /* Update % blocking app threads */
+//evict_urgent_queue不为空，置位该标识
 #define WT_CACHE_EVICT_URGENT 0x200u       /* Pages are in the urgent queue */
 /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
 #define WT_CACHE_EVICT_ALL (WT_CACHE_EVICT_CLEAN | WT_CACHE_EVICT_DIRTY | WT_CACHE_EVICT_UPDATES)

@@ -811,7 +811,7 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
     WT_ERR(__btcur_bounds_contains_key(
       session, cursor, &cursor->key, cursor->recno, &key_out_of_bounds, NULL));
     if (key_out_of_bounds) {
-        printf("yang test ..................__wt_btcur_search................\r\n");
+        WT_RET(__wt_msg(session, "yang test .............................__wt_btcur_search...................."));
         WT_STAT_CONN_DATA_INCR(session, cursor_bounds_search_early_exit);
         WT_ERR(WT_NOTFOUND);
     }

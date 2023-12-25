@@ -2260,8 +2260,14 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
               "Failed to parse verbose option '%s' with value '%" PRId64 "'", ft->name, sval.val);
     }
 
-  //  for (i = 0;i < WT_VERB_NUM_CATEGORIES; i++)
-   //     conn->verbose[i] = 0; //yang add test xxxxxxxxxxxx
+    do {
+      //  int i;
+        
+     //   for (i = 0;i < WT_VERB_NUM_CATEGORIES; i++)
+     //       conn->verbose[i] = 0; //yang add test xxxxxxxxxxxx
+    } while(0);
+
+    printf("yang test ...........__wt_verbose_config..............%d\r\n", conn->verbose[WT_VERB_EVICT]);
     return (0);
 }
 

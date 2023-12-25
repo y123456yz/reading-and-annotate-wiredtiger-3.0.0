@@ -1956,7 +1956,6 @@ create_uris(WTPERF *wtperf)
         else
             testutil_check(
               __wt_snprintf(wtperf->uris[i], len, "table:%s%05" PRIu32, opts->table_name, i));
-        printf("yang test .................................. uri:%s\r\n", wtperf->uris[i]);
     }
 
     /* Create the log-like-table URI. */

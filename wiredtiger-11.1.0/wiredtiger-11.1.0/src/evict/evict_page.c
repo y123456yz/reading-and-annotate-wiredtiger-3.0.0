@@ -89,7 +89,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
         WT_RET(__wt_curhs_cache(session));
     }
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
-    printf("yang test ................................__wt_page_release_evict.............................................\r\n");
+    WT_RET(__wt_msg(session, "yang test .............................__wt_page_release_evict...................."));
     ret = __wt_evict(session, ref, previous_state, evict_flags);
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
 
@@ -121,7 +121,8 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
     __wt_verbose(
         session, WT_VERB_EVICT, "__wt_evict evict page %p (%s)", (void *)page, __wt_page_type_string(page->type));
       //session, WT_VERB_EVICT, "page %p (%s)", (void *)page, __wt_page_type_string(page->type));
-
+   // printf("yang test .............__wt_evict......:%s\r\n", __wt_page_type_string(page->type));
+    
     tree_dead = F_ISSET(session->dhandle, WT_DHANDLE_DEAD);
     if (tree_dead)
         LF_SET(WT_EVICT_CALL_NO_SPLIT);

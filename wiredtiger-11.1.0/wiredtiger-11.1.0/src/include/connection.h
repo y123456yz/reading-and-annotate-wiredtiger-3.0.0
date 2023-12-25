@@ -468,6 +468,7 @@ struct __wt_connection_impl {
 
     WT_KEYED_ENCRYPTOR *kencryptor; /* Encryptor for metadata and log */
 
+    //__wt_evict_create创建evict线程完成后置为true
     bool evict_server_running; /* Eviction server operating */
 
     WT_THREAD_GROUP evict_threads;

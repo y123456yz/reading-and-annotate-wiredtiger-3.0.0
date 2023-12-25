@@ -2465,8 +2465,8 @@ __rec_split_discard(WT_SESSION_IMPL *session, WT_PAGE *page)
 
     btree = S2BT(session);
     mod = page->modify;
-
-    printf("yang test .................__rec_split_discard...............................\r\n");
+    WT_RET(__wt_msg(session, "yang test .................__rec_split_discard.............................."));
+    
     /*
      * A page that split is being reconciled for the second, or subsequent time; discard underlying
      * block space used in the last reconciliation that is not being reused for this reconciliation.

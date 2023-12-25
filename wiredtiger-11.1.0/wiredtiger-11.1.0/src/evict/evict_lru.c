@@ -243,7 +243,7 @@ __wt_evict_server_wake(WT_SESSION_IMPL *session)
         bytes_inuse = __wt_cache_bytes_inuse(cache);
         bytes_max = conn->cache_size;
         __wt_verbose_debug2(session, WT_VERB_EVICTSERVER,
-          "waking, bytes inuse %s max (%" PRIu64 "MB %s %" PRIu64 "MB)",
+          "__wt_evict_server_wake waking, bytes inuse %s max (%" PRIu64 "MB %s %" PRIu64 "MB)",
           bytes_inuse <= bytes_max ? "<=" : ">", bytes_inuse / WT_MEGABYTE,
           bytes_inuse <= bytes_max ? "<=" : ">", bytes_max / WT_MEGABYTE);
     }
@@ -286,6 +286,7 @@ __wt_evict_thread_run(WT_SESSION_IMPL *session, WT_THREAD *thread)
      * waiting for the first file to drain from the eviction queue. See WT-5946 for details.
      */
     WT_ERR(__wt_curhs_cache(session));
+    //__wt_evict_thread_run多个evict线程竞争evict_pass_lock锁，只会有一个线程走__evict_server这个分支，其他线程走__evict_lru_pages分支
     if (conn->evict_server_running && __wt_spin_trylock(session, &cache->evict_pass_lock) == 0) {
         /*
          * Cannot use WT_WITH_PASS_LOCK because this is a try lock. Fix when that is supported. We
@@ -370,6 +371,7 @@ err:
 /*
  * __evict_server --
  *     Thread to evict pages from the cache.
+ //__wt_evict_thread_run多个evict线程竞争evict_pass_lock锁，只会有一个线程走__evict_server这个分支，其他线程走__evict_lru_pages分支
  */
 static int
 __evict_server(WT_SESSION_IMPL *session, bool *did_work)
@@ -383,6 +385,7 @@ __evict_server(WT_SESSION_IMPL *session, bool *did_work)
     /* Assume there has been no progress. */
     *did_work = false;
 
+    //printf("yang test ............__evict_server.................. \r\n");
     conn = S2C(session);
     cache = conn->cache;
 
@@ -567,6 +570,7 @@ __wt_evict_destroy(WT_SESSION_IMPL *session)
 /*
  * __evict_update_work --
  *     Configure eviction work state.
+ //根据内存使用情况计算cache->flags值，确保总内存、脏数据、update使用情况，任一个状态置位都返回true
  */
 static bool
 __evict_update_work(WT_SESSION_IMPL *session)
@@ -616,12 +620,15 @@ __evict_update_work(WT_SESSION_IMPL *session)
      */
     bytes_max = conn->cache_size + 1;
     bytes_inuse = __wt_cache_bytes_inuse(cache);
+    //判断cache内存使用占比是否超过了总内存的eviction_trigger(默认95%)
     if (__wt_eviction_clean_needed(session, NULL))
         LF_SET(WT_CACHE_EVICT_CLEAN | WT_CACHE_EVICT_CLEAN_HARD);
+    //总内存消耗在eviction_target--eviction_trigger之间
     else if (bytes_inuse > (target * bytes_max) / 100)
         LF_SET(WT_CACHE_EVICT_CLEAN);
 
     bytes_dirty = __wt_cache_dirty_leaf_inuse(cache);
+    //leaf page脏数据内存超过了总内存eviction_dirty_trigger(默认20%)
     if (__wt_eviction_dirty_needed(session, NULL))
         LF_SET(WT_CACHE_EVICT_DIRTY | WT_CACHE_EVICT_DIRTY_HARD);
     else if (bytes_dirty > (uint64_t)(dirty_target * bytes_max) / 100)
@@ -676,6 +683,7 @@ __evict_update_work(WT_SESSION_IMPL *session)
 /*
  * __evict_pass --
  *     Evict pages from memory.
+ __evict_server
  */
 static int
 __evict_pass(WT_SESSION_IMPL *session)
@@ -702,6 +710,7 @@ __evict_pass(WT_SESSION_IMPL *session)
         if (loop == 0)
             time_prev = time_now;
 
+        //自动动态调整evict线程数
         __evict_tune_workers(session);
         /*
          * Increment the shared read generation. Do this occasionally even if eviction is not
@@ -722,9 +731,11 @@ __evict_pass(WT_SESSION_IMPL *session)
          */
         WT_RET(__wt_txn_update_oldest(session, WT_TXN_OLDEST_STRICT));
 
+        //根据内存使用情况计算cache->flags值，确保总内存、脏数据、update使用情况，任一个状态置位都返回true
         if (!__evict_update_work(session))
             break;
 
+        //这里可以把update信息也打印一下 yang add todo xxxxxxxxxxx
         __wt_verbose_debug2(session, WT_VERB_EVICTSERVER,
           "Eviction pass with: Max: %" PRIu64 " In use: %" PRIu64 " Dirty: %" PRIu64,
           conn->cache_size, cache->bytes_inmem, cache->bytes_dirty_intl + cache->bytes_dirty_leaf);
@@ -977,6 +988,7 @@ __wt_evict_file_exclusive_off(WT_SESSION_IMPL *session)
  *     keep increasing the number of workers. If not, we are past the infliction point on the
  *     eviction throughput curve. In that case, we will set the number of workers to the best
  *     observed so far and settle into a stable state.
+ //自动动态调整evict线程数
  */
 static void
 __evict_tune_workers(WT_SESSION_IMPL *session)
@@ -1125,6 +1137,7 @@ done:
 /*
  * __evict_lru_pages --
  *     Get pages from the LRU queue to evict.
+ //__wt_evict_thread_run多个evict线程竞争evict_pass_lock锁，只会有一个线程走__evict_server这个分支，其他线程走__evict_lru_pages分支
  */
 static int
 __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
@@ -1135,7 +1148,7 @@ __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
 
     WT_TRACK_OP_INIT(session);
     conn = S2C(session);
-   // printf("yang test ..................__evict_lru_pages...................................\r\n");
+    WT_RET(__wt_msg(session, "yang test .............................__evict_lru_pages...................."));
 
     /*
      * Reconcile and discard some pages: EBUSY is returned if a page fails eviction because it's
@@ -1149,9 +1162,9 @@ __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
     WT_TRET(__wt_session_release_resources(session));
 
     /* If a worker thread found the queue empty, pause. */
-    if (ret == WT_NOTFOUND && !is_server && F_ISSET(conn, WT_CONN_EVICTION_RUN))
+    if (ret == WT_NOTFOUND && !is_server && F_ISSET(conn, WT_CONN_EVICTION_RUN)) {
         __wt_cond_wait(session, conn->evict_threads.wait_cond, 10000, NULL);
-
+    }
     WT_TRACK_OP_END(session);
     return (ret == WT_NOTFOUND ? 0 : ret);
 }
@@ -1173,6 +1186,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
     WT_TRACK_OP_INIT(session);
     cache = S2C(session)->cache;
 
+   // printf("yang test .....................__evict_lru_walk...............\r\n");
     /* Age out the score of how much the queue has been empty recently. */
     if (cache->evict_empty_score > 0)
         --cache->evict_empty_score;
@@ -2485,7 +2499,7 @@ done:
 /*
  * __wt_page_evict_urgent --
  *     Set a page to be evicted as soon as possible.
- */
+ */ 
 bool
 __wt_page_evict_urgent(WT_SESSION_IMPL *session, WT_REF *ref)
 {

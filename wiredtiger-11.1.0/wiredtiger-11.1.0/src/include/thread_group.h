@@ -64,7 +64,8 @@ struct __wt_thread_group {
      * when shutting down. This condition can also be used by group owners to ensure state changes
      * are noticed.
      */
-    //__evict_lru_pages  __wt_cache_eviction_worker中等待
+    //__evict_lru_pages  __wt_cache_eviction_worker中等待信号
+    //__evict_lru_walk  __wt_page_evict_urgent __thread_group_shrink发送信号
     WT_CONDVAR *wait_cond;
 
     /*

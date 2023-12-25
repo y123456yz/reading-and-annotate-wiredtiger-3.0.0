@@ -121,7 +121,8 @@ __wt_delete_page(WT_SESSION_IMPL *session, WT_REF *ref, bool *skipp)
 
         WT_RET(__wt_curhs_cache(session));
         (void)__wt_atomic_addv32(&S2BT(session)->evict_busy, 1);
-        printf("yang test ................................__wt_delete_page.............................................\r\n");
+        
+        WT_RET(__wt_msg(session, "yang test .............................__wt_delete_page...................."));
         ret = __wt_evict(session, ref, previous_state, 0);
         (void)__wt_atomic_subv32(&S2BT(session)->evict_busy, 1);
         WT_RET_BUSY_OK(ret);

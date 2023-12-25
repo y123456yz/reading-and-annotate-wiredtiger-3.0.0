@@ -426,7 +426,6 @@ __wt_row_ikey(
     }
 #else
     ref->ref_ikey = ikey; //WT_REF.ref_ikey
-    printf("yang test ..................__wt_row_ikey...................\r\n");
 #endif
     return (0);
 }

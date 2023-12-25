@@ -385,6 +385,7 @@ struct __wt_page_modify {
     uint64_t update_txn;
 
     /* Dirty bytes added to the cache. */
+    //__wt_cache_page_inmem_incr
     size_t bytes_dirty;
     size_t bytes_updates;
 

@@ -73,6 +73,7 @@ __cache_config_local(WT_SESSION_IMPL *session, bool shared, const char *cfg[])
         conn->cache_size = (uint64_t)cval.val;
     }
 
+    //cache_overhead=8£¬Ä¬ÈÏµÈÓÚ8
     WT_RET(__wt_config_gets(session, cfg, "cache_overhead", &cval));
     cache->overhead_pct = (u_int)cval.val;
 
@@ -269,7 +270,7 @@ __wt_cache_create(WT_SESSION_IMPL *session, const char *cfg[])
     WT_RET(__wt_spin_init(session, &cache->evict_queue_lock, "cache eviction queue"));
     WT_RET(__wt_spin_init(session, &cache->evict_walk_lock, "cache walk"));
     if ((ret = __wt_open_internal_session(
-           conn, "evict pass", false, WT_SESSION_NO_DATA_HANDLES, 0, &cache->walk_session)) != 0)
+           conn, "evict pass session", false, WT_SESSION_NO_DATA_HANDLES, 0, &cache->walk_session)) != 0)
         WT_RET_MSG(NULL, ret, "Failed to create session for eviction walks");
 
     /* Allocate the LRU eviction queue. */

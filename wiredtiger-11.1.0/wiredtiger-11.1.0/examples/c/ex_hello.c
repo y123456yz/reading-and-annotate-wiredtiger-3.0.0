@@ -121,7 +121,7 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=8, threads_max=12),create, cache_size=1M,eviction_target=96,eviction_trigger=99, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));
@@ -135,7 +135,7 @@ access_example(int argc, char *argv[])
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
         
-        #define MAX_TEST_KV_NUM 2000
+        #define MAX_TEST_KV_NUM 1500
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
             snprintf(buf, sizeof(buf), "key%d", i);

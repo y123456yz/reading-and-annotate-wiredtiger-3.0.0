@@ -632,7 +632,9 @@ __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
      */
     size = page->memory_footprint;
     if (WT_PAGE_IS_INTERNAL(page)) {
+        //脏页page数量统计
         (void)__wt_atomic_add64(&cache->pages_dirty_intl, 1);
+        
         (void)__wt_atomic_add64(&cache->bytes_dirty_intl, size);
         (void)__wt_atomic_add64(&btree->bytes_dirty_intl, size);
     } else {
@@ -640,6 +642,7 @@ __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
             (void)__wt_atomic_add64(&cache->bytes_dirty_leaf, size);
             (void)__wt_atomic_add64(&btree->bytes_dirty_leaf, size);
         }
+        //脏页page数量统计
         (void)__wt_atomic_add64(&cache->pages_dirty_leaf, 1);
     }
     (void)__wt_atomic_add64(&cache->bytes_dirty_total, size);
@@ -659,12 +662,14 @@ __wt_cache_dirty_decr(WT_SESSION_IMPL *session, WT_PAGE *page)
 
     cache = S2C(session)->cache;
 
+    //脏页page数量减1
     if (WT_PAGE_IS_INTERNAL(page))
         __wt_cache_decr_check_uint64(
           session, &cache->pages_dirty_intl, 1, "dirty internal page count");
     else
         __wt_cache_decr_check_uint64(session, &cache->pages_dirty_leaf, 1, "dirty leaf page count");
 
+    //这个清理的脏页上面对应的字节数需要减去
     modify = page->modify;
     if (modify != NULL && modify->bytes_dirty != 0)
         __wt_cache_page_byte_dirty_decr(session, page, modify->bytes_dirty);

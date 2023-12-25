@@ -416,7 +416,7 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
              */
             if (force_attempts < 10 && __evict_force_check(session, ref)) {
                 ++force_attempts;
-                printf("yang test ............................__wt_page_in_func......\r\n");
+                WT_RET(__wt_msg(session, "yang test .............................__wt_page_in_func...................."));
                 ret = __wt_page_release_evict(session, ref, 0);
                 /*
                  * If forced eviction succeeded, don't retry. If it failed, stall.

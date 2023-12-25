@@ -127,6 +127,8 @@ __wt_cache_pages_inuse(WT_CACHE *cache)
 /*
  * __wt_cache_bytes_plus_overhead --
  *     Apply the cache overhead to a size in bytes.
+ assume the heap allocator overhead is the specified percentage, and adjust the cache usage by that amount (for example, if there is 10GB of data in cache, a percentage of 10 means WiredTiger treats this as 11GB). This value is configurable because different heap allocators have different overhead and different workloads will have different heap allocation sizes and patterns, therefore applications may need to adjust this value based on allocator choice and behavior in measured workloads.
+//实际上真实使用内存会增加一个百分比，因为每种内存分配器都会有额外的开销
  */
 static inline uint64_t
 __wt_cache_bytes_plus_overhead(WT_CACHE *cache, uint64_t sz)
@@ -231,6 +233,7 @@ __wt_session_can_wait(WT_SESSION_IMPL *session)
 /*
  * __wt_eviction_clean_needed --
  *     Return if an application thread should do eviction due to the total volume of data in cache.
+//判断cache内存使用占比是否超过了总内存的eviction_trigger(默认95%)
  */
 static inline bool
 __wt_eviction_clean_needed(WT_SESSION_IMPL *session, double *pct_fullp)
