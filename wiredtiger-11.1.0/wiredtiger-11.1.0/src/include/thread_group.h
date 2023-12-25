@@ -66,7 +66,7 @@ struct __wt_thread_group {
      */
     //__evict_lru_pages  __wt_cache_eviction_worker中等待信号
     //__evict_lru_walk  __wt_page_evict_urgent __thread_group_shrink发送信号
-    WT_CONDVAR *wait_cond;
+    WT_CONDVAR *wait_cond; //"thread group cond"
 
     /*
      * The threads need to be held in an array of arrays, not an array of structures because the

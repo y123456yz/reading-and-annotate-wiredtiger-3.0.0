@@ -63,11 +63,13 @@ access_example(void)
     WT_ITEM value_item;
     WT_ITEM value_item2;
     int i =0;
-
+    
+#ifdef HAVE_DIAGNOSTIC
     WT_BTREE *btree;
     int ret;
     WT_CURSOR_BTREE *cbt;
     WT_SESSION_IMPL *session_impl;
+#endif
     WT_RAND_STATE rnd;
     uint64_t rval;
     uint64_t max_i = 0;
@@ -150,15 +152,17 @@ access_example(void)
     error_check(cursor->insert(cursor));
 
     //error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
+#ifdef HAVE_DIAGNOSTIC
     cbt = (WT_CURSOR_BTREE *)cursor; //yang add xxxxxxxxx todo example¨¬¨ª?¨®btree dump
     session_impl = CUR2S(cbt);
     btree = CUR2BT(cbt);
     //usleep(10000000);
 
+
     WT_WITH_BTREE(session_impl, btree, ret = __wt_debug_tree_all(session_impl, NULL, NULL, NULL));
     if (!ret)
         printf("yang test 111111111111111111111__wt_debug_tree_all11111ss1111111111111111111111 error\r\n");
-
+#endif
      /*! [access example cursor insert]
     cursor->set_key(cursor, 1111);
     cursor->set_value(cursor, &value_item);

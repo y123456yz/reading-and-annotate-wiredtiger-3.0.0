@@ -1801,9 +1801,10 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
      * We're between transactions, if we need to block for eviction, it's a good time to do so.
      * Ignore error returns, the return must reflect the fate of the transaction.
      */
-    if (!readonly)
+    if (!readonly) {
+        printf("yang test ..................__wt_txn_commit...................................\r\n");
         WT_IGNORE_RET(__wt_cache_eviction_check(session, false, false, NULL));
-
+    }
     return (0);
 
 err:
@@ -2084,9 +2085,11 @@ __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])
      * We're between transactions, if we need to block for eviction, it's a good time to do so.
      * Ignore error returns, the return must reflect the fate of the transaction.
      */
-    if (!readonly)
+    if (!readonly) {
+        printf("yang test ..................__wt_txn_rollback...................................\r\n");
         WT_IGNORE_RET(__wt_cache_eviction_check(session, false, false, NULL));
-
+    }
+    
     return (ret);
 }
 

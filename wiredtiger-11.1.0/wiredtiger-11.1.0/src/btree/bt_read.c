@@ -326,8 +326,10 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
              * The page isn't in memory, read it. If this thread respects the cache size, check for
              * space in the cache.
              */
-            if (!LF_ISSET(WT_READ_IGNORE_CACHE_SIZE))
+            if (!LF_ISSET(WT_READ_IGNORE_CACHE_SIZE)) {
+                printf("yang test ..................__wt_page_in_func...................................\r\n");
                 WT_RET(__wt_cache_eviction_check(session, true, txn->mod_count == 0, NULL));
+            }
             WT_RET(__page_read(session, ref, flags));
 
             /* We just read a page, don't evict it before we have a chance to use it. */

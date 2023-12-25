@@ -214,8 +214,11 @@ __cursor_enter(WT_SESSION_IMPL *session)
     /*
      * If there are no other cursors positioned in the session, check whether the cache is full.
      */
-    if (session->ncursors == 0)
+    if (session->ncursors == 0) {
+        printf("yang test ..................__cursor_enter...................................\r\n");
         WT_RET(__wt_cache_eviction_check(session, false, false, NULL));
+    }
+
     ++session->ncursors;
     return (0);
 }

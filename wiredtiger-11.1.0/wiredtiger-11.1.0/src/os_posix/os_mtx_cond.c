@@ -152,7 +152,7 @@ __wt_cond_signal(WT_SESSION_IMPL *session, WT_CONDVAR *cond)
 {
     WT_DECL_RET;
 
-    __wt_verbose_debug2(session, WT_VERB_MUTEX, "signal %s", cond->name);
+    __wt_verbose_debug2(session, WT_VERB_MUTEX, "cond_broadcast signal %s", cond->name);
 
     /*
      * Our callers often set flags to cause a thread to exit. Add a barrier to ensure exit flags are

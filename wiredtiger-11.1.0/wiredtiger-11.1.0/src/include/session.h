@@ -269,12 +269,14 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_SESSION_BACKUP_CURSOR 0x00001u
 #define WT_SESSION_BACKUP_DUP 0x00002u
+//__session_reconfigure中置位  cache_cursors配置
 #define WT_SESSION_CACHE_CURSORS 0x00004u
 #define WT_SESSION_CAN_WAIT 0x00008u
 #define WT_SESSION_DEBUG_DO_NOT_CLEAR_TXN_ID 0x00010u
 #define WT_SESSION_DEBUG_RELEASE_EVICT 0x00020u
 //__wt_evict_thread_run
 #define WT_SESSION_EVICTION 0x00040u
+//__session_reconfigure中置位 ignore_cache_size配置
 #define WT_SESSION_IGNORE_CACHE_SIZE 0x00080u
 #define WT_SESSION_IMPORT 0x00100u
 #define WT_SESSION_IMPORT_REPAIR 0x00200u

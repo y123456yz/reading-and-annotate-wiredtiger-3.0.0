@@ -124,6 +124,8 @@ struct __wt_cache {
     /*
      * Eviction thread information.
      */
+    //__wt_evict_server_wake发送信号   __wt_evict_thread_run  __evict_pass等待信号
+    //"cache eviction server"
     WT_CONDVAR *evict_cond;      /* Eviction server condition */
     WT_SPINLOCK evict_walk_lock; /* Eviction walk location */
 

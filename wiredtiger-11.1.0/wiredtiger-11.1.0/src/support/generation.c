@@ -119,7 +119,7 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
     int pause_cnt;
     bool verbose_timeout_flags;
     WT_VERBOSE_LEVEL verbose_tmp[WT_VERB_NUM_CATEGORIES];
-    WT_DECL_RET;
+   // WT_DECL_RET;
 
     conn = S2C(session);
     verbose_timeout_flags = false;
@@ -187,27 +187,36 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
                     WT_ASSERT(session, minutes < WT_GEN_DRAIN_TIMEOUT_MIN);
                 }
                 /* Enable extra logs 20ms before timing out. */
+                //yang add test todo xxxxxxxxxxxxxxxxxxx  这里要做判断
                 else if (!verbose_timeout_flags &&
                   time_diff_ms > (WT_GEN_DRAIN_TIMEOUT_MIN * WT_MINUTE * WT_THOUSAND - 20)) {
+                    printf("yang test ........__evict_server.............WT_VERB_EVICT:%d\r\n", S2C(session)->verbose[WT_VERB_EVICT]);
                     if (which == WT_GEN_EVICT) {
-                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_EVICT, WT_VERBOSE_DEBUG_1);
-                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_EVICTSERVER, WT_VERBOSE_DEBUG_1);
-                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_EVICT_STUCK, WT_VERBOSE_DEBUG_1);
+                        if (S2C(session)->verbose[WT_VERB_EVICT] > WT_VERBOSE_DEBUG_1)
+                            WT_VERBOSE_SET_AND_SAVE(session, verbose_tmp, WT_VERB_EVICT, WT_VERBOSE_DEBUG_1);
+                        if (S2C(session)->verbose[WT_VERB_EVICTSERVER] > WT_VERBOSE_DEBUG_1)
+                            WT_VERBOSE_SET_AND_SAVE(session, verbose_tmp, WT_VERB_EVICTSERVER, WT_VERBOSE_DEBUG_1);
+                        if (S2C(session)->verbose[WT_VERB_EVICT_STUCK] > WT_VERBOSE_DEBUG_1)
+                            WT_VERBOSE_SET_AND_SAVE(session, verbose_tmp, WT_VERB_EVICT_STUCK, WT_VERBOSE_DEBUG_1);
                     } else if (which == WT_GEN_CHECKPOINT) {
-                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_1);
-                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT_CLEANUP, WT_VERBOSE_DEBUG_1);
-                        WT_VERBOSE_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT_PROGRESS, WT_VERBOSE_DEBUG_1);
+                        if (S2C(session)->verbose[WT_VERB_CHECKPOINT] > WT_VERBOSE_DEBUG_1)
+                            WT_VERBOSE_SET_AND_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_1);
+                        if (S2C(session)->verbose[WT_VERB_CHECKPOINT_CLEANUP] > WT_VERBOSE_DEBUG_1)
+                            WT_VERBOSE_SET_AND_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT_CLEANUP, WT_VERBOSE_DEBUG_1);
+                        if (S2C(session)->verbose[WT_VERB_CHECKPOINT_PROGRESS] > WT_VERBOSE_DEBUG_1)
+                            WT_VERBOSE_SET_AND_SAVE(session, verbose_tmp, WT_VERB_CHECKPOINT_PROGRESS, WT_VERBOSE_DEBUG_1);
                     }
                     verbose_timeout_flags = true;
                 }
             }
         }
 
-        if (which == WT_GEN_EVICT) {
+        printf("yang test ........__evict_server.....x........WT_VERB_EVICT:%d\r\n", S2C(session)->verbose[WT_VERB_EVICT]);
+        if (verbose_timeout_flags && which == WT_GEN_EVICT) {
             WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT);  
             WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICTSERVER);  
             WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT_STUCK);  
-        } else if (which == WT_GEN_CHECKPOINT) {
+        } else if (verbose_timeout_flags && which == WT_GEN_CHECKPOINT) {
             WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT);  
             WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_CLEANUP);  
             WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_PROGRESS); 

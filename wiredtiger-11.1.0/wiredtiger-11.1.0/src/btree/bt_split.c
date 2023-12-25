@@ -1949,7 +1949,9 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     uint8_t type;
     int i;
     void *key;
+    #ifdef HAVE_DIAGNOSTIC  
     WT_DBG *ds, _ds;
+    #endif
 
     WT_STAT_CONN_DATA_INCR(session, cache_inmem_split);
 
@@ -2048,9 +2050,12 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     } else
         child->ref_recno = WT_INSERT_RECNO(moved_ins);
 
+#ifdef HAVE_DIAGNOSTIC  
     ds = &_ds;
     WT_ERR(__debug_config(session, ds, NULL));
     WT_RET(__debug_item_key(ds, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nyang test __split_insert:", WT_INSERT_KEY(moved_ins), WT_INSERT_KEY_SIZE(moved_ins)));
+#endif
+
     /*
      * Allocation operations completed, we're going to split.
      *

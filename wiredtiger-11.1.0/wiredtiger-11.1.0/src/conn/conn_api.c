@@ -2266,8 +2266,10 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
      //   for (i = 0;i < WT_VERB_NUM_CATEGORIES; i++)
      //       conn->verbose[i] = 0; //yang add test xxxxxxxxxxxx
     } while(0);
+    
 
     printf("yang test ...........__wt_verbose_config..............%d\r\n", conn->verbose[WT_VERB_EVICT]);
+    printf("yang test ...........__wt_verbose_config.....WT_VERB_EVICTSERVER.........%d\r\n", conn->verbose[WT_VERB_EVICTSERVER]);
     return (0);
 }
 

@@ -234,6 +234,7 @@ __wt_session_can_wait(WT_SESSION_IMPL *session)
  * __wt_eviction_clean_needed --
  *     Return if an application thread should do eviction due to the total volume of data in cache.
 //判断cache内存使用占比是否超过了总内存的eviction_trigger(默认95%)
+//pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
  */
 static inline bool
 __wt_eviction_clean_needed(WT_SESSION_IMPL *session, double *pct_fullp)
@@ -275,6 +276,8 @@ __wt_eviction_dirty_target(WT_CACHE *cache)
  *     Return if an application thread should do eviction due to the total volume of dirty data in
  *     cache.
  */
+//判断cache dirty内存使用占比是否超过了总内存的eviction_trigger(默认95%)
+//pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
 static inline bool
 __wt_eviction_dirty_needed(WT_SESSION_IMPL *session, double *pct_fullp)
 {
@@ -300,6 +303,8 @@ __wt_eviction_dirty_needed(WT_SESSION_IMPL *session, double *pct_fullp)
  *     Return if an application thread should do eviction due to the total volume of updates in
  *     cache.
  */
+//判断cache update内存使用占比是否超过了总内存的eviction_updates_trigger(默认95%)
+//pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
 static inline bool
 __wt_eviction_updates_needed(WT_SESSION_IMPL *session, double *pct_fullp)
 {
@@ -350,6 +355,7 @@ __wt_btree_dominating_cache(WT_SESSION_IMPL *session, WT_BTREE *btree)
  * __wt_eviction_needed --
  *     Return if an application thread should do eviction, and the cache full percentage as a
  *     side-effect.
+ //判断是否用户线程需要进行evict操作
  */
 static inline bool
 __wt_eviction_needed(WT_SESSION_IMPL *session, bool busy, bool readonly, double *pct_fullp)
@@ -367,12 +373,18 @@ __wt_eviction_needed(WT_SESSION_IMPL *session, bool busy, bool readonly, double 
     if (F_ISSET(S2C(session), WT_CONN_CLOSING))
         return (false);
 
+    //判断cache内存使用占比是否超过了总内存的eviction_trigger(默认95%)
+    //pct_full返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_full为99
     clean_needed = __wt_eviction_clean_needed(session, &pct_full);
     if (readonly) {
         dirty_needed = updates_needed = false;
         pct_dirty = pct_updates = 0.0;
     } else {
+        //判断cache dirty内存使用占比是否超过了总内存的eviction_trigger(默认95%)
+        //pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
         dirty_needed = __wt_eviction_dirty_needed(session, &pct_dirty);
+        //判断cache update内存使用占比是否超过了总内存的eviction_updates_trigger(默认95%)
+        //pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
         updates_needed = __wt_eviction_updates_needed(session, &pct_updates);
     }
 
@@ -380,7 +392,9 @@ __wt_eviction_needed(WT_SESSION_IMPL *session, bool busy, bool readonly, double 
      * Calculate the cache full percentage; anything over the trigger means we involve the
      * application thread.
      */
+    //也就是计算
     if (pct_fullp != NULL)
+        //pct_fullp大于100说明，至少有一个超过了用户线程evict的阈值
         *pct_fullp = WT_MAX(0.0,
           100.0 -
             WT_MIN(
@@ -498,9 +512,11 @@ __wt_cache_eviction_check(WT_SESSION_IMPL *session, bool busy, bool readonly, bo
         return (0);
 
     /* Check if eviction is needed. */
+    //判断是否用户线程需要进行evict操作，pct_full大于100说明，至少有一个超过了用户线程evict的阈值
     if (!__wt_eviction_needed(session, busy, readonly, &pct_full))
         return (0);
 
+    //到这里说明需要用户线程进行evict操作
     /*
      * Some callers (those waiting for slow operations), will sleep if there was no cache work to
      * do. After this point, let them skip the sleep.
@@ -508,5 +524,6 @@ __wt_cache_eviction_check(WT_SESSION_IMPL *session, bool busy, bool readonly, bo
     if (didworkp != NULL)
         *didworkp = true;
 
+    //需要用户线程进行evict操作
     return (__wt_cache_eviction_worker(session, busy, readonly, pct_full));
 }

@@ -50,6 +50,10 @@ __evict_exclusive(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_page_release_evict --
  *     Release a reference to a page, and attempt to immediately evict it.
  */ //强制evict ref对应的page
+
+  //当一个page消耗内存较高，用户线程主动强制eviect:  __wt_page_in_func->__wt_page_release_evict->__wt_evict
+ //当总内存或者脏数据或者update数据超过一定比例，用户线程或者后台线程的evict逻辑: __evict_page->__wt_evict
+ //__wt_evict_file->__wt_evict : checkpoint逻辑
 int
 __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {
@@ -100,7 +104,8 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
  * __wt_evict --
  *     Evict a page.
  //当一个page消耗内存较高，用户线程主动强制eviect:  __wt_page_in_func->__wt_page_release_evict->__wt_evict
- //
+ //当总内存或者脏数据或者update数据超过一定比例，用户线程或者后台线程的evict逻辑: __evict_page->__wt_evict
+ //__wt_evict_file->__wt_evict : checkpoint逻辑
  */
 int
 __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32_t flags)
