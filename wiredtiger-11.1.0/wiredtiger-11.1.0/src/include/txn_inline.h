@@ -1210,7 +1210,8 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
          * Stall here if the cache is completely full. Eviction check can return rollback, but the
          * WT_SESSION.begin_transaction API can't, continue on.
          */
-        printf("yang test ..................__wt_txn_idle_cache_check...................................\r\n");
+        //printf("yang test ..................__wt_txn_idle_cache_check...................................\r\n");
+        //检查节点已使用内存、脏数据、update数据百分比，判断是否需要用户线程、evict线程进行evict处理
         WT_RET_ERROR_OK(__wt_cache_eviction_check(session, false, true, NULL), WT_ROLLBACK);
 
         __wt_txn_get_snapshot(session);
@@ -1263,7 +1264,8 @@ __wt_txn_idle_cache_check(WT_SESSION_IMPL *session)
      */
     if (F_ISSET(txn, WT_TXN_RUNNING) && !F_ISSET(txn, WT_TXN_HAS_ID) &&
       txn_shared->pinned_id == WT_TXN_NONE) {
-        printf("yang test ..................__wt_txn_begin...................................\r\n");
+       // printf("yang test ..................__wt_txn_begin...................................\r\n");
+        //检查节点已使用内存、脏数据、update数据百分比，判断是否需要用户线程、evict线程进行evict处理
         WT_RET(__wt_cache_eviction_check(session, false, true, NULL));
     }
     return (0);

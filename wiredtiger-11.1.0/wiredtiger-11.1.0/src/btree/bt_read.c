@@ -327,7 +327,8 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
              * space in the cache.
              */
             if (!LF_ISSET(WT_READ_IGNORE_CACHE_SIZE)) {
-                printf("yang test ..................__wt_page_in_func...................................\r\n");
+                //printf("yang test ..................__wt_page_in_func...................................\r\n");
+                 //检查节点已使用内存、脏数据、update数据百分比，判断是否需要用户线程、evict线程进行evict处理
                 WT_RET(__wt_cache_eviction_check(session, true, txn->mod_count == 0, NULL));
             }
             WT_RET(__page_read(session, ref, flags));

@@ -275,12 +275,15 @@ __wt_cache_create(WT_SESSION_IMPL *session, const char *cfg[])
 
     /* Allocate the LRU eviction queue. */
     cache->evict_slots = WT_EVICT_WALK_BASE + WT_EVICT_WALK_INCR;
+    //每个evict_queues[]中包含evict_slots个成员，一次性提前分配空间
     for (i = 0; i < WT_EVICT_QUEUE_MAX; ++i) {
         WT_RET(__wt_calloc_def(session, cache->evict_slots, &cache->evict_queues[i].evict_queue));
         WT_RET(__wt_spin_init(session, &cache->evict_queues[i].evict_lock, "cache eviction"));
     }
 
     /* Ensure there are always non-NULL queues. */
+    //WT_CACHE.evict_queues[]数组为该类型，evict_queues[0]代表当前evict的page对应的队列，即evict_current_queue
+    //，evict_queues[1]代表当前evict_other_queue，evict_queues[2]代表evict_urgent_queue
     cache->evict_current_queue = cache->evict_fill_queue = &cache->evict_queues[0];
     cache->evict_other_queue = &cache->evict_queues[1];
     cache->evict_urgent_queue = &cache->evict_queues[WT_EVICT_URGENT_QUEUE];

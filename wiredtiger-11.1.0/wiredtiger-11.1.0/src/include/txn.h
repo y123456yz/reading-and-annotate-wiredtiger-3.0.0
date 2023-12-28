@@ -315,6 +315,7 @@ struct __wt_txn {
     bool full_ckpt;
 
     /* Timeout */
+    //operation_timeout_ms≈‰÷√£¨ƒ¨»œ0
     uint64_t operation_timeout_us;
 
     const char *rollback_reason; /* If rollback, the reason */

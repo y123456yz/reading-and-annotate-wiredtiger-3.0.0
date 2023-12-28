@@ -280,6 +280,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
      * code.
      */
     WT_REF *evict_ref;            /* Eviction thread's location */
+    //¸³Öµ¼û__wt_evict_priority_set  __wt_evict_priority_clear
     uint64_t evict_priority;      /* Relative priority of cached pages */
     uint32_t evict_walk_progress; /* Eviction walk progress */
     uint32_t evict_walk_target;   /* Eviction walk target */

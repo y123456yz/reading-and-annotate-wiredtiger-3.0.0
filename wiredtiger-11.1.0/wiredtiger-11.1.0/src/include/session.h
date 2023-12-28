@@ -86,9 +86,18 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     //标记在session桶中的位置
     uint32_t id;        /* UID, offset in session array */
 
+    //用户线程因为总内存消耗、脏数据、update消耗过多，等等evict page的耗时，
+    //调用session接口的时候API_SESSION_INIT中初始化为0，__wt_cache_eviction_worker做耗时统计
     uint64_t cache_wait_us;        /* Wait time for cache for current operation */
+
+
+    ////wiredtiger_open conn维度operation_timeout_ms获取，如果operation_timeout_ms有配置，
+    // 则__wt_op_timer_start获取开始时间，超时时间也就是operation_timeout_ms配置
     uint64_t operation_start_us;   /* Operation start */
+    //如果conn 维度operation_timeout_ms配置，默认为0，见wiredtiger_open
     uint64_t operation_timeout_us; /* Maximum operation period before rollback */
+    //也就是同一个session接口的递归深度，如果大于1说明这个session接口存在递归的情况，所以
+    //一般api_call_counter=1的时候才能做为operation_start_us接口开始时间
     u_int api_call_counter;        /* Depth of api calls */
 
     //赋值见__wt_conn_dhandle_alloc
@@ -243,6 +252,8 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     /* Sessions have an associated statistics bucket based on its ID. */
     //该session在统计hash桶中的位置，可以参考WT_STAT_CONN_INCRV
     u_int stat_bucket;          /* Statistics bucket offset */
+    //优先看session维度的cache_max_wait_ms配置，如果session维度没有配置，则以conn维度的cache_max_wait_ms配置为准
+    //cache_max_wait_ms配置，默认为0
     uint64_t cache_max_wait_us; /* Maximum time an operation waits for space in cache */
 
 #ifdef HAVE_DIAGNOSTIC

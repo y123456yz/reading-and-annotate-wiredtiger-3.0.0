@@ -301,6 +301,7 @@ __eventv(WT_SESSION_IMPL *session, bool is_json, int error, const char *func, in
             WT_ERROR_APPEND(p, remain, "\"session_dhandle_name\":\"%s\",", prefix);
         else
             WT_ERROR_APPEND(p, remain, ", %s", prefix);
+           // WT_ERROR_APPEND(p, remain, "\"session_dhandle_name\":\"%s\",", prefix);
     }
 
     /* Session name. */
@@ -309,6 +310,7 @@ __eventv(WT_SESSION_IMPL *session, bool is_json, int error, const char *func, in
             WT_ERROR_APPEND(p, remain, "\"session_name\":\"%s\",", prefix);
         else
             WT_ERROR_APPEND(p, remain, ", %s", prefix);
+           // WT_ERROR_APPEND(p, remain, "\"session_name\":\"%s\",", prefix);
     }
 
     WT_VERBOSE_LEVEL_STR(level, verbosity_level_tag);

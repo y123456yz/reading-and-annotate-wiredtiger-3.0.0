@@ -303,6 +303,7 @@ struct __wt_connection_impl {
     //默认参考__wt_conn_config_init，config_entries中的配置信息
     const WT_CONFIG_ENTRY **config_entries;
 
+    //operation_timeout_ms配置，默认为0
     uint64_t operation_timeout_us; /* Maximum operation period before rollback */
 
     const char *optrack_path;         /* Directory for operation logs */

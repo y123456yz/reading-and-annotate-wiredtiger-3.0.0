@@ -171,8 +171,13 @@ __wt_op_timer_start(WT_SESSION_IMPL *session)
     uint64_t timeout_us;
 
     /* Timer can be configured per-transaction, and defaults to per-connection. */
+    //operation_timeout_ms配置，默认0
+    //wiredtiger_open conn维度operation_timeout_ms获取，一般默认值为0
     if (session->txn == NULL || (timeout_us = session->txn->operation_timeout_us) == 0)
         timeout_us = S2C(session)->operation_timeout_us;
+
+    ////wiredtiger_open conn维度operation_timeout_ms获取，如果operation_timeout_ms有配置，
+    // 则__wt_op_timer_start获取开始时间，超时时间也就是operation_timeout_ms配置
     if (timeout_us == 0)
         session->operation_start_us = session->operation_timeout_us = 0;
     else {

@@ -448,6 +448,7 @@ __wt_cache_hs_dirty(WT_SESSION_IMPL *session)
 /*
  * __wt_cache_eviction_check --
  *     Evict pages if the cache crosses its boundaries.
+ //检查节点已使用内存、脏数据、update数据百分比，判断是否需要用户线程、evict线程进行evict处理
  */
 static inline int
 __wt_cache_eviction_check(WT_SESSION_IMPL *session, bool busy, bool readonly, bool *didworkp)

@@ -24,9 +24,11 @@
  * WT_EVICT_ENTRY --
  *	Encapsulation of an eviction candidate.
  */
+//赋值参考__evict_push_candidate
 struct __wt_evict_entry {
     WT_BTREE *btree; /* Enclosing btree object */
     WT_REF *ref;     /* Page to flush/evict */
+    //该page评分__evict_entry_priority
     uint64_t score;  /* Relative eviction priority */
 };
 
@@ -37,13 +39,17 @@ struct __wt_evict_entry {
  * WT_EVICT_QUEUE --
  *	Encapsulation of an eviction candidate queue.
  Eviction is managed using WT_EVICT_QUEUE structures, each of which contains a list of WT_EVICT_ENTRY structures.
+//WT_CACHE.evict_queues[]数组为该类型，evict_queues[0]代表当前evict的page对应的队列，即evict_current_queue
+//，evict_queues[1]代表当前evict_other_queue，evict_queues[2]代表evict_urgent_queue
  */
 struct __wt_evict_queue {
     WT_SPINLOCK evict_lock;        /* Eviction LRU queue */
+    //每个evict_queues[]中包含evict_slots个成员，一次性提前分配cache->evict_slots个WT_EVICT_ENTRY空间，赋值见__wt_cache_create
     WT_EVICT_ENTRY *evict_queue;   /* LRU pages being tracked */
     WT_EVICT_ENTRY *evict_current; /* LRU current page to be evicted */
     uint32_t evict_candidates;     /* LRU list pages to evict */
     uint32_t evict_entries;        /* LRU entries in the queue */
+    //记录队列中历史最大elem个数
     volatile uint32_t evict_max;   /* LRU maximum eviction slot used */
 };
 
@@ -103,6 +109,7 @@ struct __wt_cache {
     //__wt_page_alloc  内存中的page数
     uint64_t pages_inmem;
 
+    //__wt_cache_page_evict中自增，代表evict的page总数
     volatile uint64_t eviction_progress; /* Eviction progress count */
     uint64_t last_eviction_progress;     /* Tracked eviction progress */
 
@@ -123,6 +130,9 @@ struct __wt_cache {
 
     /*
      * Eviction thread information.
+     
+     //用户线程发送evict_cond信号: __wt_cache_eviction_check->__wt_cache_eviction_worker->__wt_evict_server_wake
+     //evict server线程发送evict_cond信号: //__evict_walk_tree->__wt_page_evict_urgent->__wt_evict_server_wake
      */
     //__wt_evict_server_wake发送信号   __wt_evict_thread_run  __evict_pass等待信号
     //"cache eviction server"
@@ -149,6 +159,9 @@ struct __wt_cache {
     //cache_overhead=8，默认等于8
     //assume the heap allocator overhead is the specified percentage, and adjust the cache usage by that amount (for example, if there is 10GB of data in cache, a percentage of 10 means WiredTiger treats this as 11GB). This value is configurable because different heap allocators have different overhead and different workloads will have different heap allocation sizes and patterns, therefore applications may need to adjust this value based on allocator choice and behavior in measured workloads.
     u_int overhead_pct;         /* Cache percent adjustment */
+    //cache_max_wait_ms配置，默认为0
+    //__wt_cache_eviction_worker优先看session维度的cache_max_wait_ms配置，如果session维度没有配置，则以conn维度的cache_max_wait_ms配置为准
+    //cache_max_wait_ms配置，默认为0
     uint64_t cache_max_wait_us; /* Maximum time an operation waits for
                                  * space in cache */
 
@@ -173,12 +186,16 @@ struct __wt_cache {
      * LRU eviction list information.
      */
     WT_SPINLOCK evict_pass_lock;   /* Eviction pass lock */
+    //对应session名为"evict pass"  __evict_walk __evict_walk_tree使用该session
     WT_SESSION_IMPL *walk_session; /* Eviction pass session */
     WT_DATA_HANDLE *walk_tree;     /* LRU walk current tree */
 
     WT_SPINLOCK evict_queue_lock; /* Eviction current queue lock */
+    //WT_CACHE.evict_queues[]数组为该类型，evict_queues[0]代表当前evict的page对应的队列，即evict_current_queue
+    //，evict_queues[1]代表当前evict_other_queue，evict_queues[2]代表evict_urgent_queue
     WT_EVICT_QUEUE evict_queues[WT_EVICT_QUEUE_MAX];
     WT_EVICT_QUEUE *evict_current_queue; /* LRU current queue in use */
+    //__evict_lru_walk挑选的需要evict的page(不包括urgent)添加到fill队列
     WT_EVICT_QUEUE *evict_fill_queue;    /* LRU next queue to fill.
                                             This is usually the same as the
                                             "other" queue but under heavy
@@ -187,6 +204,7 @@ struct __wt_cache {
                                             before it switches. */
     WT_EVICT_QUEUE *evict_other_queue;   /* LRU queue not in use */
     WT_EVICT_QUEUE *evict_urgent_queue;  /* LRU urgent queue */
+    //__wt_cache_create中初始化赋值为WT_EVICT_WALK_BASE + WT_EVICT_WALK_INCR;
     uint32_t evict_slots;                /* LRU list eviction slots */
 
 #define WT_EVICT_SCORE_BUMP 10
@@ -204,6 +222,7 @@ struct __wt_cache {
      * hasn't been empty for a long time) and 100 (if the queue has been empty the last 10 times we
      * filled up.
      */
+    //赋值见__evict_lru_walk，这个值代表
     uint32_t evict_empty_score;
 
     uint32_t hs_fileid; /* History store table file ID */

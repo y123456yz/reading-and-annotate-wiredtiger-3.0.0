@@ -1802,7 +1802,8 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
      * Ignore error returns, the return must reflect the fate of the transaction.
      */
     if (!readonly) {
-        printf("yang test ..................__wt_txn_commit...................................\r\n");
+        //printf("yang test ..................__wt_txn_commit...................................\r\n");
+         //检查节点已使用内存、脏数据、update数据百分比，判断是否需要用户线程、evict线程进行evict处理
         WT_IGNORE_RET(__wt_cache_eviction_check(session, false, false, NULL));
     }
     return (0);
