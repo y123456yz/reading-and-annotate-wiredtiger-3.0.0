@@ -1,0 +1,550 @@
+src/session/session_salvage.lo: src/session/session_salvage.c \
+ /usr/include/stdc-predef.h src/include/wt_internal.h wiredtiger_config.h \
+ src/include/wiredtiger_ext.h wiredtiger.h /usr/include/sys/types.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h /usr/include/bits/types.h \
+ /usr/include/bits/typesizes.h /usr/include/time.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stddef.h \
+ /usr/include/endian.h /usr/include/bits/endian.h \
+ /usr/include/bits/byteswap.h /usr/include/bits/byteswap-16.h \
+ /usr/include/sys/select.h /usr/include/bits/select.h \
+ /usr/include/bits/sigset.h /usr/include/bits/time.h \
+ /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
+ /usr/include/inttypes.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stdint.h \
+ /usr/include/stdint.h /usr/include/bits/wchar.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stdarg.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stdbool.h \
+ /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h \
+ /usr/include/wchar.h /usr/include/bits/stdio_lim.h \
+ /usr/include/bits/sys_errlist.h /usr/include/bits/stdio.h \
+ /usr/include/sys/mman.h /usr/include/bits/mman.h /usr/include/sys/stat.h \
+ /usr/include/bits/stat.h /usr/include/sys/time.h /usr/include/sys/uio.h \
+ /usr/include/bits/uio.h /usr/include/dlfcn.h /usr/include/bits/dlfcn.h \
+ /usr/include/errno.h /usr/include/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ /usr/include/fcntl.h /usr/include/bits/fcntl.h \
+ /usr/include/bits/fcntl-linux.h /usr/include/linux/falloc.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include-fixed/limits.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include-fixed/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h /usr/include/bits/xopen_lim.h \
+ /usr/include/pthread.h /usr/include/sched.h /usr/include/bits/sched.h \
+ /usr/include/bits/timex.h /usr/include/xlocale.h \
+ /usr/include/bits/setjmp.h /usr/include/stdlib.h \
+ /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
+ /usr/include/alloca.h /usr/include/bits/stdlib-float.h \
+ /usr/include/string.h /usr/include/bits/string.h \
+ /usr/include/bits/string2.h /usr/include/unistd.h \
+ /usr/include/bits/posix_opt.h /usr/include/bits/environments.h \
+ /usr/include/bits/confname.h /usr/include/getopt.h src/include/gcc.h \
+ src/include/hardware.h src/include/swap.h src/include/queue.h \
+ src/include/posix.h src/include/misc.h src/include/mutex.h \
+ src/include/stat.h src/include/dhandle.h src/include/api.h \
+ src/include/async.h src/include/block.h src/include/bloom.h \
+ src/include/btmem.h src/include/btree.h src/include/cache.h \
+ src/include/compact.h src/include/config.h src/include/cursor.h \
+ src/include/dlh.h src/include/error.h src/include/flags.h \
+ src/include/log.h src/include/lsm.h src/include/meta.h src/include/os.h \
+ src/include/schema.h src/include/thread_group.h src/include/txn.h \
+ src/include/session.h src/include/connection.h src/include/extern1.h \
+ src/include/extern_posix.h src/include/verify_build.h \
+ src/include/ctype.i /usr/include/ctype.h src/include/intpack.i \
+ src/include/buf.i src/include/cache.i src/include/cell.i \
+ src/include/mutex.i src/include/txn.i src/include/bitstring.i \
+ src/include/btree.i src/include/btree_cmp.i \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/x86intrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/ia32intrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xmmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mm_malloc.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/emmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/pmmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/tmmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/ammintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/smmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/popcntintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/wmmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/immintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avxintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx2intrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512fintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512erintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512pfintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512cdintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vlintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512bwintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512dqintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vlbwintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vldqintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512ifmaintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512ifmavlintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmiintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmivlintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx5124fmapsintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx5124vnniwintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vpopcntdqintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmi2intrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmi2vlintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vnniintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vnnivlintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vpopcntdqvlintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512bitalgintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/shaintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/lzcntintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/bmiintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/bmi2intrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/fmaintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/f16cintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/rtmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xtestintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/cetintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/gfniintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/vaesintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/vpclmulqdqintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/movdirintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mm3dnow.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/prfchwintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/fma4intrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xopintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/lwpintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/tbmintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/rdseedintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/fxsrintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsaveintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsaveoptintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/sgxintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/pconfigintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/adxintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/clwbintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/clflushoptintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsavesintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsavecintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mwaitxintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/clzerointrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/wbnoinvdintrin.h \
+ /usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/pkuintrin.h \
+ src/include/column.i src/include/cursor.i src/include/log.i \
+ src/include/misc.i src/include/os_fhandle.i src/include/os_fs.i \
+ src/include/os_fstream.i src/include/packing.i src/include/serial.i
+
+/usr/include/stdc-predef.h:
+
+src/include/wt_internal.h:
+
+wiredtiger_config.h:
+
+src/include/wiredtiger_ext.h:
+
+wiredtiger.h:
+
+/usr/include/sys/types.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/bits/typesizes.h:
+
+/usr/include/time.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stddef.h:
+
+/usr/include/endian.h:
+
+/usr/include/bits/endian.h:
+
+/usr/include/bits/byteswap.h:
+
+/usr/include/bits/byteswap-16.h:
+
+/usr/include/sys/select.h:
+
+/usr/include/bits/select.h:
+
+/usr/include/bits/sigset.h:
+
+/usr/include/bits/time.h:
+
+/usr/include/sys/sysmacros.h:
+
+/usr/include/bits/pthreadtypes.h:
+
+/usr/include/inttypes.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/bits/wchar.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stdarg.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/stdbool.h:
+
+/usr/include/stdio.h:
+
+/usr/include/libio.h:
+
+/usr/include/_G_config.h:
+
+/usr/include/wchar.h:
+
+/usr/include/bits/stdio_lim.h:
+
+/usr/include/bits/sys_errlist.h:
+
+/usr/include/bits/stdio.h:
+
+/usr/include/sys/mman.h:
+
+/usr/include/bits/mman.h:
+
+/usr/include/sys/stat.h:
+
+/usr/include/bits/stat.h:
+
+/usr/include/sys/time.h:
+
+/usr/include/sys/uio.h:
+
+/usr/include/bits/uio.h:
+
+/usr/include/dlfcn.h:
+
+/usr/include/bits/dlfcn.h:
+
+/usr/include/errno.h:
+
+/usr/include/bits/errno.h:
+
+/usr/include/linux/errno.h:
+
+/usr/include/asm/errno.h:
+
+/usr/include/asm-generic/errno.h:
+
+/usr/include/asm-generic/errno-base.h:
+
+/usr/include/fcntl.h:
+
+/usr/include/bits/fcntl.h:
+
+/usr/include/bits/fcntl-linux.h:
+
+/usr/include/linux/falloc.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include-fixed/limits.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include-fixed/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/bits/posix1_lim.h:
+
+/usr/include/bits/local_lim.h:
+
+/usr/include/linux/limits.h:
+
+/usr/include/bits/posix2_lim.h:
+
+/usr/include/bits/xopen_lim.h:
+
+/usr/include/pthread.h:
+
+/usr/include/sched.h:
+
+/usr/include/bits/sched.h:
+
+/usr/include/bits/timex.h:
+
+/usr/include/xlocale.h:
+
+/usr/include/bits/setjmp.h:
+
+/usr/include/stdlib.h:
+
+/usr/include/bits/waitflags.h:
+
+/usr/include/bits/waitstatus.h:
+
+/usr/include/alloca.h:
+
+/usr/include/bits/stdlib-float.h:
+
+/usr/include/string.h:
+
+/usr/include/bits/string.h:
+
+/usr/include/bits/string2.h:
+
+/usr/include/unistd.h:
+
+/usr/include/bits/posix_opt.h:
+
+/usr/include/bits/environments.h:
+
+/usr/include/bits/confname.h:
+
+/usr/include/getopt.h:
+
+src/include/gcc.h:
+
+src/include/hardware.h:
+
+src/include/swap.h:
+
+src/include/queue.h:
+
+src/include/posix.h:
+
+src/include/misc.h:
+
+src/include/mutex.h:
+
+src/include/stat.h:
+
+src/include/dhandle.h:
+
+src/include/api.h:
+
+src/include/async.h:
+
+src/include/block.h:
+
+src/include/bloom.h:
+
+src/include/btmem.h:
+
+src/include/btree.h:
+
+src/include/cache.h:
+
+src/include/compact.h:
+
+src/include/config.h:
+
+src/include/cursor.h:
+
+src/include/dlh.h:
+
+src/include/error.h:
+
+src/include/flags.h:
+
+src/include/log.h:
+
+src/include/lsm.h:
+
+src/include/meta.h:
+
+src/include/os.h:
+
+src/include/schema.h:
+
+src/include/thread_group.h:
+
+src/include/txn.h:
+
+src/include/session.h:
+
+src/include/connection.h:
+
+src/include/extern1.h:
+
+src/include/extern_posix.h:
+
+src/include/verify_build.h:
+
+src/include/ctype.i:
+
+/usr/include/ctype.h:
+
+src/include/intpack.i:
+
+src/include/buf.i:
+
+src/include/cache.i:
+
+src/include/cell.i:
+
+src/include/mutex.i:
+
+src/include/txn.i:
+
+src/include/bitstring.i:
+
+src/include/btree.i:
+
+src/include/btree_cmp.i:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/x86intrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/ia32intrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xmmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mm_malloc.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/emmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/pmmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/tmmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/ammintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/smmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/popcntintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/wmmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/immintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avxintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx2intrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512fintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512erintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512pfintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512cdintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vlintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512bwintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512dqintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vlbwintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vldqintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512ifmaintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512ifmavlintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmiintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmivlintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx5124fmapsintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx5124vnniwintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vpopcntdqintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmi2intrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vbmi2vlintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vnniintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vnnivlintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512vpopcntdqvlintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/avx512bitalgintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/shaintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/lzcntintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/bmiintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/bmi2intrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/fmaintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/f16cintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/rtmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xtestintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/cetintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/gfniintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/vaesintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/vpclmulqdqintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/movdirintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mm3dnow.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/prfchwintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/fma4intrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xopintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/lwpintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/tbmintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/rdseedintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/fxsrintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsaveintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsaveoptintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/sgxintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/pconfigintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/adxintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/clwbintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/clflushoptintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsavesintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/xsavecintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/mwaitxintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/clzerointrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/wbnoinvdintrin.h:
+
+/usr/local/gcc-8.2.0/lib/gcc/x86_64-pc-linux-gnu/8.2.0/include/pkuintrin.h:
+
+src/include/column.i:
+
+src/include/cursor.i:
+
+src/include/log.i:
+
+src/include/misc.i:
+
+src/include/os_fhandle.i:
+
+src/include/os_fs.i:
+
+src/include/os_fstream.i:
+
+src/include/packing.i:
+
+src/include/serial.i:
