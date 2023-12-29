@@ -122,7 +122,6 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
     force_evict_hs = false;
     local_gen = false;
 
-    //yang add todo xxxxxxxxxxx
     __wt_verbose(
         session, WT_VERB_EVICT, "__wt_evict evict page %p (%s)", (void *)page, __wt_page_type_string(page->type));
       //session, WT_VERB_EVICT, "page %p (%s)", (void *)page, __wt_page_type_string(page->type));

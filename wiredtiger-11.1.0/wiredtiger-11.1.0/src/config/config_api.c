@@ -212,7 +212,7 @@ __wt_conn_foc_discard(WT_SESSION_IMPL *session)
 
 /*
  * __wt_configure_method --
- *     WT_CONNECTION.configure_method.   yang add todo xxxx 这里注释有点问题
+ *     WT_CONNECTION.configure_method.   
  */ //__conn_configure_method
 int
 __wt_configure_method(WT_SESSION_IMPL *session, const char *method, const char *uri,

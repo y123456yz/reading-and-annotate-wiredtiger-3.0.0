@@ -647,7 +647,7 @@ __checkpoint_verbose_track(WT_SESSION_IMPL *session, const char *msg)
 
     /* Get time diff in milliseconds. */
     msec = WT_TIMEDIFF_MS(stop, conn->ckpt_timer_start);
-    //yang add todo xxxxxxxxxxxxxx    time改为wait time会更好
+    
     __wt_verbose(session, WT_VERB_CHECKPOINT,
       "duration time: %" PRIu64 " ms, gen: %" PRIu64 ": Full database checkpoint %s", msec,
       __wt_gen(session, WT_GEN_CHECKPOINT), msg);

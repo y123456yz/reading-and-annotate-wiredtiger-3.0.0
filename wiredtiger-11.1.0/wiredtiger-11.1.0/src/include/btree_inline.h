@@ -304,6 +304,7 @@ __wt_btree_bytes_inuse(WT_SESSION_IMPL *session)
  * __wt_btree_bytes_evictable --
  *     Return the number of bytes that can be evicted (i.e. bytes apart from the pinned root page).
  */
+//计算一个表的内存使用量
 static inline uint64_t
 __wt_btree_bytes_evictable(WT_SESSION_IMPL *session)
 {

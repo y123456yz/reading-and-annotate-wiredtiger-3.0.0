@@ -42,10 +42,15 @@ __ref_index_slot(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp,
          * (which sets the hint for subsequent retrievals), is slower.
          */
         slot = ref->pindex_hint;
+        //在其他线程删除父节点下面的page的时候可能存在这种情况
         if (slot >= entries)
             slot = entries - 1;
+            
+        //一般从这里直接返回
         if (pindex->index[slot] == ref)
             goto found;
+
+        //走到这里说明在拆分父节点或者删除父节点下面的指定page，这时候需要不停持续重试扫描父节点的index[]数组
         for (start = &pindex->index[0], stop = &pindex->index[entries - 1],
             p = t = &pindex->index[slot];
              p > start || t < stop;) {
@@ -75,6 +80,7 @@ found:
 /*
  * __ref_ascend --
  *     Ascend the tree one level.
+ //refp返回自己的上一层parent ref
  */
 static inline void
 __ref_ascend(WT_SESSION_IMPL *session, WT_REF **refp, WT_PAGE_INDEX **pindexp, uint32_t *slotp)
@@ -237,7 +243,10 @@ __split_prev_race(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp
  *     Move to the next/previous page in the tree.
  遍历refp下面所有的page，如果ref对应为NULL，则从root遍历如果skip_func不会NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
  如果ref对应为NULL，则从root遍历
+
+ 查找refp的后一个或者前一个leaf page
  */
+//refp返回找到的下一个page，walkcntp代表CacheStat('cache_eviction_walk', 'pages walked for eviction'),
 static inline int
 __tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, uint64_t *walkcntp,
   int (*skip_func)(WT_SESSION_IMPL *, WT_REF *, void *, bool, bool *), void *func_cookie,
@@ -364,6 +373,7 @@ restart:
          */
         while ((prev && slot == 0) || (!prev && slot == pindex->entries - 1)) {
             /* Ascend to the parent. */
+             //ref返回自己的上一层parent ref
             __ref_ascend(session, &ref, &pindex, &slot);
 
             /*
@@ -434,6 +444,7 @@ descend:
              * If we see any child states other than deleted, the page isn't empty.
              */
             current_state = ref->state;
+            //只要
             if (current_state != WT_REF_DELETED && !LF_ISSET(WT_READ_TRUNCATE))
                 empty_internal = false;
             //只读内存中的page,如果该page不在内存中而是在磁盘，则直接break
@@ -476,6 +487,7 @@ descend:
                 couple = NULL;
 
                 /* Return leaf pages to our caller. */
+                //找到了，直接done, 并返回找到的ref
                 if (F_ISSET(ref, WT_REF_FLAG_LEAF)) {
                     *refp = ref;
                     WT_ASSERT(session, ref != ref_orig);

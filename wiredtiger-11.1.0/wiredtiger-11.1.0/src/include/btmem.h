@@ -682,7 +682,8 @@ struct __wt_page {
             uint64_t split_gen; /* Generation of last split */
 
             //index refÊý×é
-            WT_PAGE_INDEX *volatile __index; /* Collated children */
+            //WT_PAGE_INDEX *volatile __index; /* Collated children */
+            WT_PAGE_INDEX *__index; /* Collated children */
         } intl;
 
 /*

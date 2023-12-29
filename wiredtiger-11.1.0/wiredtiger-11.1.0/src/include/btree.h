@@ -279,10 +279,13 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
      * Eviction information is maintained in the btree handle, but owned by eviction, not the btree
      * code.
      */
+    //__evict_walk_tree赋值 
     WT_REF *evict_ref;            /* Eviction thread's location */
     //赋值见__wt_evict_priority_set  __wt_evict_priority_clear
     uint64_t evict_priority;      /* Relative priority of cached pages */
+    //已经遍历入队的page数
     uint32_t evict_walk_progress; /* Eviction walk progress */
+    //需要遍历入队的page数
     uint32_t evict_walk_target;   /* Eviction walk target */
     u_int evict_walk_period;      /* Skip this many LRU walks */
     u_int evict_walk_saved;       /* Saved walk skips for checkpoints */

@@ -32,6 +32,9 @@ struct __wt_evict_entry {
     uint64_t score;  /* Relative eviction priority */
 };
 
+//WT_CACHE.evict_queues[]数组为该类型，evict_queues[0]代表当前evict的page对应的队列，即evict_current_queue
+//，evict_queues[1]代表当前evict_other_queue，evict_queues[2]代表evict_urgent_queue
+//赋值见__wt_cache_create
 #define WT_EVICT_QUEUE_MAX 3    /* Two ordinary queues plus urgent */
 #define WT_EVICT_URGENT_QUEUE 2 /* Urgent queue index */
 
@@ -45,6 +48,7 @@ struct __wt_evict_entry {
 struct __wt_evict_queue {
     WT_SPINLOCK evict_lock;        /* Eviction LRU queue */
     //每个evict_queues[]中包含evict_slots个成员，一次性提前分配cache->evict_slots个WT_EVICT_ENTRY空间，赋值见__wt_cache_create
+    //evict_queue是一个数组
     WT_EVICT_ENTRY *evict_queue;   /* LRU pages being tracked */
     WT_EVICT_ENTRY *evict_current; /* LRU current page to be evicted */
     uint32_t evict_candidates;     /* LRU list pages to evict */
@@ -105,6 +109,7 @@ struct __wt_cache {
     //脏页page数量统计
     uint64_t pages_dirty_intl;
     uint64_t pages_dirty_leaf;
+    //内存中挑选出来需要evict的page数
     uint64_t pages_evicted;
     //__wt_page_alloc  内存中的page数
     uint64_t pages_inmem;
@@ -188,11 +193,13 @@ struct __wt_cache {
     WT_SPINLOCK evict_pass_lock;   /* Eviction pass lock */
     //对应session名为"evict pass"  __evict_walk __evict_walk_tree使用该session
     WT_SESSION_IMPL *walk_session; /* Eviction pass session */
+    //记录当前正在挑选那个表上的page进行evict操作，赋值见__evict_walk
     WT_DATA_HANDLE *walk_tree;     /* LRU walk current tree */
 
     WT_SPINLOCK evict_queue_lock; /* Eviction current queue lock */
-    //WT_CACHE.evict_queues[]数组为该类型，evict_queues[0]代表当前evict的page对应的队列，即evict_current_queue
+    //WT_CACHE.evict_queues[]数组为该类型，evict_queues[0]代表当前evict的page对应的队列，即evict_current_queue和evict_fill_queue
     //，evict_queues[1]代表当前evict_other_queue，evict_queues[2]代表evict_urgent_queue
+    //赋值见__wt_cache_create
     WT_EVICT_QUEUE evict_queues[WT_EVICT_QUEUE_MAX];
     WT_EVICT_QUEUE *evict_current_queue; /* LRU current queue in use */
     //__evict_lru_walk挑选的需要evict的page(不包括urgent)添加到fill队列
@@ -222,7 +229,8 @@ struct __wt_cache {
      * hasn't been empty for a long time) and 100 (if the queue has been empty the last 10 times we
      * filled up.
      */
-    //赋值见__evict_lru_walk，这个值代表
+    //赋值见__evict_lru_walk，这个值代表队列中是否为空的占比，是经常为空(100)还是经常不位空(0)
+    //评分越高说明消费速度比入队速度更快
     uint32_t evict_empty_score;
 
     uint32_t hs_fileid; /* History store table file ID */
