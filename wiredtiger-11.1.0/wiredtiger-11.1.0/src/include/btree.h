@@ -68,6 +68,7 @@ typedef enum __wt_btree_type {
     BTREE_ROW = 3      /* Row-store */
 } WT_BTREE_TYPE;
 
+//__wt_btree.syncing为该类型
 typedef enum __wt_btree_sync {
     //默认为该值
     WT_BTREE_SYNC_OFF,
@@ -230,6 +231,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
  * WT_SESSION_BTREE_SYNC_SAFE checks whether it is safe to perform an operation that would conflict
  * with a sync.
  */
+//代表正在做checkpoint
 #define WT_BTREE_SYNCING(btree) ((btree)->syncing != WT_BTREE_SYNC_OFF)
 #define WT_SESSION_BTREE_SYNC(session) (S2BT(session)->sync_session == (session))
 #define WT_SESSION_BTREE_SYNC_SAFE(session, btree) \
@@ -287,6 +289,9 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     uint32_t evict_walk_progress; /* Eviction walk progress */
     //需要遍历入队的page数
     uint32_t evict_walk_target;   /* Eviction walk target */
+    //__evict_walk_tree中赋值，__evict_walk中生效
+    //evict_walk_period在evict_walk_period赋值， 在__evict_walk生效，表示在下一轮对所有表遍历的时候，当前btree少遍历evict_walk_period个page
+    // 因为当前btree遍历效果不佳，每次效果不佳，下一轮该表跳过的page就*2, 效果逐渐好转后下一轮skip/2
     u_int evict_walk_period;      /* Skip this many LRU walks */
     u_int evict_walk_saved;       /* Saved walk skips for checkpoints */
     u_int evict_walk_skips;       /* Number of walks skipped */

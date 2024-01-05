@@ -111,7 +111,7 @@ struct __wt_cache {
     uint64_t pages_dirty_leaf;
     //内存中挑选出来需要evict的page数
     uint64_t pages_evicted;
-    //__wt_page_alloc  内存中的page数
+    //__wt_page_alloc  内存中的page数  __wt_cache_pages_inuse pages_inmem-pages_evicted=当前内存中正在使用的page数量
     uint64_t pages_inmem;
 
     //__wt_cache_page_evict中自增，代表evict的page总数
@@ -131,6 +131,7 @@ struct __wt_cache {
     uint64_t read_gen;        /* Current page read generation */
     uint64_t read_gen_oldest; /* Oldest read generation the eviction
                                * server saw in its last queue load */
+    //__evict_pass中自增，实际上代表进行了多少轮__evict_pass
     uint64_t evict_pass_gen;  /* Number of eviction passes */
 
     /*
@@ -154,7 +155,9 @@ struct __wt_cache {
     double eviction_dirty_trigger;   /* Percent to trigger dirty eviction */
     double eviction_trigger;         /* Percent to trigger eviction */
     double eviction_target;          /* Percent to end eviction */
+    //如果不配置，默认为cache->eviction_dirty_target / 2;
     double eviction_updates_target;  /* Percent to allow for updates */
+    //update trigger不能超过cache->eviction_trigger
     double eviction_updates_trigger; /* Percent of updates to trigger eviction */
 
     //默认值为1， eviction_checkpoint_target配置

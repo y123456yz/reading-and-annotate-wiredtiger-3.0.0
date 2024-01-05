@@ -695,6 +695,9 @@ struct __wt_page {
  * destroyed.
  */
 //参考BTREE数图形化 https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
+//为何是safe安全的，可以参考WT_ENTER_PAGE_INDEX  WT_LEAVE_PAGE_INDEX  WT_WITH_PAGE_INDEX
+//之类可以验证一下，假设某个用户线程操作的page超过限制，在evict中会splite重新生成修改index，这时候用户线程的evict逻辑中我们sleep，
+//evict server线程会怎么样?
 #define WT_INTL_INDEX_GET_SAFE(page) ((page)->u.intl.__index)
 #define WT_INTL_INDEX_GET(session, page, pindex)                          \
     do {                                                                  \
@@ -799,7 +802,7 @@ struct __wt_page {
 #define WT_PAGE_COMPACTION_WRITE 0x002u   /* Writing the page for compaction */
 #define WT_PAGE_DISK_ALLOC 0x004u         /* Disk image in allocated memory */
 #define WT_PAGE_DISK_MAPPED 0x008u        /* Disk image in mapped memory */
-//__evict_push_candidate置位
+//__evict_push_candidate置位，挑选出进入evict队列的page标识
 #define WT_PAGE_EVICT_LRU 0x010u          /* Page is on the LRU queue */
 #define WT_PAGE_EVICT_NO_PROGRESS 0x020u  /* Eviction doesn't count as progress */
 #define WT_PAGE_INTL_OVERFLOW_KEYS 0x040u /* Internal page has overflow keys (historic only) */
@@ -874,6 +877,7 @@ struct __wt_page {
     uint64_t read_gen;
 
     uint64_t cache_create_gen; /* Page create timestamp */
+    //赋值见__evict_walk_tree，也就是第几轮__evict_pass的时候该page被后台evict server线程选中淘汰的
     uint64_t evict_pass_gen;   /* Eviction pass generation */
 };
 
@@ -1778,6 +1782,7 @@ struct __wt_col_fix_auxiliary_header {
  * examining an index, we don't want the oldest split generation to move forward and potentially
  * free it.
  */
+//用户保护page index, WT_INTL_INDEX_GET_SAFE
 #define WT_ENTER_PAGE_INDEX(session)                                         \
     do {                                                                     \
         uint64_t __prev_split_gen = __wt_session_gen(session, WT_GEN_SPLIT); \
@@ -1790,6 +1795,8 @@ struct __wt_col_fix_auxiliary_header {
     }                                                  \
     while (0)
 
+//保证安全操作page index
+//用户保护page index, WT_INTL_INDEX_GET_SAFE
 #define WT_WITH_PAGE_INDEX(session, e) \
     WT_ENTER_PAGE_INDEX(session);      \
     (e);                               \

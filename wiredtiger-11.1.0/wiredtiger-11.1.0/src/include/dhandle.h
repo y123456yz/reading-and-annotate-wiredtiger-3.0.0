@@ -151,6 +151,7 @@ struct __wt_data_handle {
 #define WT_DHANDLE_DISCARD 0x002u      /* Close on release */
 #define WT_DHANDLE_DISCARD_KILL 0x004u /* Mark dead on release */
 #define WT_DHANDLE_DROPPED 0x008u      /* Handle is dropped */
+//如果该表的page都已经evict完了，则标记该表已经evicet完成  __evict_walk_tree中赋值
 #define WT_DHANDLE_EVICTED 0x010u      /* Btree is evicted (advisory) */
 //独占访问 //__wt_curfile_open   __wt_session_lock_dhandle
 //代表是否独占dhandle,dhandle加写锁后就代表独占

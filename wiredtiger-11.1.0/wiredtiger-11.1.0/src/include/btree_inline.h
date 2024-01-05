@@ -1964,6 +1964,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
      * written and the previous version freed, that previous version might be referenced by an
      * internal page already written in the checkpoint, leaving the checkpoint inconsistent.
      */
+    //因为其他线程做checkpoint，造成无法进行evict的page数量
     if (modified && __wt_btree_syncing_by_other_session(session)) {
         WT_STAT_CONN_DATA_INCR(session, cache_eviction_checkpoint);
         return (false);

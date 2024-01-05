@@ -59,6 +59,25 @@ typedef TAILQ_HEAD(__wt_cursor_list, __wt_cursor) WT_CURSOR_LIST;
 
 /* Maximum number of buckets to visit during cursor sweep. */
 #define WT_SESSION_CURSOR_SWEEP_MAX 32
+
+
+/*
+ * Session memory persists past session close because it's accessed by threads of control other
+ * than the thread owning the session. For example, btree splits and hazard pointers can "free"
+ * memory that's still in use. In order to eventually free it, it's stashed here with its
+ * generation number; when no thread is reading in generation, the memory can be freed for real.
+ */
+struct __wt_session_stash {
+    struct __wt_stash {
+        void *p; /* Memory, length */
+        size_t len;
+        uint64_t gen; /* Generation */
+    } * list;
+    size_t cnt;   /* Array entries */
+    size_t alloc; /* Allocated bytes */
+};
+
+
 /*
  * WT_SESSION_IMPL --
  *	Implementation of WT_SESSION.
@@ -138,21 +157,13 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
         //注意conn gen和session gen的区别
         volatile uint64_t generations[WT_GENERATIONS];
 
-        /*
-         * Session memory persists past session close because it's accessed by threads of control other
-         * than the thread owning the session. For example, btree splits and hazard pointers can "free"
-         * memory that's still in use. In order to eventually free it, it's stashed here with its
-         * generation number; when no thread is reading in generation, the memory can be freed for real.
-         */
-        struct __wt_session_stash {
-            struct __wt_stash {
-                void *p; /* Memory, length */
-                size_t len;
-                uint64_t gen; /* Generation */
-            } * list;
-            size_t cnt;   /* Array entries */
-            size_t alloc; /* Allocated bytes */
-        } stash[WT_GENERATIONS];
+    /*
+     * Session memory persists past session close because it's accessed by threads of control other
+     * than the thread owning the session. For example, btree splits and hazard pointers can "free"
+     * memory that's still in use. In order to eventually free it, it's stashed here with its
+     * generation number; when no thread is reading in generation, the memory can be freed for real.
+     */
+    WT_SESSION_STASH stash[WT_GENERATIONS];
 
     /*
      * Each session keeps a cache of data handles. The set of handles can grow quite large so we

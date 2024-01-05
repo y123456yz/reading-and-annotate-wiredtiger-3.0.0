@@ -227,6 +227,7 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
 /*
  * __gen_oldest --
  *     Return the oldest generation in use for the resource.
+ 从所有活跃session中找到最老的gen
  */
 static uint64_t
 __gen_oldest(WT_SESSION_IMPL *session, int which)
@@ -262,6 +263,7 @@ __gen_oldest(WT_SESSION_IMPL *session, int which)
 /*
  * __wt_gen_active --
  *     Return if a specified generation is in use for the resource.
+ generation >= 所有session中任何一个session的generation就认为是活跃的
  */
 bool
 __wt_gen_active(WT_SESSION_IMPL *session, int which, uint64_t generation)
@@ -340,6 +342,10 @@ __wt_session_gen_enter(WT_SESSION_IMPL *session, int which)
 /*
  * __wt_session_gen_leave --
  *     Leave a thread's resource generation.
+//WT_GEN_SPLIT: WT_WITH_PAGE_INDEX=WT_ENTER_PAGE_INDEX+WT_LEAVE_PAGE_INDEX
+//WT_GEN_EVICT: __wt_evict
+//WT_GEN_HAZARD: __wt_hazard_check
+ WT_GEN_COMMIT: __txn_get_snapshot_int
  */
 void
 __wt_session_gen_leave(WT_SESSION_IMPL *session, int which)
@@ -380,6 +386,7 @@ __stash_discard(WT_SESSION_IMPL *session, int which)
          * The list is expected to be in generation-sorted order, quit as soon as we find a object
          * we can't discard.
          */
+        //说明stash gen比最老的大,说明这个stash开始后的都不能释放，直接跳出循环
         if (stash->gen >= oldest)
             break;
 
@@ -396,6 +403,7 @@ __stash_discard(WT_SESSION_IMPL *session, int which)
     /*
      * If there are enough free slots at the beginning of the list, shuffle everything down.
      */
+    //也就是把session->stash[which]从i数组游标位置开始的内容拷贝到数组开头
     if (i > 100 || i == session_stash->cnt)
         if ((session_stash->cnt -= i) > 0)
             memmove(session_stash->list, stash, session_stash->cnt * sizeof(*stash));
@@ -405,6 +413,7 @@ __stash_discard(WT_SESSION_IMPL *session, int which)
  * __wt_stash_discard --
  *     Discard any memory from a session stash that we can.
  */
+//释放该session下所有的stash
 void
 __wt_stash_discard(WT_SESSION_IMPL *session)
 {
@@ -421,6 +430,7 @@ __wt_stash_discard(WT_SESSION_IMPL *session)
 /*
  * __wt_stash_add --
  *     Add a new entry into a session stash list.
+ //添加一块内存P到session->stash[which]中，等待释放
  */
 int
 __wt_stash_add(WT_SESSION_IMPL *session, int which, uint64_t generation, void *p, size_t len)

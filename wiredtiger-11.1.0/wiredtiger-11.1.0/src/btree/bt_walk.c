@@ -30,6 +30,7 @@ __ref_index_slot(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp,
          * Copy the parent page's index value: the page can split at any time, but the index's value
          * is always valid, even if it's not up-to-date.
          */
+        //yang add todo xxxxxxxxxxxxxxxxxx  index[]缩容时候，这里没有加锁会不会有问题? 
         WT_INTL_INDEX_GET(session, ref->home, pindex);
         entries = pindex->entries;
 
@@ -241,6 +242,17 @@ __split_prev_race(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp
 /*
  * __tree_walk_internal --
  *     Move to the next/previous page in the tree.
+   * There are multiple reasons and approaches to walking the in-memory
+   * tree:
+   *
+   * (1) finding pages to evict (the eviction server);
+   * (2) writing just dirty leaves or internal nodes (checkpoint);
+   * (3) discarding pages (close);
+   * (4) truncating pages in a range (fast truncate);
+   * (5) skipping pages based on outside information (compaction);
+   * (6) cursor scans (applications).
+
+ 
  遍历refp下面所有的page，如果ref对应为NULL，则从root遍历如果skip_func不会NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
  如果ref对应为NULL，则从root遍历
 
@@ -330,6 +342,7 @@ __tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, uint64_t *walkcntp
      * Tree walks are special: they look inside page structures that splits may want to free.
      * Publish the tree is active during this window.
      */
+    //和下面的WT_LEAVE_PAGE_INDEX配对
     WT_ENTER_PAGE_INDEX(session);
 
     /* If no page is active, begin a walk from the start/end of the tree. */
@@ -540,6 +553,7 @@ done:
 err:
     WT_TRET(__wt_page_release(session, couple, flags));
     WT_TRET(__wt_page_release(session, ref_orig, flags));
+    //和前面的WT_ENTER_PAGE_INDEX配对
     WT_LEAVE_PAGE_INDEX(session);
     return (ret);
 }
@@ -558,10 +572,14 @@ __wt_tree_walk(WT_SESSION_IMPL *session, WT_REF **refp, uint32_t flags)
  * __wt_tree_walk_count --
  *     Move to the next/previous page in the tree, tracking how many references were visited to get
  *     there.
+
+ //__evict_walk_tree
  */
+//refp返回找到的下一个page，walkcntp代表CacheStat('cache_eviction_walk', 'pages walked for eviction'),
 int
 __wt_tree_walk_count(WT_SESSION_IMPL *session, WT_REF **refp, uint64_t *walkcntp, uint32_t flags)
 {
+    //refp返回找到的下一个page，walkcntp代表CacheStat('cache_eviction_walk', 'pages walked for eviction'),
     return (__tree_walk_internal(session, refp, walkcntp, NULL, NULL, flags));
 }
 

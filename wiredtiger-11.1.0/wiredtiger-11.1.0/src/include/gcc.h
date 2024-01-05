@@ -156,9 +156,17 @@ WT_ATOMIC_FUNC(i64, int64_t, int64_t *vp, int64_t v)
 WT_ATOMIC_FUNC(iv64, int64_t, volatile int64_t *vp, volatile int64_t v)
 WT_ATOMIC_FUNC(size, size_t, size_t *vp, size_t v)
 
+
 /* Compile read-write barrier */
 #define WT_BARRIER() __asm__ volatile("" ::: "memory")
 
+/*
+asm volatile("sfence" ::: "memory")。volatile告诉编译器严禁在此处汇编语句与其它语句重组优化，memory强制编译器假设RAM所有内存单元均被汇编指令修改，
+"sfence" ::: 表示在此插入一条串行化汇编指令sfence。
+mfence：串行化发生在mfence指令之前的读写操作
+lfence：串行化发生在mfence指令之前的读操作、但不影响写操作
+sfence：串行化发生在mfence指令之前的写操作、但不影响读操作 
+*/
 #if defined(x86_64) || defined(__x86_64__)
 /* Pause instruction to prevent excess processor bus usage */
 #define WT_PAUSE() __asm__ volatile("pause\n" ::: "memory")
