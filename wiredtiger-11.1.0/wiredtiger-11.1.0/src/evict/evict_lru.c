@@ -247,21 +247,19 @@ __wt_evict_server_wake(WT_SESSION_IMPL *session)
     cache = conn->cache;
 
     if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_EVICTSERVER, WT_VERBOSE_DEBUG_2)) {
-        uint64_t bytes_inuse, bytes_max;
+        uint64_t bytes_dirty, bytes_inuse, bytes_max, bytes_updates;
 
         bytes_inuse = __wt_cache_bytes_inuse(cache);
         bytes_max = conn->cache_size;
         //这里建议把dirty update的信息也打印出来
-        if (bytes_inuse / WT_MEGABYTE > 0)
-            __wt_verbose_debug2(session, WT_VERB_EVICTSERVER,
-              "__wt_evict_server_wake waking, bytes inuse %s max (%" PRIu64 "MB %s %" PRIu64 "MB)",
-              bytes_inuse <= bytes_max ? "<=" : ">", bytes_inuse / WT_MEGABYTE,
-              bytes_inuse <= bytes_max ? "<=" : ">", bytes_max / WT_MEGABYTE);
-        else
-            __wt_verbose_debug2(session, WT_VERB_EVICTSERVER,
-              "__wt_evict_server_wake waking, bytes inuse %s max (%" PRIu64 "B %s %" PRIu64 "B)",
-              bytes_inuse <= bytes_max ? "<=" : ">", bytes_inuse,
-              bytes_inuse <= bytes_max ? "<=" : ">", bytes_max);
+        bytes_inuse = __wt_cache_bytes_inuse(cache);
+        bytes_max = conn->cache_size;
+        bytes_dirty = __wt_cache_dirty_inuse(cache);
+        bytes_updates = __wt_cache_bytes_updates(cache);
+        __wt_verbose_debug2(session, WT_VERB_EVICTSERVER,
+          "waking: bytes max: %" PRIu64 ", bytes inuse: %" PRIu64 ", bytes dirty: %" PRIu64
+          ", bytes updates: %" PRIu64,
+          bytes_max, bytes_inuse, bytes_dirty, bytes_updates);
     }
     //printf("yang test ...........__wt_evict_server_wake...................\r\n");
     //如果只有一个evict线程，这时候__wt_evict_thread_run的__wt_cond_auto_wait就靠这里来触发evict线程继续执行
@@ -758,8 +756,10 @@ __evict_pass(WT_SESSION_IMPL *session)
             break;
 
         __wt_verbose_debug2(session, WT_VERB_EVICTSERVER,
-          "Eviction pass with: Max: %" PRIu64 " In use: %" PRIu64 " Dirty: %" PRIu64,
-          conn->cache_size, cache->bytes_inmem, cache->bytes_dirty_intl + cache->bytes_dirty_leaf);
+          "Eviction pass with: Max: %" PRIu64 " In use: %" PRIu64 " Dirty: %" PRIu64
+          " Updates: %" PRIu64,
+          conn->cache_size, cache->bytes_inmem, cache->bytes_dirty_intl + cache->bytes_dirty_leaf,
+          cache->bytes_updates);
 
         
         if (F_ISSET(cache, WT_CACHE_EVICT_ALL))
@@ -773,6 +773,7 @@ __evict_pass(WT_SESSION_IMPL *session)
          * Also, if there is a single eviction server thread with no workers, it must service the
          * urgent queue in case all application threads are busy.
          */
+        //只配置有一个evict线程并且紧急队列部位空或者队列空的评分很低，则由自己进行真正的evict reconcile
         if (!WT_EVICT_HAS_WORKERS(session) &&
           (cache->evict_empty_score < WT_EVICT_SCORE_CUTOFF ||
             !__evict_queue_empty(cache->evict_urgent_queue, false)))
@@ -1163,6 +1164,7 @@ done:
  * __evict_lru_pages --
  *     Get pages from the LRU queue to evict.
  //__wt_evict_thread_run多个evict线程竞争evict_pass_lock锁，只会有一个线程走__evict_server这个分支，其他线程走__evict_lru_pages分支
+ //从evict对了获取需要evict page进行淘汰
  */
 static int
 __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
@@ -1211,7 +1213,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
     WT_TRACK_OP_INIT(session);
     cache = S2C(session)->cache;
 
-    printf("yang test .....11..........__evict_lru_walk...............verbos evictserver:%d\r\n", S2C(session)->verbose[WT_VERB_EVICTSERVER]);
+    //printf("yang test .....11..........__evict_lru_walk...............verbos evictserver:%d\r\n", S2C(session)->verbose[WT_VERB_EVICTSERVER]);
     /* Age out the score of how much the queue has been empty recently. */
     if (cache->evict_empty_score > 0)
         --cache->evict_empty_score;
@@ -1233,9 +1235,12 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
      * If both queues are full and haven't been empty on recent refills, we're done.
      */
     //evict_queues[0]和evict_queues[1]都满了，并且得分较低，说明近期一直满，则不进行后续的扫描需要evict的page来进行入队操作
-    if (__evict_queue_full(queue) && cache->evict_empty_score < WT_EVICT_SCORE_CUTOFF)
+    if (__evict_queue_full(queue) && cache->evict_empty_score < WT_EVICT_SCORE_CUTOFF) {
+        printf("yang test .......__evict_lru_walk................cache->evict_empty_score:%d\r\n", 
+            (int)cache->evict_empty_score);
         goto err; //yang add todo xxxxxxxxxxxxx 这里最好加个统计，代表队列一直满，或者增加cache_eviction_queue_not_empty
-
+    }
+    
     /*
      * If the queue we are filling is empty, pages are being requested faster than they are being
      * queued.
@@ -1354,7 +1359,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
     /*
      * Signal any application or helper threads that may be waiting to help with eviction.
      */
-    printf("yang test ...........22..........__evict_lru_walk........send .wait_cond..signal....\r\n");
+    printf("yang test ....................__evict_lru_walk........end\r\n");
     __wt_cond_signal(session, S2C(session)->evict_threads.wait_cond);
 
 err:
@@ -1454,6 +1459,7 @@ __evict_walk(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue)
     dhandle_locked = incr = false;
     retries = 0;
 
+    
     /*
      * Set the starting slot in the queue and the maximum pages added per walk.
      */
@@ -1473,12 +1479,14 @@ __evict_walk(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue)
 
 retry:
     loop_count = 0;
+    printf("yang test .............__evict_walk...slot:%d, max_entries:%d, conn->dhandle_count:%d, flags:%u\r\n",
+        (int)slot, (int)max_entries, (int)conn->dhandle_count, conn->flags);
     while (slot < max_entries && loop_count++ < conn->dhandle_count) {
         /* We're done if shutting down or reconfiguring. */
-        if (F_ISSET(conn, WT_CONN_CLOSING) || F_ISSET(conn, WT_CONN_RECONFIGURING) 
-            || F_ISSET(conn, WT_CONN_GET_CONFIGURING))
+        if (F_ISSET(conn, WT_CONN_CLOSING) || F_ISSET(conn, WT_CONN_RECONFIGURING)) {
             break;
-
+        }
+        
         /*
          * If another thread is waiting on the eviction server to clear the walk point in a tree,
          * give up.
@@ -1555,6 +1563,7 @@ retry:
         if (btree->evict_ref == NULL && session->nhazard > WT_EVICT_MAX_TREES)
             continue;
 
+        
         /*
          * If we are filling the queue, skip files that haven't been useful in the past.
      evict_walk_period在evict_walk_period赋值， 在__evict_walk生效，表示在下一轮对所有表遍历的时候，当前btree少遍历evict_walk_period个page
@@ -1622,6 +1631,8 @@ retry:
         (retries < WT_RETRY_MAX && (slot == queue->evict_entries || slot > start_slot)))) {
         start_slot = slot;
         ++retries;
+        printf("yang test ..........__evict_walk.....retries:%u, slot:%u, start_slot:%u, queue->evict_entriesr:%u\r\n",
+           retries, slot, start_slot, queue->evict_entries);
         goto retry;
     }
 
@@ -1782,6 +1793,7 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
     WT_EVICT_ENTRY *end, *evict, *start;
     WT_PAGE *last_parent, *page;
     WT_REF *ref;
+    
     uint64_t internal_pages_already_queued, internal_pages_queued, internal_pages_seen;
     uint64_t min_pages, pages_already_queued, 
         //pages_seen代表遍历的循环次数   pages_queued代表选择出来需要后台evict的page数
@@ -1790,6 +1802,8 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
     uint32_t read_flags, remaining_slots, target_pages, walk_flags;
     int restarts;
     bool give_up, modified, urgent_queued, want_page;
+
+    printf("yang test .....................__evict_walk_tree.....................\r\n");
 
     conn = S2C(session);
     btree = S2BT(session);
@@ -2655,10 +2669,10 @@ done:
     __wt_spin_unlock(session, &cache->evict_queue_lock);
     if (queued) {
         WT_STAT_CONN_INCR(session, cache_eviction_pages_queued_urgent);
-        if (WT_EVICT_HAS_WORKERS(session)) //如果有2个或者以上的evict线程，则
+        if (WT_EVICT_HAS_WORKERS(session)) //如果有2个或者以上的evict线程，则触发工作线程在__evict_lru_pages进行下一轮page evict
             __wt_cond_signal(session, S2C(session)->evict_threads.wait_cond);
         else 
-            //说明只有一个evict线程，这时候
+            //说明只有一个evict线程，这时候需要通过这里幻想自己的下一轮evict选举和淘汰
             __wt_evict_server_wake(session);
     }
 

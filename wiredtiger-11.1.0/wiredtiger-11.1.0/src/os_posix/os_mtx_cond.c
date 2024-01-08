@@ -146,6 +146,7 @@ err:
 /*
  * __wt_cond_signal --
  *     Signal a waiting thread.
+ 唤醒所有等待线程
  */
 void
 __wt_cond_signal(WT_SESSION_IMPL *session, WT_CONDVAR *cond)

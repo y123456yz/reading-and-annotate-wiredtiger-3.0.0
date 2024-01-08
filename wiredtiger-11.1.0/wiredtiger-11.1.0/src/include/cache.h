@@ -50,7 +50,9 @@ struct __wt_evict_queue {
     //每个evict_queues[]中包含evict_slots个成员，一次性提前分配cache->evict_slots个WT_EVICT_ENTRY空间，赋值见__wt_cache_create
     //evict_queue是一个数组
     WT_EVICT_ENTRY *evict_queue;   /* LRU pages being tracked */
+    //代表当前消费到了evict_queues[]数组的那个位置
     WT_EVICT_ENTRY *evict_current; /* LRU current page to be evicted */
+    //队列中总的候选page
     uint32_t evict_candidates;     /* LRU list pages to evict */
     uint32_t evict_entries;        /* LRU entries in the queue */
     //记录队列中历史最大elem个数
@@ -234,6 +236,7 @@ struct __wt_cache {
      */
     //赋值见__evict_lru_walk，这个值代表队列中是否为空的占比，是经常为空(100)还是经常不位空(0)
     //评分越高说明消费速度比入队速度更快
+    //__evict_lru_walk中赋值
     uint32_t evict_empty_score;
 
     uint32_t hs_fileid; /* History store table file ID */
