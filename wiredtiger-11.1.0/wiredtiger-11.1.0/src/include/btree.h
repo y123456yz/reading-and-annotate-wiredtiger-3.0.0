@@ -284,6 +284,8 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     //__evict_walk_tree赋值 
     WT_REF *evict_ref;            /* Eviction thread's location */
     //赋值见__wt_evict_priority_set  __wt_evict_priority_clear
+    //只有__wt_metadata_cursor_open中会调用__wt_evict_priority_set置为100000，加这个的目的是确保wiredtiger.wt元数据表中
+    // 的数据全部在内存中
     uint64_t evict_priority;      /* Relative priority of cached pages */
     //已经遍历入队的page数
     uint32_t evict_walk_progress; /* Eviction walk progress */
@@ -295,6 +297,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     u_int evict_walk_period;      /* Skip this many LRU walks */
     u_int evict_walk_saved;       /* Saved walk skips for checkpoints */
     u_int evict_walk_skips;       /* Number of walks skipped */
+    //__wt_evict_file_exclusive_on和__wt_evict_file_exclusive_off配对使用， 一个自增一个自减
     int32_t evict_disabled;       /* Eviction disabled count */
     bool evict_disabled_open;     /* Eviction disabled on open */
     //正在进行evict的线程数 __wt_page_release_evict

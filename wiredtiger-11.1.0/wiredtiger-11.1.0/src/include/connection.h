@@ -329,9 +329,9 @@ struct __wt_connection_impl {
 
     //WT_CONN_DHANDLE_INSERT中可以看出，一个是主队列，一个是hash队列
     /* Locked: data handle hash array */
-    TAILQ_HEAD(__wt_dhhash, __wt_data_handle) * dhhash;
+    TAILQ_HEAD(__wt_dhhash, __wt_data_handle) * dhhash;  //dhhash和dhqh的关系，可以参考__evict_walk_choose_dhandle
     /* Locked: data handle list */
-    TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh;
+    TAILQ_HEAD(__wt_dhandle_qh, __wt_data_handle) dhqh;  //dhhash和dhqh的关系，可以参考__evict_walk_choose_dhandle
 
     /* Locked: dynamic library handle list */
     TAILQ_HEAD(__wt_dlh_qh, __wt_dlh) dlhqh;
@@ -352,8 +352,9 @@ struct __wt_connection_impl {
     WT_BLKCACHE blkcache; /* Block cache */
 
     /* Locked: handles in each bucket */
-    //connectio相关统计信息
+    //connectio相关统计信息 每个桶中的elem个数都记录到这个数组，数组大小dh_hash_size, 可以参考__evict_walk_choose_dhandle
     uint64_t *dh_bucket_count;
+    //表数量
     uint64_t dhandle_count;        /* Locked: handles in the queue */
     u_int open_btree_count;        /* Locked: open writable btree count */
     uint32_t next_file_id;         /* Locked: file ID counter */

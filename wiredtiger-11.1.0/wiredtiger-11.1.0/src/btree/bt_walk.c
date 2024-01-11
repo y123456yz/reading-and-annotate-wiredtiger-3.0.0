@@ -260,7 +260,9 @@ __split_prev_race(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp
  */
 //refp返回找到的下一个page，walkcntp代表CacheStat('cache_eviction_walk', 'pages walked for eviction'),
 static inline int
-__tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, uint64_t *walkcntp,
+__tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, 
+  //注意walkcntp是保留原值进行增加
+  uint64_t *walkcntp,
   int (*skip_func)(WT_SESSION_IMPL *, WT_REF *, void *, bool, bool *), void *func_cookie,
   uint32_t flags)
 {

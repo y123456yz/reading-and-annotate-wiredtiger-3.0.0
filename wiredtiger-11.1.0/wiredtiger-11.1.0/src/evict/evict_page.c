@@ -241,6 +241,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
         /*
          * Pages that belong to dead trees never write back to disk and can't support page splits.
          */
+        //例如cacheSIZE总内存消耗，dirty脏数据过多等，走这里
         WT_ERR(__evict_page_clean_update(session, ref, flags));
     else
         WT_ERR(__evict_page_dirty_update(session, ref, flags));

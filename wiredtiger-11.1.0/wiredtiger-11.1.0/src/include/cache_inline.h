@@ -10,6 +10,7 @@
  * __wt_cache_aggressive --
  *     Indicate if the cache is operating in aggressive mode.
  */
+//说明evict page落盘阻塞严重
 static inline bool
 __wt_cache_aggressive(WT_SESSION_IMPL *session)
 {
@@ -77,6 +78,7 @@ __wt_cache_read_gen_new(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_cache_stuck --
  *     Indicate if the cache is stuck (i.e., not making progress).
+ 说明evict server线程阻塞严重
  */
 static inline bool
 __wt_cache_stuck(WT_SESSION_IMPL *session)
@@ -328,6 +330,7 @@ __wt_eviction_updates_needed(WT_SESSION_IMPL *session, double *pct_fullp)
 /*
  * __wt_btree_dominating_cache --
  *     Return if a single btree is occupying at least half of any of our target's cache usage.
+ //确保某个表是否占用了一半触发evict条件的一半的内存(包括dirty update cache中的任何一种)
  */
 static inline bool
 __wt_btree_dominating_cache(WT_SESSION_IMPL *session, WT_BTREE *btree)

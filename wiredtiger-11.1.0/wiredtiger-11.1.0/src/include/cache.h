@@ -26,6 +26,7 @@
  */
 //赋值参考__evict_push_candidate
 struct __wt_evict_entry {
+    //这是那个btree的page节点
     WT_BTREE *btree; /* Enclosing btree object */
     WT_REF *ref;     /* Page to flush/evict */
     //该page评分__evict_entry_priority
@@ -52,8 +53,9 @@ struct __wt_evict_queue {
     WT_EVICT_ENTRY *evict_queue;   /* LRU pages being tracked */
     //代表当前消费到了evict_queues[]数组的那个位置
     WT_EVICT_ENTRY *evict_current; /* LRU current page to be evicted */
-    //队列中总的候选page
+    //队列中总的候选page，赋值见__evict_lru_walk
     uint32_t evict_candidates;     /* LRU list pages to evict */
+    //也就是当前队列的末尾位置，赋值见__evict_walk
     uint32_t evict_entries;        /* LRU entries in the queue */
     //记录队列中历史最大elem个数
     volatile uint32_t evict_max;   /* LRU maximum eviction slot used */
@@ -118,6 +120,7 @@ struct __wt_cache {
 
     //__wt_cache_page_evict中自增，代表evict的page总数
     volatile uint64_t eviction_progress; /* Eviction progress count */
+    ////如果evict server线程两轮运行期间的evict落盘的page数没有变化，说明evict阻塞了
     uint64_t last_eviction_progress;     /* Tracked eviction progress */
 
     uint64_t app_waits;  /* User threads waited for cache */
@@ -190,6 +193,9 @@ struct __wt_cache {
     /*
      * Pass interrupt counter.
      */
+    //__wt_evict_file_exclusive_on中赋值
+    //例如其他线程在做checkpoint，则需要把evict server挑选的page 队列释放掉，因为checkpoint会做一次全量的落盘, 用pass_intr标记其他线程正在
+    //对该表做checkpoint，因此evict server可以不用在挑选page入队了
     volatile uint32_t pass_intr; /* Interrupt eviction pass. */
 
     /*
@@ -198,7 +204,7 @@ struct __wt_cache {
     WT_SPINLOCK evict_pass_lock;   /* Eviction pass lock */
     //对应session名为"evict pass"  __evict_walk __evict_walk_tree使用该session
     WT_SESSION_IMPL *walk_session; /* Eviction pass session */
-    //记录当前正在挑选那个表上的page进行evict操作，赋值见__evict_walk
+    //记录evict server当前正在挑选那个表上的page进行evict操作，赋值见__evict_walk
     WT_DATA_HANDLE *walk_tree;     /* LRU walk current tree */
 
     WT_SPINLOCK evict_queue_lock; /* Eviction current queue lock */
@@ -217,6 +223,7 @@ struct __wt_cache {
     WT_EVICT_QUEUE *evict_other_queue;   /* LRU queue not in use */
     WT_EVICT_QUEUE *evict_urgent_queue;  /* LRU urgent queue */
     //__wt_cache_create中初始化赋值为WT_EVICT_WALK_BASE + WT_EVICT_WALK_INCR;
+    //队列数组大小为evict_slots，队列中没有evict reconcile的page数不能超过该值
     uint32_t evict_slots;                /* LRU list eviction slots */
 
 #define WT_EVICT_SCORE_BUMP 10
@@ -227,12 +234,15 @@ struct __wt_cache {
      * is struggling to make progress, this score rises (up to a maximum of 100), at which point the
      * cache is "stuck" and transactions will be rolled back.
      */
+    //evict阻塞得评分，评分越高代表evict阻塞越严重，__evict_pass中自增，__evict_pass及__wt_cache_eviction_worker自减
+    //__wt_cache_stuck使用该变量判断evict server线程是否阻塞严重
+    //注意evict_aggressive_score和evict_empty_score区别
     uint32_t evict_aggressive_score;
 
     /*
      * Score of how often LRU queues are empty on refill. This score varies between 0 (if the queue
      * hasn't been empty for a long time) and 100 (if the queue has been empty the last 10 times we
-     * filled up.
+     * filled up.  //注意evict_aggressive_score和evict_empty_score区别
      */
     //赋值见__evict_lru_walk，这个值代表队列中是否为空的占比，是经常为空(100)还是经常不位空(0)
     //评分越高说明消费速度比入队速度更快
