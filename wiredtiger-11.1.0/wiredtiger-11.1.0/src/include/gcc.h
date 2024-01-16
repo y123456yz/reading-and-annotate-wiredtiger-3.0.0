@@ -156,7 +156,6 @@ WT_ATOMIC_FUNC(i64, int64_t, int64_t *vp, int64_t v)
 WT_ATOMIC_FUNC(iv64, int64_t, volatile int64_t *vp, volatile int64_t v)
 WT_ATOMIC_FUNC(size, size_t, size_t *vp, size_t v)
 
-
 /* Compile read-write barrier */
 #define WT_BARRIER() __asm__ volatile("" ::: "memory")
 
@@ -165,7 +164,7 @@ asm volatile("sfence" ::: "memory")¡£volatile¸æËß±àÒëÆ÷ÑÏ½ûÔÚ´Ë´¦»ã±àÓï¾äÓëÆäËüÓ
 "sfence" ::: ±íÊ¾ÔÚ´Ë²åÈëÒ»Ìõ´®ĞĞ»¯»ã±àÖ¸Áîsfence¡£
 mfence£º´®ĞĞ»¯·¢ÉúÔÚmfenceÖ¸ÁîÖ®Ç°µÄ¶ÁĞ´²Ù×÷
 lfence£º´®ĞĞ»¯·¢ÉúÔÚmfenceÖ¸ÁîÖ®Ç°µÄ¶Á²Ù×÷¡¢µ«²»Ó°ÏìĞ´²Ù×÷
-sfence£º´®ĞĞ»¯·¢ÉúÔÚmfenceÖ¸ÁîÖ®Ç°µÄĞ´²Ù×÷¡¢µ«²»Ó°Ïì¶Á²Ù×÷ 
+sfence£º´®ĞĞ»¯·¢ÉúÔÚmfenceÖ¸ÁîÖ®Ç°µÄĞ´²Ù×÷¡¢µ«²»Ó°Ïì¶Á²Ù×÷
 */
 #if defined(x86_64) || defined(__x86_64__)
 /* Pause instruction to prevent excess processor bus usage */

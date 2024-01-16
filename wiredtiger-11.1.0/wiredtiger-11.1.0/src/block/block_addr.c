@@ -86,7 +86,7 @@ __block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t **p
  * __wt_block_addr_pack --
  *     Pack components into an address cookie, UPDATING the caller's buffer reference.
  */
-//对objectid offset size  checksum四个字段进行封包存入pp[]数组中, 
+//对objectid offset size  checksum四个字段进行封包存入pp[]数组中,
 int
 __wt_block_addr_pack(WT_BLOCK *block, uint8_t **pp, uint32_t objectid, wt_off_t offset,
   uint32_t size, uint32_t checksum)
@@ -205,7 +205,7 @@ __wt_block_addr_string(
  //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 
  //从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到WT_BLOCK_CKPT对应成员变量中
-    
+
  */ //参考__wt_ckpt_verbose阅读，//从checkpoint核心元数据中解析处对应的成员赋值给ci
 static int
 __block_ckpt_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *ckpt,
@@ -299,7 +299,7 @@ __wt_block_ckpt_decode(WT_SESSION *wt_session, WT_BLOCK *block, const uint8_t *c
  *     Convert the components into its checkpoint cookie.
   //__wt_block_ckpt_pack和__block_ckpt_unpack对应
  //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
- 
+
  */
 //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 //注意这里是封包后存储的，补上直接把root_offset等原样存储，这样可以节省磁盘空间
@@ -350,19 +350,19 @@ __wt_block_ckpt_pack(
 /*
  * __wt_ckpt_verbose --
  *     Display a printable string representation of a checkpoint.
- //[1701918183:985010][29780:0x7f475f045800], file:access.wt, close_ckpt: [WT_VERB_CHECKPOINT][DEBUG_4]: access.wt: 
- //create: WiredTigerCheckpoint: version=1, object ID=0, root=[1470464-1474560, 4096, 3802611306], alloc=[1474560-1478656, 4096, 976509849], 
+ //[1701918183:985010][29780:0x7f475f045800], file:access.wt, close_ckpt: [WT_VERB_CHECKPOINT][DEBUG_4]: access.wt:
+ //create: WiredTigerCheckpoint: version=1, object ID=0, root=[1470464-1474560, 4096, 3802611306], alloc=[1474560-1478656, 4096, 976509849],
  //avail=[1478656-1482752, 4096, 3835723351], discard=[Empty], file size=2363392, checkpoint size=2322432
  */
 //checkpoint对应持久化日志信息
 //从checkpoint核心二进制元数据addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原
 //  到WT_BLOCK_CKPT对应成员变量中,然后日志输出
 void
-__wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag, 
+__wt_ckpt_verbose(WT_SESSION_IMPL *session, WT_BLOCK *block, const char *tag,
     const char *ckpt_name,
     //ckpt_name代表checkpoint的核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
     //ckpt_string为二进制数据
-    const uint8_t *ckpt_string, 
+    const uint8_t *ckpt_string,
     size_t ckpt_size)
 {
     WT_BLOCK_CKPT *ci, _ci;

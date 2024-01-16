@@ -169,13 +169,13 @@ struct __wt_size {
  */
 #define WT_BLOCK_CHECKPOINT_BUFFER (1 + 14 * WT_INTPACK64_MAXSIZE)
 //官方文档参考https://github.com/wiredtiger/wiredtiger/wiki/Block-Manager-Overview#source-files-in-block-manager
-//__wt_block.live为该类型 
+//__wt_block.live为该类型
 struct __wt_block_ckpt {
     uint8_t version; /* Version */
 
-//[1702810336:479719][75841:0x7efec67c3800], wt, file:access.wt, WT_SESSION.verify: [WT_VERB_CHECKPOINT][DEBUG_5]: 
-//access.wt: load: version=1, object ID=0, root=[off: 8192-12288, size: 4096, checksum: 0x7f509c85], 
-//alloc=[off: 12288-16384, size: 4096, checksum: 0xd8d745a6], avail=[off: 16384-20480, size: 4096, checksum: 0x99ff2904], 
+//[1702810336:479719][75841:0x7efec67c3800], wt, file:access.wt, WT_SESSION.verify: [WT_VERB_CHECKPOINT][DEBUG_5]:
+//access.wt: load: version=1, object ID=0, root=[off: 8192-12288, size: 4096, checksum: 0x7f509c85],
+//alloc=[off: 12288-16384, size: 4096, checksum: 0xd8d745a6], avail=[off: 16384-20480, size: 4096, checksum: 0x99ff2904],
 //discard=[Empty], file size=73728, checkpoint size=49152
 
     //__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
@@ -213,7 +213,7 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     //赋值见__ckpt_process，
     //ckpt_size实际上就是真实ext数据空间=file_size - avail空间(也就是磁盘碎片)
     uint64_t ckpt_size; /* Checkpoint byte count */
-    
+
     //分配空间__ckpt_proces, 赋值见__ckpt_extlist_fblocks
     WT_EXTLIST ckpt_avail; /* Checkpoint free'd extents */
     /*
@@ -241,7 +241,7 @@ struct __wt_bm {
     int (*addr_string)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, const uint8_t *, size_t);
     //__bm_block_header
     u_int (*block_header)(WT_BM *);
-    //__wt_blkcache_write中执行，__bm_checkpoint  
+    //__wt_blkcache_write中执行，__bm_checkpoint
     int (*checkpoint)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, WT_CKPT *, bool);
     int (*checkpoint_last)(WT_BM *, WT_SESSION_IMPL *, char **, char **, WT_ITEM *);
     //__bm_checkpoint_load

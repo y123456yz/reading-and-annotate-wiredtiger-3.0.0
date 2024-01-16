@@ -261,7 +261,7 @@ __wt_stats_clear(void *stats_arg, int slot)
     } while (0)
 #define WT_STAT_CONN_DATA_INCR(session, fld) WT_STAT_CONN_DATA_INCRV(session, fld, 1)
 /*
- * Update per session statistics. 
+ * Update per session statistics.
  */
 #define WT_STAT_SESSION_INCRV(session, fld, value) \
     WT_STAT_INCRV_BASE(session, &(session)->stats, fld, value)

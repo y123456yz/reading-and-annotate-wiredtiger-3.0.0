@@ -281,15 +281,17 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
      * Eviction information is maintained in the btree handle, but owned by eviction, not the btree
      * code.
      */
-    //__evict_walk_tree赋值 
+    //__evict_walk_tree赋值
     WT_REF *evict_ref;            /* Eviction thread's location */
     //赋值见__wt_evict_priority_set  __wt_evict_priority_clear
     //只有__wt_metadata_cursor_open中会调用__wt_evict_priority_set置为100000，加这个的目的是确保wiredtiger.wt元数据表中
-    // 的数据全部在内存中
+    // 的数据全部在内存中，可以参考__evict_entry_priority， 这样会多100000评分，基本上很难让wiredtiger.wt被挑选出来evict reconcile到磁盘
     uint64_t evict_priority;      /* Relative priority of cached pages */
     //已经遍历入队的page数
+   //evict_walk_progress和evict_walk_target主要用来确定__evict_walk_tree的时候判断需要遍历多少page，对小表有利，避免无用遍历
     uint32_t evict_walk_progress; /* Eviction walk progress */
     //需要遍历入队的page数
+    //evict_walk_progress和evict_walk_target主要用来确定__evict_walk_tree的时候判断需要遍历多少page，对小表有利，避免无用遍历
     uint32_t evict_walk_target;   /* Eviction walk target */
     //__evict_walk_tree中赋值，__evict_walk中生效
     //evict_walk_period在evict_walk_period赋值， 在__evict_walk生效，表示在下一轮对所有表遍历的时候，当前btree少遍历evict_walk_period个page

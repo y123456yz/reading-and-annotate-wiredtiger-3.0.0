@@ -27,7 +27,7 @@ __wt_block_ckpt_init(WT_SESSION_IMPL *session, WT_BLOCK_CKPT *ci, const char *na
     WT_RET(__wt_block_extlist_init(session, &ci->avail, name, "avail", true));
     WT_RET(__wt_block_extlist_init(session, &ci->discard, name, "discard", false));
     WT_RET(__wt_block_extlist_init(session, &ci->ckpt_avail, name, "ckpt_avail", true));
-    
+
     return (0);
 }
 
@@ -37,11 +37,10 @@ __wt_block_ckpt_init(WT_SESSION_IMPL *session, WT_BLOCK_CKPT *ci, const char *na
 
  //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
- 
+
  //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
- 
  //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
@@ -50,14 +49,13 @@ __wt_block_ckpt_init(WT_SESSION_IMPL *session, WT_BLOCK_CKPT *ci, const char *na
 
 //__wt_btree_open->__bm_checkpoint_load->__wt_block_checkpoint_load
 
-
 //addr空间信息解包，然后获取解析出来的root、alloc、avail对应ext元数据信息，同时对root(root_objectid, root_offset, root_size, root_checksum)
 //进行封包返回
 int
 __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t *addr,
-  size_t addr_size, 
+  size_t addr_size,
   //ci->root_objectid, ci->root_offset, ci->root_size, ci->root_checksum存储__wt_block_addr_pack封包后的字符串
-  uint8_t *root_addr, 
+  uint8_t *root_addr,
   size_t *root_addr_sizep, bool checkpoint)
 {
     WT_BLOCK_CKPT *ci, _ci;
@@ -74,7 +72,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
     ci = NULL;
 
     //[1702006455:256088][66407:0x7fb24ed4b800], file:access.wt, WT_SESSION.__session_open_cursor: [WT_VERB_CHECKPOINT]
-    //[DEBUG_5]: access.wt: __wt_block_checkpoint_load load: version=1, object ID=0, root=[53248-57344, 4096, 2869582413], 
+    //[DEBUG_5]: access.wt: __wt_block_checkpoint_load load: version=1, object ID=0, root=[53248-57344, 4096, 2869582413],
     //alloc=[57344-61440, 4096, 1994842353], avail=[106496-110592, 4096, 1222571001], discard=[Empty], file size=2568192, checkpoint size=2351104
     if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_1))
         __wt_ckpt_verbose(session, block, "__wt_block_checkpoint_load load", NULL, addr, addr_size);
@@ -82,7 +80,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
     /*
      * There's a single checkpoint in the file that can be written, all of the others are read-only.
      * We use the same initialization calls for readonly checkpoints, but the information doesn't
-     * persist. 
+     * persist.
      */
     if (checkpoint) {
         ci = &_ci;
@@ -115,7 +113,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
         WT_ERR(__wt_block_ckpt_unpack(session, block, addr, addr_size, ci));
 
         /* Verify sets up next. */
-        if (block->verify) 
+        if (block->verify)
             //磁盘对应ext数据以4096位单位对block->fragckpt变量对应位置位
             WT_ERR(__wt_verify_ckpt_load(session, block, ci));
 
@@ -124,7 +122,7 @@ __wt_block_checkpoint_load(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint
         if (ci->root_offset != WT_BLOCK_INVALID_OFFSET) {
             endp = root_addr;
 
-            //对root封包 //对objectid offset size  checksum四个字段进行封包存入root_addr[]数组中, 
+            //对root封包 //对objectid offset size  checksum四个字段进行封包存入root_addr[]数组中,
             WT_ERR(__wt_block_addr_pack(
               block, &endp, ci->root_objectid, ci->root_offset, ci->root_size, ci->root_checksum));
             *root_addr_sizep = WT_PTRDIFF(endp, root_addr);
@@ -257,21 +255,19 @@ Release the live_lock
 
  //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_checkpoint->__wt_block_checkpoint
- 
+
  //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
  */
 
-
-
-//封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息 
+//封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 //然后持久化到磁盘
 int
 __wt_block_checkpoint(
-  WT_SESSION_IMPL *session, WT_BLOCK *block, 
+  WT_SESSION_IMPL *session, WT_BLOCK *block,
   //buf数据来源见__wt_rec_row_int
-  WT_ITEM *buf, 
+  WT_ITEM *buf,
   WT_CKPT *ckptbase, bool data_checksum)
 {
     WT_BLOCK_CKPT *ci;
@@ -310,8 +306,8 @@ __wt_block_checkpoint(
     WT_ERR(__wt_block_ext_prealloc(session, 250));
 
     /* Process the checkpoint list, deleting and updating as required. */
-    
-    //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息 
+
+    //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
     //然后持久化到磁盘
     ret = __ckpt_process(session, block, ckptbase);
 
@@ -352,6 +348,7 @@ __ckpt_extlist_read(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckpt, bo
 
     ci = ckpt->bpriv;
     WT_RET(__wt_block_ckpt_init(session, ci, ckpt->name));
+    //从checkpoint ckpt->raw.data核心元数据中解析处对应的成员赋值给ci
     WT_RET(__wt_block_ckpt_unpack(session, block, ckpt->raw.data, ckpt->raw.size, ci));
 
     /* Extent lists from non-local objects aren't useful, we're going to skip them. */
@@ -483,7 +480,7 @@ __ckpt_add_blk_mods_alloc(
 
     WT_CKPT_FOREACH (ckptbase, ckpt) {
         if (F_ISSET(ckpt, WT_CKPT_ADD)) {
-            //printf("yang test ....2..__ckpt_add_blk_mods_alloc...........checkpoint name:%s, block->created_during_backup:%d\r\n", 
+            //printf("yang test ....2..__ckpt_add_blk_mods_alloc...........checkpoint name:%s, block->created_during_backup:%d\r\n",
             //    ckpt->name, block->created_during_backup);
             break;
         }
@@ -505,7 +502,7 @@ __ckpt_add_blk_mods_alloc(
             WT_RET(__ckpt_add_blkmod_entry(session, blk_mod, ext->off, ext->size));
         }
     }
-    
+
     block->created_during_backup = false;
     return (0);
 }
@@ -550,16 +547,15 @@ __ckpt_add_blk_mods_ext(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_BLOCK_CK
 
   //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
   //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
-  
+
   //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
   //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
- 
   //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
   //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
   //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
 
- */ 
+ */
 //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 //然后持久化到磁盘
 static int
@@ -631,7 +627,7 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
      * waiting allows the btree layer to continue eviction sooner. As for the checkpoint-available
      * list, make sure they get cleaned out.
      */
-     
+
     __wt_block_extlist_free(session, &ci->ckpt_avail);
     WT_RET(__wt_block_extlist_init(session, &ci->ckpt_avail, "live", "ckpt_avail", true));
     __wt_block_extlist_free(session, &ci->ckpt_alloc);
@@ -700,7 +696,7 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
      * system's checkpoint size before merging checkpoint allocation and discard information from
      * the checkpoints we're deleting, those operations change the underlying byte counts.
      */
-    //代表从元数据文件加载的check size 
+    //代表从元数据文件加载的check size
     ckpt_size = ci->ckpt_size;
     //代表当前alloc管理的ext数据总和
     ckpt_size += ci->alloc.bytes;
@@ -720,12 +716,13 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
      * Delete any no-longer-needed checkpoints: we do this first as it frees blocks to the live
      * lists, and the freed blocks will then be included when writing the live extent lists.
      */
+    //删除历史不用的checkpoint
     WT_CKPT_FOREACH (ckptbase, ckpt) {
         if (F_ISSET(ckpt, WT_CKPT_FAKE) || !F_ISSET(ckpt, WT_CKPT_DELETE))
             continue;
 
         if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_CHECKPOINT, WT_VERBOSE_DEBUG_2))
-            __wt_ckpt_verbose(session, block, "delete", ckpt->name, ckpt->raw.data, ckpt->raw.size);
+            __wt_ckpt_verbose(session, block, "__ckpt_process delete", ckpt->name, ckpt->raw.data, ckpt->raw.size);
 
         /*
          * Find the checkpoint into which we'll roll this checkpoint's blocks: it's the next real
@@ -742,6 +739,8 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
         if (F_ISSET(next_ckpt, WT_CKPT_ADD))
             b = &block->live;
         else
+            //bpriv代表上一次该表checkpoint的元数据信息通过__ckpt_extlist_read加载存到这里，在第一次和第二次两次checkpoint期间如果有page有修改，则把这期间修改
+            //的page与第一次的checkpoint在__ckpt_process中做merge
             b = next_ckpt->bpriv;
 
         /*
@@ -768,6 +767,8 @@ __ckpt_process(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_CKPT *ckptbase)
          */
       //  printf("yang test ......................__ckpt_process.....a->alloc.entries:%d, a->discard.entries:%d \r\n",
           //  (int)a->alloc.entries, (int)a->discard.entries);
+        //bpriv代表上一次该表checkpoint的元数据信息通过__ckpt_extlist_read加载存到这里，在第一次和第二次两次checkpoint期间如果有page有修改，则把这期间修改
+        //的page与第一次的checkpoint在__ckpt_process中做merge
         if (a->alloc.entries != 0)
             WT_ERR(__wt_block_extlist_merge(session, block, &a->alloc, &b->alloc));
         if (a->discard.entries != 0)
@@ -836,7 +837,6 @@ live_update:
              */
             ckpt_size -= ci->root_size;
 
-           
             /*
              * Additionally, we had a bug for awhile where the live checkpoint size grew without
              * bound. We can't sanity check the value, that would require walking the tree as part
@@ -858,7 +858,7 @@ live_update:
      * resetting the original, then doing the work later.
      */
     //yang add todo xxxxxxxxx 这里为什么没有释放avail跳跃表呢???????????
-    
+
     //到这里alloc、discard已经持久化了，管理的ext结构空间可以释放了
     //临时赋值给ckpt_alloc，因为alloc discard跳表上有很多ext，遍历是否内存非常耗时，因此在外层释放，避免lock过程太长
     ci->ckpt_alloc = ci->alloc;
@@ -941,7 +941,7 @@ __ckpt_update(
         //raw在下面的__wt_meta_ckptlist_to_meta中使用，用于生成"checkpoint=("
         WT_RET(__wt_buf_init(session, &ckpt->raw, WT_BLOCK_CHECKPOINT_BUFFER));
         endp = ckpt->raw.mem;
-        
+
         //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
         //注意这里是封包后存储的，补上直接把root_offset等原样存储，这样可以节省磁盘空间
         WT_RET(__wt_block_ckpt_pack(session, block, &endp, ci, true));
@@ -958,7 +958,7 @@ __ckpt_update(
             //  +avail跳表持久化到磁盘的核心元数据信息】转换为wiredtiger.wt中对应的checkpoint=xxx字符串
             //转换后的字符串存储到block_checkpoint中，赋值参考__ckpt_update
 
-            //最终在下面的__wt_block_extlist_write->__wt_block_write_off->__block_write_off和avail一起写入到文件 
+            //最终在下面的__wt_block_extlist_write->__wt_block_write_off->__block_write_off和avail一起写入到文件
             ret = __wt_strndup(session, a->data, a->size, &ckpt->block_checkpoint);
             //yang test ...........__ckpt_update........block_checkpoint:checkpoint=(WiredTigerCheckpoint.1=(addr="018c81e4ab0a3a0d8d81e476e6c0b1808080808080cfc0e323bfc0",order=1,time=1702112303,size=2355200,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=227,run_write_gen=1))
             //printf("yang test ...........__ckpt_update........block_checkpoint:%s\r\n", ckpt->block_checkpoint);
@@ -1024,7 +1024,7 @@ __ckpt_update(
     //复用前面申请的ckpt->raw空间，只是把长度size置为0，标识可以从头开始操作
     WT_RET(__wt_buf_init(session, &ckpt->raw, WT_BLOCK_CHECKPOINT_BUFFER));
     endp = ckpt->raw.mem;
-    
+
     //封装所有checkpoint核心元数据到ckpt->raw.mem空间: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
     WT_RET(__wt_block_ckpt_pack(session, block, &endp, ci, false));
     ckpt->raw.size = WT_PTRDIFF(endp, ckpt->raw.mem);

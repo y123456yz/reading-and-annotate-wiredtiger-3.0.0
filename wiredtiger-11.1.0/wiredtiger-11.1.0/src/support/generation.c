@@ -211,15 +211,15 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
             }
         }
 
-        printf("yang test ........__evict_server.....x........WT_VERB_EVICT:%d\r\n", S2C(session)->verbose[WT_VERB_EVICT]);
+       // printf("yang test ........__evict_server.....x........WT_VERB_EVICT:%d\r\n", S2C(session)->verbose[WT_VERB_EVICT]);
         if (verbose_timeout_flags && which == WT_GEN_EVICT) {
-            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT);  
-            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICTSERVER);  
-            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT_STUCK);  
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT);
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICTSERVER);
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_EVICT_STUCK);
         } else if (verbose_timeout_flags && which == WT_GEN_CHECKPOINT) {
-            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT);  
-            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_CLEANUP);  
-            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_PROGRESS); 
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT);
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_CLEANUP);
+            WT_VERBOSE_RESTORE(session, verbose_tmp, WT_VERB_CHECKPOINT_PROGRESS);
         }
     }
 }

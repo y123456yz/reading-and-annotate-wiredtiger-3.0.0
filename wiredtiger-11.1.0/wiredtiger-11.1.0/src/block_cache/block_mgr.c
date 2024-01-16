@@ -128,7 +128,6 @@ __bm_block_header(WT_BM *bm)
 //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
 //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
-
 //buf内容为internal page的ref key及其下面所有子page的磁盘元数据信息，参考__wt_rec_row_int
 static int
 __bm_checkpoint(
@@ -141,7 +140,7 @@ __bm_checkpoint(
     conn = S2C(session);
     block = bm->block;
 
-    //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息 
+    //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
     //然后持久化到磁盘
     WT_RET(__wt_block_checkpoint(session, block, buf, ckptbase, data_checksum));
 
@@ -502,7 +501,7 @@ __bm_map_discard(WT_BM *bm, WT_SESSION_IMPL *session, void *map, size_t len)
  * __bm_read --
  *     Read an address cookie referenced block into a buffer.
  */
-//__wt_blkcache_read 
+//__wt_blkcache_read
 //读取磁盘上面的avail或者alloc跳跃表中的ext元数据到内存中
 static int
 __bm_read(WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, size_t addr_size)
@@ -721,7 +720,7 @@ __bm_verify_end(WT_BM *bm, WT_SESSION_IMPL *session)
 /*
  * __bm_verify_start --
  *     Start a block manager verify.
- */ //__wt_verify 
+ */ //__wt_verify
 static int
 __bm_verify_start(WT_BM *bm, WT_SESSION_IMPL *session, WT_CKPT *ckptbase, const char *cfg[])
 {
@@ -743,7 +742,6 @@ __bm_verify_start(WT_BM *bm, WT_SESSION_IMPL *session, WT_CKPT *ckptbase, const 
 
 //reconcile evict流程: __rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
 //checkpoint流程: __rec_write->__wt_blkcache_write->__bm_write->__wt_block_write
-
 
 //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
 

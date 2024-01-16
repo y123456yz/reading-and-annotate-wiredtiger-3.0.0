@@ -112,7 +112,7 @@ __txn_sort_snapshot(WT_SESSION_IMPL *session, uint32_t n, uint64_t snap_max)
 /*
  * __wt_txn_release_snapshot --
  *     Release the snapshot in the current transaction.
- //[1701957314:925541][56918:0x7fe1ab82e800], close_ckpt: [WT_VERB_CHECKPOINT_PROGRESS][DEBUG_1]: saving checkpoint snapshot 
+ //[1701957314:925541][56918:0x7fe1ab82e800], close_ckpt: [WT_VERB_CHECKPOINT_PROGRESS][DEBUG_1]: saving checkpoint snapshot
  //  min: 10005, snapshot max: 10005 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0) base write gen: 1
  */
 void
@@ -2090,7 +2090,7 @@ __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])
         printf("yang test ..................__wt_txn_rollback...................................\r\n");
         WT_IGNORE_RET(__wt_cache_eviction_check(session, false, false, NULL));
     }
-    
+
     return (ret);
 }
 
@@ -2401,7 +2401,7 @@ __wt_txn_activity_drain(WT_SESSION_IMPL *session)
  * __wt_txn_global_shutdown --
  *     Shut down the global transaction state.
  */
-//__conn_close时候，也就是节点shutdown，获取一个close_ckpt内部session, 然后做checkpoint, 
+//__conn_close时候，也就是节点shutdown，获取一个close_ckpt内部session, 然后做checkpoint,
 int
 __wt_txn_global_shutdown(WT_SESSION_IMPL *session, const char **cfg)
 {
@@ -2443,7 +2443,7 @@ __wt_txn_global_shutdown(WT_SESSION_IMPL *session, const char **cfg)
         }
 
         s = NULL;
-        //获取一个close_ckpt内部session, 然后__wt_txn_checkpoint做checkpoint, 
+        //获取一个close_ckpt内部session, 然后__wt_txn_checkpoint做checkpoint,
         WT_TRET(__wt_open_internal_session(conn, "close_ckpt", true, 0, 0, &s));
         if (s != NULL) {
             const char *checkpoint_cfg[] = {

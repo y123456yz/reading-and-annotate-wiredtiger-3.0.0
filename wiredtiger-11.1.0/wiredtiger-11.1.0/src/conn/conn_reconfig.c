@@ -435,5 +435,3 @@ err:
 
     return (ret);
 }
-
-

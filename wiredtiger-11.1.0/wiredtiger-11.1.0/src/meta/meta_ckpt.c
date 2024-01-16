@@ -100,15 +100,13 @@ __ckpt_load_blk_mods(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt
 
   //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
   //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
-  
+
   //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
   //    ->__wt_blkcache_write->__bm_write->__wt_block_write
-
 
   //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
   //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
   //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
-
 
  */
 //从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
@@ -380,7 +378,7 @@ __ckpt_named(WT_SESSION_IMPL *session, const char *checkpoint, const char *confi
 
 //__ckpt_process进行checkpoint相关元数据持久化
 //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
- 
+
 //__wt_meta_checkpoint->__ckpt_last->__ckpt_load
 //获取config的checkpoint=xxx的信息, 并解析存储到WT_CKPT相关成员
 static int
@@ -904,7 +902,7 @@ __wt_meta_ckptlist_get(
 #endif
     } else {
         /*
-    yang test ..............__wt_meta_ckptlist_get...........fname:file:access.wt, 
+    yang test ..............__wt_meta_ckptlist_get...........fname:file:access.wt,
     config:access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,
     read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,
     checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),

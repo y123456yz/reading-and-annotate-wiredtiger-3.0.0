@@ -58,6 +58,7 @@ __evict_lock_handle_list(WT_SESSION_IMPL *session)
  * __evict_entry_priority --
  *     Get the adjusted read generation for an eviction entry.
  evict page评分
+ //__evict_lru_walk中使用，评分越高，越不会reconcile到磁盘
  */
 static inline uint64_t
 __evict_entry_priority(WT_SESSION_IMPL *session, WT_REF *ref)
@@ -70,6 +71,7 @@ __evict_entry_priority(WT_SESSION_IMPL *session, WT_REF *ref)
     page = ref->page;
 
     /* Any page set to the oldest generation should be discarded. */
+    //注意直接评分为WT_READGEN_OLDEST
     if (WT_READGEN_EVICT_SOON(page->read_gen))
         return (WT_READGEN_OLDEST);
 
@@ -125,7 +127,9 @@ __evict_lru_cmp_debug(const void *a_arg, const void *b_arg)
 /*
  * __evict_lru_cmp --
  *     Qsort function: sort the eviction array.
+ 参考https://www.cnblogs.com/laizhenghong2012/p/8442270.html
  */
+//从小到大排序
 static int WT_CDECL
 __evict_lru_cmp(const void *a_arg, const void *b_arg)
 {
@@ -204,7 +208,7 @@ __wt_evict_list_clear_page(WT_SESSION_IMPL *session, WT_REF *ref)
  //如果server_check为false，当队列中的elem全部消费完了，就任务是empty的
  */
 static inline bool
-__evict_queue_empty(WT_EVICT_QUEUE *queue, 
+__evict_queue_empty(WT_EVICT_QUEUE *queue,
     //server_check表示是否是evict server主线程
     bool server_check)
 {
@@ -234,9 +238,9 @@ __evict_queue_full(WT_EVICT_QUEUE *queue)
 }
 
 /*
- * __wt_evict_server_wake -- 
- *     Wake the eviction server thread.  
- 
+ * __wt_evict_server_wake --
+ *     Wake the eviction server thread.
+
 //用户线程发送evict_cond信号: __wt_cache_eviction_check->__wt_cache_eviction_worker->__wt_evict_server_wake
 //evict server线程发送evict_cond信号: //__evict_walk_tree->__wt_page_evict_urgent->__wt_evict_server_wake
  */
@@ -330,10 +334,11 @@ __wt_evict_thread_run(WT_SESSION_IMPL *session, WT_THREAD *thread)
                 __wt_yield();
         else {
             __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "__wt_evict_thread_run sleeping");
-            
+
             /* Don't rely on signals: check periodically. */
-            printf("yang test .............__wt_evict_thread_run...................\r\n");
+            printf("yang test .............__wt_evict_thread_run.....1..............\r\n");
             __wt_cond_auto_wait(session, cache->evict_cond, did_work, NULL);
+            printf("yang test .............__wt_evict_thread_run.....2..............\r\n");
             __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "__wt_evict_thread_run waking");
         }
     } else
@@ -393,7 +398,7 @@ err:
 
 //evict worker线程: __wt_evict_thread_run->__evict_server->__evict_pass->__evict_lru_walk->__evict_walk->__evict_walk_tree
 //worker线程: __wt_evict_thread_run->__evict_lru_pages->__evict_page
- 
+
  //__wt_evict_thread_run多个evict线程竞争evict_pass_lock锁，只会有一个线程走__evict_server这个分支，其他线程走__evict_lru_pages分支
 
  */
@@ -460,7 +465,7 @@ __evict_server(WT_SESSION_IMPL *session, bool *did_work)
     }
 
     //说明evict阻塞了
-    
+
 #if !defined(HAVE_DIAGNOSTIC)
     /* Need verbose check only if not in diagnostic build */
     if (!WT_VERBOSE_ISSET(session, WT_VERB_EVICT_STUCK))
@@ -719,7 +724,7 @@ __evict_update_work(WT_SESSION_IMPL *session)
  //evict worker线程: __wt_evict_thread_run->__evict_server->__evict_pass->__evict_lru_walk->__evict_walk->__evict_walk_tree
 //worker线程: __wt_evict_thread_run->__evict_lru_pages->__evict_page
 
- __evict_server 
+ __evict_server
  */
 static int
 __evict_pass(WT_SESSION_IMPL *session)
@@ -777,7 +782,6 @@ __evict_pass(WT_SESSION_IMPL *session)
           conn->cache_size, cache->bytes_inmem, cache->bytes_dirty_intl + cache->bytes_dirty_leaf,
           cache->bytes_updates);
 
-        
         if (F_ISSET(cache, WT_CACHE_EVICT_ALL))
             WT_RET(__evict_lru_walk(session));
 
@@ -813,7 +817,7 @@ __evict_pass(WT_SESSION_IMPL *session)
                 if (cache->evict_aggressive_score < 100)
                     ++cache->evict_aggressive_score;
                 oldest_id = txn_global->oldest_id;
-                
+
                 if (prev_oldest_id == oldest_id && txn_global->current != oldest_id &&
                   cache->evict_aggressive_score < 100)
                     ++cache->evict_aggressive_score;
@@ -853,7 +857,7 @@ __evict_pass(WT_SESSION_IMPL *session)
         //如果有page实现了evict，则阻塞评分减少
         if (cache->evict_aggressive_score > 0)
             --cache->evict_aggressive_score;
-            
+
         loop = 0;
         eviction_progress = cache->eviction_progress;
     }
@@ -1198,7 +1202,7 @@ done:
 //worker线程: __wt_evict_thread_run->__evict_lru_pages->__evict_page
 
  //__wt_evict_thread_run多个evict线程竞争evict_pass_lock锁，只会有一个线程走__evict_server这个分支，其他线程走__evict_lru_pages分支
- //从evict对了获取需要evict page进行淘汰 
+ //从evict对了获取需要evict page进行淘汰
  */
 static int
 __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
@@ -1273,11 +1277,11 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
      */
     //evict_queues[0]和evict_queues[1]都满了，并且得分较低，说明近期一直满，则不进行后续的扫描需要evict的page来进行入队操作
     if (__evict_queue_full(queue) && cache->evict_empty_score < WT_EVICT_SCORE_CUTOFF) {
-        printf("yang test .......__evict_lru_walk................cache->evict_empty_score:%d\r\n", 
+        printf("yang test .......__evict_lru_walk................cache->evict_empty_score:%d\r\n",
             (int)cache->evict_empty_score);
         goto err; //yang add todo xxxxxxxxxxxxx 这里最好加个统计，代表队列一直满，或者增加cache_eviction_queue_not_empty
     }
-    
+
     /*
      * If the queue we are filling is empty, pages are being requested faster than they are being
      * queued.
@@ -1321,7 +1325,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
      * Style note: __wt_qsort is a macro that can leave a dangling else. Full curly braces are
      * needed here for the compiler.
      */
-    //对队列中的每一个entriy成员评分进行排序
+    //对队列中的每一个entriy成员评分进行从小到大排序
     if (F_ISSET(cache, WT_CACHE_EVICT_DEBUG_MODE)) {
         __wt_qsort(queue->evict_queue, entries, sizeof(WT_EVICT_ENTRY), __evict_lru_cmp_debug);
     } else {
@@ -1355,7 +1359,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
     }
 
     /* Decide how many of the candidates we're going to try and evict. */
-    if (__wt_cache_aggressive(session))
+    if (__wt_cache_aggressive(session)) //很久都没有reconcile page到磁盘了，则选择队列所有page为候选page
         queue->evict_candidates = entries;
     else {
         /*
@@ -1364,11 +1368,15 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
          * generation.
          */
         read_gen_oldest = WT_READGEN_START_VALUE;
+        //candidates也就是需要紧急reconcile的page
         for (candidates = 0; candidates < entries; ++candidates) {
             read_gen_oldest = queue->evict_queue[candidates].score;
+            //也就是评分为WT_READGEN_NOTSET，或者>=WT_READGEN_START_VALUE
             if (!WT_READGEN_EVICT_SOON(read_gen_oldest))
                 break;
         }
+        printf("yang test ...................entries:%d, candidates:%d, read_gen_oldest:%d\r\n",
+            (int)entries, (int)candidates, (int)read_gen_oldest);
 
         /*
          * Take all candidates if we only gathered pages with an oldest
@@ -1378,11 +1386,12 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
          * 50% of the entries were at the oldest read generation, take
          * all of them.
          */
+        //也就是queue中所有的page评分都很低，需要立马释放evict_queue[]队列中所有的page都需要立马reconcile
         if (WT_READGEN_EVICT_SOON(read_gen_oldest))
             queue->evict_candidates = entries;
-        else if (candidates > entries / 2)
+        else if (candidates > entries / 2) //有一大半需要reconcile
             queue->evict_candidates = candidates;
-        else {
+        else {//小于一半的page需要reconcile
             /*
              * Take all of the urgent pages plus a third of ordinary candidates (which could be
              * expressed as WT_EVICT_WALK_INCR / WT_EVICT_WALK_BASE). In the steady state, we want
@@ -1391,7 +1400,11 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
              * That said, if there is only one entry, which is normal when populating an empty file,
              * don't exclude it.
              */
+            //紧急candidates+1/3的普通候选page，+1的目的是考虑普通候选队列只有1个page的情况
+            //yang add todo xxxxxxxxxxxxx   这里最好是MIN(queue->evict_candidates, entries / 2), 否则这个分支candidates比上面分支还大
             queue->evict_candidates = 1 + candidates + ((entries - candidates) - 1) / 3;
+
+            //也就是候选page中第一个>=WT_READGEN_START_VALUE的page的评分
             cache->read_gen_oldest = read_gen_oldest;
         }
     }
@@ -1405,6 +1418,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
      * Signal any application or helper threads that may be waiting to help with eviction.
      */
     printf("yang test ....................__evict_lru_walk........end\r\n");
+    //通知工作线程开始消费处理
     __wt_cond_signal(session, S2C(session)->evict_threads.wait_cond);
 
 err:
@@ -1434,7 +1448,7 @@ __evict_walk_choose_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE **dhandle_p
 #ifdef RANDOM_DH_SELECTION_ENABLED  //随机选一个表
     *dhandle_p = NULL;
 
-    printf("yang test ....1.....__evict_walk_choose_dhandle....................\r\n");
+   // printf("yang test ....1.....__evict_walk_choose_dhandle....................\r\n");
     /*
      * If we don't have many dhandles, most hash buckets will be empty. Just pick a random dhandle
      * from the list in that case.
@@ -1479,7 +1493,7 @@ __evict_walk_choose_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE **dhandle_p
     WT_UNUSED(dh_bucket_count);
     WT_UNUSED(rnd_bucket);
     WT_UNUSED(rnd_dh);
-    printf("yang test ....2.....__evict_walk_choose_dhandle....................\r\n");
+  //  printf("yang test ....2.....__evict_walk_choose_dhandle....................\r\n");
 #endif
 
     *dhandle_p = dhandle;
@@ -1491,7 +1505,6 @@ __evict_walk_choose_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE **dhandle_p
   //evict worker线程: __wt_evict_thread_run->__evict_server->__evict_pass->__evict_lru_walk->__evict_walk->__evict_walk_tree
   //worker线程: __wt_evict_thread_run->__evict_lru_pages->__evict_page
 
- 
   //__evict_walk_tree在指定表中查找，__evict_walk遍历所有表查找候选page
  */
 static int
@@ -1516,7 +1529,6 @@ __evict_walk(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue)
     dhandle_locked = incr = false;
     retries = 0;
 
-    
     /*
      * Set the starting slot in the queue and the maximum pages added per walk.
      */
@@ -1536,7 +1548,7 @@ __evict_walk(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue)
         cache->pages_dirty_leaf);
     max_entries = WT_MIN(max_entries, 1 + total_candidates / 2);
 
-retry:
+retry: //注意这里有retry
     loop_count = 0;
     printf("yang test .............__evict_walk...slot:%d, max_entries:%d, conn->dhandle_count:%d, flags:%u\r\n",
         (int)slot, (int)max_entries, (int)conn->dhandle_count, conn->flags);
@@ -1546,7 +1558,7 @@ retry:
         if (F_ISSET(conn, WT_CONN_CLOSING) || F_ISSET(conn, WT_CONN_RECONFIGURING)) {
             break;
         }
-        
+
         /*
          * If another thread is waiting on the eviction server to clear the walk point in a tree,
          * give up.
@@ -1585,7 +1597,7 @@ retry:
                 incr = false;
                 cache->walk_tree = NULL;
             }
-            
+
             //重新选一个新表出来
             __evict_walk_choose_dhandle(session, &dhandle);
         }
@@ -1632,7 +1644,6 @@ retry:
         if (btree->evict_ref == NULL && session->nhazard > WT_EVICT_MAX_TREES)
             continue;
 
-        
         /*
          * If we are filling the queue, skip files that haven't been useful in the past.
      evict_walk_period在evict_walk_period赋值， 在__evict_walk生效，表示在下一轮对所有表遍历的时候，当前btree少遍历evict_walk_period个page
@@ -1858,7 +1869,7 @@ __evict_walk_target(WT_SESSION_IMPL *session)
  从btree的btree->evict_ref位置遍历查找需要evict的page添加到到evict_queues[WT_EVICT_URGENT_QUEUE]队列和queue队列
  */
 static int
-__evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_entries, 
+__evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_entries,
     //slotp返回代表挑选出来入队的需要evict的page数
     u_int *slotp)
 {
@@ -1869,11 +1880,11 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
     WT_EVICT_ENTRY *end, *evict, *start;
     WT_PAGE *last_parent, *page;
     WT_REF *ref;
-    
+
     uint64_t internal_pages_already_queued, internal_pages_queued, internal_pages_seen;
-    uint64_t min_pages, pages_already_queued, 
+    uint64_t min_pages, pages_already_queued,
         //pages_seen代表遍历的循环次数   pages_queued代表选择出来需要后台evict的page数
-        pages_seen, pages_queued, 
+        pages_seen, pages_queued,
         refs_walked;
     uint32_t read_flags, remaining_slots, target_pages, walk_flags;
     int restarts;
@@ -1964,7 +1975,7 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
         WT_STAT_CONN_INCR(session, cache_eviction_target_strategy_dirty);
     }
 
-    if (F_ISSET(cache, WT_CACHE_EVICT_DIRTY) && F_ISSET(cache, WT_CACHE_EVICT_UPDATES)) 
+    if (F_ISSET(cache, WT_CACHE_EVICT_DIRTY) && F_ISSET(cache, WT_CACHE_EVICT_UPDATES))
         //这里应该是update，为了避免运行disk，我这里就不改了，已经提交PR到官网
         WT_STAT_CONN_INCR(session, cache_eviction_target_strategy_both_clean_and_dirty);
 
@@ -2099,7 +2110,6 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
 
         /* Ignore root pages entirely. */
         if (__wt_ref_is_root(ref)) {
-            //yang add todo xxxxxxxxxxxxx ，这里应该internal_pages_seen增加
             internal_pages_seen++;
             continue;
         }
@@ -2129,16 +2139,18 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
             continue;
 
         //其他线程没有在做checkpoint，或者其他线程在做checkpoint但是该page没有被修改，可以继续往下走
-        
+
         /*
          * It's possible (but unlikely) to visit a page without a read generation, if we race with
          * the read instantiating the page. Set the page's read generation here to ensure a bug
          * doesn't somehow leave a page without a read generation.
          */
+        //如果read_gen没有设置，则给挑选出来的page read_gen赋值给page->read_gen，会在后面的__evict_push_candidate根据read_gen对page进行评分
         if (page->read_gen == WT_READGEN_NOTSET)
             __wt_cache_read_gen_new(session, page);
 
         /* Pages being forcibly evicted go on the urgent queue. */
+        //printf("yang test ................... %d, %d, %d\r\n", (int)modified, (int)page->read_gen, (int)page->memory_footprint);
         if (modified &&
           (page->read_gen == WT_READGEN_OLDEST || page->memory_footprint >= btree->splitmempage)) {
             WT_STAT_CONN_INCR(session, cache_eviction_pages_queued_oldest);
@@ -2233,7 +2245,7 @@ fast:
         /* Count internal pages queued. */
         if (F_ISSET(ref, WT_REF_FLAG_INTERNAL))
             internal_pages_queued++;
-            
+
         //打印evict主线程挑选出来需要evict的page
         __wt_verbose(session, WT_VERB_EVICTSERVER, "__evict_walk_tree select: %p, size %zu, type:%s", (void *)page,
           page->memory_footprint, __wt_page_type_string(page->type));
@@ -2245,7 +2257,7 @@ fast:
     //挑选的入队的总page数
     WT_STAT_CONN_INCRV(session, cache_eviction_pages_queued, (u_int)(evict - start));
 
-    __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "__evict_walk_tree, %s walk: seen %" PRIu64 
+    __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "__evict_walk_tree, %s walk: seen %" PRIu64
         ", queued %" PRIu64 ", min_pages %" PRIu64 ", target_pages %" PRIu32,
       session->dhandle->name, pages_seen, pages_queued, min_pages, target_pages);
 
@@ -2254,7 +2266,7 @@ fast:
      evict_walk_period在evict_walk_period赋值， 在__evict_walk生效，表示在下一轮对所有表遍历的时候，当前btree少遍历evict_walk_period个page
      因为当前btree遍历效果不佳，每次效果不佳，下一轮该表跳过的page就*2, 效果逐渐好转后下一轮skip/2
      */
-     
+
     if (pages_queued < target_pages / 2 && !urgent_queued)
         btree->evict_walk_period = WT_MIN(WT_MAX(1, 2 * btree->evict_walk_period), 100);
     else if (pages_queued == target_pages) {
@@ -2307,7 +2319,6 @@ fast:
       session, cache_eviction_internal_pages_already_queued, internal_pages_already_queued);
     //本次遍历选择进入队列的internage
     WT_STAT_CONN_INCRV(session, cache_eviction_internal_pages_queued, internal_pages_queued);
-    //yang add todo xxxxxxxxxxxxxx 这里差一个leafpage的统计以及耗时统计 
     //上面的cache_eviction_pages_queued-internal_pages_queued可以满足这个要求
     WT_STAT_CONN_DATA_INCR(session, cache_eviction_walk_passes);
     return (0);
@@ -2318,9 +2329,9 @@ fast:
  *     Get a page for eviction.
  */
 static int
-__evict_get_ref(WT_SESSION_IMPL *session, 
+__evict_get_ref(WT_SESSION_IMPL *session,
     //这里is_server为true，说明是evict server线程
-    bool is_server, 
+    bool is_server,
     WT_BTREE **btreep, WT_REF **refp,
     uint8_t *previous_statep)
 {
@@ -2346,8 +2357,8 @@ __evict_get_ref(WT_SESSION_IMPL *session,
     //1. 说明是evict线程中的worker线程
     //2. evict线程只配置1个
     //3. 用户线程因为dirty过高触发evict
-    urgent_ok = (!is_app && !is_server) 
-        || !WT_EVICT_HAS_WORKERS(session) 
+    urgent_ok = (!is_app && !is_server)
+        || !WT_EVICT_HAS_WORKERS(session)
           || (is_app && F_ISSET(cache, WT_CACHE_EVICT_DIRTY_HARD));
     urgent_queue = cache->evict_urgent_queue;
 
@@ -2359,14 +2370,14 @@ __evict_get_ref(WT_SESSION_IMPL *session,
     if (__evict_queue_empty(cache->evict_current_queue, is_server) &&
       __evict_queue_empty(cache->evict_other_queue, is_server) &&
       (!urgent_ok || __evict_queue_empty(urgent_queue, false))) {
-        //cache_eviction_get_ref_empty: eviction calls to get a page found queue empty  
+        //cache_eviction_get_ref_empty: eviction calls to get a page found queue empty
         //cache_eviction_get_ref_empty2: eviction calls to get a page found queue empty after locking
         WT_STAT_CONN_INCR(session, cache_eviction_get_ref_empty);
         return (WT_NOTFOUND);
     }
 
     //普通队列不为空，或者需要紧急处理(urgent_ok=TRUE或者urgent_queue不为空)
-    
+
     /*
      * The server repopulates whenever the other queue is not full, as long as at least one page has
      * been evicted out of the current queue.
@@ -2417,7 +2428,7 @@ __evict_get_ref(WT_SESSION_IMPL *session,
     for (;;) {
         /* Verify there are still pages available. */
         if (__evict_queue_empty(queue, is_server && queue != urgent_queue)) {
-            //cache_eviction_get_ref_empty: eviction calls to get a page found queue empty  
+            //cache_eviction_get_ref_empty: eviction calls to get a page found queue empty
             //cache_eviction_get_ref_empty2: eviction calls to get a page found queue empty after locking
             WT_STAT_CONN_INCR(session, cache_eviction_get_ref_empty2);
             return (WT_NOTFOUND);
@@ -2480,7 +2491,6 @@ __evict_get_ref(WT_SESSION_IMPL *session,
          */
         (void)__wt_atomic_addv32(&evict->btree->evict_busy, 1);
 
-
         //选出的这个evict page记录到这几个变量中返回
         *btreep = evict->btree;
         *refp = evict->ref;
@@ -2512,7 +2522,6 @@ __evict_get_ref(WT_SESSION_IMPL *session,
   //evict worker线程: __wt_evict_thread_run->__evict_server->__evict_pass->__evict_lru_walk->__evict_walk->__evict_walk_tree
   //worker线程: __wt_evict_thread_run->__evict_lru_pages->__evict_page
 
- 
   //当一个page消耗内存较高，用户线程主动强制eviect:  __wt_page_in_func->__wt_page_release_evict->__wt_evict
  //当总内存或者脏数据或者update数据超过一定比例，用户线程或者后台线程的evict逻辑: __evict_page->__wt_evict
  //__wt_evict_file->__wt_evict : checkpoint逻辑
@@ -2588,7 +2597,7 @@ __evict_page(WT_SESSION_IMPL *session, bool is_server)
 
 //用户线程调用
 int
-__wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly, 
+__wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly,
     //pct_full大于100说明，至少有一个超过了用户线程evict的阈值，配合__wt_eviction_needed阅读
     double pct_full)
 {
@@ -2762,6 +2771,7 @@ __wt_page_evict_urgent(WT_SESSION_IMPL *session, WT_REF *ref)
     urgent_queue = &cache->evict_queues[WT_EVICT_URGENT_QUEUE];
     queued = false;
 
+    //yang add todo xxxxxxxxxxxxx evict_queue_lock锁这里是不是可以不用加锁
     __wt_spin_lock(session, &cache->evict_queue_lock);
     if (F_ISSET_ATOMIC_16(page, WT_PAGE_EVICT_LRU) || S2BT(session)->evict_disabled > 0)
         goto done;
@@ -2786,11 +2796,12 @@ __wt_page_evict_urgent(WT_SESSION_IMPL *session, WT_REF *ref)
 
 done:
     __wt_spin_unlock(session, &cache->evict_queue_lock);
+    //需要紧急处理的page，立马通知工作线程处理
     if (queued) {
         WT_STAT_CONN_INCR(session, cache_eviction_pages_queued_urgent);
         if (WT_EVICT_HAS_WORKERS(session)) //如果有2个或者以上的evict线程，则触发工作线程在__evict_lru_pages进行下一轮page evict
             __wt_cond_signal(session, S2C(session)->evict_threads.wait_cond);
-        else 
+        else
             //说明只有一个evict线程，这时候需要通过这里幻想自己的下一轮evict选举和淘汰
             __wt_evict_server_wake(session);
     }

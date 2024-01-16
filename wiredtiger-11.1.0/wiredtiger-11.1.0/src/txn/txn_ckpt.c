@@ -269,7 +269,7 @@ __checkpoint_apply_operation(
 
     /* Step through the targets and optionally operate on each one. */
     //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
-    WT_ERR(__wt_config_gets(session, cfg, "target", &cval)); 
+    WT_ERR(__wt_config_gets(session, cfg, "target", &cval));
     __wt_config_subinit(session, &targetconf, &cval);
     //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint  cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
     while ((ret = __wt_config_next(&targetconf, &k, &v)) == 0) {
@@ -382,7 +382,7 @@ __checkpoint_data_source(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_checkpoint_get_handles --
  *     Get a list of handles to flush.
- */ 
+ */
 //获取session对应btree表的checkpint信息记录到btree->ckpt
 int
 __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
@@ -393,9 +393,9 @@ __wt_checkpoint_get_handles(WT_SESSION_IMPL *session, const char *cfg[])
     const char *name;
     bool force;
 
-    //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint  
+    //判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint
     //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
-    
+
     /* Find out if we have to force a checkpoint. */
     WT_RET(__wt_config_gets_def(session, cfg, "force", 0, &cval));
     force = cval.val != 0;
@@ -647,7 +647,7 @@ __checkpoint_verbose_track(WT_SESSION_IMPL *session, const char *msg)
 
     /* Get time diff in milliseconds. */
     msec = WT_TIMEDIFF_MS(stop, conn->ckpt_timer_start);
-    
+
     __wt_verbose(session, WT_VERB_CHECKPOINT,
       "duration time: %" PRIu64 " ms, gen: %" PRIu64 ": Full database checkpoint %s", msec,
       __wt_gen(session, WT_GEN_CHECKPOINT), msg);
@@ -1123,7 +1123,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
      * or a thread evicting in a tree could ignore the checkpoint's transaction.
      */
     __wt_gen_next(session, WT_GEN_CHECKPOINT, &generation);
-    
+
     WT_STAT_CONN_SET(session, txn_checkpoint_generation, generation);
 
     /*
@@ -1805,7 +1805,7 @@ __checkpoint_lock_dirty_tree_int(WT_SESSION_IMPL *session, bool is_checkpoint, b
  *     Decide whether the tree needs to be included in the checkpoint and if so, acquire the
  *     necessary locks.
 
-//判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint  
+//判断有没有配置checkpoint target，参考confchk_WT_SESSION_checkpoint
 //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
  */
 //获取session对应btree表的checkpint信息记录到btree->ckpt
@@ -1814,7 +1814,7 @@ __checkpoint_lock_dirty_tree(
   WT_SESSION_IMPL *session, bool is_checkpoint, bool force, bool need_tracking, const char *cfg[])
 {
     WT_BTREE *btree;
-    WT_CKPT *ckpt, 
+    WT_CKPT *ckpt,
         //为WT_CKPT数组结构
         *ckptbase;
     WT_CONFIG dropconf;
@@ -2260,7 +2260,7 @@ __checkpoint_tree(WT_SESSION_IMPL *session, bool is_checkpoint, const char *cfg[
     }
 
     //一般走这里
-    
+
     /*
      * Mark the root page dirty to ensure something gets written. (If the tree is modified, we must
      * write the root page anyway, this doesn't add additional writes to the process. If the tree is
@@ -2290,7 +2290,7 @@ __checkpoint_tree(WT_SESSION_IMPL *session, bool is_checkpoint, const char *cfg[
         WT_ERR(__wt_txn_checkpoint_log(session, false, WT_TXN_LOG_CKPT_START, &ckptlsn));
 
     /* Tell the block manager that a file checkpoint is starting. */
-    //__bm_checkpoint_start 
+    //__bm_checkpoint_start
     //设置状态block->ckpt_state = WT_CKPT_INPROGRESS;
     WT_ERR(bm->checkpoint_start(bm, session));
     resolve_bm = true;

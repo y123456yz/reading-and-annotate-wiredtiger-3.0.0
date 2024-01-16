@@ -119,6 +119,7 @@ __sync_dup_walk(WT_SESSION_IMPL *session, WT_REF *walk, uint32_t flags, WT_REF *
  * __sync_delete_obsolete_ref --
  *     Check whether the ref is obsolete according to the newest stop time point and handle the
  *     obsolete page by either remove it or mark it for urgent eviction.
+ 确定这些page是否过时并且需要清理
  */
 static int
 __sync_delete_obsolete_ref(WT_SESSION_IMPL *session, WT_REF *ref)
@@ -308,6 +309,7 @@ err:
  * __sync_ref_int_obsolete_cleanup --
  *     Traverse the internal page and identify the leaf pages that are obsolete and mark them as
  *     deleted.
+ 遍历parent这个internal page，获取下面所有得leaf page，确定这些page是否过时并且需要清理
  */
 static int
 __sync_ref_int_obsolete_cleanup(WT_SESSION_IMPL *session, WT_REF *parent)
@@ -317,7 +319,7 @@ __sync_ref_int_obsolete_cleanup(WT_SESSION_IMPL *session, WT_REF *parent)
     uint32_t slot;
 
     __wt_verbose_debug2(session, WT_VERB_CHECKPOINT_CLEANUP,
-      "%p: traversing the internal page %p for obsolete child pages", (void *)parent,
+      "__sync_ref_int_obsolete_cleanup %p: traversing the internal page %p for obsolete child pages", (void *)parent,
       (void *)parent->page);
 
     WT_INTL_INDEX_GET(session, parent->page, pindex);
@@ -327,6 +329,7 @@ __sync_ref_int_obsolete_cleanup(WT_SESSION_IMPL *session, WT_REF *parent)
         WT_RET(__sync_delete_obsolete_ref(session, ref));
     }
 
+    //CheckpointCleanupStat('cc_pages_visited', 'pages visited'),
     WT_STAT_CONN_DATA_INCRV(session, cc_pages_visited, pindex->entries);
 
     return (0);
@@ -461,7 +464,6 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
         if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT))
             LF_SET(WT_READ_VISIBLE_ALL);
 
-
 /*
                         root page
                         /         \
@@ -475,7 +477,6 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
 
 上面这课数的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
 */
-
 
         for (;;) {//遍历整个btree，先扫描最下层的leaf page，然后在逐层获取internal page
             WT_ERR(__wt_tree_walk(session, &walk, flags));

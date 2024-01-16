@@ -90,7 +90,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
 
     /* Get the checkpoint information for this name/checkpoint pair. */
     //从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
-   // printf("yang test .......__wt_btree_open......11...........name:%s, checkpoint:%s\r\n", 
+   // printf("yang test .......__wt_btree_open......11...........name:%s, checkpoint:%s\r\n",
    //     dhandle->name, dhandle->checkpoint);
     WT_RET(__wt_meta_checkpoint(session, dhandle->name, dhandle->checkpoint, &ckpt));
 
@@ -145,7 +145,7 @@ __wt_btree_open(WT_SESSION_IMPL *session, const char *op_cfg[])
          * checkpoint is for an empty file).
          */
         //__bm_checkpoint_load, 上面的__wt_meta_checkpoint从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
-        
+
         //addr空间信息解包，然后获取解析出来的root、alloc、avail对应ext元数据信息，同时对root(root_objectid, root_offset, root_size, root_checksum)
         //进行root_addr封包返回
         WT_ERR(bm->checkpoint_load(bm, session, ckpt.raw.data, ckpt.raw.size, root_addr,
@@ -685,7 +685,7 @@ __wt_btree_tree_open(WT_SESSION_IMPL *session, const uint8_t *addr, size_t addr_
      * the disk image on return, the in-memory object steals it.
      */
     //从dsk中解析出对应的root page信息，及其下面的index[]数组
-    
+
     //重启时候从page dsk(也就是checkpoint的root ext信息)中解析出子page信息、ref key信、page对应磁盘信息等，
     // 然后与page关联，配合__rec_split_write阅读
     WT_ERR(__wt_page_inmem(session, NULL, dsk.data,
@@ -834,11 +834,10 @@ __wt_btree_new_leaf_page(WT_SESSION_IMPL *session, WT_REF *ref)
 
  //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
- 
+
  //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
- 
  //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
@@ -859,8 +858,8 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化
 上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
 
 //从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page元数据[ref key, leaf page ext addr元数据]
-//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据], 
-//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据], 
+//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据],
+//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据],
 */
 static int
 __btree_preload(WT_SESSION_IMPL *session)
@@ -878,12 +877,12 @@ __btree_preload(WT_SESSION_IMPL *session)
     WT_RET(__wt_scr_alloc(session, 0, &tmp));
 
     do {
-        WT_PAGE_INDEX *__pindex;                                                     
+        WT_PAGE_INDEX *__pindex;
 
-        WT_INTL_INDEX_GET(session, btree->root.page, __pindex); 
+        WT_INTL_INDEX_GET(session, btree->root.page, __pindex);
         printf("yang test ............__btree_preload..............., page count:%u\r\n", __pindex->entries);
     } while(0);
-    
+
     //第一层root的内存结构在外层的__wt_btree_tree_open中从磁盘加载到内存中
 
     //这里加载第二层的每个page管理的下一层数据的ext信息
@@ -1040,14 +1039,14 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
 
     /* Enforce a lower bound of a single disk leaf page */
     btree->maxmempage = WT_MAX(btree->maxmempage, btree->maxleafpage);
-    
+
     /*
      * Try in-memory splits once we hit 80% of the maximum in-memory page size. This gives
      * multi-threaded append workloads a better chance of not stalling.
      */
     btree->splitmempage = (8 * btree->maxmempage) / 10;
 
-    printf("yang test .....22...................btree->maxintlpage:%d, btree->maxleafpage:%d, maxmempage:%d, splitmempage:%d, maxmempage_image:%u\r\n", 
+    printf("yang test .....22...................btree->maxintlpage:%d, btree->maxleafpage:%d, maxmempage:%d, splitmempage:%d, maxmempage_image:%u\r\n",
         (int)(btree->maxintlpage),(int)(btree->maxleafpage), (int)btree->maxmempage, (int)btree->splitmempage, (btree->maxmempage_image));
     /*
      * Get the split percentage (reconciliation splits pages into smaller than the maximum page size

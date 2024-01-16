@@ -1899,7 +1899,6 @@ find_table_count(WTPERF *wtperf)
             goto err;
         }
 
-        
         if ((ret = cursor->prev(cursor)) != 0) {
             lprintf(wtperf, ret, 0, "find_table_count: cursor prev failed");
             goto err;
@@ -1927,7 +1926,7 @@ err:
             ret = t_ret;
         lprintf(wtperf, ret, 0, "find_table_count: session close failed");
     }
-    //最大表的数据行数
+    //
     opts->icount = max_icount;
 out:
     return (ret);

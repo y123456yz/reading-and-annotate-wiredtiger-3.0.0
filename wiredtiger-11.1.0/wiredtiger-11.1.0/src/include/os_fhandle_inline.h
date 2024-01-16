@@ -212,4 +212,3 @@ __wt_write(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, con
     WT_STAT_CONN_DECR_ATOMIC(session, thread_write_active);
     return (ret);
 }
-

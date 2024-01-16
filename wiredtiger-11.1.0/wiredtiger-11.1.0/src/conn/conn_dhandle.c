@@ -642,10 +642,10 @@ err:
 /*
  * __conn_btree_apply_internal --
  *     Apply a function to an open data handle.
- */ 
+ */
  //__wt_conn_btree_apply
 static int
-__conn_btree_apply_internal(WT_SESSION_IMPL *session, 
+__conn_btree_apply_internal(WT_SESSION_IMPL *session,
    //一个dhandle实际上对应一个表
   WT_DATA_HANDLE *dhandle,
   //file_func为__wt_checkpoint_get_handles、__statlog_apply
@@ -731,7 +731,7 @@ __wt_conn_btree_apply(WT_SESSION_IMPL *session, const char *uri,
             if (!F_ISSET(dhandle, WT_DHANDLE_OPEN) || F_ISSET(dhandle, WT_DHANDLE_DEAD) ||
               dhandle->checkpoint != NULL || strcmp(uri, dhandle->name) != 0)
                 continue;
-                
+
             WT_ERR(__conn_btree_apply_internal(session, dhandle, file_func, name_func, cfg));
         }
     } else {

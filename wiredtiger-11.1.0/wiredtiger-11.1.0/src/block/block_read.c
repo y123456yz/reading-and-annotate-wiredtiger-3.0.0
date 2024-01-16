@@ -239,4 +239,3 @@ __wt_block_read_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uin
         return (WT_ERROR);
     WT_RET_PANIC(session, WT_ERROR, "%s: fatal read error", block->name);
 }
-

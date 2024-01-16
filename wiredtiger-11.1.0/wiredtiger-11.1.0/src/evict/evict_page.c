@@ -126,7 +126,7 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
         session, WT_VERB_EVICT, "__wt_evict evict page %p (%s)", (void *)page, __wt_page_type_string(page->type));
       //session, WT_VERB_EVICT, "page %p (%s)", (void *)page, __wt_page_type_string(page->type));
    // printf("yang test .............__wt_evict......:%s\r\n", __wt_page_type_string(page->type));
-    
+
     tree_dead = F_ISSET(session->dhandle, WT_DHANDLE_DEAD);
     if (tree_dead)
         LF_SET(WT_EVICT_CALL_NO_SPLIT);
@@ -414,7 +414,6 @@ __evict_page_clean_update(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 //    __evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
 //    __evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
 
- 
 //__evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
 //__evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
 
@@ -751,17 +750,14 @@ __evict_review(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags, bool
 //    __evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
 //    __evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
 
-
 //__wt_evict: inmem_split，内存中的page进行拆分，拆分后的还是在内存中不会写入磁盘，对应__wt_split_insert(split-insert)打印
 //__evict_page_dirty_update(__evict_reconcile): 对page拆分为多个page后写入磁盘中,对应__wt_split_multi(split-multi)打印
 //__evict_page_dirty_update(__evict_reconcile): __wt_split_reverse(reverse-split)打印
 //__evict_page_dirty_update(__evict_reconcile):__wt_split_rewrite(split-rewrite)打印
 
-
 //__evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
 //__evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
 
- 
 //__evict_force_check中通过page消耗的内存与，决定走内存split evict(__wt_evict)还是reconcile evict(__evict_reconcile)
 static int
 __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)

@@ -101,12 +101,12 @@ __wt_malloc(WT_SESSION_IMPL *session, size_t bytes_to_allocate, void *retp)
  *     ANSI realloc function.
  */
 static int
-__realloc_func(WT_SESSION_IMPL *session, 
+__realloc_func(WT_SESSION_IMPL *session,
   //扩容前的bytes_allocated_ret内存大小，扩容完成后的内存总空间会更新bytes_allocated_ret，也就是扩容完成后bytes_allocated_ret记录扩容后的大小
   size_t *bytes_allocated_ret,
   //realloc的空间，实际上内存为原有空间+需要增加的空间
   size_t bytes_to_allocate,
-  bool clear_memory, 
+  bool clear_memory,
   //扩容前的空间起始地址retp
   void *retp)
 {

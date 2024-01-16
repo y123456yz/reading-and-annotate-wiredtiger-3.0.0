@@ -42,9 +42,8 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage
     uint64_t start, now;
     bool no_reconcile_set, page_locked;
 
-    btree = S2BT(session); 
+    btree = S2BT(session);
     page = ref->page;
-    
 
     __wt_seconds(session, &start);
 
@@ -295,7 +294,6 @@ __reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, u
 
     addr = ref->addr;
 
-    
     /*
      * If we fail the reconciliation prior to calling __rec_write_wrapup then we can clean up our
      * state and return an error.
@@ -830,9 +828,8 @@ __rec_destroy_session(WT_SESSION_IMPL *session)
 
 //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
 
- 
 //buf数据内容 = 包括page header + block header + 实际数据
-//bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+//bug实际上指向该page对应的真实磁盘空间，WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
 
 //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
 static int
@@ -887,7 +884,6 @@ __rec_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_
     WT_RET(ret);
 #endif
 
-    
     //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
     return (__wt_blkcache_write(
       session, buf, addr, addr_sizep, compressed_sizep, checkpoint, checkpoint_io, compressed));
@@ -1091,7 +1087,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
      */
     WT_ASSERT(session, auxiliary_size == 0 || page->type == WT_PAGE_COL_FIX);
     //leaf page对应btree->maxleafpage_precomp
-    //internal page对应btree->maxintlpage_precomp 
+    //internal page对应btree->maxintlpage_precomp
     r->page_size = (uint32_t)(primary_size + auxiliary_size);
 
     /*
@@ -1156,7 +1152,7 @@ __wt_rec_split_init(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page, ui
      * give us 5x compression and gives us nothing at all.
      */
     corrected_page_size = r->page_size;
-    //__bm_write_size  //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据  
+    //__bm_write_size  //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
     WT_RET(bm->write_size(bm, session, &corrected_page_size));
     r->disk_img_buf_size = WT_ALIGN(WT_MAX(corrected_page_size, r->split_size), btree->allocsize);
 
@@ -1333,7 +1329,7 @@ err:
 /*
  * __wt_rec_split_grow --
  *     Grow the split buffer.
- */ 
+ */
 //r->cur_ptr->image内存空间增加add_len字节
 int
 __wt_rec_split_grow(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t add_len)
@@ -1447,9 +1443,9 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
 
     btree = S2BT(session);
    // printf("yang test .................__wt_rec_split................ \r\n");
-   // printf("yang test ...........__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d\r\n", 
+   // printf("yang test ...........__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d\r\n",
    //     (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->split_size);
-       
+
     /*
      * We should never split during salvage, and we're about to drop core because there's no parent
      * page.
@@ -1471,7 +1467,7 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
     //也就是本次reconcile多个KV数据在磁盘中用到的真实空间
     //r->first_free指向本次reconcile内存数据的末尾， r->cur_ptr->image.mem对应内存开始位置
     inuse = WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem);
-    
+
 //    if (inuse < r->split_size / 2 && !__wt_rec_need_split(r, 0)) {
     if (inuse < r->min_split_size && !__wt_rec_need_split(r, 0)) {
         WT_ASSERT(session, r->page->type != WT_PAGE_COL_FIX);
@@ -1577,7 +1573,7 @@ done:
      * aggregated onto the bigger page before or after, if the page happens to hold them, but it
      * won't necessarily happen that way.
      */
-    if (r->space_avail < next_len)  
+    if (r->space_avail < next_len)
         WT_RET(__wt_rec_split_grow(session, r, next_len));
 
     return (0);
@@ -1635,10 +1631,8 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
         return (0);
     }
 
-
     //到这里说明space_avail可用空间不足了，需要rec split
 
-    
     /* We are crossing a split boundary */
     //也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
     return (__wt_rec_split(session, r, next_len));
@@ -1704,7 +1698,6 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
     }
 
     //下面分支，说明合并后的数据大于pagesize了
-
 
     //这里因为合并时候会超过pagesize，因此把prev_ptr对应image空间的前面min_offset部分存入prev_ptr，
     //min_offset后半部分内容和cur_ptr合并到一起，存入cur_ptr
@@ -2064,7 +2057,7 @@ __rec_split_write_reuse(
     /*
      * Pages are written in the same block order every time, only check the appropriate slot.
      */
-    //printf("yang test ..............mod->rec_result:%d,mod->mod_multi_entries:%d,r->multi_next:%d....\r\n", 
+    //printf("yang test ..............mod->rec_result:%d,mod->mod_multi_entries:%d,r->multi_next:%d....\r\n",
      //   mod->rec_result, (int)mod->mod_multi_entries, (int)r->multi_next);
     if (mod->rec_result != WT_PM_REC_MULTIBLOCK || mod->mod_multi_entries < r->multi_next)
         return (false);
@@ -2163,12 +2156,12 @@ __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compress
  *     Write a disk block out for the split helper functions.
  //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
- 
+
  //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
  */
-//chunk就是某page对应的需要写入磁盘的数据信息,WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 
+//chunk就是某page对应的需要写入磁盘的数据信息,WT_REC_CHUNK.image=WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
 
 //chunk数据写入磁盘，并保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)到WT_MULTI中
 static int
@@ -2209,7 +2202,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     //[1694762068:750530][38202:0x7f7d2d5ed800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_BLOCK][DEBUG_1]: file extend 20480-40960
     //[1694762068:750578][38202:0x7f7d2d5ed800], file:access.wt, WT_CURSOR.__curfile_insert: [WT_VERB_RECONCILE][DEBUG_1]: 0xe70500 reconciled into 2 pages
     //printf("yang test ...............__rec_split_write............multi_next:%d\r\n", (int)r->multi_next);
-    
+
     /* Initialize the address (set the addr type for the parent). */
     WT_TIME_AGGREGATE_COPY(&multi->addr.ta, &chunk->ta);
 
@@ -2219,7 +2212,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
         break;
     case WT_PAGE_COL_VAR:
     case WT_PAGE_ROW_LEAF:
-        multi->addr.type = r->ovfl_items ? WT_ADDR_LEAF : WT_ADDR_LEAF_NO; 
+        multi->addr.type = r->ovfl_items ? WT_ADDR_LEAF : WT_ADDR_LEAF_NO;
         break;
     case WT_PAGE_COL_INT:
     case WT_PAGE_ROW_INT:
@@ -2231,12 +2224,12 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->size = WT_STORE_SIZE(chunk->image.size);
     multi->checksum = 0;
     multi->supd_restore = false;
-   // printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n", 
+   // printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n",
     //    (int)r->multi_next, (int)multi->size);
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
-        //分配WT_IKEY+真实key数据空间，并拷贝数据到对应空间  
+        //分配WT_IKEY+真实key数据空间，并拷贝数据到对应空间
         WT_RET(__wt_row_ikey_alloc(session, 0, chunk->key.data, chunk->key.size, &multi->key.ikey));
     else
         multi->key.recno = chunk->recno;
@@ -2310,7 +2303,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
           compressed_image == NULL ? &chunk->image : compressed_image, last_block))
         goto copy_image;
 
-    /* Write the disk image and get an address. */ 
+    /* Write the disk image and get an address. */
     //数据写入磁盘，并对写入磁盘的以下元数据进行封装处理，objectid offset size  checksum四个字段进行封包存入addr数组中，addr_sizep为数组存入数据总长度
     WT_RET(__rec_write(session, compressed_image == NULL ? &chunk->image : compressed_image, addr,
                                     //注意这里checkpoint直接赋值为false了，即使这里r带有WT_REC_CHECKPOINT
@@ -2356,7 +2349,7 @@ copy_image:
         //yang add todo xxxxxxxxxx  这里会不会有大量的内存拷贝?????
         //chunk->image.size就是一个chunk的数据大小，也就是split_size大小
         WT_RET(__wt_memdup(session, chunk->image.data, chunk->image.size, &multi->disk_image));
-        
+
     }
     /* Whether we wrote or not, clear the accumulated time statistics. */
     __rec_page_time_stats_clear(r);
@@ -2466,7 +2459,7 @@ __rec_split_discard(WT_SESSION_IMPL *session, WT_PAGE *page)
     btree = S2BT(session);
     mod = page->modify;
     WT_RET(__wt_msg(session, "yang test .................__rec_split_discard.............................."));
-    
+
     /*
      * A page that split is being reconciled for the second, or subsequent time; discard underlying
      * block space used in the last reconciliation that is not being reused for this reconciliation.
@@ -2590,7 +2583,7 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
      * replaced. Make sure it's discarded at some point, and clear the underlying modification
      * information, we're creating a new reality.
      */
-    //printf("yang test .........__rec_write_wrapup......ref->addr:%p...........mod->rec_result:%d\r\n", 
+    //printf("yang test .........__rec_write_wrapup......ref->addr:%p...........mod->rec_result:%d\r\n",
     //    ref->addr, mod->rec_result);
     //该page如果是第一次拆分，这里为0，如果是之前已经reconcile过，则记录的是上一次reconcile时候的rec_result值
     switch (mod->rec_result) {

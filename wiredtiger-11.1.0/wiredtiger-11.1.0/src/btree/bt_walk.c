@@ -30,7 +30,7 @@ __ref_index_slot(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp,
          * Copy the parent page's index value: the page can split at any time, but the index's value
          * is always valid, even if it's not up-to-date.
          */
-        //yang add todo xxxxxxxxxxxxxxxxxx  index[]缩容时候，这里没有加锁会不会有问题? 
+        //yang add todo xxxxxxxxxxxxxxxxxx  index[]缩容时候，这里没有加锁会不会有问题?
         WT_INTL_INDEX_GET(session, ref->home, pindex);
         entries = pindex->entries;
 
@@ -46,7 +46,7 @@ __ref_index_slot(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp,
         //在其他线程删除父节点下面的page的时候可能存在这种情况
         if (slot >= entries)
             slot = entries - 1;
-            
+
         //一般从这里直接返回
         if (pindex->index[slot] == ref)
             goto found;
@@ -252,7 +252,6 @@ __split_prev_race(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp
    * (5) skipping pages based on outside information (compaction);
    * (6) cursor scans (applications).
 
- 
  遍历refp下面所有的page，如果ref对应为NULL，则从root遍历如果skip_func不会NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
  如果ref对应为NULL，则从root遍历
 
@@ -260,7 +259,7 @@ __split_prev_race(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE_INDEX **pindexp
  */
 //refp返回找到的下一个page，walkcntp代表CacheStat('cache_eviction_walk', 'pages walked for eviction'),
 static inline int
-__tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp, 
+__tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp,
   //注意walkcntp是保留原值进行增加
   uint64_t *walkcntp,
   int (*skip_func)(WT_SESSION_IMPL *, WT_REF *, void *, bool, bool *), void *func_cookie,
@@ -444,7 +443,7 @@ restart:
             ++*walkcntp;
 
         for (;;) {
-//遍历该page index[]下的所有子tree 
+//遍历该page index[]下的所有子tree
 descend:
             /*
              * Get a reference, setting the reference hint if it's wrong (used when we continue the

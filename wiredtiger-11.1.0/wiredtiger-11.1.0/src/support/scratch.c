@@ -11,7 +11,7 @@
 /*
  * __wt_buf_grow_worker --
  *     Grow a buffer that may be in-use, and ensure that all data is local to the buffer.
- */ 
+ */
 //如果空间不够，则realloc内存，并拷贝数据。如果mem为NULL则申请内存，并拷贝数据
 //如果空间够，则直接拷贝数据到mem空间
 int
@@ -231,7 +231,7 @@ err:
  * __wt_buf_set_size --
  *     Set the contents of the buffer to a printable representation of a byte size.
  */
-//例如2326528，2326528/1024/1024= 2MB  
+//例如2326528，2326528/1024/1024= 2MB
 //字节转换为M G T P E
 const char *
 __wt_buf_set_size(WT_SESSION_IMPL *session, uint64_t size, bool exact, WT_ITEM *buf)

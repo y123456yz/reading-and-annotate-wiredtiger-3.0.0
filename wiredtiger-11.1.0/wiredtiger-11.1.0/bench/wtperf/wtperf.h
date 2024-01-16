@@ -142,7 +142,7 @@ struct __wtperf {         /* Per-database structure */
     char *partial_config; /* Config string for partial logging */
     char *reopen_config;  /* Config string for conn reopen */
     char *log_table_uri;  /* URI for log table */
-    //存储所有的表名
+    //
     char **uris;          /* URIs */
 
     WT_CONNECTION *conn; /* Database connection */

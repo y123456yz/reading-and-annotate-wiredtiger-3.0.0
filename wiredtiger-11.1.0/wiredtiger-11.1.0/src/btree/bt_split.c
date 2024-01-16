@@ -389,7 +389,7 @@ err:
 
 root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存超过btree->maxmempage大小
 这时候__split_internal_should_split满足条件，root page开始拆分，拆分过程是增加一层internal page, meig
-                       root page                               第一层:1个root page              
+                       root page                               第一层:1个root page
                       /     |     \
                     /       |       \
                   /         |         \
@@ -397,11 +397,11 @@ root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存
 
                             |
                             |
-                            |                     
+                            |
                             |
                             |
                            \|/
-                         root page                              第一层:1个root page,index[]大小10              
+                         root page                              第一层:1个root page,index[]大小10
                          /   |      \
                        /     |       \
                      /       |         \
@@ -409,8 +409,7 @@ root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存
           /      \           |           /    \
          /        \          |          /       \
         /          \      .......      /          \
- leaf-1 page    leaf-18 page   leaf-162 page   leaf-185 page    第三层:185个leaf page     
- 
+ leaf-1 page    leaf-18 page   leaf-162 page   leaf-185 page    第三层:185个leaf page
 
  */
 static int
@@ -669,8 +668,8 @@ __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *paren
  */
 static int
 __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t new_entries,
-  size_t parent_incr, 
-  bool exclusive, 
+  size_t parent_incr,
+  bool exclusive,
   //除了internal leaf为false，其他都为true
   bool discard)
 {
@@ -760,11 +759,11 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      */
     if (result_entries == 0) {
         empty_parent = true;
-        
+
         if (!__wt_ref_is_root(parent->pg_intl_parent_ref))
             //不受root节点
             __wt_page_evict_soon(session, parent->pg_intl_parent_ref);
-            
+
         //如果ref对应父节点ref是root节点
         goto err;
     }
@@ -950,7 +949,7 @@ err:
 
  root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存超过btree->maxmempage大小
 这时候__split_internal_should_split满足条件，root page开始拆分，拆分过程是增加一层internal page, meig
-                       root page                               第一层:1个root page              
+                       root page                               第一层:1个root page
                       /     |     \
                     /       |       \
                   /         |         \
@@ -958,11 +957,11 @@ err:
 
                             |
                             |               \
-                            | ---------------  root page内存超限的拆分过程                               
+                            | ---------------  root page内存超限的拆分过程
                             |               /
                             |
                            \|/
-                         root page                              第一层:1个root page,index[]大小10              
+                         root page                              第一层:1个root page,index[]大小10
                          /   |      \
                        /     |       \
                      /       |         \
@@ -974,13 +973,13 @@ err:
                              |
                              |
                              |
-                             |                   \ 
+                             |                   \
                              |-------------------- internal(非root page)的拆分过程, 假设internal-10下面的子page增长过多，这时候internal-10内存超过btree->maxmempage大小
                              |                   /
                              |
                              |
                             \|/
-                           root page                              第一层:1个root page,index[]大小10              
+                           root page                              第一层:1个root page,index[]大小10
                          /   |        \
                        /     |         \
                      /       |          \
@@ -991,7 +990,7 @@ err:
  leaf-1 page .... leaf-18 page      leaf-162 page  .... leaf-347(internal-10下面的page从最开始的23个增加到185个) ，这时候internal-10内存超过btree->maxmempage大小
 
                              |
-                             |                   \ 
+                             |                   \
                              |-------------------- internal-10超限，开始拆分
                              |                   /
                              |
@@ -1054,7 +1053,7 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
     if (children < 10) {
         if (pindex->entries < WT_INTERNAL_SPLIT_MIN_KEYS)
             return (__wt_set_return(session, EBUSY));
-        children = 10;//WT_SPLIT_DEEPEN_MIN_CREATE_CHILD_PAGES  
+        children = 10;//WT_SPLIT_DEEPEN_MIN_CREATE_CHILD_PAGES
     }
     //例如需要拆分的page下面有185个子page，则这185个子page可以细分位10组，第1-9组各包含18个，第10个page包含23个
     chunk = pindex->entries / children;  //第1-9组各包含18个，
@@ -1102,7 +1101,7 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
     alloc_index->entries = children;
     alloc_refp = alloc_index->index;
 
-    //alloc_index这个index[]的第0个ref指向需要拆分的这个page ref  
+    //alloc_index这个index[]的第0个ref指向需要拆分的这个page ref
     *alloc_refp++ = page_ref;
     //注意这里从1开始，分配剩余的1到children个ref的真实空间
     for (i = 1; i < children; ++alloc_refp, ++i)
@@ -1475,7 +1474,7 @@ __split_parent_climb(WT_SESSION_IMPL *session, WT_PAGE *page)
          */
         if (!__split_internal_should_split(session, ref))
             break;
-        
+
         /*
          * If we've reached the root page, there are no subsequent pages to review, deepen the tree
          * and quit.
@@ -1558,7 +1557,7 @@ __split_multi_inmem(WT_SESSION_IMPL *session, WT_PAGE *orig, WT_MULTI *multi, WT
     WT_RET(__wt_page_inmem(session, ref, multi->disk_image, WT_PAGE_DISK_ALLOC, &page, &prepare));
     multi->disk_image = NULL; //这里加打印可以看出multi->disk_image地址和page->dsk地址相同
     //printf("yang test........__split_multi_inmem.......222.............page->dsk:%p\r\n", page->dsk);
-    
+
     /*
      * In-memory databases restore non-obsolete updates directly in this function, don't call the
      * underlying page functions to do it.
@@ -1905,7 +1904,7 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
 
         //表示该page对应数据在磁盘中，注意在下面的__split_multi_inmem后会置为WT_REF_MEM
         WT_REF_SET_STATE(ref, WT_REF_DISK);
-       // printf("yang test ......111...........__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n", 
+       // printf("yang test ......111...........__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n",
         //    ref, ref->page, ref->state);
     }
 
@@ -1923,7 +1922,7 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
         WT_REF_SET_STATE(ref, WT_REF_MEM);
     }
 
-  //  printf("yang test ...222..............__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n", 
+  //  printf("yang test ...222..............__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n",
    //         ref, ref->page, ref->state);
     //在__split_multi_inmem->__wt_page_inmem中赋值给了page->dsk, 并在置为disk_image=NULL， 所以指向的内存空间实际上被page->dsk继承了
     __wt_free(session, multi->disk_image);
@@ -1950,7 +1949,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     uint8_t type;
     int i;
     void *key;
-    #ifdef HAVE_DIAGNOSTIC  
+    #ifdef HAVE_DIAGNOSTIC
     WT_DBG *ds, _ds;
     #endif
 
@@ -2051,7 +2050,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     } else
         child->ref_recno = WT_INSERT_RECNO(moved_ins);
 
-#ifdef HAVE_DIAGNOSTIC  
+#ifdef HAVE_DIAGNOSTIC
     ds = &_ds;
     WT_ERR(__debug_config(session, ds, NULL));
     WT_RET(__debug_item_key(ds, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nyang test __split_insert:", WT_INSERT_KEY(moved_ins), WT_INSERT_KEY_SIZE(moved_ins)));
@@ -2146,7 +2145,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
          */
         insp = &prev_ins->next[i];
         //如果该层的最后一个指针指向了该成员，则让next指向null， 同时更改该层的tail到上一个节点
-        if (ins == moved_ins) { 
+        if (ins == moved_ins) {
             /* Remove the item being moved. */
             WT_ASSERT(session, ins_head->head[i] != moved_ins);
             WT_ASSERT(session, prev_ins->next[i] == moved_ins);
@@ -2200,10 +2199,8 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     if ((ret = __split_parent(session, ref, split_ref, 2, parent_incr, false, true)) == 0)
         return (0);
 
-
-
     //__split_parent异常，下面需要释放申请的资源信息
-    
+
     /*
      * Failure.
      *
@@ -2230,7 +2227,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
           NULL;
 
     //移除的这个KV需要恢复到源page对应跳跃表末尾
-    
+
     //跳跃表中已有的最末尾的数据的next指向moved_ins
     ins_head->tail[0]->next[0] = moved_ins;
     //跳跃表的第0层的tail直接指向该节点
@@ -2343,7 +2340,7 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      * Convert the split page's multiblock reconciliation information into an array of page
      * reference structures.
      */
-    /* 一拆多后，构建新得ref[]及对应page，并和拆分前的page的父page关联 */ 
+    /* 一拆多后，构建新得ref[]及对应page，并和拆分前的page的父page关联 */
     //new_entries个新ref
     WT_RET(__wt_calloc_def(session, new_entries, &ref_new));
     for (i = 0; i < new_entries; ++i)
@@ -2356,7 +2353,6 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      */
     //该page拆分为multi_next个page后，重新构建父parent的index索引数组
     WT_ERR(__split_parent(session, ref, ref_new, new_entries, parent_incr, closing, true));
-
 
     /* 下面逻辑主要是释放老page(也就是拆分前的page)的内存回收 */
     /*

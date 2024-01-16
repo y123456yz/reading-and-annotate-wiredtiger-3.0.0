@@ -248,7 +248,7 @@ __wt_bulk_insert_row(WT_SESSION_IMPL *session, WT_CURSOR_BULK *cbulk)
 /*
  * __rec_row_merge --
  *     Merge in a split page.
- 
+
  //checkpoint流程:
  //    __checkpoint_tree->__wt_sync_file，注意这个流程只会把拆分后的元数据记录到multi_next个multi[multi_next]中，但是不会通过__evict_page_dirty_update和父page关联
  //    而是通过__wt_rec_row_int->__rec_row_merge中获取multi[multi_next]进行持久化
@@ -311,12 +311,9 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
 //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
-
 //__wt_block_checkpoint->__ckpt_process进行checkpoint相关元数据持久化
 //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
 //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
-
-
 
   //checkpoint流程:
  //    __checkpoint_tree->__wt_sync_file，注意这个流程只会把拆分后的元数据记录到multi_next个multi[multi_next]中，但是不会通过__evict_page_dirty_update和父page关联
@@ -328,11 +325,8 @@ __rec_row_merge(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 
 //对应的root下面internal page加载流程见__wt_meta_checkpoint  __btree_preload
 
- 
 //__reconcile->__wt_rec_row_int
 //__wt_rec_row_int把该internal page的ref key及其下面所有子page的磁盘元数据信息写入到一个新的ext持久化(__rec_write->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint)
-
-
 
 //可以参考在__wt_sync_file中会遍历所有的btree过程，看__wt_sync_file是如何遍历btree的，然后走到这里
 /*
@@ -349,11 +343,11 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化
 上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
 
 //从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page元数据[ref key, leaf page ext addr元数据]
-//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据], 
-//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据], 
-*/ 
+//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据],
+//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据],
+*/
 
-int 
+int
 __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 {
     WT_ADDR *addr;
@@ -370,13 +364,13 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     WT_TIME_AGGREGATE ft_ta, *source_ta, ta;
     size_t size;
     const void *p;
-    
+
     ref = page->pg_intl_parent_ref;
     if(__wt_ref_is_root(ref))
-        WT_RET(__wt_msg(session, "yang test ..............................page is root, page:%p, ref:%p, type:%s", 
+        WT_RET(__wt_msg(session, "yang test ..............................page is root, page:%p, ref:%p, type:%s",
             page, ref, __wt_page_type_string(page->type)));
     else
-        WT_RET(__wt_msg(session, "yang test ..............................page is not root, page:%p, ref:%p, type:%s", 
+        WT_RET(__wt_msg(session, "yang test ..............................page is not root, page:%p, ref:%p, type:%s",
             page, ref, __wt_page_type_string(page->type)));
     btree = S2BT(session);
     child = NULL;
@@ -411,12 +405,12 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     // printf("yang test ......__wt_rec_row_int....1.......page->dsk:%p\r\n", page->dsk);
 
     do {
-        WT_PAGE_INDEX *__pindex;                                                     
-                                                        
+        WT_PAGE_INDEX *__pindex;
+
         WT_INTL_INDEX_GET(session, page, __pindex);
          printf("yang test ......__wt_rec_row_int....1.......__pindex size:%u\r\n", __pindex->entries);
     } while(0);
-    
+
     /* For each entry in the in-memory page... */
     //遍历获取internal page所包含的所有子ref
     WT_INTL_FOREACH_BEGIN (session, page, ref) {
@@ -544,12 +538,12 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         WT_CHILD_RELEASE_ERR(session, cms.hazard, ref);
 
         /* Build key cell. Truncate any 0th key, internal pages don't need 0th keys. */
-        //获取一个page下面子ref的key值和长度, 记录的是对应page的最小key  
+        //获取一个page下面子ref的key值和长度, 记录的是对应page的最小key
         __wt_ref_key(page, ref, &p, &size);
         {
             //char * test;
             //WT_ERR(__wt_strndup(session, p, size, &test));
-           // printf("yang test .......__wt_rec_row_int..........sizze:%d test:%s ss:%d---%d--\r\n", 
+           // printf("yang test .......__wt_rec_row_int..........sizze:%d test:%s ss:%d---%d--\r\n",
             //    (int)size, test, (int)strlen(""), (int)sizeof(""));
         }
         //确保每一层internal page中最左边的page对应的ref key="",长度写死为1，1是因为有个'\0'
@@ -699,7 +693,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
             WT_RET(__wt_illegal_value(session, upd->type));
         }
         /* Build key cell. */
-        //对key进行编码后存入r->k中 
+        //对key进行编码后存入r->k中
         WT_RET(__rec_cell_build_leaf_key(
           session, r, WT_INSERT_KEY(ins), WT_INSERT_KEY_SIZE(ins), &ovfl_key));
 
@@ -787,11 +781,9 @@ err:
 //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
 //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
 
-
 //__wt_btree_open->__wt_btree_tree_open->__wt_blkcache_read: 根据root addr读取磁盘上面的echeckpoint avail或者alloc跳跃表中的ext元数据到内存中
 //__wt_btree_open->__btree_preload->__wt_blkcache_read: 根据ext的元数据地址addr信息从磁盘读取真实ext到buf内存中
 
- 
 //可以参考在__wt_sync_file中会遍历所有的btree过程，看__wt_sync_file是如何遍历btree的，然后走到这里
 /*
                         root page                           (root page ext持久化__wt_rec_row_int)
@@ -807,9 +799,9 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化
 上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
 
 //从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page元数据[ref key, leaf page ext addr元数据]
-//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据], 
-//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据], 
-*/ 
+//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据],
+//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据],
+*/
 
 int
 __wt_rec_row_leaf(
@@ -854,7 +846,7 @@ __wt_rec_row_leaf(
 
     WT_RET(__wt_rec_split_init(session, r, page, 0, btree->maxleafpage_precomp, 0));
    // printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
-    
+
     /*
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
      */

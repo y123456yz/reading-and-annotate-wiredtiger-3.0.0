@@ -224,7 +224,7 @@ __check_leaf_key_range(
 /*
  * __wt_row_search --
  *     Search a row-store tree for a specific key.
- */ 
+ */
 //查找srch_key在btree中是否存在，确定该srch_key应该在跳跃表那个位置
 int
 __wt_row_search(WT_CURSOR_BTREE *cbt, WT_ITEM *srch_key, bool insert, WT_REF *leaf, bool leaf_safe,
@@ -242,7 +242,7 @@ __wt_row_search(WT_CURSOR_BTREE *cbt, WT_ITEM *srch_key, bool insert, WT_REF *le
     WT_SESSION_IMPL *session;
     size_t match, skiphigh, skiplow;
     //说明该page有一部分数据在磁盘中，则紧接着磁盘中的数据对应跳表slot位置开始查找
-    uint32_t base, 
+    uint32_t base,
         indx, limit, read_flags;
     int cmp, depth;
     bool append_check, descend_right, done;
@@ -512,7 +512,7 @@ leaf_only:
      * to avoid a complicated/expensive test, and, in the case of multiple threads appending to the
      * tree, we want to mark them all as appending, even if this test doesn't work.
      */
-    
+
     //__wt_verbose(session, WT_VERB_RECONCILE, "yang test __wt_row_search.....1.......insert: %d, descend_right:%d", insert, descend_right);
     if (insert && descend_right) {
     //descend_right表示查找到的leaf page不在btree leaf page的最右边，在中间或者左边，就没必要append了
@@ -671,7 +671,7 @@ leaf_match:
         //ins_head跳跃表中有该数据，则直接存储到cbt->tmp
         cbt->tmp->data = WT_INSERT_KEY(cbt->ins);
         cbt->tmp->size = WT_INSERT_KEY_SIZE(cbt->ins);
-        
+
        // __wt_verbose(session, WT_VERB_RECONCILE, "yang test __wt_row_search.....4.......entries: %" PRIu32 ", base:%" PRIu32, limit, base);
     }
     return (0);

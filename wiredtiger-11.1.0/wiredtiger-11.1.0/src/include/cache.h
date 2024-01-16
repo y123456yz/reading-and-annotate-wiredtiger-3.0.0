@@ -29,7 +29,7 @@ struct __wt_evict_entry {
     //这是那个btree的page节点
     WT_BTREE *btree; /* Enclosing btree object */
     WT_REF *ref;     /* Page to flush/evict */
-    //该page评分__evict_entry_priority
+    //该page评分__evict_entry_priority， 真正生效见__evict_lru_walk觉得是否需要evict reconcile该page
     uint64_t score;  /* Relative eviction priority */
 };
 
@@ -53,7 +53,9 @@ struct __wt_evict_queue {
     WT_EVICT_ENTRY *evict_queue;   /* LRU pages being tracked */
     //代表当前消费到了evict_queues[]数组的那个位置
     WT_EVICT_ENTRY *evict_current; /* LRU current page to be evicted */
-    //队列中总的候选page，赋值见__evict_lru_walk
+    //urgent队列就是队列中所有的page，见__wt_page_evict_urgent。
+    //非urgent队列更具队列评分决定需要evict的page，参考__evict_lru_walk
+    //队列中总的候选page，赋值见__evict_lru_walk，真正生效实际上在__evict_get_ref中，实际上worker线程reconcile的时候只会选择这部分候选page
     uint32_t evict_candidates;     /* LRU list pages to evict */
     //也就是当前队列的末尾位置，赋值见__evict_walk
     uint32_t evict_entries;        /* LRU entries in the queue */
@@ -81,7 +83,7 @@ typedef enum __wt_cache_op {
 
 //每个connection对应一个WT_CACHE(__wt_cache)及WT_CONNECTION_IMPL(__wt_connection_impl)
 //WT_CONNECTION_IMPL->cache为该结构
- */
+ */ //WT_CONNECTION_IMPL.cache
 struct __wt_cache {
     /*
      * Different threads read/write pages to/from the cache and create pages in the cache, so we
@@ -133,15 +135,19 @@ struct __wt_cache {
     /*
      * Read information.
      */
+    //初始值WT_READGEN_START_VALUE，自增赋值见__wt_cache_read_gen_incr，是一个一直自增的遍历，表示做了多少轮__evict_pass扫描
+    //__wt_cache_read_gen获取该值   //__wt_cache.read_gen代表全局的read_gen，page.read_gen代表指定表的
     uint64_t read_gen;        /* Current page read generation */
+    //初始值WT_READGEN_START_VALUE，赋值见__evict_lru_walk, 真正生效见__wt_cache_read_gen_new
     uint64_t read_gen_oldest; /* Oldest read generation the eviction
                                * server saw in its last queue load */
     //__evict_pass中自增，实际上代表进行了多少轮__evict_pass
+    //__wt_page_evict_retry中会使用
     uint64_t evict_pass_gen;  /* Number of eviction passes */
 
     /*
      * Eviction thread information.
-     
+
      //用户线程发送evict_cond信号: __wt_cache_eviction_check->__wt_cache_eviction_worker->__wt_evict_server_wake
      //evict server线程发送evict_cond信号: //__evict_walk_tree->__wt_page_evict_urgent->__wt_evict_server_wake
      */
@@ -237,7 +243,7 @@ struct __wt_cache {
     //evict阻塞得评分，评分越高代表evict阻塞越严重，__evict_pass中自增，__evict_pass及__wt_cache_eviction_worker自减
     //__wt_cache_stuck使用该变量判断evict server线程是否阻塞严重
     //注意evict_aggressive_score和evict_empty_score区别
-    uint32_t evict_aggressive_score;
+    uint32_t evict_aggressive_score;//yang add todo xxxxxxxxxxxx  释放应该和cache->eviction_progress一样用原子操作?
 
     /*
      * Score of how often LRU queues are empty on refill. This score varies between 0 (if the queue

@@ -219,6 +219,7 @@
  * Some C compiler address sanitizers complain if qsort is passed a NULL base reference, even if
  * there are no elements to compare (note zero elements is allowed by the IEEE Std 1003.1-2017
  * standard). Avoid the complaint.
+ ²Î¿¼https://www.cnblogs.com/laizhenghong2012/p/8442270.html
  */
 #define __wt_qsort(base, nmemb, size, compar) \
     if ((nmemb) != 0)                         \

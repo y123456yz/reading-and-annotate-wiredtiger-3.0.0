@@ -191,6 +191,8 @@ struct __wt_ckpt {
 
     //创建空间及初始化__ckpt_extlist_read, 类型为WT_BLOCK_CKPT
     //ext list的真实数据ext内存元数据存储在这里__ckpt_extlist_read
+    //bpriv代表上一次该表checkpoint的元数据信息通过__ckpt_extlist_read加载存到这里，在第一次和第二次两次checkpoint期间如果有page有修改，则把这期间修改
+    //的page与第一次的checkpoint在__ckpt_process中做merge
     void *bpriv; /* Block manager private */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */

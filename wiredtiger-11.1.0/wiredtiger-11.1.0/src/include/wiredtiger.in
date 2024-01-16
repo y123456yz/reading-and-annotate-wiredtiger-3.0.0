@@ -98,7 +98,7 @@ struct __wt_item {
 	 * the next operation on that cursor.  Applications that need to keep
 	 * an item across multiple cursor operations must make a copy.
 	 */
-    
+
 	const void *data;
 
 	/*!

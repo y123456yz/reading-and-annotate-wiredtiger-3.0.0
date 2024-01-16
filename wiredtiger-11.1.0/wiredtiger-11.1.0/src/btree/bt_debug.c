@@ -1381,17 +1381,17 @@ __debug_page_row_int(WT_DBG *ds, WT_PAGE *page, uint32_t flags)
     return (0);
 }
 
-static void page_debug_test(WT_PAGE *page, WT_ROW *rip) {  
+static void page_debug_test(WT_PAGE *page, WT_ROW *rip) {
         return ;
-        
+
         if (!page->dsk)
             printf("yang test 111111111111111111\r\n");
         if (!page->pg_row)
             printf("yang test 2222222222222222222\r\n");
-         
+
         if(page->modify->mod_row_update[WT_ROW_SLOT(page, rip)] == NULL)
             printf("yang test 333333333333333333\r\n");
-        
+
 }
 
 /*

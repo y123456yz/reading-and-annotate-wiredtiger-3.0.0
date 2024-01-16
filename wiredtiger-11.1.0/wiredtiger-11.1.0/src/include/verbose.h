@@ -145,13 +145,12 @@ struct __wt_verbose_multi_category {
             verbose_orig_level[category] = S2C(session)->verbose[category];       \
             WT_SET_VERBOSE_LEVEL(session, category, level);                       \
         } while (0)
-    
+
     /* Restore the original level  */
 #define WT_VERBOSE_RESTORE(session, verbose_orig_level, category)              \
         do {                                                                       \
             WT_SET_VERBOSE_LEVEL(session, category, verbose_orig_level[category]); \
         } while (0)
-
 
 /*
  * __wt_verbose_level --

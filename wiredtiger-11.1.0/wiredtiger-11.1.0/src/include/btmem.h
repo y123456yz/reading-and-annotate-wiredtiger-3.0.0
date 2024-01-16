@@ -149,7 +149,7 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
 /*
  * WT_ADDR --
  *	An in-memory structure to hold a block's location.
- */ 
+ */
 //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
 //赋值见__rec_split_write
 //__wt_multi.addr为该类型
@@ -364,6 +364,7 @@ struct __wt_page_modify {
     uint64_t first_dirty_txn;
 
     /* The transaction state last time eviction was attempted. */
+    //__reconcile_save_evict_state中赋值
     uint64_t last_evict_pass_gen;
     uint64_t last_eviction_id;
     wt_timestamp_t last_eviction_timestamp;
@@ -704,7 +705,7 @@ struct __wt_page {
         WT_ASSERT(session, __wt_session_gen(session, WT_GEN_SPLIT) != 0); \
         (pindex) = WT_INTL_INDEX_GET_SAFE(page);                          \
     } while (0)
-    
+
 //page的__index数组赋值，见__wt_page_alloc
 #define WT_INTL_INDEX_SET(page, v)      \
     do {                                \
@@ -773,8 +774,8 @@ struct __wt_page {
      * The entries field only applies to leaf pages, internal pages use the page-index entries
      * instead.
      */
-    // An internal Btree page will have an array of WT_REF structures. 
-    //A row-store leaf page will have an array of WT_ROW structures representing the KV pairs stored on the page. 
+    // An internal Btree page will have an array of WT_REF structures.
+    //A row-store leaf page will have an array of WT_ROW structures representing the KV pairs stored on the page.
     //赋值见__wt_page_inmem->__wt_page_inmem
     //代表在磁盘pg_row上面的KV总数,可以参考__wt_evict->__evict_page_dirty_update->__wt_split_multi->__split_multi_lock
     //->__split_multi->__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__wt_page_alloc
@@ -870,11 +871,18 @@ struct __wt_page {
 //__wt_page_evict_soon  Set a page to be evicted as soon as possible.
 #define WT_READGEN_OLDEST 1
 #define WT_READGEN_WONT_NEED 2
+//满足这个条件在__evict_entry_priority中直接评分为WT_READGEN_OLDEST
+//评分在这个范围的page需要立马reconcile
 #define WT_READGEN_EVICT_SOON(readgen) \
     ((readgen) != WT_READGEN_NOTSET && (readgen) < WT_READGEN_START_VALUE)
 #define WT_READGEN_START_VALUE 100
 #define WT_READGEN_STEP 100
-    uint64_t read_gen;
+    //__wt_cache.read_gen代表全局的read_gen，page.read_gen代表指定表的
+     //__wt_cache_read_gen_new: 如果read_gen没有设置，则evict server线程在__evict_walk_tree中选出需要evict的page后通过该函数生成page read_gen
+    //__wt_cache_read_gen_bump: evict worker或者app用户线程在__wt_cache_read_gen_bump中从队列消费这个page reconcile的时候赋值
+
+    //__wt_page_alloc  __wt_page_evict_soon中初始值WT_READGEN_NOTSET，__wt_cache_read_gen_bump __wt_cache_read_gen_new中修改赋值
+    uint64_t read_gen;//evict server线程通过该值对挑选的page进行评分，见__evict_entry_priority
 
     uint64_t cache_create_gen; /* Page create timestamp */
     //赋值见__evict_walk_tree，也就是第几轮__evict_pass的时候该page被后台evict server线程选中淘汰的
@@ -1114,10 +1122,10 @@ struct __wt_ref {
 leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
 
 上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
-*/ 
+*/
 //从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page addr元数据[ref key, leaf page ext元数据]
-//  internal2记录leaf3和leaf4的page addr元数据[ref key, leaf page ext元数据], 
-//  root记录internal1和internal2的 addr元数据[ref key, leaf page ext元数据], 
+//  internal2记录leaf3和leaf4的page addr元数据[ref key, leaf page ext元数据],
+//  root记录internal1和internal2的 addr元数据[ref key, leaf page ext元数据],
     void *addr;//对应WT_ADDR，参考__wt_multi_to_ref
 
     /*
@@ -1295,6 +1303,7 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
 #define WT_REF_CAS_STATE(session, ref, old_state, new_state) \
     __wt_ref_cas_state_int(session, ref, old_state, new_state, __PRETTY_FUNCTION__, __LINE__)
 
+//WT_REF_LOCK和WT_REF_UNLOCK对应
 #define WT_REF_LOCK(session, ref, previous_statep)                             \
     do {                                                                       \
         uint8_t __previous_state;                                              \
@@ -1307,6 +1316,7 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
         *(previous_statep) = __previous_state;                                 \
     } while (0)
 
+//WT_REF_LOCK和WT_REF_UNLOCK对应
 #define WT_REF_UNLOCK(ref, state) WT_REF_SET_STATE(ref, state)
 
 /*
@@ -1435,7 +1445,7 @@ struct __wt_ikey {
  * the page. A slot points to a WT_UPDATE structure; if more than one update is done for an entry,
  * WT_UPDATE structures are formed into a forward-linked list.
   参考官方文档https://source.wiredtiger.com/develop/arch-cache.html
-  
+
  */ //分配__wt_upd_alloc空间
 //分配__wt_upd_alloc空间 //KV中的key对应WT_INSERT，value对应WT_UPDATE(WT_INSERT.upd)
 //__wt_insert.upd为该类型,记录的是V的变化过程
@@ -1603,7 +1613,7 @@ struct __wt_update_vector {
  * to re-implement, IMNSHO.)
   跳跃表图解参考https://www.jb51.net/article/199510.htm
 
- */ 
+ */
 //__wt_row_insert_alloc  WT_INSERT头部+level空间+真实数据key
 //mod_row_insert为该类型，一个insertKV对应的__wt_insert都在mod_row_insert对应跳跃表中
 struct __wt_insert {

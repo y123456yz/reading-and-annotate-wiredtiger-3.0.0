@@ -156,7 +156,7 @@ __wt_connection_close(WT_CONNECTION_IMPL *conn)
 
     /* Close any file handles left open. */
     WT_TRET(__wt_close_connection_close(session));
-    
+
     /*
      * Close the internal (default) session, and switch back to the dummy session in case of any
      * error messages from the remaining operations while destroying the connection handle.

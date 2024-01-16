@@ -63,7 +63,7 @@ access_example(void)
     WT_ITEM value_item;
     WT_ITEM value_item2;
     int i =0;
-    
+
 #ifdef HAVE_DIAGNOSTIC
     WT_BTREE *btree;
     int ret;
@@ -158,7 +158,6 @@ access_example(void)
     btree = CUR2BT(cbt);
     //usleep(10000000);
 
-
     WT_WITH_BTREE(session_impl, btree, ret = __wt_debug_tree_all(session_impl, NULL, NULL, NULL));
     if (!ret)
         printf("yang test 111111111111111111111__wt_debug_tree_all11111ss1111111111111111111111 error\r\n");
@@ -215,5 +214,3 @@ main(int argc, char *argv[])
 
     return (EXIT_SUCCESS);
 }
-
-

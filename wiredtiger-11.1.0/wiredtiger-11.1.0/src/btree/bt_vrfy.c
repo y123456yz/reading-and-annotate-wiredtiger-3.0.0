@@ -32,11 +32,11 @@ typedef struct {
     bool read_corrupt;
 
     /* Page layout information. */
-    //__dump_layout    ../../../wt  verify -d dump_layout file:access.wt 
-    uint64_t depth, 
+    //__dump_layout    ../../../wt  verify -d dump_layout file:access.wt
+    uint64_t depth,
         //数组有几个成员不位0，就代表internal page有几层，每个的数组内容值代表第几层的internal page数
         //例如depth_internal[0]=2, depth_internal[1]=11, 则一共2层，第一层2个 inter page, 第二层11个inter page
-        depth_internal[100], 
+        depth_internal[100],
         depth_leaf[100];
 
     WT_ITEM *tmp1, *tmp2, *tmp3, *tmp4; /* Temporary buffers */
@@ -111,7 +111,7 @@ __verify_config(WT_SESSION_IMPL *session, const char *cfg[], WT_VSTUFF *vs)
  * __verify_config_offsets --
  *     Debugging: optionally dump specific blocks from the file.
 
- ../../../wt  verify -d dump_offsets=28672-45056 file:access.wt 
+ ../../../wt  verify -d dump_offsets=28672-45056 file:access.wt
  //直接读取offset块的内容打印
  */
 static int
@@ -149,7 +149,7 @@ __verify_config_offsets(WT_SESSION_IMPL *session, const char *cfg[], bool *quitp
 /*
  * __dump_layout --
  *     Dump the tree shape.
- //../../../wt  verify -d dump_layout file:access.wt 
+ //../../../wt  verify -d dump_layout file:access.wt
 
 Root: [0: 143360-147456, 4096, 1658816596] row-store internal
 Internal page tree-depth (total 980):
@@ -168,7 +168,7 @@ __dump_layout(WT_SESSION_IMPL *session, WT_VSTUFF *vs)
     for (i = 0, total = 0; i < WT_ELEMENTS(vs->depth_internal); ++i)
         total += vs->depth_internal[i];
     WT_RET(__wt_msg(session, "Internal page tree-depth (total %" PRIu64 "):", total));
-    
+
     for (i = 0; i < WT_ELEMENTS(vs->depth_internal); ++i)
         if (vs->depth_internal[i] != 0) {
             WT_RET(__wt_msg(session, "\t%03" WT_SIZET_FMT ": %" PRIu64, i, vs->depth_internal[i]));
@@ -272,8 +272,8 @@ __wt_verify(WT_SESSION_IMPL *session, const char *cfg[])
             if (WT_VRFY_DUMP(vs))
                 //root元数据 __wt_verify checkpoint Root addr: [0: 8192-12288, 4096, 2135989381] row-store internal
 
-                //也就是这里面的root[1702810767:821086][78428:0x7f33ca1ea800], wt, file:WiredTiger.wt, close_ckpt: [WT_VERB_CHECKPOINT][DEBUG_5]: WiredTiger.wt: 
-                //create: WiredTigerCheckpoint: version=1, object ID=0, root=[off: 20480-24576, size: 4096, checksum: 0x8a7f3c2e], alloc=[off: 24576-28672, size: 4096, checksum: 0x54c37a00], 
+                //也就是这里面的root[1702810767:821086][78428:0x7f33ca1ea800], wt, file:WiredTiger.wt, close_ckpt: [WT_VERB_CHECKPOINT][DEBUG_5]: WiredTiger.wt:
+                //create: WiredTigerCheckpoint: version=1, object ID=0, root=[off: 20480-24576, size: 4096, checksum: 0x8a7f3c2e], alloc=[off: 24576-28672, size: 4096, checksum: 0x54c37a00],
                 //avail=[off: 28672-32768, size: 4096, checksum: 0x8d171410], discard=[Empty], file size=36864, checkpoint size=4096
                 WT_ERR(__wt_msg(session, "__wt_verify checkpoint Root addr: %s %s",
                   __wt_addr_string(session, root_addr, root_addr_size, vs->tmp1),
@@ -434,12 +434,12 @@ __verify_tree(
     bm = btree->bm;
     unpack = &_unpack;
     page = ref->page;
-    
-    __wt_verbose(session, WT_VERB_VERIFY, "__verify_tree string:%s %s", 
+
+    __wt_verbose(session, WT_VERB_VERIFY, "__verify_tree string:%s %s",
         //解析addr中的ext内容元数据存储到buf中
         __verify_addr_string(session, ref, vs->tmp1),
         __wt_page_type_string(page->type));
-    
+
     /* Optionally dump address information. */
     if (vs->dump_address)
         WT_RET(__wt_msg(session, "%s %s", __verify_addr_string(session, ref, vs->tmp1),
@@ -472,11 +472,11 @@ __verify_tree(
     if (++vs->fcnt % WT_VERIFY_PROGRESS_INTERVAL == 0)
         WT_RET(__wt_progress(session, NULL, vs->fcnt));
 
-#ifdef HAVE_DIAGNOSTIC 
+#ifdef HAVE_DIAGNOSTIC
     /* Optionally dump the blocks or page in debugging mode. */
     if (vs->dump_blocks && page->type != WT_PAGE_ROW_LEAF)
         WT_RET(__wt_debug_disk(session, page->dsk, NULL));
-        
+
     if (vs->dump_pages && page->type != WT_PAGE_ROW_LEAF)
         WT_RET(__wt_debug_page(session, NULL, ref, NULL));
 #endif
@@ -1182,4 +1182,3 @@ __verify_page_content_leaf(
 
     return (0);
 }
-

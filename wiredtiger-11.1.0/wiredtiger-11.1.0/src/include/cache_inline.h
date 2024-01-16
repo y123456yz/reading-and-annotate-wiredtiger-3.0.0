@@ -20,16 +20,19 @@ __wt_cache_aggressive(WT_SESSION_IMPL *session)
 /*
  * __wt_cache_read_gen --
  *     Get the current read generation number.
+ 全局的read_gen
  */
 static inline uint64_t
 __wt_cache_read_gen(WT_SESSION_IMPL *session)
 {
+    //__wt_cache.read_gen代表全局的read_gen，page.read_gen代表指定表的
     return (S2C(session)->cache->read_gen);
 }
 
 /*
  * __wt_cache_read_gen_incr --
  *     Increment the current read generation number.
+ __evict_pass中调用
  */
 static inline void
 __wt_cache_read_gen_incr(WT_SESSION_IMPL *session)
@@ -40,6 +43,10 @@ __wt_cache_read_gen_incr(WT_SESSION_IMPL *session)
 /*
  * __wt_cache_read_gen_bump --
  *     Update the page's read generation.
+  //__wt_cache_read_gen_new: 如果read_gen没有设置，则evict server线程在__evict_walk_tree中选出需要evict的page后通过该函数生成page read_gen
+ //__wt_cache_read_gen_bump: evict worker或者app用户线程在__wt_cache_read_gen_bump中从队列消费这个page reconcile的时候赋值
+
+ //evict worker线程如果挑选了该page进行reconcile，则调用__wt_cache_read_gen_bump获取一个新的read_gen
  */
 static inline void
 __wt_cache_read_gen_bump(WT_SESSION_IMPL *session, WT_PAGE *page)
@@ -65,6 +72,8 @@ __wt_cache_read_gen_bump(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_cache_read_gen_new --
  *     Get the read generation for a new page in memory.
+  //__wt_cache_read_gen_new: 如果read_gen没有设置，则evict server线程在__evict_walk_tree中选出需要evict的page后通过该函数生成page read_gen
+ //__wt_cache_read_gen_bump: evict worker或者app用户线程在__wt_cache_read_gen_bump中从队列消费这个page reconcile的时候赋值
  */
 static inline void
 __wt_cache_read_gen_new(WT_SESSION_IMPL *session, WT_PAGE *page)

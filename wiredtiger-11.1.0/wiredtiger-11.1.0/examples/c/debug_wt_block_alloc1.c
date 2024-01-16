@@ -45,7 +45,7 @@ usage(void)
     printf("\n");
 }
 
-//  clear && rm -rf WT_HOME && ./ex_hello -i 1   
+//  clear && rm -rf WT_HOME && ./ex_hello -i 1
 /*
 [1698325054:332413][71578:0x7f9d57e49700], eviction-server: [WT_VERB_EVICTSERVER][DEBUG_2]: Eviction pass with: Max: 104857600 In use: 6172764 Dirty: 4978115
 [1698325054:332484][71578:0x7f9d57e49700], eviction-server: [WT_VERB_MUTEX][DEBUG_2]: wait cache eviction server
@@ -72,7 +72,7 @@ usage(void)
 [1698325054:352318][71578:0x7f9d57e49700], file:access.wt, evict pass: [WT_VERB_EVICTSERVER][DEBUG_2]: file:access.wt walk: seen 55, queued 0
 [1698325054:352324][71578:0x7f9d57e49700], eviction-server: [WT_VERB_MUTEX][DEBUG_2]: wait cache eviction server
 [1698325054:354308][71578:0x7f9d57e49700], eviction-server: [WT_VERB_EVICTSERVER][DEBUG_2]: Eviction pass with: Max: 104857600 In use: 6172764 Dirty: 4978115
-[1698325054:354340][71578:0x7f9d57e49700], eviction-server: [WT_VERB_MUTEX][DEBUG_2]: wait cache eviction server  
+[1698325054:354340][71578:0x7f9d57e49700], eviction-server: [WT_VERB_MUTEX][DEBUG_2]: wait cache eviction server
 */
 
 static void
@@ -89,7 +89,7 @@ access_example(int argc, char *argv[])
     char cmd_buf[512];
     char buf[512];
     int i;
-    
+
     const char *cmdflags = "i:l:";
     /* Do a basic validation of options */
     while ((ch = __wt_getopt("ex_access", argc, argv, cmdflags)) != EOF) {
@@ -134,7 +134,7 @@ access_example(int argc, char *argv[])
         /*! [access example cursor open] */
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
-        
+
         #define MAX_TEST_KV_NUM 10000
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
@@ -143,7 +143,7 @@ access_example(int argc, char *argv[])
 
             //value_item.data = "old value  ###############################################################################################################################################################################################################\0";
             //value_item.size = strlen(value_item.data) + 1;
-            
+
             cursor->set_value(cursor, "old value  ###############################################################################################################################################################################################################\0");
             error_check(cursor->insert(cursor));
         }
@@ -152,7 +152,7 @@ access_example(int argc, char *argv[])
         /*! [access example cursor insert] */
 
         /*! [access example cursor list] */
-        /*error_check(cursor->reset(cursor));  
+        /*error_check(cursor->reset(cursor));
         while ((ret = cursor->next(cursor)) == 0) {
             error_check(cursor->get_key(cursor, &key));
             error_check(cursor->get_value(cursor, &value));
@@ -214,4 +214,3 @@ main(int argc, char *argv[])
 
     return (EXIT_SUCCESS);
 }
-

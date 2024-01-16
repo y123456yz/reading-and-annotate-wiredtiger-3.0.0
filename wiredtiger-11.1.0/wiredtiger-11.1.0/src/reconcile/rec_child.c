@@ -195,7 +195,7 @@ __wt_rec_child_modify(
      * use, there are other page states that must be considered.
      */
     for (;; __wt_yield()) {
-       // printf("yang test ...........................__wt_rec_child_modify....ref:%p, page:%p..... ref->state:%u\r\n", 
+       // printf("yang test ...........................__wt_rec_child_modify....ref:%p, page:%p..... ref->state:%u\r\n",
       //      ref, ref->page, ref->state);
         switch (r->tested_ref_state = ref->state) {
         case WT_REF_DISK:

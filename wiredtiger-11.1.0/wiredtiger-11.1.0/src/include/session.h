@@ -60,7 +60,6 @@ typedef TAILQ_HEAD(__wt_cursor_list, __wt_cursor) WT_CURSOR_LIST;
 /* Maximum number of buckets to visit during cursor sweep. */
 #define WT_SESSION_CURSOR_SWEEP_MAX 32
 
-
 /*
  * Session memory persists past session close because it's accessed by threads of control other
  * than the thread owning the session. For example, btree splits and hazard pointers can "free"
@@ -76,7 +75,6 @@ struct __wt_session_stash {
     size_t cnt;   /* Array entries */
     size_t alloc; /* Allocated bytes */
 };
-
 
 /*
  * WT_SESSION_IMPL --
@@ -108,7 +106,6 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     //用户线程因为总内存消耗、脏数据、update消耗过多，等等evict page的耗时，
     //调用session接口的时候API_SESSION_INIT中初始化为0，__wt_cache_eviction_worker做耗时统计
     uint64_t cache_wait_us;        /* Wait time for cache for current operation */
-
 
     ////wiredtiger_open conn维度operation_timeout_ms获取，如果operation_timeout_ms有配置，
     // 则__wt_op_timer_start获取开始时间，超时时间也就是operation_timeout_ms配置

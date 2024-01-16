@@ -102,7 +102,7 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
      * Insert: allocate an insert array as necessary, build a WT_INSERT and WT_UPDATE structure
      * pair, and call a serialized function to insert the WT_INSERT structure.
      */
-   
+
     if (cbt->compare == 0) {
         //找出需要update或者remove的K对应的update位置，也就是修改前的value upd
         if (cbt->ins == NULL) {

@@ -1303,7 +1303,6 @@ err:
     API_END_RET(session, ret);
 }
 
-
 /*
  * __conn_open_session --
  *     WT_CONNECTION->open_session method.
@@ -2165,7 +2164,7 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
     static const WT_NAME_FLAG verbtypes[] = {{"config_all_verbos", WT_VERB_ALL}, {"api", WT_VERB_API},
       {"backup", WT_VERB_BACKUP}, {"block", WT_VERB_BLOCK}, {"block_cache", WT_VERB_BLKCACHE},
       {"checkpoint", WT_VERB_CHECKPOINT}, {"checkpoint_cleanup", WT_VERB_CHECKPOINT_CLEANUP},
-      {"checkpoint_progress", WT_VERB_CHECKPOINT_PROGRESS}, 
+      {"checkpoint_progress", WT_VERB_CHECKPOINT_PROGRESS},
       {"compact", WT_VERB_COMPACT}, {"compact_progress", WT_VERB_COMPACT_PROGRESS},
       {"error_returns", WT_VERB_ERROR_RETURNS}, {"evict", WT_VERB_EVICT},
       {"evict_stuck", WT_VERB_EVICT_STUCK}, {"evictserver", WT_VERB_EVICTSERVER},
@@ -2262,17 +2261,15 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 
     do {
       //  int i;
-        
+
      //   for (i = 0;i < WT_VERB_NUM_CATEGORIES; i++)
      //       conn->verbose[i] = 0; //yang add test xxxxxxxxxxxx
     } while(0);
-    
 
     printf("yang test ...........__wt_verbose_config..............%d\r\n", conn->verbose[WT_VERB_EVICT]);
     printf("yang test ...........__wt_verbose_config.....WT_VERB_EVICTSERVER.........%d\r\n", conn->verbose[WT_VERB_EVICTSERVER]);
     return (0);
 }
-
 
 /*
 const char*

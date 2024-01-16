@@ -77,7 +77,7 @@ struct __wt_rec_chunk {
     //磁盘中的数据信息，参考__rec_split_write
     //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
     //__rec_split_chunk_init提前申请需要写入到磁盘的一个reconcile内存image空间
-    
+
     //r->first_free指向这里面的实际数据位置，也就是(WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据)中的实际数据
     //默认空间大小是按照disk_img_buf_size对齐的，参考__rec_split_chunk_init
 
@@ -184,9 +184,9 @@ struct __wt_reconcile {
      * primary and auxiliary portions.
      */
     //__wt_rec_split_init
-    
+
     //leaf page对应btree->maxleafpage_precomp
-    //internal page对应btree->maxintlpage_precomp 
+    //internal page对应btree->maxintlpage_precomp
     uint32_t page_size; /* Page size */
 
     /*

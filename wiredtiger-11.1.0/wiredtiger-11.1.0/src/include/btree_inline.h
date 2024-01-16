@@ -6,7 +6,6 @@
  * See the file LICENSE for redistribution information.
  */
 
-
 /*
  * A row-store leaf page key is in one of two places: if instantiated, the WT_ROW pointer
  * references a WT_IKEY structure, otherwise, it references an on-page item. Further, on-page
@@ -117,7 +116,6 @@
 #define WT_KV_MAX_KEY_CELL_OFFSET (0x20000 - 1)
 #define WT_KV_DECODE_KEY_CELL_OFFSET(v) (((v)&0x0000000007fffc) >> 2)
 #define WT_KV_ENCODE_KEY_CELL_OFFSET(v) ((uintptr_t)(v) << 2)
-
 
 /*
  * __wt_ref_is_root --
@@ -635,7 +633,7 @@ __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
     if (WT_PAGE_IS_INTERNAL(page)) {
         //脏页page数量统计
         (void)__wt_atomic_add64(&cache->pages_dirty_intl, 1);
-        
+
         (void)__wt_atomic_add64(&cache->bytes_dirty_intl, size);
         (void)__wt_atomic_add64(&btree->bytes_dirty_intl, size);
     } else {
@@ -698,7 +696,7 @@ __wt_cache_page_image_decr(WT_SESSION_IMPL *session, WT_PAGE *page)
 /*
  * __wt_cache_page_image_incr --
  *     Increment a page image's size to the cache.
- */ 
+ */
 static inline void
 __wt_cache_page_image_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
 {
@@ -1534,7 +1532,7 @@ struct __wt_addr_copy {
 /*
  * __wt_ref_addr_copy --
  *     Return a copy of the WT_REF address information.
- 
+
  */
 //拷贝ref addr信息到copy中
 static inline bool
@@ -1777,7 +1775,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
      * correctness (the page must be reconciled again before being evicted after the split,
      * information from a previous reconciliation will be wrong, so we can't evict immediately).
      */
-    //一定要大于splitmempage(80% * maxmempage)才可以进行内存splite  
+    //一定要大于splitmempage(80% * maxmempage)才可以进行内存splite
     if (page->memory_footprint < btree->splitmempage)
         return (false);
     if (WT_PAGE_IS_INTERNAL(page))
@@ -1836,7 +1834,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
          ins = ins->next[WT_MIN_SPLIT_DEPTH]) {
         count2 += WT_MIN_SPLIT_MULTIPLIER;
         size += WT_MIN_SPLIT_MULTIPLIER * (WT_INSERT_KEY_SIZE(ins) + WT_UPDATE_MEMSIZE(ins->upd));
-        if (count2 > WT_MIN_SPLIT_COUNT && 
+        if (count2 > WT_MIN_SPLIT_COUNT &&
             (size > (size_t)btree->maxleafpage || size > btree->splitmempage)) {
        // if (count2 > WT_MIN_SPLIT_COUNT && size > (size_t)btree->maxleafpage) {
             WT_STAT_CONN_DATA_INCR(session, cache_inmem_splittable);
@@ -1875,6 +1873,7 @@ __wt_page_evict_retry(WT_SESSION_IMPL *session, WT_PAGE *page)
      * a reasonable amount of time is currently pretty arbitrary.
      */
     if (__wt_cache_aggressive(session) ||
+      //yang add todo xxxxxxxxxxxxxxxx，上次reconcile evict后, 这次又选到
       mod->last_evict_pass_gen + 5 < S2C(session)->cache->evict_pass_gen)
         return (true);
 
@@ -2024,7 +2023,7 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
      * If the session is configured with the release_evict_pages debug option, we will attempt to
      * evict the pages when they are no longer needed.
      */
- 
+
     if (F_ISSET(session, WT_SESSION_DEBUG_RELEASE_EVICT)) {
         WT_TRET_BUSY_OK(__wt_page_release_evict(session, ref, flags));
         return (0);

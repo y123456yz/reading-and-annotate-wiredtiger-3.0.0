@@ -209,7 +209,7 @@ struct __wt_cell_unpack_common {
     const void *data; /* Data */
     //数据长度
     uint32_t size;    /* Data size */
-    //存储数据长度的字节数+存储真实数据的长度  
+    //存储数据长度的字节数+存储真实数据的长度
     uint32_t __len; /* Cell + data length (usually) */
 
     uint8_t prefix; /* Cell prefix length */

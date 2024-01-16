@@ -1,0 +1,1727 @@
+alter.c:/*-
+alter.c: * Public Domain 2014-present MongoDB, Inc.
+alter.c: * Public Domain 2008-2014 WiredTiger, Inc.
+alter.c: * binary, for any purpose, commercial or non-commercial, and by any
+alter.c: * alter --
+alter.c:        trace_msg(session, "Alter #%u URI %s start %s", ++counter, table->uri, buf);
+alter.c:        while ((ret = session->alter(session, table->uri, buf)) != 0 && ret != EBUSY)
+alter.c:        trace_msg(session, "Alter #%u URI %s stop", counter, table->uri);
+alter.c:            --period;
+backup.c:/*-
+backup.c: * Public Domain 2014-present MongoDB, Inc.
+backup.c: * Public Domain 2008-2014 WiredTiger, Inc.
+backup.c: * binary, for any purpose, commercial or non-commercial, and by any
+backup.c: * check_copy --
+backup.c: * active_files_init --
+backup.c: * active_files_print --
+backup.c:    fprintf(stderr, "Active files: %s, %" PRIu32 " entries\n", msg, active->count);
+backup.c:    for (i = 0; i < active->count; i++)
+backup.c:        fprintf(stderr, "  %s\n", active->names[i]);
+backup.c: * active_files_add --
+backup.c:    pos = active->count++;
+backup.c:    active->names = drealloc(active->names, sizeof(char *) * active->count);
+backup.c:    active->names[pos] = strdup(name);
+backup.c: * active_files_sort_function --
+backup.c: * active_files_sort --
+backup.c:    __wt_qsort(active->names, active->count, sizeof(char *), active_files_sort_function);
+backup.c: * active_files_remove_missing --
+backup.c:     * Walk through the two lists looking for non-matches.
+backup.c:    for (prevpos = 0; prevpos < prev->count; prevpos++) {
+backup.c:        if (curpos >= cur->count)
+backup.c:            cmp = -1; /* There are extra entries at the end of the prev list */
+backup.c:            cmp = strcmp(prev->names[prevpos], cur->names[curpos]);
+backup.c:             * - don't advance the current list.
+backup.c:              filename, sizeof(filename), "%s/BACKUP/%s", g.home, prev->names[prevpos]));
+backup.c:              filename, sizeof(filename), "%s/BACKUP.copy/%s", g.home, prev->names[prevpos]));
+backup.c: * active_files_free --
+backup.c:    for (i = 0; i < active->count; i++)
+backup.c:        free(active->names[i]);
+backup.c:    free(active->names);
+backup.c: * copy_blocks --
+backup.c: *     Perform a single block-based incremental backup of the given file.
+backup.c:    rfd = wfd1 = wfd2 = -1;
+backup.c:    testutil_check(session->open_cursor(session, NULL, bkup_c, config, &incr_cur));
+backup.c:    while ((ret = incr_cur->next(incr_cur)) == 0) {
+backup.c:        testutil_check(incr_cur->get_key(incr_cur, &offset, &size, &type));
+backup.c:                testutil_assert_errno((rfd = open(tmp, O_RDONLY, 0644)) != -1);
+backup.c:                testutil_assert_errno((wfd1 = open(tmp, O_WRONLY | O_CREAT, 0644)) != -1);
+backup.c:                testutil_assert_errno((wfd2 = open(tmp, O_WRONLY | O_CREAT, 0644)) != -1);
+backup.c:            if (lseek(rfd, (wt_off_t)offset, SEEK_SET) == -1)
+backup.c:                testutil_die(errno, "backup-read: lseek");
+backup.c:            if (lseek(wfd1, (wt_off_t)offset, SEEK_SET) == -1)
+backup.c:                testutil_die(errno, "backup-write1: lseek");
+backup.c:            if (lseek(wfd2, (wt_off_t)offset, SEEK_SET) == -1)
+backup.c:                testutil_die(errno, "backup-write2: lseek");
+backup.c:                testutil_assert_errno((rdsize = read(rfd, tmp, this_size)) != -1);
+backup.c:                testutil_assert_errno((write(wfd1, tmp, (size_t)rdsize)) != -1);
+backup.c:                testutil_assert_errno((write(wfd2, tmp, (size_t)rdsize)) != -1);
+backup.c:                this_size = WT_MIN(this_size, size - total);
+backup.c:            testutil_assert(rfd == -1);
+backup.c:    testutil_check(incr_cur->close(incr_cur));
+backup.c:    if (rfd != -1) {
+backup.c: * restore_backup_info --
+backup.c:     * then return non-zero so that we skip incremental restart testing.
+backup.c:    while ((ret = session->open_cursor(session, "backup:", NULL, buf, &cursor)) == EBUSY)
+backup.c:    testutil_check(cursor->close(cursor));
+backup.c:    ret = fscanf(fp, "%" SCNu32 "\n", &active->count);
+backup.c:    active->names = drealloc(active->names, sizeof(char *) * active->count);
+backup.c:    for (i = 0; i < active->count; ++i) {
+backup.c:        active->names[i] = strdup(buf);
+backup.c: * save_backup_info --
+backup.c:    if (active->count > 0) {
+backup.c:        fprintf(fp, "%" PRIu32 "\n", active->count);
+backup.c:        for (i = 0; i < active->count; ++i)
+backup.c:            fprintf(fp, "%s\n", active->names[i]);
+backup.c: * copy_format_files --
+backup.c: *     Copies over format-specific files to the BACKUP.copy directory. These include CONFIG and any
+backup.c: * backup --
+backup.c:            --period;
+backup.c:                src_id = g.backup_id - 1;
+backup.c:             * Copy format-specific files into the backup directories so that test/format can be run
+backup.c:          (ret = session->open_cursor(session, "backup:", NULL, config, &backup_cursor)) == EBUSY) {
+backup.c:        while ((ret = backup_cursor->next(backup_cursor)) == 0) {
+backup.c:            testutil_check(backup_cursor->get_key(backup_cursor, &key));
+backup.c:            testutil_die(ret, "backup-cursor");
+backup.c:        /* After a log-based incremental backup, truncate the log files. */
+backup.c:            testutil_check(session->truncate(session, "log:", backup_cursor, NULL, NULL));
+backup.c:        testutil_check(backup_cursor->close(backup_cursor));
+backup.c:        if (--incremental == 0) {
+bulk.c:/*-
+bulk.c: * Public Domain 2014-present MongoDB, Inc.
+bulk.c: * Public Domain 2008-2014 WiredTiger, Inc.
+bulk.c: * binary, for any purpose, commercial or non-commercial, and by any
+bulk.c: * bulk_begin_transaction --
+bulk.c: *     Begin a bulk-load transaction.
+bulk.c:    testutil_check(session->timestamp_transaction_uint(session, WT_TS_TXN_TYPE_READ, ts));
+bulk.c: * bulk_commit_transaction --
+bulk.c: *     Commit a bulk-load transaction.
+bulk.c:    testutil_check(session->timestamp_transaction_uint(session, WT_TS_TXN_TYPE_COMMIT, ts));
+bulk.c:    testutil_check(session->commit_transaction(session, NULL));
+bulk.c: * bulk_rollback_transaction --
+bulk.c: *     Rollback a bulk-load transaction.
+bulk.c:    testutil_check(session->rollback_transaction(session, NULL));
+bulk.c: * table_load --
+bulk.c:    testutil_check(__wt_snprintf(track_buf, sizeof(track_buf), "table %u %s load", table->id,
+bulk.c:    trace_msg(session, "=============== %s bulk load start", table->uri);
+bulk.c:        wt_wrap_open_cursor(session, base->uri, NULL, &base_cursor);
+bulk.c:    wt_wrap_open_cursor(session, table->uri, is_bulk ? "bulk,append" : NULL, &cursor);
+bulk.c:        if (table->type == ROW)
+bulk.c:            testutil_check(base_cursor->get_value(base_cursor, &value));
+bulk.c:        switch (table->type) {
+bulk.c:                cursor->set_key(cursor, keyno);
+bulk.c:            cursor->set_value(cursor, bitv);
+bulk.c:                cursor->set_key(cursor, keyno);
+bulk.c:            cursor->set_value(cursor, &value);
+bulk.c:            cursor->set_key(cursor, &key);
+bulk.c:            cursor->set_value(cursor, &value);
+bulk.c:         * We don't want to size the cache to ensure the initial data set can load in the in-memory
+bulk.c:        if ((ret = cursor->insert(cursor)) != 0) {
+bulk.c:                TV(OPS_PCT_DELETE) += TV(OPS_PCT_INSERT) - 5;
+bulk.c:            TV(OPS_PCT_WRITE) -= v;
+bulk.c:    trace_msg(session, "=============== %s bulk load stop", table->uri);
+bulk.c:          base == NULL, "table %u: unable to load matching rows into a mirrored table", table->id);
+bulk.c:        rows_current = g.transaction_timestamps_config ? committed_keyno : (keyno - 1);
+bulk.c:    table->rows_current = TV(RUNS_ROWS);
+bulk.c: * wts_load --
+bulk.c:                table_load(tables[i]->mirror ? g.base_mirror : NULL, tables[i]);
+bulk.c:        testutil_check(session->checkpoint(session, NULL));
+checkpoint.c:/*-
+checkpoint.c: * Public Domain 2014-present MongoDB, Inc.
+checkpoint.c: * Public Domain 2008-2014 WiredTiger, Inc.
+checkpoint.c: * binary, for any purpose, commercial or non-commercial, and by any
+checkpoint.c: * wts_checkpoints --
+checkpoint.c:    testutil_check(g.wts_conn->reconfigure(g.wts_conn, config));
+checkpoint.c: * checkpoint --
+checkpoint.c:            --secs;
+checkpoint.c:         * LSM and data-sources don't support named checkpoints. Also, don't attempt named
+checkpoint.c:        testutil_check(session->checkpoint(session, ckpt_config));
+CMakeLists.txt:target_compile_options(test_format PRIVATE -DEXT_LIBPATH="")
+compact.c:/*-
+compact.c: * Public Domain 2014-present MongoDB, Inc.
+compact.c: * Public Domain 2008-2014 WiredTiger, Inc.
+compact.c: * binary, for any purpose, commercial or non-commercial, and by any
+compact.c: * compact --
+compact.c:            --period;
+compact.c:        ret = session->compact(session, table->uri, NULL);
+compact.c:          "WT_SESSION.compact failed: %s: %d", table->uri, ret);
+config.c:/*-
+config.c: * Public Domain 2014-present MongoDB, Inc.
+config.c: * Public Domain 2008-2014 WiredTiger, Inc.
+config.c: * binary, for any purpose, commercial or non-commercial, and by any
+config.c: * config_random --
+config.c:    for (cp = configuration_list; cp->name != NULL; ++cp) {
+config.c:         * turning old-style CONFIG files into multi-table tests.
+config.c:        if (cp->off == V_GLOBAL_RUNS_TABLES && !g.multi_table_config)
+config.c:        v = &table->v[cp->off];
+config.c:        if (v->set)
+config.c:        if (cp->off == V_TABLE_BTREE_PREFIX_LEN && mmrand(NULL, 1, 100) > 5)
+config.c:              buf, sizeof(buf), "%s=%s", cp->name, mmrand(NULL, 1, 100) <= cp->min ? "on" : "off"));
+config.c:              buf, sizeof(buf), "%s=%" PRIu32, cp->name, mmrand(NULL, cp->min, cp->maxrand)));
+config.c: * config_promote --
+config.c:        testutil_check(__wt_snprintf(buf, sizeof(buf), "%s=%s", cp->name, v->vstr));
+config.c:        testutil_check(__wt_snprintf(buf, sizeof(buf), "%s=%" PRIu32, cp->name, v->v));
+config.c: * config_table_am --
+config.c:     * RS and VLCS but not FLCS. If there's no table value but there was a global value, re-evaluate
+config.c:    if (!table->v[V_TABLE_RUNS_TYPE].set && tables[0]->v[V_TABLE_RUNS_TYPE].set) {
+config.c:             * LSM requires a row-store and backing disk. Don't configure LSM if in-memory,
+config.c:             * FIXME WT-4162: Remove the timestamp test when WT-4162 resolved.
+config.c:            if (table->type != ROW || GV(RUNS_IN_MEMORY))
+config.c:    if (DATASOURCE(table, "lsm") && table->type != ROW)
+config.c: * config_table --
+config.c:     * row-store) and other items depend on them.
+config.c:        for (cp = configuration_list; cp->name != NULL; ++cp)
+config.c:            if (F_ISSET(cp, C_TABLE) && cp->off != V_TABLE_RUNS_MIRROR && !table->v[cp->off].set &&
+config.c:              tables[0]->v[cp->off].set)
+config.c:                config_promote(table, cp, &tables[0]->v[cp->off]);
+config.c:     * Build the top-level object name: we're overloading data_source in our configuration, LSM
+config.c:        testutil_check(__wt_snprintf(table->uri, sizeof(table->uri), "%s",
+config.c:        testutil_check(__wt_snprintf(table->uri, sizeof(table->uri),
+config.c:          DATASOURCE(table, "file") ? "file:F%05u" : "table:T%05u", table->id));
+config.c:      __wt_snprintf(table->track_prefix, sizeof(table->track_prefix), "table %u", table->id));
+config.c:    /* Page sizes are configured using powers-of-two or megabytes, convert them. */
+config.c:    table->max_intl_page = 1U << TV(BTREE_INTERNAL_PAGE_MAX);
+config.c:    table->max_leaf_page = 1U << TV(BTREE_LEAF_PAGE_MAX);
+config.c:    table->max_mem_page = MEGABYTE(TV(BTREE_MEMORY_PAGE_MAX));
+config.c:     * Keep the number of rows and keys/values small for in-memory and direct I/O runs (overflow
+config.c:     * items aren't an issue for in-memory configurations and it helps prevents cache overflow, and
+config.c:    /* Turn off truncate for non-standalone build if timestamp is enabled. */
+config.c:     * sizes are a row-store consideration: column-store doesn't store keys, a constant of 8 will
+config.c:    if (table->type == ROW) {
+config.c:    /* Column-store tables require special row insert resolution. */
+config.c:    if (table->type != ROW)
+config.c:    /* Only row-store tables support a collation order. */
+config.c:    if (table->type != ROW)
+config.c: * config_run --
+config.c:    config_in_memory(); /* Periodically run in-memory. */
+config.c:    config_in_memory_reset();                        /* Reset in-memory as needed */
+config.c:     * Run-length is configured by a number of operations and a timer.
+config.c: * config_backup_incr --
+config.c: * config_backup_incr_granularity --
+config.c: * config_backward_compatible_table --
+config.c: * config_backward_compatible --
+config.c: * config_cache --
+config.c:     * If it's an in-memory run, size the cache at 2x the maximum initial data set. This calculation
+config.c:     * Ensure we can service at least one operation per-thread concurrently without filling the
+config.c:        cache = (cache + (WT_MEGABYTE - 1)) / WT_MEGABYTE;
+config.c: * config_checkpoint --
+config.c: * config_checksum --
+config.c: * config_compression --
+config.c:     * Select a compression type from the list of built-in engines. Listed percentages are only
+config.c: * config_directio --
+config.c:     * format just hung, and the 15-minute timeout isn't effective. We could play games to handle
+config.c: * config_encryption --
+config.c:        config_single(NULL, "disk.encryption=rotn-7", false);
+config.c: * config_fix --
+config.c: *     Fixed-length column-store configuration.
+config.c:    /* Fixed-length column stores don't support modify operations. */
+config.c: * config_in_memory --
+config.c: *     Periodically set up an in-memory configuration.
+config.c:     * Configure in-memory before anything else, in-memory has many related requirements. Don't
+config.c:     * configure in-memory if there's any incompatible configurations, so we don't have to
+config.c:     * reconfigure in-memory every time we configure something like LSM, that's too painful.
+config.c:     * Limit the number of tables in any in-memory run, otherwise it's too easy to blow out the
+config.c: * config_in_memory_reset --
+config.c: *     In-memory configuration review.
+config.c:    /* If doing an in-memory run, make sure we haven't configured something that won't work. */
+config.c: * config_backup_incr_log_compatibility_check --
+config.c: * config_lsm_reset --
+config.c:     * FIXME: WT-4162.
+config.c:     * LSM does not work with block-based incremental backup, change the incremental backup
+config.c: * config_mirrors --
+config.c:            already_set = tables[i]->mirror = true;
+config.c:            if (g.base_mirror == NULL && tables[i]->type != FIX)
+config.c:     * Mirror configuration is potentially confusing: it's a per-table configuration (because it has
+config.c:     * the source of the bulk-load mirror records. Find the first table we can use as a base.
+config.c:        if (tables[i]->type != FIX && !NT_EXPLICIT_OFF(tables[i], RUNS_MIRROR))
+config.c:            --available_tables;
+config.c:    /* Good to go: pick the first non-FLCS table that allows mirroring as our base. */
+config.c:        if (tables[i]->type != FIX && !NT_EXPLICIT_OFF(tables[i], RUNS_MIRROR))
+config.c:    tables[i]->mirror = true;
+config.c:     * Pick some number of tables to mirror, then turn on mirroring the next (n-1) tables, where
+config.c:    for (mirrors = mmrand(NULL, 2, ntables) - 1, i = 1; i <= ntables; ++i) {
+config.c:            tables[i]->mirror = true;
+config.c:            if (--mirrors == 0)
+config.c:     * Give each mirror the same number of rows (it's not necessary, we could treat end-of-table on
+config.c:        if (tables[i]->mirror && tables[i] != g.base_mirror)
+config.c: * config_pct --
+config.c:     * If the "order" field is non-zero, we need to create a value for this operation. Find the
+config.c:     * largest order field in the array; if one non-zero order field is found, it's the last entry
+config.c:    for (pct = 100 - pct;;) {
+config.c:        pct -= *list[max_slot].vp;
+config.c: * config_statistics --
+config.c: * config_transaction --
+config.c:        if (GV(OPS_SALVAGE) && config_explicit(NULL, "ops.salvage")) /* FIXME WT-6431 */
+config.c:    if (GV(OPS_SALVAGE) && config_explicit(NULL, "ops.salvage")) { /* FIXME WT-6431 */
+config.c: * config_error --
+config.c:    fprintf(stderr, "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
+config.c:    fprintf(stderr, "%10s: %s\n", "NNN-NNN", "number range, each number equally likely");
+config.c:    fprintf(stderr, "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
+config.c:    for (max_name = 0, cp = configuration_list; cp->name != NULL; ++cp)
+config.c:        max_name = WT_MAX(max_name, strlen(cp->name));
+config.c:    for (cp = configuration_list; cp->name != NULL; ++cp)
+config.c:        fprintf(stderr, "%*s: %s\n", (int)max_name, cp->name, cp->desc);
+config.c: * config_print_one --
+config.c:        cstr = v->vstr == NULL ? "off" : v->vstr;
+config.c:          (cp->off == V_GLOBAL_DISK_ENCRYPTION || cp->off == V_GLOBAL_LOGGING_COMPRESSION ||
+config.c:            cp->off == V_TABLE_BTREE_COMPRESSION))
+config.c:        fprintf(fp, "%s%s=%s\n", prefix, cp->name, cstr);
+config.c:    if (g.backward_compatible && cp->off == V_GLOBAL_LOGGING_REMOVE) {
+config.c:        fprintf(fp, "%slogging.archive=%" PRIu32 "\n", prefix, v->v);
+config.c:    fprintf(fp, "%s%s=%" PRIu32 "\n", prefix, cp->name, v->v);
+config.c: * config_print_table --
+config.c: *     Print per-table information.
+config.c:    testutil_check(__wt_snprintf(buf, sizeof(buf), "table%u.", table->id));
+config.c:    fprintf(fp, "#  TABLE PARAMETERS: table %u\n", table->id);
+config.c:    for (cp = configuration_list; cp->name != NULL; ++cp) {
+config.c:        if (!C_TYPE_MATCH(cp, table->type))
+config.c:        gv = &tables[0]->v[cp->off];
+config.c:        v = &table->v[cp->off];
+config.c:        if (gv->set && v->v == gv->v &&
+config.c:          ((v->vstr == NULL && gv->vstr == NULL) ||
+config.c:            (v->vstr != NULL && gv->vstr != NULL && strcmp(v->vstr, gv->vstr) == 0)))
+config.c: * config_print --
+config.c:    for (cp = configuration_list; cp->name != NULL; ++cp) {
+config.c:        /* Skip table count if tables not configured (implying an old-style CONFIG file). */
+config.c:        if (ntables == 0 && cp->off == V_GLOBAL_RUNS_TABLES)
+config.c:        if (ntables == 0 && F_ISSET(cp, C_TABLE) && !C_TYPE_MATCH(cp, tables[0]->type))
+config.c:        gv = &tables[0]->v[cp->off];
+config.c:        if (ntables > 0 && F_ISSET(cp, C_TABLE) && !gv->set)
+config.c:    /* Display per-table configuration values. */
+config.c:    /* Flush so we're up-to-date on error. */
+config.c: * config_file --
+config.c:     * Turn off multi-table configuration for all configuration files, for backward compatibility.
+config.c:     * tables. This should only affect putting some non-table-specific configurations into a file
+config.c:     * and running that file as a CONFIG, expecting a multi-table test, and means old-style CONFIG
+config.c: * config_clear --
+config.c:        free(tables[i]->val_base);
+config.c:            free(tables[i]->v[j].vstr);
+config.c: * config_find --
+config.c:    for (cp = configuration_list; cp->name != NULL; ++cp)
+config.c:        if (strncmp(s, cp->name, len) == 0 && cp->name[len] == '\0')
+config.c: * config_off --
+config.c: * config_off_all --
+config.c: * config_table_extend --
+config.c:        tables[i]->id = i;
+config.c: * config_single --
+config.c:        if (!__wt_isalnum(*t) && !__wt_isspace(*t) && strchr("\"'()-.:=[]_,", *t) == NULL)
+config.c:     * If configuring a single table, the table argument will be non-NULL. The configuration itself
+config.c:    if ((cp = config_find(s, (size_t)(equalp - s), false)) == NULL)
+config.c:    if (g.backward_compatible && cp->off == V_GLOBAL_RUNS_TABLES) {
+config.c:    v = &table->v[cp->off];
+config.c:            config_map_file_type(equalp, &table->type);
+config.c:            equalp = config_file_type(table->type);
+config.c:        free(v->vstr);
+config.c:        v->vstr = dstrdup(equalp);
+config.c:        v->set = explicit;
+config.c:        v->v = v1;
+config.c:        v->set = explicit;
+config.c:    if ((vp2 = strchr(vp1, '-')) != NULL) {
+config.c:     * Get the value and check the range; zero is optionally an out-of-band "don't set this
+config.c:    v1 = atou32(s, vp1, range == RANGE_NONE ? '\0' : (range == RANGE_FIXED ? '-' : ':'));
+config.c:    if (!(v1 == 0 && F_ISSET(cp, C_ZERO_NOTSET)) && (v1 < cp->min || v1 > cp->maxset)) {
+config.c:        if (cp->off == V_TABLE_BTREE_SPLIT_PCT && v1 < 50) {
+config.c:        } else if (cp->off == V_TABLE_BTREE_KEY_MIN && v1 < KEY_LEN_CONFIG_MIN) {
+config.c:            testutil_die(EINVAL, "%s: %s: value outside min/max values of %" PRIu32 "-%" PRIu32,
+config.c:              progname, s, cp->min, cp->maxset);
+config.c:        if (v2 < cp->min || v2 > cp->maxset)
+config.c:            testutil_die(EINVAL, "%s: %s: value outside min/max values of %" PRIu32 "-%" PRIu32,
+config.c:              progname, s, cp->min, cp->maxset);
+config.c:            steps = ((v2 - v1) + 4) / 5;
+config.c:    v->v = v1;
+config.c:    v->set = explicit;
+config.c: * config_map_file_type --
+config.c:        if (WT_PREFIX_SKIP(s, "fixed-length column-store") || WT_PREFIX_SKIP(s, "fix"))
+config.c:        else if (WT_PREFIX_SKIP(s, "row-store") || WT_PREFIX_SKIP(s, "row"))
+config.c:        else if (WT_PREFIX_SKIP(s, "variable-length column-store") || WT_PREFIX_SKIP(s, "var"))
+config.c:        if (*s == ',') /* Allow, but don't require, comma-separators. */
+config.c:     * Fixed-length column-store is 10% in all cases.
+config.c:     * Variable-length column-store is 90% vs. fixed, 30% vs. fixed and row, and 40% vs row.
+config.c: * config_map_backup_incr --
+config.c: * config_map_checkpoint --
+config.c: * config_explicit --
+config.c:        return (tables[0]->v[cp->off].set);
+config.c:    /* If checking a single table, the table argument is non-NULL. */
+config.c:        return (table->v[cp->off].set);
+config.c:    if (tables[0]->v[cp->off].set)
+config.c:        if (tables[i]->v[cp->off].set)
+config.c: * config_file_type --
+config.c:        return ("fixed-length column-store");
+config.c:        return ("variable-length column-store");
+config.c:        return ("row-store");
+config_compat.c:/*-
+config_compat.c: * Public Domain 2014-present MongoDB, Inc.
+config_compat.c: * Public Domain 2008-2014 WiredTiger, Inc.
+config_compat.c: * binary, for any purpose, commercial or non-commercial, and by any
+config_compat.c:  "transaction-frequency=",
+config_compat.c: * config_compat --
+config_compat.c:        if (strncmp(orig, *p, (size_t)((equalp - orig) + 1)) == 0) {
+config_def.c:  {"btree.bitcnt", "fixed-length column-store object size (number of bits)",
+config_def.c:  {"disk.encryption", "encryption type (off | rotn-7)",
+config_def.c:  {"disk.firstfit", "configure first-fit allocation",
+config_def.c:  {"format.major_timeout", "long-running operations timeout (minutes)",
+config_def.c: * FIXME-WT-7418: Temporarily disable import until WT_ROLLBACK error and wt_copy_and_sync error is
+config_def.c:  {"logging.prealloc", "configure log file pre-allocation",
+config_def.c:  {"quiet", "quiet run (same as -q)",
+config_def.c:  {"runs.in_memory", "configure in-memory",
+config.h:#define C_BOOL 0x001u        /* Boolean (true if roll of 1-to-100 is <= CONFIG->min) */
+config.sh:#define C_BOOL 0x001u        /* Boolean (true if roll of 1-to-100 is <= CONFIG->min) */
+config.sh:while IFS= read -r line; do
+config.sh:	sed -e 's/{"//' \
+config.sh:	    -e 's/",.*//' \
+config.sh:	    -e 's/\./_/g' |
+config.sh:	sed -e "s/}/, $def},/" \
+config.sh:	    -e 's/\(^.*",\) \(.*\)/  \1\n    \2/'
+config.sh:{"btree.bitcnt", "fixed-length column-store object size (number of bits)", C_TABLE | C_TYPE_FIX, 1, 8, 8}
+config.sh:{"disk.encryption", "encryption type (off | rotn-7)", C_IGNORE | C_STRING, 0, 0, 0}
+config.sh:{"disk.firstfit", "configure first-fit allocation", C_BOOL | C_TABLE, 10, 0, 0}
+config.sh:{"format.major_timeout", "long-running operations timeout (minutes)", C_IGNORE, 0, 0, 1000}
+config.sh: * FIXME-WT-7418: Temporarily disable import until WT_ROLLBACK error and wt_copy_and_sync error is
+config.sh:{"logging.prealloc", "configure log file pre-allocation", C_BOOL, 50, 0, 0}
+config.sh:{"quiet", "quiet run (same as -q)", C_BOOL | C_IGNORE, 0, 0, 1}
+config.sh:{"runs.in_memory", "configure in-memory", C_BOOL | C_IGNORE, 0, 0, 1}
+failure_configs/CONFIG.WT-10075:table1.runs.type=row-store
+failure_configs/CONFIG.WT-10075:table2.runs.type=row-store
+failure_configs/CONFIG.WT-10075:table3.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-5637:runs.type=row-store
+failure_configs/CONFIG.WT-6568:runs.type=row-store
+failure_configs/CONFIG.WT-6725:disk.encryption=rotn-7
+failure_configs/CONFIG.WT-6725:runs.type=row-store
+failure_configs/CONFIG.WT-6727:runs.type=row-store
+failure_configs/CONFIG.WT-8234:runs.type=row-store
+failure_configs/CONFIG.WT-9477:runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9477:table3.runs.type=row-store
+failure_configs/CONFIG.WT-9477:table4.runs.type=row-store
+failure_configs/CONFIG.WT-9477:table7.runs.type=row-store
+failure_configs/CONFIG.WT-9477:table8.runs.type=row-store
+failure_configs/CONFIG.WT-9477:table9.runs.type=row-store
+failure_configs/CONFIG.WT-9715:table1.runs.type=fixed-length column-store
+failure_configs/CONFIG.WT-9715:table2.runs.type=row-store
+failure_configs/CONFIG.WT-9715:table3.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9715:table4.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9715:table5.runs.type=row-store
+failure_configs/CONFIG.WT-9751:runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9772:table1.runs.type=row-store
+failure_configs/CONFIG.WT-9772:table2.runs.type=row-store
+failure_configs/CONFIG.WT-9772:table3.runs.type=row-store
+failure_configs/CONFIG.WT-9772:table4.runs.type=row-store
+failure_configs/CONFIG.WT-9772:table5.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9777:table1.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9777:table2.runs.type=row-store
+failure_configs/CONFIG.WT-9777:table3.runs.type=row-store
+failure_configs/CONFIG.WT-9777:table4.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9777:table5.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9792:table1.runs.type=row-store
+failure_configs/CONFIG.WT-9792:table2.runs.type=row-store
+failure_configs/CONFIG.WT-9792:table3.runs.type=row-store
+failure_configs/CONFIG.WT-9805:disk.encryption=rotn-7
+failure_configs/CONFIG.WT-9805:table1.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9805:table2.runs.type=row-store
+failure_configs/CONFIG.WT-9805:table3.runs.type=fixed-length column-store
+failure_configs/CONFIG.WT-9805:table4.runs.type=row-store
+failure_configs/CONFIG.WT-9805:table5.runs.type=fixed-length column-store
+failure_configs/CONFIG.WT-9807:disk.encryption=rotn-7
+failure_configs/CONFIG.WT-9807:runs.type=row-store
+failure_configs/CONFIG.WT-9830:table1.runs.type=variable-length column-store
+failure_configs/CONFIG.WT-9830:table2.runs.type=row-store
+failure_configs/CONFIG.WT-9830:table3.runs.type=row-store
+failure_configs/CONFIG.WT-9987:table1.runs.type=row-store
+failure_configs/CONFIG.WT-9987:table2.runs.type=row-store
+failure_configs/CONFIG.WT-9987:table3.runs.type=row-store
+format.h:/*-
+format.h: * Public Domain 2014-present MongoDB, Inc.
+format.h: * Public Domain 2008-2014 WiredTiger, Inc.
+format.h: * binary, for any purpose, commercial or non-commercial, and by any
+format.h: * (vs. test-only) encryptor, keyids require some kind of key server, and (a) setting one up for
+format.h: * It expects secretkey= to provide a hex-encoded 256-bit chacha20 key. This key will serve for
+format.h:/* Format isn't careful about path buffers, an easy to fix hard-coded length. */
+format.h:#define FORMAT_PAD_BYTE '-'  /* modify pad byte */
+format.h: * Abstract lock that lets us use either pthread reader-writer locks or WiredTiger's own (likely
+format.h: * Default fixed-length column-store value when there's no available base mirror value, something
+format.h:/* There's no out-of-band value for FLCS, use 0xff as the least likely to match any existing value.
+format.h: * for non-specific table or global configurations. In other words, the base information and the
+format.h: * configured, the per-table information for each table is stored in tables slots 1-N. The number of
+format.h: * general and table-specific information to be configured in any order, and as part of the final
+format.h: * Global and table-specific macros to retrieve configuration information. All of the tables contain
+format.h:#define GV(off) (tables[0]->v[V_GLOBAL_##off].v)
+format.h:    (tables[0]->v[V_GLOBAL_##off].vstr == NULL ? "off" : tables[0]->v[V_GLOBAL_##off].vstr)
+format.h:#define NTV(table, off) ((table)->v[V_TABLE_##off].v)
+format.h:    ((table)->v[V_TABLE_##off].vstr == NULL ? "off" : (table)->v[V_TABLE_##off].vstr)
+format.h:#define NT_EXPLICIT_SET(table, off) ((table)->v[V_TABLE_##off].set)
+format.h:#define DATASOURCE(table, ds) (strcmp((table)->v[V_TABLE_RUNS_SOURCE].vstr, ds) == 0)
+format.h:    char *config_open; /* Command-line configuration */
+format.h:     * Single-thread failure. Not a WiredTiger library lock because it's set up before configuring
+format.h:     * The minimum key size: A minimum key size of 13 is necessary, row-store keys have a leading
+format.h:     * 10-digit number, and in the case of a row-store insert, a '.' and a two-character suffix.r
+format.h:     * modification (there's a trailing non-digit character after every key) and ensures inserts
+format.h:     * never have a key that matches an original, bulk-loaded key.
+format.h:    bool column_store_config;           /* At least one column-store table configured */
+format.h:    WT_ITEM key;   /* Generated key for row-store inserts */
+format.h:    WT_CURSOR **cursors; /* WiredTiger cursors, maps one-to-one to tables */
+format.h:        uint32_t insert_list[256]; /* Inserted column-store records, maps one-to-one to tables */
+format.h:#define snap_current s->snap_state_current
+format.h:#define snap_end s->snap_state_end
+format.h:#define snap_first s->snap_state_first
+format.h:#define snap_list s->snap_state_list
+format.h:#define CUR2S(c) ((WT_SESSION_IMPL *)((WT_CURSOR *)c)->session)
+format.i:/*-
+format.i: * Public Domain 2014-present MongoDB, Inc.
+format.i: * Public Domain 2008-2014 WiredTiger, Inc.
+format.i: * binary, for any purpose, commercial or non-commercial, and by any
+format.i: * read_op --
+format.i:        ret = cursor->next(cursor);
+format.i:        ret = cursor->prev(cursor);
+format.i:        ret = cursor->search(cursor);
+format.i:        ret = cursor->search_near(cursor, exactp);
+format.i:     * Read operations wait out prepare-conflicts. (As part of the snapshot isolation checks, we
+format.i:        while ((ret = cursor->next(cursor)) == WT_PREPARE_CONFLICT) {
+format.i:            testutil_assertfmt(now < start || now - start < FORMAT_PREPARE_TIMEOUT,
+format.i:              "%s: timed out with prepare-conflict", "WT_CURSOR.next");
+format.i:        while ((ret = cursor->prev(cursor)) == WT_PREPARE_CONFLICT) {
+format.i:            testutil_assertfmt(now < start || now - start < FORMAT_PREPARE_TIMEOUT,
+format.i:              "%s: timed out with prepare-conflict", "WT_CURSOR.prev");
+format.i:        while ((ret = cursor->search(cursor)) == WT_PREPARE_CONFLICT) {
+format.i:            testutil_assertfmt(now < start || now - start < FORMAT_PREPARE_TIMEOUT,
+format.i:              "%s: timed out with prepare-conflict", "WT_CURSOR.search");
+format.i:        while ((ret = cursor->search_near(cursor, exactp)) == WT_PREPARE_CONFLICT) {
+format.i:            testutil_assertfmt(now < start || now - start < FORMAT_PREPARE_TIMEOUT,
+format.i:              "%s: timed out with prepare-conflict", "WT_CURSOR.search_near");
+format.i: * rng --
+format.i: * mmrand --
+format.i:    range = (max - min) + 1;
+format.i: * tables_apply -
+format.i: * table_maxv --
+format.i:        return (tables[0]->v[off].v);
+format.i:        v = WT_MAX(v, tables[i]->v[off].v);
+format.i: * table_sumv --
+format.i:        return (tables[0]->v[off].v);
+format.i:        v += tables[i]->v[off].v;
+format.i: * table_select --
+format.i:    return (tables[mmrand(tinfo == NULL ? NULL : &tinfo->rnd, 1, ntables)]);
+format.i: * table_select_type --
+format.i:        return (tables[0]->type == type ? tables[0] : NULL);
+format.i:        if (tables[i]->type == type)
+format.i: * wt_wrap_open_cursor --
+format.i:    while ((ret = session->open_cursor(session, uri, NULL, config, cursorp)) == EBUSY)
+format.i: * table_cursor --
+format.i:    /* The table ID is 1-based, the cursor array is 0-based. */
+format.i:    --id;
+format.i:    if (tinfo->cursors[id] == NULL) {
+format.i:        config = table->type == ROW ? NULL : "append";
+format.i:        wt_wrap_open_cursor(tinfo->session, table->uri, config, &tinfo->cursors[id]);
+format.i:    return (tinfo->cursors[id]);
+format.i: * wt_wrap_begin_transaction --
+format.i:    while ((ret = session->begin_transaction(session, config)) == WT_CACHE_FULL)
+format.i: * key_gen --
+format.i: * key_gen_insert --
+format.i:    if (lock->lock_type == LOCK_WT)
+format.i:        return (__wt_try_writelock((WT_SESSION_IMPL *)session, &lock->l.wt));
+format.i:    return (pthread_rwlock_trywrlock(&lock->l.pthread));
+format.i: * lock_writelock --
+format.i:    if (lock->lock_type == LOCK_WT)
+format.i:        __wt_writelock((WT_SESSION_IMPL *)session, &lock->l.wt);
+format.i:        testutil_check(pthread_rwlock_wrlock(&lock->l.pthread));
+format.i: * lock_writeunlock --
+format.i:    if (lock->lock_type == LOCK_WT)
+format.i:        __wt_writeunlock((WT_SESSION_IMPL *)session, &lock->l.wt);
+format.i:        testutil_check(pthread_rwlock_unlock(&lock->l.pthread));
+format.i: * lock_readlock --
+format.i:    if (lock->lock_type == LOCK_WT)
+format.i:        __wt_readlock((WT_SESSION_IMPL *)session, &lock->l.wt);
+format.i:        testutil_check(pthread_rwlock_rdlock(&lock->l.pthread));
+format.i: * lock_writeunlock --
+format.i:    if (lock->lock_type == LOCK_WT)
+format.i:        __wt_readunlock((WT_SESSION_IMPL *)session, &lock->l.wt);
+format.i:        testutil_check(pthread_rwlock_unlock(&lock->l.pthread));
+format.i:        __s = (WT_SESSION_IMPL *)(tinfo)->session;                                                \
+format.i:              (tinfo)->opid, (uri) == NULL ? "" : (uri), (uri) == NULL ? "" : ": ", __VA_ARGS__); \
+format.i:                  (uri) == NULL ? "" : (uri), (uri) == NULL ? "" : ": ", __s->txn->id,            \
+format.i:                  __s->txn->snap_min, __s->txn->snap_max, __s->txn->snapshot_count);              \
+format.i:                for (__i = 0; __i < __s->txn->snapshot_count; ++__i)                              \
+format.i:                      (uri) == NULL ? "" : ": ", __i, __s->txn->snapshot[__i]);                   \
+format.i:#define trace_op(tinfo, fmt, ...) trace_uri_op(tinfo, (tinfo)->table->uri, fmt, __VA_ARGS__)
+format.sh:[ -z $BASH_VERSION ] && {
+format.sh:    [[ $verbose -ne 0 ]] && msg "$@"
+format.sh:	echo "usage: $0 [-aEFRSv] [-b format-binary] [-c config] [-D directory]"
+format.sh:	echo "    [-e env-var] [-h home] [-j parallel-jobs] [-n total-jobs] [-r live-record-binary]"
+format.sh:	echo "    [-t minutes] [format-configuration]"
+format.sh:	echo "    -a           configure format abort/recovery testing (defaults to off)"
+format.sh:	echo "    -b binary    format binary (defaults to "./t")"
+format.sh:	echo "    -c config    format configuration file (defaults to CONFIG.stress)"
+format.sh:	echo "    -d directory directory of format binary"
+format.sh:	echo "    -D directory directory of format configuration files (named \"CONFIG.*\")"
+format.sh:	echo "    -E           skip known errors (defaults to off)"
+format.sh:	echo "    -e envvar    Environment variable setting (default to none)"
+format.sh:	echo "    -F           quit on first failure (defaults to off)"
+format.sh:	echo "    -h home      run directory (defaults to .)"
+format.sh:	echo "    -j parallel  jobs to execute in parallel (defaults to 8)"
+format.sh:	echo "    -n total     total jobs to execute (defaults to no limit)"
+format.sh:	echo "    -R           add configuration for randomized split stress (defaults to none)"
+format.sh:	echo "    -r binary    record with UndoDB binary (defaults to no recording)"
+format.sh:	echo "    -S           run smoke-test configurations (defaults to off)"
+format.sh:	echo "    -T           turn on format tracing (defaults to off)"
+format.sh:	echo "    -t minutes   minutes to run (defaults to no limit)"
+format.sh:	echo "    -v           verbose output (defaults to off)"
+format.sh:	echo "    --           separates $name arguments from additional format arguments"
+format.sh:# Smoke-tests.
+format.sh:	-a)
+format.sh:	-b)
+format.sh:	-c)
+format.sh:	-d)
+format.sh:	-D)
+format.sh:		[[ -f "${directory_list[0]}" ]] ||
+format.sh:	-E)
+format.sh:	-e)
+format.sh:	-F)
+format.sh:	-h)
+format.sh:	-j)
+format.sh:		[[ "$parallel_jobs" =~ ^[1-9][0-9]*$ ]] ||
+format.sh:			fatal_msg "-j option argument must be a non-zero integer"
+format.sh:	-n)
+format.sh:		[[ "$total_jobs" =~ ^[1-9][0-9]*$ ]] ||
+format.sh:			fatal_msg "-n option argument must be an non-zero integer"
+format.sh:	-R)
+format.sh:        -r)
+format.sh:		if [ ! $(command -v "$live_record_binary") ]; then
+format.sh:			msg "-r option argument \"${live_record_binary}\" does not exist in path"
+format.sh:	-S)
+format.sh:	-T)
+format.sh:		trace='-T'
+format.sh:		-*)
+format.sh:	-t)
+format.sh:		[[ "$minutes" =~ ^[1-9][0-9]*$ ]] ||
+format.sh:			fatal_msg "-t option argument must be a non-zero integer"
+format.sh:	-v)
+format.sh:	--)
+format.sh:	-*)
+format.sh:[[ -d "$home" ]] ||
+format.sh:    for ((i=size-1; i>0; i--)); do
+format.sh:[[ $directory_total -ne 0 ]] && {
+format.sh:[[ $config_found -eq 0 ]] && [[ -f "$config" ]] && {
+format.sh:[[ $config_found -eq 0 ]] && [[ -f "$config" ]] && {
+format.sh:[[ -x ${format_binary##* } ]] ||
+format.sh:[[ -x $wt_binary ]] ||
+format.sh:[[ $config_found -eq 0 ]] && {
+format.sh:    [[ -f "$config" ]] ||
+format.sh:msg "configuration: $format_binary [-c $config]\
+format.sh:[-h $home] [-j $parallel_jobs] [-n $total_jobs] [-t $minutes] $format_args"
+format.sh:status="format.sh-status"
+format.sh:# return 0 - Error found and skip
+format.sh:# return 1 - skip_errors flag not set or no (known error) match found
+format.sh:	# Return if "skip_errors" is not set or -E option is not passed
+format.sh:	[[ $skip_errors -ne 1 ]] && return 1
+format.sh:	# for finger-grained matching. For example:
+format.sh:	#       err_1=("heap-buffer-overflow" "__split_parent")
+format.sh:		# Tokenize the multi-signature error
+format.sh:		grep -q "${err_tokens[0]}" $log && grep -q "${err_tokens[1]}" $log
+format.sh:		[[ $? -eq 0 ]] &&
+format.sh:		if [ $i == $(($count - 1)) ]
+format.sh:	grep -E "$search_string" $log
+format.sh:	# Forcibly quit if first-failure configured.
+format.sh:	[[ $first_failure -ne 0 ]] && force_quit=1
+format.sh:	[[ -d "$dir" ]] || {
+format.sh:# Wait for a process to die. Handle both child and non-child processes.
+format.sh:# Return <exit code> of process if child or 127 if non-child
+format.sh:	if [ `pstree -p $$ | grep -w $pid | wc -l` -gt "0" ]; then
+format.sh:		while [ -d "/proc/$pid/" ]; do
+format.sh:	list=$(ls $home | grep '^RUNDIR.[0-9]*.log')
+format.sh:		[[ -f "$dir/$status" ]] && continue
+format.sh:		grep -E 'waiting for debugger' $log > /dev/null && {
+format.sh:		[[ "$pid" =~ ^[1-9][0-9]*$ ]] || continue
+format.sh:		kill -s 0 $pid > /dev/null 2>&1 && {
+format.sh:			[[ $force_quit -eq 0 ]] && {
+format.sh:			if [ `ps -eo ppid | grep -w $pid | wc -l` -gt "0" ]; then
+format.sh:				kill -KILL -- -$pid
+format.sh:			kill -KILL $pid
+format.sh:			rm -rf $dir $log
+format.sh:		grep -E -i 'Sanitizer' $log > /dev/null && {
+format.sh:			rm -rf $dir $log
+format.sh:		grep -E -i 'no space left on device' $log > /dev/null && {
+format.sh:			rm -rf $dir $log
+format.sh:			cp -pr $dir $dir.RECOVER
+format.sh:			if $format_binary -Rqv -h $dir $trace > $log 2>&1; then
+format.sh:			    rm -rf $dir $dir.RECOVER $log
+format.sh:		grep -E \
+format.sh:		# snapshot-isolation mismatch failure), but those cases have already been handled,
+format.sh:			# SIGKILL is the Linux out-of-memory kill signal.
+format.sh:		[[ -z $signame ]] || {
+format.sh:	if [[ $smoke_test -ne 0 ]]; then
+format.sh:	if [[ $directory_total -ne 0 ]]; then
+format.sh:	if [[ $abort_test -ne 0 ]]; then
+format.sh:	if [[ $stress_split_test -ne 0 ]]; then
+format.sh:	if [[ ! -z $live_record_binary ]]; then
+format.sh:		live_record_command="$live_record_binary --save-on error"
+format.sh:	cmd="$live_record_command $format_binary -c "$config" -h "$dir" $trace $args quiet=1"
+format.sh:	grep -E -i 'setsid: failed to execute' $log > /dev/null && {
+format.sh:start_time="$(date -u +%s)"
+format.sh:	[[ $seconds -ne 0 ]] && {
+format.sh:		now="$(date -u +%s)"
+format.sh:		elapsed=$(($now - $start_time))
+format.sh:		[[ $elapsed -ge $seconds ]] &&
+format.sh:	# Check if we're only running the smoke-tests and we're done.
+format.sh:	[[ $smoke_test -ne 0 ]] && [[ $smoke_next -ge ${#smoke_list[@]} ]] && quit=1
+format.sh:	[[ $directory_total -ne 0 ]] && [[ $directory_next -ge $directory_total ]] && quit=1
+format.sh:	[[ $total_jobs -ne 0 ]] && [[ $count_jobs -ge $total_jobs ]] && quit=1
+format.sh:	[[ $seconds -ne 0 ]] && [[ $(($seconds - $elapsed)) -lt 60 ]] && quit=1
+format.sh:	[[ $force_quit -eq 0 ]] && [[ $quit -eq 0 ]] && [[ $running -lt $parallel_jobs ]] && {
+format.sh:	[[ $success -ne $success_save ]] || [[ $failure -ne $failure_save ]] &&
+format.sh:	[[ $quit -ne 0 ]] || [[ $force_quit -ne 0 ]] && [[ $running -eq 0 ]] && break
+format.sh:	[[ $force_quit -eq 0 ]] && [[ $running -ge $parallel_jobs ]] && sleep 8
+format.sh:[[ $failure -ne 0 ]] && exit 1
+format.sh:[[ $success -eq 0 ]] && exit 1
+hs.c:/*-
+hs.c: * Public Domain 2014-present MongoDB, Inc.
+hs.c: * Public Domain 2008-2014 WiredTiger, Inc.
+hs.c: * binary, for any purpose, commercial or non-commercial, and by any
+hs.c: * hs_cursor --
+hs.c:     * Trigger the internal WiredTiger cursor order checking on the history-store file. Open a
+hs.c:     * cursor on the history-store file, retrieve some records, close cursor, repeat.
+hs.c:        for (i = mmrand(NULL, 1000, 100000); i > 0; --i) {
+hs.c:            if ((ret = (next ? cursor->next(cursor) : cursor->prev(cursor))) != 0) {
+hs.c:              cursor->get_key(cursor, &hs_btree_id, &hs_key, &hs_start_ts, &hs_counter));
+hs.c:            testutil_check(cursor->get_value(
+hs.c:        testutil_check(cursor->close(cursor));
+hs.c:        for (period = mmrand(NULL, 1, 10); period > 0 && !g.workers_finished; --period)
+import.c:/*-
+import.c: * Public Domain 2014-present MongoDB, Inc.
+import.c: * Public Domain 2008-2014 WiredTiger, Inc.
+import.c: * binary, for any purpose, commercial or non-commercial, and by any
+import.c:#define HOME_IMPORT_INIT_CMD "rm -rf %s/" IMPORT_DIR "&& mkdir %s/" IMPORT_DIR
+import.c: * import --
+import.c:    testutil_check(import_conn->open_session(import_conn, NULL, NULL, &import_session));
+import.c:    testutil_check(conn->open_session(conn, NULL, NULL, &session));
+import.c:      import_session->create(import_session, IMPORT_URI, IMPORT_TABLE_CONFIG), "%s", IMPORT_URI);
+import.c:        testutil_check(session->create(session, IMPORT_URI, buf));
+import.c:            --period;
+import.c:    testutil_check(session->close(session, NULL));
+import.c: * verify_import --
+import.c:    testutil_check(session->open_cursor(session, IMPORT_URI, NULL, NULL, &cursor));
+import.c:    while ((ret = cursor->next(cursor)) == 0) {
+import.c:        testutil_check(cursor->get_key(cursor, &key));
+import.c:        testutil_check(cursor->get_value(cursor, &value));
+import.c:    testutil_check(cursor->close(cursor));
+import.c: * populate_table --
+import.c:    testutil_check(session->open_cursor(session, IMPORT_URI, NULL, NULL, &cursor));
+import.c:        cursor->set_key(cursor, i);
+import.c:        cursor->set_value(cursor, i);
+import.c:        testutil_check(cursor->insert(cursor));
+import.c:    testutil_check(cursor->close(cursor));
+import.c:    testutil_check(session->checkpoint(session, NULL));
+import.c: * get_file_metadata --
+import.c:    testutil_check(session->open_cursor(session, "metadata:", NULL, NULL, &metadata_cursor));
+import.c:    metadata_cursor->set_key(metadata_cursor, IMPORT_URI);
+import.c:    testutil_check(metadata_cursor->search(metadata_cursor));
+import.c:    metadata_cursor->get_value(metadata_cursor, table_config);
+import.c:    metadata_cursor->set_key(metadata_cursor, IMPORT_URI_FILE);
+import.c:    testutil_check(metadata_cursor->search(metadata_cursor));
+import.c:    metadata_cursor->get_value(metadata_cursor, file_config);
+import.c:    testutil_check(metadata_cursor->close(metadata_cursor));
+import.c: * copy_file_into_directory --
+kv.c:/*-
+kv.c: * Public Domain 2014-present MongoDB, Inc.
+kv.c: * Public Domain 2008-2014 WiredTiger, Inc.
+kv.c: * binary, for any purpose, commercial or non-commercial, and by any
+kv.c: * key_init_random --
+kv.c:    for (i = 0; i < WT_ELEMENTS(table->key_rand_len); ++i) {
+kv.c:        table->key_rand_len[i] = mmrand(NULL, TV(BTREE_KEY_MIN), max);
+kv.c: * key_init --
+kv.c:    /* Key initialization is only required by row-store objects. */
+kv.c:    if (table->type != ROW)
+kv.c:    /* Backward compatibility, built the correct path to the saved key-length file. */
+kv.c:        testutil_check(__wt_snprintf(buf, sizeof(buf), "%s.%u", g.home_key, table->id));
+kv.c:     * The key is a variable length item with a leading 10-digit value. Since we have to be able
+kv.c:     * re-construct it from the record number (when doing row lookups), we pre-load a set of random
+kv.c:     * lengths in a lookup table, and then use the record number to choose one of the pre-loaded
+kv.c:        for (i = 0; i < WT_ELEMENTS(table->key_rand_len); ++i) {
+kv.c:            table->key_rand_len[i] = atou32(__func__, buf, '\n');
+kv.c:    for (i = 0; i < WT_ELEMENTS(table->key_rand_len); ++i)
+kv.c:        fprintf(fp, "%" PRIu32 "\n", table->key_rand_len[i]);
+kv.c: * key_gen_init --
+kv.c:    key->mem = p;
+kv.c:    key->memsize = len;
+kv.c:    key->data = key->mem;
+kv.c:    key->size = 0;
+kv.c: * key_gen_teardown --
+kv.c:    free(key->mem);
+kv.c: * key_gen_common --
+kv.c: *     Row-store key generation code shared between normal and insert key generation.
+kv.c:    testutil_assert(table->type == ROW);
+kv.c:     * number, the tricks are creating a prefix that won't re-order keys, and to change the prefix
+kv.c:     * with some regularity to test prefix boundaries. Split the key space into power-of-2 buckets:
+kv.c:     * bucket value, append a string of common bytes. The standard, zero-padded key itself sorts
+kv.c:    p = key->mem;
+kv.c:         * the largest prefix in the run, and the hard-coded 20 gets us past the key appended to
+kv.c:            p = key->mem;
+kv.c:            memset(p + 1, COMMON_PREFIX_CHAR, prefix_len - 1);
+kv.c:     * After any common prefix, the key starts with a 10-digit string (the specified row) followed
+kv.c:    key->data = key->mem;
+kv.c:    key->size = prefix_len;
+kv.c:    key->size += keyno % 2500 == 0 && TV(BTREE_KEY_MAX) < KILOBYTE(80) ?
+kv.c:      table->key_rand_len[keyno % WT_ELEMENTS(table->key_rand_len)];
+kv.c:    testutil_assert(key->size <= key->memsize);
+kv.c: * val_len --
+kv.c: * val_init --
+kv.c:    free(table->val_base);
+kv.c:    table->val_base = NULL;
+kv.c:    table->val_dup_data_len = 0;
+kv.c:     * extra bytes, used to generate different data for column-store run-length encoded files.
+kv.c:    table->val_base = dmalloc(len);
+kv.c:        table->val_base[i] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i % 26];
+kv.c:    table->val_dup_data_len =
+kv.c: * val_gen_init --
+kv.c:    value->mem = dmalloc(len);
+kv.c:    value->memsize = len;
+kv.c:    value->data = value->mem;
+kv.c:    value->size = 0;
+kv.c: * val_gen_teardown --
+kv.c:    free(value->mem);
+kv.c: * val_to_flcs --
+kv.c:    max_check = (uint32_t)WT_MIN(PREFIX_LEN_CONFIG_MIN + 10, value->size);
+kv.c:    for (p = value->data, i = 0; i < max_check; ++p, ++i)
+kv.c:        if (p[0] == '/' && i < max_check - 1) {
+kv.c: * val_gen --
+kv.c:    value->data = NULL;
+kv.c:    value->size = 0;
+kv.c:    if (table->type == FIX) {
+kv.c:     * WiredTiger doesn't store zero-length data items in row-store files, test that by inserting a
+kv.c:     * zero-length data item every so often.
+kv.c:        *(uint8_t *)value->mem = 0x0;
+kv.c:        value->size = 0;
+kv.c:     * Data items have unique leading numbers by default and random lengths; variable-length
+kv.c:     * column-stores use a duplicate data value to test RLE.
+kv.c:    p = value->mem;
+kv.c:    value->data = value->mem;
+kv.c:    if (table->type == VAR && mmrand(rnd, 1, 100) < TV(BTREE_REPEAT_DATA_PCT)) {
+kv.c:        value->size = table->val_dup_data_len;
+kv.c:        memcpy(p, table->val_base, value->size);
+kv.c:        value->size = val_len(rnd, keyno, TV(BTREE_VALUE_MIN), TV(BTREE_VALUE_MAX));
+kv.c:        memcpy(p, table->val_base, value->size);
+ops.c:/*-
+ops.c: * Public Domain 2014-present MongoDB, Inc.
+ops.c: * Public Domain 2008-2014 WiredTiger, Inc.
+ops.c: * binary, for any purpose, commercial or non-commercial, and by any
+ops.c: * modify_repl_init --
+ops.c: * modify_build --
+ops.c:    nentries = (int)mmrand(&tinfo->rnd, 1, MAX_MODIFY_ENTRIES);
+ops.c:        tinfo->entries[i].data.data =
+ops.c:          modify_repl + mmrand(&tinfo->rnd, 1, sizeof(modify_repl) - 10);
+ops.c:        tinfo->entries[i].data.size = (size_t)mmrand(&tinfo->rnd, 0, 10);
+ops.c:        tinfo->entries[i].offset = (size_t)mmrand(&tinfo->rnd, 20, 40);
+ops.c:        tinfo->entries[i].size = (size_t)mmrand(&tinfo->rnd, 0, 10);
+ops.c:    tinfo->nentries = nentries;
+ops.c: * random_failure --
+ops.c: * tinfo_init --
+ops.c:            tinfo->id = (int)i + 1;
+ops.c:            tinfo->cursors = dcalloc(WT_MAX(ntables, 1), sizeof(tinfo->cursors[0]));
+ops.c:            tinfo->col_insert = dcalloc(WT_MAX(ntables, 1), sizeof(tinfo->col_insert[0]));
+ops.c:            tinfo->key = &tinfo->_key;
+ops.c:            key_gen_init(tinfo->key);
+ops.c:            tinfo->value = &tinfo->_value;
+ops.c:            val_gen_init(tinfo->value);
+ops.c:            tinfo->new_value = &tinfo->_new_value;
+ops.c:            val_gen_init(tinfo->new_value);
+ops.c:            tinfo->lastkey = &tinfo->_lastkey;
+ops.c:            key_gen_init(tinfo->lastkey);
+ops.c:        tinfo->ops = 0;
+ops.c:        tinfo->commit = 0;
+ops.c:        tinfo->insert = 0;
+ops.c:        tinfo->modify = 0;
+ops.c:        tinfo->prepare = 0;
+ops.c:        tinfo->remove = 0;
+ops.c:        tinfo->rollback = 0;
+ops.c:        tinfo->search = 0;
+ops.c:        tinfo->truncate = 0;
+ops.c:        tinfo->update = 0;
+ops.c:        tinfo->session = NULL;
+ops.c:        memset(tinfo->cursors, 0, WT_MAX(ntables, 1) * sizeof(tinfo->cursors[0]));
+ops.c:        memset(tinfo->col_insert, 0, WT_MAX(ntables, 1) * sizeof(tinfo->col_insert[0]));
+ops.c:        tinfo->state = TINFO_RUNNING;
+ops.c:        tinfo->quit = false;
+ops.c: * tinfo_teardown --
+ops.c:        free(tinfo->cursors);
+ops.c:        free(tinfo->col_insert);
+ops.c:        __wt_buf_free(NULL, &tinfo->moda);
+ops.c:        __wt_buf_free(NULL, &tinfo->modb);
+ops.c:        key_gen_teardown(tinfo->key);
+ops.c:        val_gen_teardown(tinfo->value);
+ops.c:        val_gen_teardown(tinfo->new_value);
+ops.c:        key_gen_teardown(tinfo->lastkey);
+ops.c: * rollback_to_stable --
+ops.c:    /* Rollback-to-stable only makes sense for timestamps. */
+ops.c:    testutil_check(g.wts_conn->rollback_to_stable(g.wts_conn, NULL));
+ops.c:    trace_msg(session, "rollback-to-stable: stable timestamp %" PRIu64, g.stable_timestamp);
+ops.c: * operations --
+ops.c:    session = NULL; /* -Wconditional-uninitialized */
+ops.c:     * Calculate how many fourth-of-a-second sleeps until the timer expires. If the timer expires
+ops.c:        thread_ops = -1;
+ops.c:        fourths = quit_fourths = -1;
+ops.c:        testutil_check(__wt_thread_create(NULL, &tinfo->tid, ops, tinfo));
+ops.c:    /* Start optional special-purpose threads. */
+ops.c:            total.ops += tinfo->ops;
+ops.c:            total.commit += tinfo->commit;
+ops.c:            total.insert += tinfo->insert;
+ops.c:            total.modify += tinfo->modify;
+ops.c:            total.prepare += tinfo->prepare;
+ops.c:            total.remove += tinfo->remove;
+ops.c:            total.rollback += tinfo->rollback;
+ops.c:            total.search += tinfo->search;
+ops.c:            total.truncate += tinfo->truncate;
+ops.c:            total.update += tinfo->update;
+ops.c:            switch (tinfo->state) {
+ops.c:                tinfo->state = TINFO_JOINED;
+ops.c:                testutil_check(__wt_thread_join(NULL, &tinfo->tid));
+ops.c:            if (fourths == 0 || (thread_ops != -1 && tinfo->ops >= (uint64_t)thread_ops)) {
+ops.c:                tinfo->quit = true;
+ops.c:        if (fourths != -1)
+ops.c:            --fourths;
+ops.c:        if (quit_fourths != -1 && --quit_fourths == 0) {
+ops.c:             * If the library is deadlocked, we might just join the mess, set a two-minute timer to
+ops.c:            (void)conn->debug_info(conn, "txn");
+ops.c:            (void)conn->debug_info(conn, "cache");
+ops.c:    /* Wait for the special-purpose threads. */
+ops.c:     * applications to do rollback-to-stable as part of the database open, but calling it outside of
+ops.c:     * close/re-open pair. Note we are not advancing the oldest timestamp, otherwise we wouldn't be
+ops.c:     * able to replay operations from after rollback-to-stable completes.
+ops.c: * begin_transaction_ts --
+ops.c:    session = tinfo->session;
+ops.c:    ts = mmrand(&tinfo->rnd, 1, 4) == 1 ? 0 : timestamp_maximum_committed();
+ops.c:        ret = session->timestamp_transaction_uint(session, WT_TS_TXN_TYPE_READ, ts);
+ops.c:            trace_uri_op(tinfo, NULL, "begin snapshot read-ts=%" PRIu64 " (repeatable)", ts);
+ops.c:        testutil_check(session->rollback_transaction(session, NULL));
+ops.c:    trace_uri_op(tinfo, NULL, "begin snapshot read-ts=%" PRIu64 " (not repeatable)", ts);
+ops.c: * begin_transaction --
+ops.c: *     Begin a non-timestamp transaction.
+ops.c:    session = tinfo->session;
+ops.c: * commit_transaction --
+ops.c:    session = tinfo->session;
+ops.c:    ++tinfo->commit;
+ops.c:    ts = 0; /* -Wconditional-uninitialized */
+ops.c:        testutil_check(session->timestamp_transaction_uint(session, WT_TS_TXN_TYPE_COMMIT, ts));
+ops.c:              session->timestamp_transaction_uint(session, WT_TS_TXN_TYPE_DURABLE, ts));
+ops.c:        testutil_check(session->commit_transaction(session, NULL));
+ops.c:        testutil_check(session->commit_transaction(session, NULL));
+ops.c:    WT_PUBLISH(tinfo->commit_ts, ts);
+ops.c:    trace_uri_op(tinfo, NULL, "commit read-ts=%" PRIu64 ", commit-ts=%" PRIu64, tinfo->read_ts,
+ops.c:      tinfo->commit_ts);
+ops.c: * rollback_transaction --
+ops.c:    session = tinfo->session;
+ops.c:    ++tinfo->rollback;
+ops.c:    testutil_check(session->rollback_transaction(session, NULL));
+ops.c:    trace_uri_op(tinfo, NULL, "abort read-ts=%" PRIu64, tinfo->read_ts);
+ops.c: * prepare_transaction --
+ops.c:    session = tinfo->session;
+ops.c:    ++tinfo->prepare;
+ops.c:    testutil_check(session->timestamp_transaction_uint(session, WT_TS_TXN_TYPE_PREPARE, ts));
+ops.c:    ret = session->prepare_transaction(session, NULL);
+ops.c: * OP_FAILED --
+ops.c: * table_op --
+ops.c: *     Per-thread table operation.
+ops.c:    table = tinfo->table;
+ops.c:    tinfo->cursor = table_cursor(tinfo, table->id);
+ops.c:     * Truncate has the key set to before/after rows in the table, skip pre-fetch and reserve for
+ops.c:     * When the cursor is positioned in a row-store, inserts update existing records rather than
+ops.c:     * those inserted records are ignored as well). The problem is if a row-store table updates an
+ops.c:     * original record and a different row-store or column-store table inserts a new record instead.
+ops.c:    if (op != TRUNCATE && (op != INSERT || !table->mirror)) {
+ops.c:         * Inserts, removes and updates can be done following a cursor set-key, or based on a cursor
+ops.c:        if (op != READ && mmrand(&tinfo->rnd, 1, 5) == 1) {
+ops.c:            ++tinfo->search;
+ops.c:         * If we're in a snapshot-isolation transaction, optionally reserve a row (it's an update so
+ops.c:        if (intxn && iso_level == ISOLATION_SNAPSHOT && mmrand(&tinfo->rnd, 0, 20) == 1) {
+ops.c:            switch (table->type) {
+ops.c:        ++tinfo->insert;
+ops.c:        switch (table->type) {
+ops.c:        switch (table->type) {
+ops.c:            ++tinfo->update; /* FLCS does an update instead of a modify. */
+ops.c:            ++tinfo->modify;
+ops.c:            ++tinfo->modify;
+ops.c:        ++tinfo->search;
+ops.c:             * FIXME-WT-9883: It is possible that the underlying cursor is still positioned even
+ops.c:            testutil_check(tinfo->cursor->reset(tinfo->cursor));
+ops.c:            apply_bounds(tinfo->cursor, tinfo->table);
+ops.c:            clear_bounds(tinfo->cursor, tinfo->table);
+ops.c:        clear_bounds(tinfo->cursor, tinfo->table);
+ops.c:        ++tinfo->remove;
+ops.c:        switch (table->type) {
+ops.c:        ++tinfo->truncate;
+ops.c:        switch (table->type) {
+ops.c:        ++tinfo->update;
+ops.c:        switch (table->type) {
+ops.c:    tinfo->op_ret = ret;
+ops.c:        next = mmrand(&tinfo->rnd, 0, 1) == 1;
+ops.c:        j = mmrand(&tinfo->rnd, 1, 100);
+ops.c:    evict_page = mmrand(&tinfo->rnd, 1, 20) == 1;
+ops.c:        F_SET(tinfo->cursor, WT_CURSTD_DEBUG_RESET_EVICT);
+ops.c:    testutil_check(tinfo->cursor->reset(tinfo->cursor));
+ops.c:        F_CLR(tinfo->cursor, WT_CURSTD_DEBUG_RESET_EVICT);
+ops.c: * ops_session_open --
+ops.c:    if ((session = tinfo->session) != NULL)
+ops.c:    tinfo->session = NULL;
+ops.c:    memset(tinfo->cursors, 0, WT_MAX(ntables, 1) * sizeof(tinfo->cursors[0]));
+ops.c:    wt_wrap_open_session(conn, &tinfo->sap, NULL, &session);
+ops.c:    tinfo->session = session;
+ops.c: * ops --
+ops.c: *     Per-thread operations.
+ops.c:     * Characterize the per-thread random number generator. Normally we want independent behavior so
+ops.c:        __wt_random_init_seed(NULL, &tinfo->rnd);
+ops.c:        __wt_random_init(&tinfo->rnd);
+ops.c:    iso_level = ISOLATION_SNAPSHOT; /* -Wconditional-uninitialized */
+ops.c:    reset_op = mmrand(&tinfo->rnd, 100, 10000);
+ops.c:    truncate_op = mmrand(&tinfo->rnd, 100, 10000);
+ops.c:    for (intxn = false; !tinfo->quit;) {
+ops.c:        ++tinfo->ops;
+ops.c:        if (tinfo->ops > session_op) {
+ops.c:            session = tinfo->session;
+ops.c:            session_op += mmrand(&tinfo->rnd, 100, 5000);
+ops.c:        if (!intxn && tinfo->ops > reset_op) {
+ops.c:            testutil_check(session->reset(session));
+ops.c:            reset_op += mmrand(&tinfo->rnd, 40000, 60000);
+ops.c:        if (!intxn && g.transaction_timestamps_config && mmrand(&tinfo->rnd, 1, 15) == 1) {
+ops.c:            ++tinfo->search;
+ops.c:        table = tinfo->table = table_select(tinfo);
+ops.c:         * snapshot-isolation).
+ops.c:            if (table->mirror || mmrand(&tinfo->rnd, 1, 100) < GV(TRANSACTION_IMPLICIT)) {
+ops.c:                    iso_config = "isolation=read-committed";
+ops.c:                    iso_config = "isolation=read-uncommitted";
+ops.c:            i = mmrand(&tinfo->rnd, 1, 100);
+ops.c:                if (TV(OPS_TRUNCATE) && tinfo->ops > truncate_op) {
+ops.c:                    truncate_op += mmrand(&tinfo->rnd, 20000, 100000);
+ops.c:         * Get the number of rows. Column-store extends the object, use that extended count if this
+ops.c:         * isn't a mirrored operation. (Ignore insert column-store insert operations in this check,
+ops.c:         * column-store will allocate a key after the end of the current table inside WiredTiger.)
+ops.c:        if (table->type != ROW && !table->mirror)
+ops.c:            WT_ORDERED_READ(max_rows, table->rows_current);
+ops.c:        tinfo->keyno = mmrand(&tinfo->rnd, 1, (u_int)max_rows);
+ops.c:         * from lower keys to higher keys or vice-versa).
+ops.c:            tinfo->last = tinfo->keyno = mmrand(&tinfo->rnd, 1, (u_int)max_rows);
+ops.c:            greater_than = mmrand(&tinfo->rnd, 0, 1) == 1;
+ops.c:            range = max_rows < 20 ? 0 : mmrand(&tinfo->rnd, 0, (u_int)max_rows / 50);
+ops.c:                    if (tinfo->keyno <= range)
+ops.c:                        tinfo->last = 0;
+ops.c:                        tinfo->last -= range;
+ops.c:                    tinfo->last += range;
+ops.c:                    if (tinfo->last > max_rows)
+ops.c:                        tinfo->last = 0;
+ops.c:                    tinfo->keyno += range;
+ops.c:                    if (tinfo->keyno > max_rows)
+ops.c:                        tinfo->keyno = 0;
+ops.c:                    if (tinfo->keyno <= range)
+ops.c:                        tinfo->keyno = 0;
+ops.c:                        tinfo->keyno -= range;
+ops.c:         * See the column-store update/insert calls for the matching work, if the table is mirrored,
+ops.c:         * special work is done here and the column-store insert/update calls will create derive the
+ops.c:            if (table->type == FIX && table->mirror)
+ops.c:                val_gen(g.base_mirror, &tinfo->rnd, tinfo->new_value, &tinfo->bitv, tinfo->keyno);
+ops.c:                val_gen(table, &tinfo->rnd, tinfo->new_value, &tinfo->bitv, tinfo->keyno);
+ops.c:            if (table->type != FIX || table->mirror)
+ops.c:                val_gen(table, &tinfo->rnd, tinfo->new_value, &tinfo->bitv, tinfo->keyno);
+ops.c:        if (op == MODIFY && table->mirror) {
+ops.c:            tinfo->table = g.base_mirror;
+ops.c:            if (tinfo->op_ret == WT_NOTFOUND)
+ops.c:            tinfo->table = table;
+ops.c:        if (ret == 0 && table->mirror)
+ops.c:                if (tables[i] != skip1 && tables[i] != skip2 && tables[i]->mirror) {
+ops.c:                    tinfo->table = tables[i];
+ops.c:        table = tinfo->table = NULL;
+ops.c:        /* Drain any pending column-store inserts. */
+ops.c:        if (!intxn || (rnd = mmrand(&tinfo->rnd, 1, 10)) > 5)
+ops.c:         * timestamped world, which means we're in a snapshot-isolation transaction by definition.
+ops.c:        if (GV(OPS_PREPARE) && mmrand(&tinfo->rnd, 1, 10) == 1) {
+ops.c:        testutil_check(session->close(session, NULL));
+ops.c:    tinfo->session = NULL;
+ops.c:    memset(tinfo->cursors, 0, WT_MAX(ntables, 1) * sizeof(tinfo->cursors[0]));
+ops.c:    tinfo->state = TINFO_COMPLETE;
+ops.c: * read_row_worker --
+ops.c: *     Read and verify a single element in a row- or column-store file.
+ops.c:    *bitvp = FIX_VALUE_WRONG; /* -Wconditional-uninitialized */
+ops.c:    value->data = NULL;
+ops.c:    value->size = 0;
+ops.c:        table = tinfo->table;
+ops.c:    switch (table->type) {
+ops.c:        cursor->set_key(cursor, keyno);
+ops.c:        cursor->set_key(cursor, key);
+ops.c:        if (table->type == FIX)
+ops.c:            testutil_check(cursor->get_value(cursor, bitvp));
+ops.c:            testutil_check(cursor->get_value(cursor, value));
+ops.c:         * Zero values at the end of the key space in fixed length stores are returned as not-found.
+ops.c:         * The WiredTiger cursor has lost its position though, so we return not-found, the cursor
+ops.c:        if (table->type == FIX)
+ops.c:    switch (table->type) {
+ops.c:            trace_msg(cursor->session, "read %" PRIu64 " {0x%02" PRIx8 "}", keyno, *bitvp);
+ops.c:            trace_msg(cursor->session, "read %" PRIu64 " {%.*s}", keyno, (int)value->size,
+ops.c:              (char *)value->data);
+ops.c:              tinfo, "read %" PRIu64 " {%.*s}", keyno, (int)value->size, (char *)value->data);
+ops.c: * apply_bounds --
+ops.c:    if (table->type == FIX)
+ops.c:    WT_ORDERED_READ(max_rows, table->rows_current);
+ops.c:    switch (table->type) {
+ops.c:        cursor->set_key(cursor, lower_keyno);
+ops.c:        cursor->set_key(cursor, &key);
+ops.c:        testutil_check(cursor->bound(cursor, "action=set,bound=upper"));
+ops.c:        testutil_check(cursor->bound(cursor, "action=set,bound=lower"));
+ops.c:    switch (table->type) {
+ops.c:        cursor->set_key(cursor, upper_keyno);
+ops.c:        cursor->set_key(cursor, &key);
+ops.c:        testutil_check(cursor->bound(cursor, "action=set,bound=upper"));
+ops.c:        testutil_check(cursor->bound(cursor, "action=set,bound=lower"));
+ops.c: * clear_bounds --
+ops.c:    if (table->type == FIX)
+ops.c:    cursor->bound(cursor, "action=clear");
+ops.c: * wts_read_scan --
+ops.c:    wt_wrap_open_cursor(session, table->uri, NULL, &cursor);
+ops.c:    WT_ORDERED_READ(max_rows, table->rows_current);
+ops.c:            testutil_check(cursor->reset(cursor));
+ops.c: * read_row --
+ops.c: *     Read and verify a single element in a row- or column-store file.
+ops.c:    /* 25% of the time we call search-near. */
+ops.c:    return (read_row_worker(tinfo, NULL, tinfo->cursor, tinfo->keyno, tinfo->key, tinfo->value,
+ops.c:      &tinfo->bitv, mmrand(&tinfo->rnd, 0, 3) == 1));
+ops.c: * nextprev --
+ops.c: *     Read and verify the next/prev element in a row- or column-store file.
+ops.c:    table = tinfo->table;
+ops.c:    cursor = tinfo->cursor;
+ops.c:    bitv = FIX_VALUE_WRONG; /* -Wconditional-uninitialized */
+ops.c:    switch (table->type) {
+ops.c:        testutil_check(cursor->get_key(cursor, &keyno));
+ops.c:        testutil_check(cursor->get_value(cursor, &bitv));
+ops.c:        testutil_check(cursor->get_key(cursor, &key));
+ops.c:        testutil_check(cursor->get_value(cursor, &value));
+ops.c:        testutil_check(cursor->get_key(cursor, &keyno));
+ops.c:        testutil_check(cursor->get_value(cursor, &value));
+ops.c:        switch (table->type) {
+ops.c: * row_reserve --
+ops.c: *     Reserve a row in a row-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        key_gen(tinfo->table, tinfo->key, tinfo->keyno);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:    if ((ret = cursor->reserve(cursor)) != 0)
+ops.c:    trace_op(tinfo, "reserve %" PRIu64 " {%.*s}", tinfo->keyno, (int)tinfo->key->size,
+ops.c:      (char *)tinfo->key->data);
+ops.c: * col_reserve --
+ops.c: *     Reserve a row in a column-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        cursor->set_key(cursor, tinfo->keyno);
+ops.c:    if ((ret = cursor->reserve(cursor)) != 0)
+ops.c:    trace_op(tinfo, "reserve %" PRIu64, tinfo->keyno);
+ops.c: * modify --
+ops.c:    modify_check = positioned && mmrand(&tinfo->rnd, 1, 20) == 1;
+ops.c:        testutil_check(cursor->get_value(cursor, &tinfo->moda));
+ops.c:          __wt_buf_set(CUR2S(cursor), &tinfo->moda, tinfo->moda.data, tinfo->moda.size));
+ops.c:    WT_RET(cursor->modify(cursor, tinfo->entries, tinfo->nentries));
+ops.c:    testutil_check(cursor->get_value(cursor, tinfo->new_value));
+ops.c:          &tinfo->moda, &tinfo->modb, tinfo->entries, tinfo->nentries, FORMAT_PAD_BYTE);
+ops.c:        testutil_assert(tinfo->moda.size == tinfo->new_value->size &&
+ops.c:          (tinfo->moda.size == 0 ||
+ops.c:            memcmp(tinfo->moda.data, tinfo->new_value->data, tinfo->moda.size) == 0));
+ops.c: * row_modify --
+ops.c: *     Modify a row in a row-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        key_gen(tinfo->table, tinfo->key, tinfo->keyno);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:    trace_op(tinfo, "modify %" PRIu64 " {%.*s}, {%.*s}", tinfo->keyno, (int)tinfo->key->size,
+ops.c:      (char *)tinfo->key->data, (int)tinfo->new_value->size, (char *)tinfo->new_value->data);
+ops.c: * col_modify --
+ops.c: *     Modify a row in a column-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        cursor->set_key(cursor, tinfo->keyno);
+ops.c:    trace_op(tinfo, "modify %" PRIu64 ", {%.*s}", tinfo->keyno, (int)tinfo->new_value->size,
+ops.c:      (char *)tinfo->new_value->data);
+ops.c: * row_truncate --
+ops.c: *     Truncate rows in a row-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:    session = cursor->session;
+ops.c:    testutil_assert(tinfo->keyno != 0 || tinfo->last != 0);
+ops.c:    trace_op(tinfo, "truncate %" PRIu64 "-%" PRIu64 " start", tinfo->keyno, tinfo->last);
+ops.c:    if (tinfo->keyno == 0) {
+ops.c:        key_gen(tinfo->table, tinfo->key, tinfo->last);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:        WT_ERR(session->truncate(session, NULL, NULL, cursor, NULL));
+ops.c:    } else if (tinfo->last == 0) {
+ops.c:        key_gen(tinfo->table, tinfo->key, tinfo->keyno);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:        WT_ERR(session->truncate(session, NULL, cursor, NULL, NULL));
+ops.c:        key_gen(tinfo->table, tinfo->key, tinfo->keyno);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:        testutil_check(session->open_cursor(session, tinfo->table->uri, NULL, NULL, &c2));
+ops.c:        key_gen(tinfo->table, tinfo->lastkey, tinfo->last);
+ops.c:        cursor->set_key(c2, tinfo->lastkey);
+ops.c:        ret = session->truncate(session, NULL, cursor, c2, NULL);
+ops.c:        testutil_check(c2->close(c2));
+ops.c:    trace_op(tinfo, "truncate %" PRIu64 "-%" PRIu64 " stop ret %d", tinfo->keyno, tinfo->last, ret);
+ops.c: * col_truncate --
+ops.c: *     Truncate rows in a column-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:    session = cursor->session;
+ops.c:    testutil_assert(tinfo->keyno != 0 || tinfo->last != 0);
+ops.c:    if (tinfo->keyno == 0) {
+ops.c:        cursor->set_key(cursor, tinfo->last);
+ops.c:        WT_RET(session->truncate(session, NULL, NULL, cursor, NULL));
+ops.c:    } else if (tinfo->last == 0) {
+ops.c:        cursor->set_key(cursor, tinfo->keyno);
+ops.c:        WT_RET(session->truncate(session, NULL, cursor, NULL, NULL));
+ops.c:        cursor->set_key(cursor, tinfo->keyno);
+ops.c:        testutil_check(session->open_cursor(session, tinfo->table->uri, NULL, NULL, &c2));
+ops.c:        cursor->set_key(c2, tinfo->last);
+ops.c:        ret = session->truncate(session, NULL, cursor, c2, NULL);
+ops.c:        testutil_check(c2->close(c2));
+ops.c:    trace_op(tinfo, "truncate %" PRIu64 "-%" PRIu64, tinfo->keyno, tinfo->last);
+ops.c: * row_update --
+ops.c: *     Update a row in a row-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        key_gen(tinfo->table, tinfo->key, tinfo->keyno);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:    cursor->set_value(cursor, tinfo->new_value);
+ops.c:    if ((ret = cursor->update(cursor)) != 0)
+ops.c:    trace_op(tinfo, "update %" PRIu64 " {%.*s}, {%.*s}", tinfo->keyno, (int)tinfo->key->size,
+ops.c:      (char *)tinfo->key->data, (int)tinfo->new_value->size, (char *)tinfo->new_value->data);
+ops.c: * col_update --
+ops.c: *     Update a row in a column-store file.
+ops.c:    table = tinfo->table;
+ops.c:    cursor = tinfo->cursor;
+ops.c:        cursor->set_key(cursor, tinfo->keyno);
+ops.c:    if (table->type == FIX) {
+ops.c:        if (table->mirror)
+ops.c:            val_to_flcs(table, tinfo->new_value, &tinfo->bitv);
+ops.c:        cursor->set_value(cursor, tinfo->bitv);
+ops.c:        cursor->set_value(cursor, tinfo->new_value);
+ops.c:    if ((ret = cursor->update(cursor)) != 0)
+ops.c:    if (table->type == FIX)
+ops.c:        trace_op(tinfo, "update %" PRIu64 " {0x%02" PRIx8 "}", tinfo->keyno, tinfo->bitv);
+ops.c:        trace_op(tinfo, "update %" PRIu64 " {%.*s}", tinfo->keyno, (int)tinfo->new_value->size,
+ops.c:          (char *)tinfo->new_value->data);
+ops.c: * row_insert --
+ops.c: *     Insert a row in a row-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        key_gen_insert(tinfo->table, &tinfo->rnd, tinfo->key, tinfo->keyno);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:    cursor->set_value(cursor, tinfo->new_value);
+ops.c:    if ((ret = cursor->insert(cursor)) != 0)
+ops.c:    trace_op(tinfo, "insert %" PRIu64 " {%.*s}, {%.*s}", tinfo->keyno, (int)tinfo->key->size,
+ops.c:      (char *)tinfo->key->data, (int)tinfo->new_value->size, (char *)tinfo->new_value->data);
+ops.c: * col_insert_resolve --
+ops.c:    cip = &tinfo->col_insert[table->id - 1];
+ops.c:    if (cip->insert_list_cnt == 0)
+ops.c:     * We don't want to ignore column-store records we insert, which requires we update the "last
+ops.c:     * The solution is a per-table array which contains an unsorted list of inserted records. If
+ops.c:        WT_ORDERED_READ(max_rows, table->rows_current);
+ops.c:        for (i = 0, p = cip->insert_list; i < WT_ELEMENTS(cip->insert_list); ++i, ++p) {
+ops.c:                      __wt_atomic_casv32(&table->rows_current, max_rows, max_rows + 1));
+ops.c:                --cip->insert_list_cnt;
+ops.c:    } while (cip->insert_list_cnt > 0 && i < WT_ELEMENTS(cip->insert_list));
+ops.c: * col_insert_add --
+ops.c:    cip = &tinfo->col_insert[tinfo->table->id - 1];
+ops.c:    for (i = 0; i < WT_ELEMENTS(cip->insert_list); ++i)
+ops.c:        if (cip->insert_list[i] == 0) {
+ops.c:            cip->insert_list[i] = (uint32_t)tinfo->keyno;
+ops.c:            ++cip->insert_list_cnt;
+ops.c:    testutil_assert(i < WT_ELEMENTS(cip->insert_list));
+ops.c: * col_insert --
+ops.c: *     Insert an element in a column-store file.
+ops.c:    table = tinfo->table;
+ops.c:    cursor = tinfo->cursor;
+ops.c:    cip = &tinfo->col_insert[table->id - 1];
+ops.c:    if (cip->insert_list_cnt >= WT_ELEMENTS(cip->insert_list))
+ops.c:    if (table->type == FIX) {
+ops.c:        if (table->mirror)
+ops.c:            val_to_flcs(table, tinfo->new_value, &tinfo->bitv);
+ops.c:        cursor->set_value(cursor, tinfo->bitv);
+ops.c:        cursor->set_value(cursor, tinfo->new_value);
+ops.c:    if ((ret = cursor->insert(cursor)) != 0)
+ops.c:    testutil_check(cursor->get_key(cursor, &tinfo->keyno));
+ops.c:    if (table->type == FIX)
+ops.c:        trace_op(tinfo, "insert %" PRIu64 " {0x%02" PRIx8 "}", tinfo->keyno, tinfo->bitv);
+ops.c:        trace_op(tinfo, "insert %" PRIu64 " {%.*s}", tinfo->keyno, (int)tinfo->new_value->size,
+ops.c:          (char *)tinfo->new_value->data);
+ops.c: * row_remove --
+ops.c: *     Remove an row from a row-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        key_gen(tinfo->table, tinfo->key, tinfo->keyno);
+ops.c:        cursor->set_key(cursor, tinfo->key);
+ops.c:        ret = cursor->remove(cursor);
+ops.c:    trace_op(tinfo, "remove %" PRIu64, tinfo->keyno);
+ops.c: * col_remove --
+ops.c: *     Remove a row from a column-store file.
+ops.c:    cursor = tinfo->cursor;
+ops.c:        cursor->set_key(cursor, tinfo->keyno);
+ops.c:        ret = cursor->remove(cursor);
+ops.c:    trace_op(tinfo, "remove %" PRIu64, tinfo->keyno);
+random.c:/*-
+random.c: * Public Domain 2014-present MongoDB, Inc.
+random.c: * Public Domain 2008-2014 WiredTiger, Inc.
+random.c: * binary, for any purpose, commercial or non-commercial, and by any
+random.c: * random_kv --
+random.c:    /* Random cursor ops are only supported on row-store, make sure there's a row-store table. */
+random.c:    if (ntables == 0 && tables[0]->type != ROW)
+random.c:            if (tables[i]->type == ROW)
+random.c:        /* Alternate between simple random cursors and sample-size random cursors. */
+random.c:        wt_wrap_open_cursor(session, table->uri, config, &cursor);
+random.c:        /* This is just a smoke-test, get some key/value pairs. */
+random.c:        for (i = mmrand(NULL, 0, 1000); i > 0; --i) {
+random.c:            switch (ret = cursor->next(cursor)) {
+random.c:            testutil_check(cursor->get_key(cursor, &key));
+random.c:            testutil_check(cursor->get_value(cursor, &value));
+random.c:        testutil_check(cursor->close(cursor));
+random.c:            --period;
+README:Turn on tracing with the "-T" flag:
+README:    -T	Trace operations into a WiredTiger log
+README:-T option takes an argument, so to configure the default use an empty string, '-T ""'.
+README:You can trace more operations by adding comma or white-space separated arguments to the -T option:
+README:    -T "bulk,retain=25"
+README:    -C 'verbose=(block)' -T ""
+README:    wt -h RUNDIR/OPS.TRACE printlog -um > LOG
+README:    [1641602357:730642][3028368:0x7fa21a7fc700], t: [WT_VERB_TEMPORARY][INFO]: 134675 commit read-ts=1062901, commit-ts=1063233
+README:The white-space separated fields are a timestamp, a thread and session ID, the program name,
+README:    [1641602399:299982][3028368:0x7fa221ffb700], t: [WT_VERB_TEMPORARY][INFO]: 224868 begin snapshot read-ts=1797649 (not repeatable)
+README:    [1641602399:312859][3028368:0x7fa221ffb700], t: [WT_VERB_TEMPORARY][INFO]: 224868 commit read-ts=1797649, commit-ts=1797672
+README:    % grep -w 224868 | sort -T: -k2,3 LOG
+salvage.c:/*-
+salvage.c: * Public Domain 2014-present MongoDB, Inc.
+salvage.c: * Public Domain 2008-2014 WiredTiger, Inc.
+salvage.c: * binary, for any purpose, commercial or non-commercial, and by any
+salvage.c: * uri_path --
+salvage.c:    p = strchr(table->uri, ':');
+salvage.c:    testutil_die(0, "%s: unable to find file for salvage", table->uri);
+salvage.c: * corrupt --
+salvage.c:    testutil_assert(fd != -1);
+salvage.c:    offset = mmrand(NULL, 0, (u_int)sb.st_size - 1024);
+salvage.c:    (void)fprintf(fp, "salvage-corrupt: offset %" PRIuMAX ", length %" WT_SIZET_FMT "\n",
+salvage.c:    testutil_assert(lseek(fd, offset, SEEK_SET) != -1);
+salvage.c:    for (; len > 0; len -= nw) {
+salvage.c:        testutil_assert(write(fd, smash, nw) != -1);
+salvage.c:    "rm -rf %s/SALVAGE.copy && mkdir %s/SALVAGE.copy && cp %s/WiredTiger* %s %s/SALVAGE.copy/"
+salvage.c: * wts_salvage --
+salvage.c:    wt_wrap_open_session(conn, &sap, table->track_prefix, &session);
+salvage.c:    testutil_check(session->salvage(session, table->uri, "force=true"));
+salvage.c:    wt_wrap_open_session(conn, &sap, table->track_prefix, &session);
+salvage.c:    testutil_check(session->salvage(session, table->uri, "force=true"));
+smoke.sh:set -e
+smoke.sh:# Smoke-test format as part of running "make check".
+smoke.sh:args="-c . "
+snap.c:/*-
+snap.c: * Public Domain 2014-present MongoDB, Inc.
+snap.c: * Public Domain 2008-2014 WiredTiger, Inc.
+snap.c: * binary, for any purpose, commercial or non-commercial, and by any
+snap.c: * snap_init --
+snap.c:     * We maintain two snap lists, where the current one is indicated by tinfo->s, and keeps the
+snap.c:        tinfo->s = &tinfo->snap_states[1];
+snap.c:        tinfo->snap_list = dcalloc(SNAP_LIST_SIZE, sizeof(SNAP_OPS));
+snap.c:        tinfo->snap_end = &tinfo->snap_list[SNAP_LIST_SIZE];
+snap.c:    tinfo->s = &tinfo->snap_states[0];
+snap.c:    tinfo->snap_list = dcalloc(SNAP_LIST_SIZE, sizeof(SNAP_OPS));
+snap.c:    tinfo->snap_end = &tinfo->snap_list[SNAP_LIST_SIZE];
+snap.c:    tinfo->snap_current = tinfo->snap_list;
+snap.c: * snap_teardown --
+snap.c:    for (snap_index = 0; snap_index < WT_ELEMENTS(tinfo->snap_states); snap_index++)
+snap.c:        if ((snaplist = tinfo->snap_states[snap_index].snap_state_list) != NULL) {
+snap.c: * snap_clear_one --
+snap.c:    snap->repeatable = false;
+snap.c: * snap_clear --
+snap.c:    for (snap = tinfo->snap_list; snap < tinfo->snap_end; ++snap)
+snap.c: * snap_op_init --
+snap.c:    ++tinfo->opid;
+snap.c:        if (stable_ts != tinfo->stable_ts && read_ts > stable_ts) {
+snap.c:            tinfo->stable_ts = stable_ts;
+snap.c:            if (tinfo->s == &tinfo->snap_states[0])
+snap.c:                tinfo->s = &tinfo->snap_states[1];
+snap.c:                tinfo->s = &tinfo->snap_states[0];
+snap.c:            tinfo->snap_current = tinfo->snap_list;
+snap.c:    tinfo->snap_first = tinfo->snap_current;
+snap.c:    tinfo->read_ts = read_ts;
+snap.c:    tinfo->repeatable_reads = repeatable_reads;
+snap.c:    tinfo->repeatable_wrap = false;
+snap.c: * snap_track --
+snap.c:    table = tinfo->table;
+snap.c:    snap = tinfo->snap_current;
+snap.c:    snap->op = op;
+snap.c:    snap->opid = tinfo->opid;
+snap.c:    snap->id = table->id;
+snap.c:    snap->keyno = tinfo->keyno;
+snap.c:    snap->ts = WT_TS_NONE;
+snap.c:    snap->repeatable = false;
+snap.c:    snap->last = 0;
+snap.c:    snap->bitv = FIX_VALUE_WRONG;
+snap.c:    snap->key.data = snap->value.data = NULL;
+snap.c:    snap->key.size = snap->value.size = 0;
+snap.c:        if (table->type == ROW)
+snap.c:            testutil_check(__wt_buf_set(NULL, &snap->key, tinfo->key->data, tinfo->key->size));
+snap.c:        if (table->type == FIX) {
+snap.c:            mask = (1u << TV(BTREE_BITCNT)) - 1;
+snap.c:            testutil_assert((tinfo->bitv & mask) == tinfo->bitv);
+snap.c:            snap->bitv = tinfo->bitv;
+snap.c:            ip = op == READ ? tinfo->value : tinfo->new_value;
+snap.c:            testutil_check(__wt_buf_set(NULL, &snap->value, ip->data, ip->size));
+snap.c:        snap->last = tinfo->last;
+snap.c:    if (++tinfo->snap_current >= tinfo->snap_end)
+snap.c:        tinfo->snap_current = tinfo->snap_list;
+snap.c:    if (tinfo->snap_current->opid == tinfo->opid)
+snap.c:        tinfo->repeatable_wrap = true;
+snap.c: * snap_verify_callback --
+snap.c:    /* We only handle success and not-found. */
+snap.c:    snap = callback->snap;
+snap.c:    table = callback->table;
+snap.c:    tinfo = callback->tinfo;
+snap.c:    cursor = callback->cursor;
+snap.c:    key = callback->key;
+snap.c:    keyno = callback->keyno;
+snap.c:    value = tinfo->value;
+snap.c:    bitv = FIX_VALUE_WRONG; /* -Wconditional-uninitialized */
+snap.c:        if (table->type == FIX) {
+snap.c:            testutil_check(cursor->get_value(cursor, &bitv));
+snap.c:            if (snap->op != REMOVE && bitv == snap->bitv)
+snap.c:            testutil_check(cursor->get_value(cursor, value));
+snap.c:            if (snap->op != REMOVE && value->size == snap->value.size &&
+snap.c:              (value->size == 0 || memcmp(value->data, snap->value.data, snap->value.size) == 0))
+snap.c:    if (ret == WT_NOTFOUND && snap->op == REMOVE)
+snap.c:     * In fixed length stores, zero values at the end of the key space are returned as not-found,
+snap.c:     * and not-found row reads are saved as zero values. Map back-and-forth for simplicity.
+snap.c:    if (table->type == FIX) {
+snap.c:        if (ret == WT_NOTFOUND && snap->bitv == 0)
+snap.c:        if (snap->op == REMOVE && bitv == 0)
+snap.c:     * Things went pear-shaped.
+snap.c:    fprintf(stderr, "%s: WiredTiger trace ID: %u\n", table->uri,
+snap.c:      (u_int)((WT_BTREE *)((WT_CURSOR_BTREE *)cursor)->dhandle->handle)->id);
+snap.c:    switch (table->type) {
+snap.c:        if (snap->op == REMOVE)
+snap.c:            testutil_check(__wt_snprintf(snap_buf, sizeof(snap_buf), "0x%02x", (u_int)snap->bitv));
+snap.c:        fprintf(stderr, "snapshot-isolation: %" PRIu64 " search: expected {%s}, found {%s}\n",
+snap.c:          stderr, "snapshot-isolation %.*s search mismatch\n", (int)key->size, (char *)key->data);
+snap.c:        if (snap->op == REMOVE)
+snap.c:            fprintf(stderr, "expected {%.*s}\n", (int)snap->value.size, (char *)snap->value.data);
+snap.c:            fprintf(stderr, "   found {%.*s}\n", (int)value->size, (char *)value->data);
+snap.c:        fprintf(stderr, "snapshot-isolation %" PRIu64 " search mismatch\n", keyno);
+snap.c:        if (snap->op == REMOVE)
+snap.c:            fprintf(stderr, "expected {%.*s}\n", (int)snap->value.size, (char *)snap->value.data);
+snap.c:            fprintf(stderr, "   found {%.*s}\n", (int)value->size, (char *)value->data);
+snap.c:    cursor_dump_page(cursor, "snapshot-isolation error");
+snap.c: * snap_verify --
+snap.c:    testutil_assert(snap->op != TRUNCATE);
+snap.c:    table = tables[ntables == 0 ? 0 : snap->id];
+snap.c:    cursor = table_cursor(tinfo, snap->id);
+snap.c:    keyno = snap->keyno;
+snap.c:        if (snap->op == REMOVE)
+snap.c:              tinfo, table->uri, "repeat %" PRIu64 " ts=%" PRIu64 " {deleted}", keyno, snap->ts);
+snap.c:        else if (snap->op == INSERT && table->type == ROW)
+snap.c:            trace_uri_op(tinfo, table->uri, "repeat {%.*s} ts=%" PRIu64 " {%.*s}",
+snap.c:              (int)snap->key.size, (char *)snap->key.data, snap->ts, (int)snap->value.size,
+snap.c:              (char *)snap->value.data);
+snap.c:        else if (table->type == FIX)
+snap.c:            trace_uri_op(tinfo, table->uri, "repeat %" PRIu64 " ts=%" PRIu64 " {0x%02" PRIx8 "}",
+snap.c:              keyno, snap->ts, snap->bitv);
+snap.c:            trace_uri_op(tinfo, table->uri, "repeat %" PRIu64 " ts=%" PRIu64 " {%.*s}", keyno,
+snap.c:              snap->ts, (int)snap->value.size, (char *)snap->value.data);
+snap.c:     * Retrieve the key/value pair by key. Row-store inserts have a unique generated key we saved,
+snap.c:    switch (table->type) {
+snap.c:        cursor->set_key(cursor, keyno);
+snap.c:        key = tinfo->key;
+snap.c:        if (snap->op == INSERT) {
+snap.c:            key->data = snap->key.data;
+snap.c:            key->size = snap->key.size;
+snap.c:        cursor->set_key(cursor, key);
+snap.c:    CUR2S(cursor)->format_private = snap_verify_callback;
+snap.c:    CUR2S(cursor)->format_private_arg = &callback;
+snap.c:    CUR2S(cursor)->format_private = NULL;
+snap.c: * snap_ts_clear --
+snap.c:    for (snap = tinfo->snap_list; snap < tinfo->snap_end; ++snap)
+snap.c:        if (snap->repeatable && snap->ts <= ts)
+snap.c:            snap->repeatable = false;
+snap.c: * snap_repeat_match --
+snap.c:    if (a->op == READ)
+snap.c:    if (a->id != current->id)
+snap.c:    if (a->keyno == current->keyno)
+snap.c:    table = tables[ntables == 0 ? 0 : a->id];
+snap.c:    if (a->op == TRUNCATE) {
+snap.c:        if (reverse && (a->keyno == 0 || a->keyno >= current->keyno) &&
+snap.c:          (a->last == 0 || a->last <= current->keyno))
+snap.c:        if (!reverse && (a->keyno == 0 || a->keyno <= current->keyno) &&
+snap.c:          (a->last == 0 || a->last >= current->keyno))
+snap.c: * snap_repeat_ok_commit --
+snap.c:    if (current->op == TRUNCATE)
+snap.c:        if (++p >= tinfo->snap_end)
+snap.c:            p = tinfo->snap_list;
+snap.c:        if (p->opid != tinfo->opid)
+snap.c:    if (current->op != READ)
+snap.c:        if (--p < tinfo->snap_list)
+snap.c:            p = &tinfo->snap_list[SNAP_LIST_SIZE - 1];
+snap.c:        if (p->opid != tinfo->opid)
+snap.c: * snap_repeat_ok_rollback --
+snap.c:    if (current->op != READ)
+snap.c:        if (--p < tinfo->snap_list)
+snap.c:            p = &tinfo->snap_list[SNAP_LIST_SIZE - 1];
+snap.c:        if (p->opid != tinfo->opid)
+snap.c: * snap_repeat_txn --
+snap.c:    if (tinfo->repeatable_wrap)
+snap.c:    for (current = tinfo->snap_first;; ++current) {
+snap.c:        if (current >= tinfo->snap_end)
+snap.c:            current = tinfo->snap_list;
+snap.c:        if (current->opid != tinfo->opid)
+snap.c: * snap_repeat_update --
+snap.c:    if (tinfo->repeatable_wrap)
+snap.c:    for (current = tinfo->snap_first;; ++current) {
+snap.c:        if (current >= tinfo->snap_end)
+snap.c:            current = tinfo->snap_list;
+snap.c:        if (current->opid != tinfo->opid)
+snap.c:        if (!tinfo->repeatable_reads && current->op == READ)
+snap.c:        current->repeatable = committed ? snap_repeat_ok_commit(tinfo, current) :
+snap.c:        if (current->repeatable)
+snap.c:            current->ts = current->op == READ ? tinfo->read_ts : tinfo->commit_ts;
+snap.c: * snap_repeat --
+snap.c:    session = tinfo->session;
+snap.c:    /* Start a transaction with a read-timestamp and verify the record. */
+snap.c:        if ((ret = session->timestamp_transaction_uint(session, WT_TS_TXN_TYPE_READ, snap->ts)) ==
+snap.c:            snap_ts_clear(tinfo, snap->ts);
+snap.c:         * The only expected error is rollback (as a read-only transaction, cache-full shouldn't
+snap.c:        testutil_check(session->rollback_transaction(session, NULL));
+snap.c:    testutil_check(session->rollback_transaction(session, NULL));
+snap.c: * snap_repeat_single --
+snap.c:    v = mmrand(&tinfo->rnd, 1, SNAP_LIST_SIZE) - 1;
+snap.c:    for (snap = &tinfo->snap_list[v], count = SNAP_LIST_SIZE; count > 0; --count, ++snap) {
+snap.c:        if (snap >= tinfo->snap_end)
+snap.c:            snap = tinfo->snap_list;
+snap.c:        if (snap->repeatable && snap->ts <= ts)
+snap.c: * snap_repeat_rollback --
+snap.c:        testutil_assert(tinfo->session == NULL);
+snap.c:        tinfo->session = session;
+snap.c:        for (statenum = 0; statenum < WT_ELEMENTS(tinfo->snap_states); statenum++) {
+snap.c:            state = &tinfo->snap_states[statenum];
+snap.c:            for (snap = state->snap_state_list; snap < state->snap_state_end; ++snap) {
+snap.c:                if (snap->repeatable && snap->ts <= g.stable_timestamp) {
+snap.c:        tinfo->session = NULL;
+t.c:/*-
+t.c: * Public Domain 2014-present MongoDB, Inc.
+t.c: * Public Domain 2008-2014 WiredTiger, Inc.
+t.c: * binary, for any purpose, commercial or non-commercial, and by any
+t.c: * signal_handler --
+t.c: * signal_timer --
+t.c: * set_alarm --
+t.c: * format_process_env --
+t.c: * locks_init --
+t.c: *     Initialize locks to single-thread backups and timestamps.
+t.c:    testutil_check(conn->open_session(conn, NULL, NULL, &session));
+t.c:    testutil_check(session->close(session, NULL));
+t.c: * locks_destroy --
+t.c: *     Discard locks to single-thread backups and timestamps.
+t.c:    testutil_check(conn->open_session(conn, NULL, NULL, &session));
+t.c:    testutil_check(session->close(session, NULL));
+t.c: * TIMED_MAJOR_OP --
+t.c: * main --
+t.c:     * Initialize the tables array and default to multi-table testing if not in backward-compatible
+t.c:    tables[0]->id = 1;
+t.c:     * there's no restriction on command-line arguments when re-playing or re-opening a database,
+t.c:     * Let the command line -q flag override values configured from other sources. Regardless, don't
+t.c:            testutil_die(0, "reopen impossible after in-memory run");
+t.c:     * consume the legitimate run-time, but we also need to do the end-of-run checking in all cases,
+t.c:    ops_seconds = GV(RUNS_TIMER) == 0 ? 0 : ((GV(RUNS_TIMER) * 60) - 15) / FORMAT_OPERATION_REPS;
+t.c:    printf("%s: successful run completed (%" PRIu64 " seconds)\n ", progname, now - start);
+t.c: * format_die --
+t.c:     * Single-thread error handling, our caller exits after calling us (we never release the lock).
+t.c: * usage --
+t.c:      "usage: %s [-BqRv]\n    "
+t.c:      "[-C wiredtiger-config] [-c config-file] [-h home] [-T trace-config] [name=value ...]\n",
+t.c:      "\t-B maintain 3.3 release log and configuration option compatibility\n"
+t.c:      "\t-C additional wiredtiger_open configuration arguments\n"
+t.c:      "\t-c read test program configuration from a file (default 'CONFIG')\n"
+t.c:      "\t-h run directory (default 'RUNDIR')\n"
+t.c:      "\t-q quiet\n"
+t.c:      "\t-R reopen an existing database\n"
+t.c:      "\t-T trace operations in the WiredTiger log\n"
+t.c:      "\t-v verify database and exit\n");
+timestamp.c:/*-
+timestamp.c: * Public Domain 2014-present MongoDB, Inc.
+timestamp.c: * Public Domain 2008-2014 WiredTiger, Inc.
+timestamp.c: * binary, for any purpose, commercial or non-commercial, and by any
+timestamp.c: * timestamp_maximum_committed --
+timestamp.c:            commit_ts = (*tlp)->commit_ts;
+timestamp.c:             * We can't calculate a useful minimum in-use timestamp if a thread hasn't yet set its
+timestamp.c:             * last-used commit timestamp, that thread might be about to use a commit timestamp in
+timestamp.c:    /* Return one less than the minimum in-use timestamp. */
+timestamp.c:    return (ts - 1);
+timestamp.c: * timestamp_query --
+timestamp.c:    testutil_check(conn->query_timestamp(conn, tsbuf, query));
+timestamp.c: * timestamp_init --
+timestamp.c: *     Set the timestamp on open to the database's recovery timestamp, or some non-zero value.
+timestamp.c: * timestamp_once --
+timestamp.c:    /* Get the maximum not-in-use timestamp, noting that it may not be set. */
+timestamp.c:            oldest_timestamp -= (oldest_timestamp - g.oldest_timestamp) / 2;
+timestamp.c:    testutil_check(conn->set_timestamp(conn, buf));
+timestamp.c: * timestamp --
+timestamp.c: * timestamp_teardown --
+timestamp.c: * timestamp_set_oldest --
+timestamp.c:    if ((ret = conn->query_timestamp(conn, tsbuf, "get=oldest_timestamp")) == 0) {
+trace.c:/*-
+trace.c: * Public Domain 2014-present MongoDB, Inc.
+trace.c: * Public Domain 2008-2014 WiredTiger, Inc.
+trace.c: * binary, for any purpose, commercial or non-commercial, and by any
+trace.c: * trace_config --
+trace.c:#define TRACE_INIT_CMD "rm -rf %s/" TRACE_DIR " && mkdir %s/" TRACE_DIR
+trace.c: * trace_init --
+trace.c:    testutil_check(g.trace_conn->open_session(g.trace_conn, NULL, NULL, &g.trace_session));
+trace.c: * trace_teardown --
+trace.c:        testutil_check(conn->close(conn, NULL));
+util.c:/*-
+util.c: * Public Domain 2014-present MongoDB, Inc.
+util.c: * Public Domain 2008-2014 WiredTiger, Inc.
+util.c: * binary, for any purpose, commercial or non-commercial, and by any
+util.c: * track_ts_diff --
+util.c:        return "-";
+util.c: * track_ts_dots --
+util.c: * track_write --
+util.c:    static size_t last_len; /* callers must be single-threaded */
+util.c:        memset(msg + len, ' ', (size_t)(last_len - len));
+util.c: * track_ops --
+util.c:      tinfo->search > M(9) ? tinfo->search / M(1) : tinfo->search, tinfo->search > M(9) ? "M" : "",
+util.c:      tinfo->insert > M(9) ? tinfo->insert / M(1) : tinfo->insert, tinfo->insert > M(9) ? "M" : "",
+util.c:      tinfo->update > M(9) ? tinfo->update / M(1) : tinfo->update, tinfo->update > M(9) ? "M" : "",
+util.c:      tinfo->remove > M(9) ? tinfo->remove / M(1) : tinfo->remove, tinfo->remove > M(9) ? "M" : "",
+util.c:      tinfo->modify > M(9) ? tinfo->modify / M(1) : tinfo->modify, tinfo->modify > M(9) ? "M" : "",
+util.c:      tinfo->truncate > M(9) ? tinfo->truncate / M(1) : tinfo->truncate,
+util.c:      tinfo->truncate > M(9) ? "M" : "", ts_msg));
+util.c: * track --
+util.c: * path_setup --
+util.c: * fclose_and_clear --
+util.c: * lock_init --
+util.c: *     Initialize abstract lock that can use either pthread of wt reader-writer locks.
+util.c:    testutil_assert(lock->lock_type == LOCK_NONE);
+util.c:        testutil_check(__wt_rwlock_init((WT_SESSION_IMPL *)session, &lock->l.wt));
+util.c:        lock->lock_type = LOCK_WT;
+util.c:        testutil_check(pthread_rwlock_init(&lock->l.pthread, NULL));
+util.c:        lock->lock_type = LOCK_PTHREAD;
+util.c: * lock_destroy --
+util.c:    switch (lock->lock_type) {
+util.c:        testutil_check(pthread_rwlock_destroy(&lock->l.pthread));
+util.c:        __wt_rwlock_destroy((WT_SESSION_IMPL *)session, &lock->l.wt);
+util.c:    lock->lock_type = LOCK_NONE;
+util.c: * cursor_dump_page --
+util.c: * table_dump_page --
+util.c:    wt_wrap_open_cursor(session, tbl->uri, checkpoint == NULL ? NULL : cfg, &cursor);
+util.c:    switch (tbl->type) {
+util.c:        cursor->set_key(cursor, keyno);
+util.c:        cursor->set_key(cursor, &key);
+util.c:    ret = cursor->search_near(cursor, &exactp);
+util.c:    switch (tbl->type) {
+util.c:    testutil_check(cursor->close(cursor));
+util.c: * set_core --
+util.c: * atou32 --
+util.c: * wt_wrap_open_session --
+util.c:    testutil_check(conn->open_session(conn, NULL, NULL, &session));
+util.c:    if (g.trace_conn != NULL && sap->trace == NULL)
+util.c:        testutil_check(g.trace_conn->open_session(g.trace_conn, NULL, NULL, &sap->trace));
+util.c:    sap->track = track;
+util.c:    session->app_private = sap;
+util.c: * wt_wrap_close_session --
+util.c:    if ((sap = session->app_private) != NULL) {
+util.c:        trace = sap->trace;
+util.c:            testutil_check(trace->close(trace, NULL));
+util.c:    testutil_check(session->close(session, NULL));
+verify.c:/*-
+verify.c: * Public Domain 2014-present MongoDB, Inc.
+verify.c: * Public Domain 2008-2014 WiredTiger, Inc.
+verify.c: * binary, for any purpose, commercial or non-commercial, and by any
+verify.c: * table_verify --
+verify.c:    wt_wrap_open_session(conn, &sap, table->track_prefix, &session);
+verify.c:    ret = session->verify(session, table->uri, "strict");
+verify.c:        WARN("table.%u skipped verify because of EBUSY", table->id);
+verify.c: * table_mirror_row_next --
+verify.c: *     Move to the next row-store original record.
+verify.c:        testutil_check(cursor->get_key(cursor, key));
+verify.c:        testutil_assert((p = strchr(key->data, '.')) != NULL);
+verify.c:        testutil_assert(key->size - WT_PTRDIFF(p, key->data) >= 3);
+verify.c:    *keynop = atou32("mirror-verify", (char *)key->data + NTV(table, BTREE_PREFIX_LEN), '.');
+verify.c: * table_mirror_fail_msg --
+verify.c:      base_keyno, table_keyno, base->uri, base->type == ROW ? (int)base_key->size : 1,
+verify.c:      base->type == ROW ? (char *)base_key->data : "#", (int)base_value->size,
+verify.c:      (char *)base_value->data, table->uri, table->type == ROW ? (int)table_key->size : 1,
+verify.c:      table->type == ROW ? (char *)table_key->data : "#", (int)table_value->size,
+verify.c:      (char *)table_value->data);
+verify.c:      base_keyno, table_keyno, base->uri, base->type == ROW ? (int)base_key->size : 1,
+verify.c:      base->type == ROW ? (char *)base_key->data : "#", (int)base_value->size,
+verify.c:      (char *)base_value->data, table->uri, table->type == ROW ? (int)table_key->size : 1,
+verify.c:      table->type == ROW ? (char *)table_key->data : "#", (int)table_value->size,
+verify.c:      (char *)table_value->data);
+verify.c: * table_mirror_fail_msg_flcs --
+verify.c:    testutil_assert(table->type == FIX);
+verify.c:      base_keyno, table_keyno, base->uri, base->type == ROW ? (int)base_key->size : 1,
+verify.c:      base->type == ROW ? (char *)base_key->data : "#", (int)base_value->size,
+verify.c:      (char *)base_value->data, base_bitv, table->uri, table_bitv,
+verify.c:      base_keyno, table_keyno, base->uri, base->type == ROW ? (int)base_key->size : 1,
+verify.c:      base->type == ROW ? (char *)base_key->data : "#", (int)base_value->size,
+verify.c:      (char *)base_value->data, base_bitv, table->uri, table_bitv,
+verify.c: * table_verify_mirror --
+verify.c:    base_keyno = table_keyno = 0;             /* -Wconditional-uninitialized */
+verify.c:    base_bitv = table_bitv = FIX_VALUE_WRONG; /* -Wconditional-uninitialized */
+verify.c:        wt_wrap_open_cursor(session, base->uri, checkpoint == NULL ? NULL : buf, &base_cursor);
+verify.c:        base_id = base_cursor->checkpoint_id(base_cursor);
+verify.c:        wt_wrap_open_cursor(session, table->uri, checkpoint == NULL ? NULL : buf, &table_cursor);
+verify.c:        table_id = table_cursor->checkpoint_id(table_cursor);
+verify.c:        testutil_check(base_cursor->close(base_cursor));
+verify.c:        testutil_check(table_cursor->close(table_cursor));
+verify.c:      table->id, checkpoint == NULL ? "" : checkpoint, checkpoint == NULL ? "" : " checkpoint "));
+verify.c:        switch (base->type) {
+verify.c:            testutil_assert(base->type != FIX);
+verify.c:                testutil_check(base_cursor->get_key(base_cursor, &base_keyno));
+verify.c:        switch (table->type) {
+verify.c:                testutil_check(table_cursor->get_key(table_cursor, &table_keyno));
+verify.c:                testutil_check(table_cursor->get_value(table_cursor, &table_bitv));
+verify.c:                testutil_check(table_cursor->get_key(table_cursor, &table_keyno));
+verify.c:        testutil_check(base_cursor->get_value(base_cursor, &base_value));
+verify.c:        if (table->type == FIX) {
+verify.c:            testutil_check(table_cursor->get_value(table_cursor, &table_bitv));
+verify.c:            testutil_check(table_cursor->get_value(table_cursor, &table_value));
+verify.c:                      tagbuf, sizeof(tagbuf), "mirror error: base cursor (table %u)", base->id));
+verify.c:                      tagbuf, sizeof(tagbuf), "mirror error: table cursor (table %u)", table->id));
+verify.c:                        if (!tables[i]->mirror)
+verify.c: * wts_verify --
+verify.c:    testutil_check(conn->open_session(conn, NULL, NULL, &session));
+verify.c:    testutil_check(session->checkpoint(session, NULL));
+verify.c:    testutil_check(session->close(session, NULL));
+verify.c:        if (tables[i]->mirror && tables[i] != g.base_mirror)
+verify.c: * wts_verify_checkpoint --
+verify.c:        if (tables[i]->mirror && tables[i] != g.base_mirror)
+wts.c:/*-
+wts.c: * Public Domain 2014-present MongoDB, Inc.
+wts.c: * Public Domain 2008-2014 WiredTiger, Inc.
+wts.c: * binary, for any purpose, commercial or non-commercial, and by any
+wts.c: * encryptor --
+wts.c:    else if (strcmp(s, "rotn-7") == 0)
+wts.c: * encryptor_at_open --
+wts.c:    else if (strcmp(s, "rotn-7") == 0)
+wts.c: * handle_message --
+wts.c:     * Log to the trace database when tracing messages. In threaded paths there will be a per-thread
+wts.c:    if ((sap = session->app_private) != NULL && sap->trace != NULL) {
+wts.c:        testutil_check(sap->trace->log_printf(sap->trace, "%s", message));
+wts.c:        testutil_check(g.trace_session->log_printf(g.trace_session, "%s", message));
+wts.c:    /* Write and flush the message so we're up-to-date on error. */
+wts.c: * handle_progress --
+wts.c:    if (session->app_private != NULL) {
+wts.c:          __wt_snprintf(buf, sizeof(buf), "%s %s", (char *)session->app_private, operation));
+wts.c:        max -= __len;                                                       \
+wts.c: * configure_timing_stress --
+wts.c: * create_database --
+wts.c:    /* In-memory configuration. */
+wts.c: * create_object --
+wts.c:      (table->type == ROW) ? "u" : "r", BLOCK_ALLOCATION_SIZE,
+wts.c:      TV(DISK_FIRSTFIT) ? "block_allocation=first" : "", table->max_intl_page, table->max_leaf_page,
+wts.c:      table->max_mem_page);
+wts.c:    maxleafkey = mmrand(NULL, table->max_leaf_page / 50, table->max_leaf_page / 40);
+wts.c:    maxleafvalue = mmrand(NULL, table->max_leaf_page * 10, table->max_leaf_page / 40);
+wts.c:    switch (table->type) {
+wts.c:    testutil_checkfmt(session->create(session, table->uri, config), "%s", table->uri);
+wts.c: * wts_create_home --
+wts.c: *     Remove and re-create the directory.
+wts.c:    testutil_check(__wt_snprintf(buf, sizeof(buf), "rm -rf %s && mkdir %s", g.home, g.home));
+wts.c: * wts_create_database --
+wts.c:        testutil_check(conn->close(conn, NULL));
+wts.c: * wts_open --
+wts.c:    /* If in-memory, there's only a single, shared WT_CONNECTION handle. */
+wts.c: * wts_close --
+wts.c:     * If running in-memory, there's only a single, shared WT_CONNECTION handle. Format currently
+wts.c:     * doesn't perform the operations coded to close and then re-open the database on in-memory
+wts.c:        testutil_check(conn->reconfigure(conn, "compatibility=(release=3.3)"));
+wts.c:    testutil_check(conn->close(conn, GV(WIREDTIGER_LEAK_MEMORY) ? "leak_memory" : NULL));
+wts.c: * stats_data_print --
+wts.c:      (ret = cursor->next(cursor)) == 0 && (ret = cursor->get_value(cursor, &desc, &pval, &v)) == 0)
+wts.c:    testutil_check(cursor->close(cursor));
+wts.c: * stats_data_source --
+wts.c:    fp = args->fp;
+wts.c:    session = args->session;
+wts.c:    testutil_assert(fprintf(fp, "\n\n====== Data source statistics: %s\n", table->uri) >= 0);
+wts.c:    testutil_check(__wt_snprintf(buf, sizeof(buf), "statistics:%s", table->uri));
+wts.c: * wts_stats --

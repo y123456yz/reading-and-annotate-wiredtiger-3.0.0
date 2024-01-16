@@ -37,7 +37,7 @@ __wt_block_verify_start(
     WT_RET(__wt_config_gets(session, cfg, "strict", &cval));
     block->verify_strict = cval.val != 0;
    // printf("yang test .......__wt_block_verify_start.......strict:%d\r\n", block->verify_strict);
-    
+
     /* Configuration: dump the file's layout. */
     WT_RET(__wt_config_gets(session, cfg, "dump_layout", &cval));
     block->verify_layout = cval.val != 0;

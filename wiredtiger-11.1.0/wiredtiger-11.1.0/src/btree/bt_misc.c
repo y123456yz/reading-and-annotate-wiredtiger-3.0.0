@@ -147,8 +147,8 @@ __wt_page_type_string(u_int type) // WT_GCC_FUNC_ATTRIBUTE((visibility("default"
 
 const char *
 __wt_page_type_string2(WT_REF *ref) // WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
-{   
-    
+{
+
     switch (ref->page->type) {
     case WT_PAGE_INVALID:
         return ("invalid");
@@ -179,7 +179,7 @@ const char *
 __wt_page_type_string_distinguish_root(WT_REF *ref) //WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     u_int type = ref->page->type;
-    
+
     switch (type) {
     case WT_PAGE_ROW_INT:
         if (__wt_ref_is_root(ref))

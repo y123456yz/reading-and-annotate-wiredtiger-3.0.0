@@ -786,14 +786,13 @@ copy_cell_restart:
         unpack->data = cell->__chunk + 1;
         //数据总长度
         unpack->size = cell->__chunk[0] >> WT_CELL_SHORT_SHIFT;
-        //存储数据长度的字节数+存储真实数据的长度，1是因为有一个字节存储数据长度字段  
+        //存储数据长度的字节数+存储真实数据的长度，1是因为有一个字节存储数据长度字段
         unpack->__len = 1 + unpack->size;
         goto done; /* Handle copy cells. */
     }
 
-
     /* 走到这里说明K或者V实际长度大于WT_CELL_SHORT_MAX */
-    
+
     unpack->prefix = 0;
     unpack->data = NULL;
     unpack->size = 0;
@@ -987,7 +986,7 @@ copy_cell_restart:
         unpack->data = p;
         //真实数据长度
         unpack->size = (uint32_t)v;
-        //存储数据长度的字节数+存储真实数据的长度  
+        //存储数据长度的字节数+存储真实数据的长度
         unpack->__len = WT_PTRDIFF32(p, cell) + unpack->size;
         break;
 
@@ -1224,7 +1223,7 @@ __wt_cell_unpack_addr(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, WT_CE
 //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组实际上指向page->dsk内存中的对应K或者V地址，参考__wt_cell_unpack_safe
 
 static inline void
-__wt_cell_unpack_kv(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk, 
+__wt_cell_unpack_kv(WT_SESSION_IMPL *session, const WT_PAGE_HEADER *dsk,
   //对于一个磁盘块ext内存数据指定K或者V的起始地址
   WT_CELL *cell,
   //cell内存空间的内容解析后存储到WT_CELL_UNPACK_KV中

@@ -46,7 +46,6 @@ __blkcache_read_corrupt(WT_SESSION_IMPL *session, int error, const uint8_t *addr
  //__wt_meta_checkpoint获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
  //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
 
- 
  //__wt_btree_open->__wt_btree_tree_open->__wt_blkcache_read: 根据root addr读取磁盘上面的echeckpoint avail或者alloc跳跃表中的ext元数据到内存中
  //__wt_btree_open->__btree_preload->__wt_blkcache_read: 根据ext的元数据地址addr信息从磁盘读取真实ext到buf内存中
  */
@@ -66,8 +65,8 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化
 上面这一棵树的遍历顺序: leaf1->leaf2->internal1->leaf3->leaf4->internal2->root
 
 //从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page元数据[ref key, leaf page ext addr元数据]
-//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据], 
-//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据], 
+//  internal2记录leaf3和leaf4的page元数据[ref key, leaf page ext addr元数据],
+//  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据],
 */
 
 int
@@ -258,7 +257,7 @@ err:
 
  //internal page持久化到ext流程: __reconcile->__wt_rec_row_int->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_checkpoint->__bm_checkpoint
- 
+
  //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
  //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
@@ -454,7 +453,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
      *
      * Ignore the final checkpoint writes.
      */
-    //默认不使能，直接跳过 
+    //默认不使能，直接跳过
     if (blkcache->type == BLKCACHE_UNCONFIGURED)
         ;
     else if (!blkcache->cache_on_checkpoint && checkpoint_io)

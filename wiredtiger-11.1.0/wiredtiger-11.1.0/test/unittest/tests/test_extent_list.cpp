@@ -243,7 +243,6 @@ TEST_CASE("Extent Lists: block_off_srch_last", "[extent_list]")
     }
 }
 
-
 TEST_CASE("Extent Lists: block_off_srch", "[extent_list]")
 {
     std::vector<WT_EXT **> stack(WT_SKIP_MAXDEPTH, nullptr);
@@ -436,4 +435,3 @@ TEST_CASE("Extent Lists: block_size_srch", "[extent_list]")
             REQUIRE(stack[i] == &head[i]);
     }
 }
-

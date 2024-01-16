@@ -347,7 +347,7 @@ err:
 
 leafpage:这里函数名为inmem的原因是，加载磁盘ext中所有K和V的磁盘地址信息到内存pg_row[]中，每个成员实际上存储的是相比ext头部位置的偏移量，
   也就是该磁盘ext的所有K V地址信息存储到了内存pg_row[]中
-internal page: 
+internal page:
   重启时候从page dsk(也就是checkpoint的root ext信息)中解析出子page信息、ref key信、page对应磁盘信息等，然后与page关联，配合__rec_split_write阅读
  */ //__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf
 int
@@ -471,7 +471,7 @@ __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32
     default:
         WT_ERR(__wt_illegal_value(session, page->type));
     }
-    
+
     /* Update the page's cache statistics. */
     __wt_cache_page_inmem_incr(session, page, size);
     //说明该page数据在磁盘中，从这里可以看出即使page的数据在磁盘中，上面的__wt_cache_page_inmem_incr内存计数也会算上
