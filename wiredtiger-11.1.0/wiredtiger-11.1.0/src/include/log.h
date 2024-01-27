@@ -237,6 +237,7 @@ struct __wt_myslot {
 #define WT_LOG_END_HEADER log->allocsize
 
 struct __wt_log {
+    //默认WT_LOG_ALIGN字节
     uint32_t allocsize;    /* Allocation alignment size */
     uint32_t first_record; /* Offset of first record in file */
     wt_off_t log_written;  /* Amount of log written this period */
@@ -248,6 +249,7 @@ struct __wt_log {
     uint32_t tmp_fileid;   /* Temporary file number */
     uint32_t prep_missed;  /* Pre-allocated file misses */
     WT_FH *log_fh;         /* Logging file handle */
+    //__wt_log_open中赋值，指定日志目录
     WT_FH *log_dir_fh;     /* Log directory file handle */
     WT_FH *log_close_fh;   /* Logging file handle to close */
     WT_LSN log_close_lsn;  /* LSN needed to close */

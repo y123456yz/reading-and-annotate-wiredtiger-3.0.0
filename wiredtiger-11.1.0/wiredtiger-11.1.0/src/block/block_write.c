@@ -54,6 +54,7 @@ __wt_block_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t len)
 /*
  * __wt_block_discard --
  *     Discard blocks from the system buffer cache.
+ posix_fadvise清理系统中的文件缓存
  */
 int
 __wt_block_discard(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t added_size)
@@ -78,6 +79,7 @@ __wt_block_discard(WT_SESSION_IMPL *session, WT_BLOCK *block, size_t added_size)
         return (0);
 
     block->os_cache = 0;
+    //posix_fadvise清理系统中的文件缓存
     ret = handle->fh_advise(
       handle, (WT_SESSION *)session, (wt_off_t)0, (wt_off_t)0, WT_FILE_HANDLE_DONTNEED);
     return (ret == EBUSY || ret == ENOTSUP ? 0 : ret);

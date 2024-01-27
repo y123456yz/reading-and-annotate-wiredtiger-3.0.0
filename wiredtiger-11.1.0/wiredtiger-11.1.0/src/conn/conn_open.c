@@ -235,6 +235,7 @@ __wt_connection_workers(WT_SESSION_IMPL *session, const char *cfg[])
      * checkpoints so that the checkpoint server knows if logging is enabled. It must also be
      * started before any operation that can commit, or the commit can block.
      */
+    //log相关的后台线程
     WT_RET(__wt_logmgr_open(session));
 
     /*

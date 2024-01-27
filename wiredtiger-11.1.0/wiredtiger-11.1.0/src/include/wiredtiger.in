@@ -4629,6 +4629,7 @@ struct __wt_file_system {
 	 *    directory.
 	 * @param[out] countp the number of entries returned
 	 */
+	//__wt_posix_directory_list   //获取directory目录下的所有prefix前缀的文件
 	int (*fs_directory_list)(WT_FILE_SYSTEM *file_system,
 	    WT_SESSION *session, const char *directory, const char *prefix,
 	    char ***dirlist, uint32_t *countp);
@@ -4815,6 +4816,7 @@ struct __wt_file_handle {
 	 * @param advice one of ::WT_FILE_HANDLE_WILLNEED or
 	 *    ::WT_FILE_HANDLE_DONTNEED.
 	 */
+	//__posix_file_advise posix_fadvise清理系统中的文件缓存
 	int (*fh_advise)(WT_FILE_HANDLE *file_handle,
 	    WT_SESSION *session, wt_off_t offset, wt_off_t len, int advice);
 

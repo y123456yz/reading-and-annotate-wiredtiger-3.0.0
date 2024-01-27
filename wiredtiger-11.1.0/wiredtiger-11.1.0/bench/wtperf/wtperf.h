@@ -158,10 +158,15 @@ struct __wtperf {         /* Per-database structure */
     WTPERF_THREAD *backupthreads; /* Backup threads */
     WTPERF_THREAD *ckptthreads;   /* Checkpoint threads */
     WTPERF_THREAD *flushthreads;  /* Flush_tier threads */
+    //workers线程和popthreads线程区别:
+    //populate_threads参数配置, pop线程主要用来准备数据，提前写数据到测试表中，为后续的worker线程读写测试准备数据，
+    // icount条数据写入完成后，开始后面的worke线程逻辑, qps数据记录到monitor和monitor.json文件
+    //workers线程threads=((count=20,reads=95,updates=5))，用于真正的读写验证测试
     WTPERF_THREAD *popthreads;    /* Populate threads */
     WTPERF_THREAD *scanthreads;   /* Scan threads */
 
 #define WORKLOAD_MAX 50
+    //参考上面的popthreads说明，一直运行直到run_ops或者run_time配置满足要求，qps数据记录到test.stat文件以及monitor和monitor.json文件
     WTPERF_THREAD *workers; /* Worker threads */
     u_int workers_cnt;
 
@@ -241,22 +246,30 @@ typedef struct {
      * monitor thread periodically copies these values into the last_XXX fields.
      */
     uint64_t ops;         /* Total operations */
+    //采样统计的ops及其时延总和， latency_ops/latency就是采样统计的平均时延
     uint64_t latency_ops; /* Total ops sampled for latency */
     uint64_t latency;     /* Total latency */
+    uint64_t total_min_latency;     /* Total min latency */
+    uint64_t total_max_latency;     /* Total min latency */
 
     uint64_t last_latency_ops; /* Last read by monitor thread */
     uint64_t last_latency;
 
+#define TRACK_MIN_LATENCY 0
+#define TRACK_MAX_LATENCY 1
+#define TRACK_AVERAGE_LATENCY 2
     /*
      * Minimum/maximum latency, shared with the monitor thread, that is, the monitor thread clears
      * it so it's recalculated again for each period.
      */
+    //赋值见track_operation, 注意一个采样周期后，在latency_op中回备清0
     uint32_t min_latency; /* Minimum latency (uS) */
     uint32_t max_latency; /* Maximum latency (uS) */
 
     /*
      * Latency buckets.
      */
+    //us[0]代表0-1us的请求次数，us[1]代表1-2us的请求次数，
     uint32_t us[1000]; /* < 1us ... 1000us */
     uint32_t ms[1000]; /* < 1ms ... 1000ms */
     uint32_t sec[100]; /* < 1s 2s ... 100s */
@@ -303,6 +316,7 @@ void config_opt_usage(void);
 int config_sanity(WTPERF *);
 void latency_insert(WTPERF *, uint32_t *, uint32_t *, uint32_t *);
 void latency_modify(WTPERF *, uint32_t *, uint32_t *, uint32_t *);
+uint64_t get_track_latency(WTPERF *wtperf, size_t field_offset, int type);
 void latency_print(WTPERF *);
 void latency_read(WTPERF *, uint32_t *, uint32_t *, uint32_t *);
 void latency_update(WTPERF *, uint32_t *, uint32_t *, uint32_t *);

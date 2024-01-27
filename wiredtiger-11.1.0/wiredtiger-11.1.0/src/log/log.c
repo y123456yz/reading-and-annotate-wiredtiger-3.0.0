@@ -62,6 +62,7 @@ __log_checksum_match(WT_ITEM *buf, uint32_t reclen)
  * __log_get_files --
  *     Retrieve the list of all log-related files of the given prefix type.
  */
+//获取directory目录下的所有file_prefix前缀的文件
 static int
 __log_get_files(WT_SESSION_IMPL *session, const char *file_prefix, char ***filesp, u_int *countp)
 {
@@ -75,6 +76,7 @@ __log_get_files(WT_SESSION_IMPL *session, const char *file_prefix, char ***files
     log_path = conn->log_path;
     if (log_path == NULL)
         log_path = "";
+     //获取directory目录下的所有文件
     return (__wt_fs_directory_list(session, log_path, file_prefix, filesp, countp));
 }
 
@@ -102,6 +104,7 @@ __log_get_files_single(
 /*
  * __log_prealloc_remove --
  *     Remove all previously created pre-allocated files.
+ //删除所有的WiredTigerTmplog.xxxx 和 WiredTigerPreplog.xxx文件
  */
 static int
 __log_prealloc_remove(WT_SESSION_IMPL *session)
@@ -120,8 +123,10 @@ __log_prealloc_remove(WT_SESSION_IMPL *session)
      * Clean up any old interim pre-allocated files. We clean up these files because settings may
      * have changed upon reboot and we want those settings to take effect right away.
      */
+    //获取directory目录下的所有WiredTigerTmplog前缀的文件
     WT_ERR(__log_get_files(session, WT_LOG_TMPNAME, &logfiles, &logcount));
     for (i = 0; i < logcount; i++) {
+        //例如WiredTigerTmplog.0000000234, id就是234
         WT_ERR(__wt_log_extract_lognum(session, logfiles[i], &lognum));
         WT_ERR(__wt_log_remove(session, WT_LOG_TMPNAME, lognum));
     }
@@ -512,6 +517,7 @@ __wt_log_filename(WT_SESSION_IMPL *session, uint32_t id, const char *file_prefix
  * __wt_log_extract_lognum --
  *     Given a log file name, extract out the log number.
  */
+//例如WiredTigerTmplog.0000000234, id就是234
 int
 __wt_log_extract_lognum(WT_SESSION_IMPL *session, const char *name, uint32_t *id)
 {
@@ -1600,6 +1606,7 @@ __wt_log_open(WT_SESSION_IMPL *session)
     }
 
     if (!F_ISSET(conn, WT_CONN_READONLY))
+        //删除所有的WiredTigerTmplog.xxxx 和 WiredTigerPreplog.xxx文件
         WT_ERR(__log_prealloc_remove(session));
 
 again:
@@ -1610,6 +1617,7 @@ again:
     firstlog = UINT32_MAX;
     need_salvage = false;
 
+    //获取所有的WiredTigerLog.xxxx文件的最小序号和最大LSN序号
     WT_ERR(__log_get_files(session, WT_LOG_FILENAME, &logfiles, &logcount));
     for (i = 0; i < logcount; i++) {
         WT_ERR(__wt_log_extract_lognum(session, logfiles[i], &lognum));

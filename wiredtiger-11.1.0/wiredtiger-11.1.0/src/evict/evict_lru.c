@@ -336,9 +336,9 @@ __wt_evict_thread_run(WT_SESSION_IMPL *session, WT_THREAD *thread)
             __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "__wt_evict_thread_run sleeping");
 
             /* Don't rely on signals: check periodically. */
-            printf("yang test .............__wt_evict_thread_run.....1..............\r\n");
+            //printf("yang test .............__wt_evict_thread_run.....1..............\r\n");
             __wt_cond_auto_wait(session, cache->evict_cond, did_work, NULL);
-            printf("yang test .............__wt_evict_thread_run.....2..............\r\n");
+           // printf("yang test .............__wt_evict_thread_run.....2..............\r\n");
             __wt_verbose_debug2(session, WT_VERB_EVICTSERVER, "%s", "__wt_evict_thread_run waking");
         }
     } else
@@ -811,7 +811,7 @@ __evict_pass(WT_SESSION_IMPL *session)
          * If there is still no progress after 2s, we will treat the cache as stuck and start
          * rolling back transactions and writing updates to the history store table.
          */
-        //判断本轮page挑选期间是否有page罗盘成功
+        //判断本轮page挑选期间是否有page落盘成功
         if (eviction_progress == cache->eviction_progress) {
             if (WT_CLOCKDIFF_MS(time_now, time_prev) >= 20 && F_ISSET(cache, WT_CACHE_EVICT_HARD)) {
                 if (cache->evict_aggressive_score < 100)
@@ -1213,7 +1213,7 @@ __evict_lru_pages(WT_SESSION_IMPL *session, bool is_server)
 
     WT_TRACK_OP_INIT(session);
     conn = S2C(session);
-    WT_RET(__wt_msg(session, "yang test .............................__evict_lru_pages...................."));
+    //WT_RET(__wt_msg(session, "yang test .............................__evict_lru_pages...................."));
 
     /*
      * Reconcile and discard some pages: EBUSY is returned if a page fails eviction because it's
@@ -1277,8 +1277,8 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
      */
     //evict_queues[0]和evict_queues[1]都满了，并且得分较低，说明近期一直满，则不进行后续的扫描需要evict的page来进行入队操作
     if (__evict_queue_full(queue) && cache->evict_empty_score < WT_EVICT_SCORE_CUTOFF) {
-        printf("yang test .......__evict_lru_walk................cache->evict_empty_score:%d\r\n",
-            (int)cache->evict_empty_score);
+        //printf("yang test .......__evict_lru_walk................cache->evict_empty_score:%d\r\n",
+        //    (int)cache->evict_empty_score);
         goto err; //yang add todo xxxxxxxxxxxxx 这里最好加个统计，代表队列一直满，或者增加cache_eviction_queue_not_empty
     }
 
@@ -1375,8 +1375,8 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
             if (!WT_READGEN_EVICT_SOON(read_gen_oldest))
                 break;
         }
-        printf("yang test ...................entries:%d, candidates:%d, read_gen_oldest:%d\r\n",
-            (int)entries, (int)candidates, (int)read_gen_oldest);
+      //  printf("yang test ...................entries:%d, candidates:%d, read_gen_oldest:%d\r\n",
+       //     (int)entries, (int)candidates, (int)read_gen_oldest);
 
         /*
          * Take all candidates if we only gathered pages with an oldest
@@ -1417,7 +1417,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
     /*
      * Signal any application or helper threads that may be waiting to help with eviction.
      */
-    printf("yang test ....................__evict_lru_walk........end\r\n");
+   // printf("yang test ....................__evict_lru_walk........end\r\n");
     //通知工作线程开始消费处理
     __wt_cond_signal(session, S2C(session)->evict_threads.wait_cond);
 
@@ -1550,8 +1550,8 @@ __evict_walk(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue)
 
 retry: //注意这里有retry
     loop_count = 0;
-    printf("yang test .............__evict_walk...slot:%d, max_entries:%d, conn->dhandle_count:%d, flags:%u\r\n",
-        (int)slot, (int)max_entries, (int)conn->dhandle_count, conn->flags);
+   // printf("yang test .............__evict_walk...slot:%d, max_entries:%d, conn->dhandle_count:%d, flags:%u\r\n",
+    //    (int)slot, (int)max_entries, (int)conn->dhandle_count, conn->flags);
     //有可能都是小表，这时候要遍历获取max_entries个需要evict的page可能要跨越多个表，这时候loop_count代表跨越的表个数
     while (slot < max_entries && loop_count++ < conn->dhandle_count) {
         /* We're done if shutting down or reconfiguring. */
@@ -1890,7 +1890,7 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
     int restarts;
     bool give_up, modified, urgent_queued, want_page;
 
-    printf("yang test .....................__evict_walk_tree.....................\r\n");
+   // printf("yang test .....................__evict_walk_tree.....................\r\n");
 
     conn = S2C(session);
     btree = S2BT(session);
@@ -2572,7 +2572,7 @@ __evict_page(WT_SESSION_IMPL *session, bool is_server)
      * by the time we look at it.
      */
     __wt_cache_read_gen_bump(session, ref->page);
-    printf("yang test ................................__wt_evict.............................................\r\n");
+   // printf("yang test ................................__wt_evict.............................................\r\n");
     //挑选出来的ref page进行evict reconcile落盘操作
     WT_WITH_BTREE(session, btree, ret = __wt_evict(session, ref, previous_state, flags));
 

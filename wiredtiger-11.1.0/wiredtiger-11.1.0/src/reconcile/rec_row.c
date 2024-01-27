@@ -408,7 +408,8 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         WT_PAGE_INDEX *__pindex;
 
         WT_INTL_INDEX_GET(session, page, __pindex);
-         printf("yang test ......__wt_rec_row_int....1.......__pindex size:%u\r\n", __pindex->entries);
+        (void)__pindex->entries;
+         //printf("yang test ......__wt_rec_row_int....1.......__pindex size:%u\r\n", __pindex->entries);
     } while(0);
 
     /* For each entry in the in-memory page... */

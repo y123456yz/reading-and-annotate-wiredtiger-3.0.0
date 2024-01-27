@@ -364,7 +364,7 @@ __wt_sweep_config(WT_SESSION_IMPL *session, const char *cfg[])
      * in-memory configuration idle time to zero.
      */
     conn->sweep_idle_time = 0;
-    WT_RET(__wt_config_gets(session, cfg, "in_memory", &cval));
+    WT_RET(__wt_config_gets(session, cfg, "in_memory", &cval)); 
     if (cval.val == 0) {
         WT_RET(__wt_config_gets(session, cfg, "file_manager.close_idle_time", &cval));
         conn->sweep_idle_time = (uint64_t)cval.val;

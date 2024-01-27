@@ -340,9 +340,10 @@ struct __wt_block {
     //getconf PAGESIZE获取操作系统page
     uint32_t allocsize;  /* Allocation size */
     size_t os_cache;     /* System buffer cache flush max */
-    //os_cache_max配置，默认为0
+    //os_cache_max配置，默认为0， 触发后通过posix_fadvise清理系统中的文件缓存
     size_t os_cache_max;
     //os_cache_dirty_max配置，默认为0, 也就是没写入多少数据，就进行强制__wt_fsync刷盘
+    //触发后通过__wt_fsync刷盘
     size_t os_cache_dirty_max;
 
     u_int block_header; /* Header length */

@@ -121,7 +121,10 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "os_cache_dirty_max=50000000, checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
+        //
+       // error_check(wiredtiger_open(home, NULL, "create,statistics=(fast),statistics_log=(json,wait=1),in_memory=true", &conn));
+                
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));

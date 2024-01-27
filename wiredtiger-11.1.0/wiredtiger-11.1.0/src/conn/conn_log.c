@@ -1003,6 +1003,8 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
 
     FLD_SET(conn->server_flags, WT_CONN_SERVER_LOG);
 
+    //"log-close-server"、"log-wrlsn-server"、"log-server"三个线程的作用说明参考:
+    //  https://source.wiredtiger.com/develop/arch-logging.html#log_threads
     /*
      * Start the log close thread. It is not configurable. If logging is enabled, this thread runs.
      */

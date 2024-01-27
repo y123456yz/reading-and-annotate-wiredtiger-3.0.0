@@ -178,6 +178,8 @@ update_value_delta(WTPERF_THREAD *thread, int64_t delta)
  * track_operation --
  *     Update an operation's tracking structure with new latency information.
  */
+//该函数是采样统计的，不是每次请求都统计
+//默认sample_rate=50，也就是50次采样一次进行统计
 static inline void
 track_operation(TRACK *trk, uint64_t usecs)
 {
@@ -186,13 +188,19 @@ track_operation(TRACK *trk, uint64_t usecs)
     /* average microseconds per call */
     v = (uint64_t)usecs;
 
+    //赋值见track_operation
     trk->latency += usecs; /* track total latency */
 
-    if (v > trk->max_latency) /* track max/min latency */
+    /* track max/min latency */
+    if (v > trk->max_latency) 
         trk->max_latency = (uint32_t)v;
-    if (v < trk->min_latency)
+    if (v > trk->total_max_latency) 
+        trk->total_max_latency = (uint32_t)v;
+    if (v < trk->min_latency) 
         trk->min_latency = (uint32_t)v;
-
+    if (v < trk->total_min_latency) 
+        trk->total_min_latency = (uint32_t)v;
+    
     /*
      * Update a latency bucket. First buckets: usecs from 100us to 1000us at 100us each.
      */
@@ -887,6 +895,7 @@ run_mix_schedule(WTPERF *wtperf, WORKLOAD *workp)
     return (0);
 }
 
+//execute_populate函数启用多个populate线程持续性的写数据，icount数据写完后才会返回，对应的写入监控数据记录到monitor  monitor.json中
 static WT_THREAD_RET
 populate_thread(void *arg)
 {
@@ -929,6 +938,7 @@ populate_thread(void *arg)
         cursor_config = "bulk";
 
     /* Create the cursors. */
+    //"bulk"方式加载数据
     cursors = dcalloc(total_table_count, sizeof(WT_CURSOR *));
     for (i = 0; i < total_table_count; i++) {
         if ((ret = session->open_cursor(
@@ -956,6 +966,7 @@ populate_thread(void *arg)
          */
         cursor = cursors[map_key_to_table(wtperf->opts, op)];
         generate_key(opts, key_buf, op);
+        //默认sample_rate=50，也就是50次采样一次进行统计
         measure_latency =
           opts->sample_interval != 0 && trk->ops != 0 && (trk->ops % opts->sample_rate == 0);
         if (measure_latency)
@@ -1026,6 +1037,7 @@ err:
     return (WT_THREAD_RET_VALUE);
 }
 
+//yang add todo xxxxxxxxxxxxx 运行结果需要一个总的平均耗时 平均QPS等
 static WT_THREAD_RET
 monitor(void *arg)
 {
@@ -1101,6 +1113,7 @@ monitor(void *arg)
       "update maximum latency(uS)"
       "\n");
     last_inserts = last_modifies = last_reads = last_updates = 0;
+    inserts = modifies = reads = updates = 0;
     while (!wtperf->stop) {
         for (i = 0; i < opts->sample_interval; i++) {
             sleep(1);
@@ -1118,6 +1131,7 @@ monitor(void *arg)
         testutil_assert(strftime(buf, sizeof(buf), "%b %d %H:%M:%S", &localt) != 0);
 
         inserts = sum_insert_ops(wtperf);
+        //modifies对应__curfile_modify，updates对应__curfile_update
         modifies = sum_modify_ops(wtperf);
         reads = sum_read_ops(wtperf);
         updates = sum_update_ops(wtperf);
@@ -1219,7 +1233,39 @@ monitor(void *arg)
         last_reads = reads;
         last_updates = updates;
     }
+  /*  inserts = modifies = reads = updates = 0;
 
+    if (jfp != NULL) {
+        (void)fprintf(jfp, "\n#total ops statistics:\n");
+        buf_size = strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &localt);
+        testutil_assert(buf_size != 0);
+        testutil_check(__wt_snprintf(&buf[buf_size], sizeof(buf) - buf_size, ".%3.3" PRIu64 "Z",
+          (uint64_t)ns_to_ms((uint64_t)t.tv_nsec)));
+        (void)fprintf(jfp, "{");
+        if (first) {
+            (void)fprintf(jfp, "\"version\":\"%s\",", WIREDTIGER_VERSION_STRING);
+            first = false;
+        }
+        (void)fprintf(jfp, "\"localTime\":\"%s\",\"wtperf\":{", buf);
+        (void)fprintf(jfp,
+          "\"total insert\":{\"ops per sec\":%" PRIu64 ",\"average latency\":%" PRIu32
+          ",\"min latency\":%" PRIu32 ",\"max latency\":%" PRIu32 "}",
+          inserts, insert_avg, insert_min, insert_max);
+        (void)fprintf(jfp,
+          ",\"modify\":{\"ops per sec\":%" PRIu64 ",\"average latency\":%" PRIu32
+          ",\"min latency\":%" PRIu32 ",\"max latency\":%" PRIu32 "}",
+          cur_modifies, modify_avg, modify_min, modify_max);
+        (void)fprintf(jfp,
+          ",\"read\":{\"ops per sec\":%" PRIu64 ",\"average latency\":%" PRIu32
+          ",\"min latency\":%" PRIu32 ",\"max latency\":%" PRIu32 "}",
+          cur_reads, read_avg, read_min, read_max);
+        (void)fprintf(jfp,
+          ",\"update\":{\"ops per sec\":%" PRIu64 ",\"average latency\":%" PRIu32
+          ",\"min latency\":%" PRIu32 ",\"max latency\":%" PRIu32 "}",
+          cur_updates, update_avg, update_min, update_max);
+        fprintf(jfp, "}}\n");
+    }
+*/
     /* Notify our caller we failed and shut the system down. */
     if (0) {
 err:
@@ -1556,12 +1602,14 @@ err:
     return (WT_THREAD_RET_VALUE);
 }
 
+//execute_populate函数启用多个populate线程持续性的写数据，icount数据写完后才会返回，对应的写入监控数据记录到monitor  monitor.json中
 static int
 execute_populate(WTPERF *wtperf)
 {
     CONFIG_OPTS *opts;
     WTPERF_THREAD *popth;
-    uint64_t last_ops, max_key, msecs, print_ops_sec, start, stop;
+    uint64_t last_ops, max_key, msecs, print_ops_sec, start, stop, sample_average_latency, 
+        insert_ops_per_sec, sample_max_latency, sample_min_latency;
     uint32_t interval;
     wt_thread_t idle_table_cycle_thread;
     double print_secs;
@@ -1611,14 +1659,15 @@ execute_populate(WTPERF *wtperf)
          * increment of elapsed is a single increment of interval.
          */
         (void)usleep(10000);
-        if (opts->report_interval == 0 || ++elapsed < 100)
+        if ((opts->report_interval == 0 || ++elapsed < 100) && wtperf->insert_key < max_key)
             continue;
         elapsed = 0;
-        if (++interval < opts->report_interval)
+        if (++interval < opts->report_interval && wtperf->insert_key < max_key)
             continue;
         interval = 0;
         wtperf->totalsec += opts->report_interval;
         wtperf->insert_ops = sum_pop_ops(wtperf);
+
         lprintf(wtperf, 0, 1,
           "%" PRIu64 " populate inserts (%" PRIu64 " of %" PRIu64 ") in %" PRIu32 " secs (%" PRIu32
           " total secs)",
@@ -1626,7 +1675,22 @@ execute_populate(WTPERF *wtperf)
           wtperf->totalsec);
         last_ops = wtperf->insert_ops;
     }
+
+    /*
+    wtperf->insert_ops = sum_pop_ops(wtperf);
+    if (last_ops != wtperf->insert_ops)
+        lprintf(wtperf, 0, 1,
+          "%" PRIu64 " populate inserts (%" PRIu64 " of %" PRIu64 ") in %" PRIu32 " secs (%" PRIu32
+          " total secs)",
+          wtperf->insert_ops - last_ops, wtperf->insert_ops, max_key, opts->report_interval,
+          wtperf->totalsec);
+    */
+    
     stop = __wt_clock(NULL);
+
+    sample_average_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, insert), TRACK_AVERAGE_LATENCY);
+    sample_min_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, insert), TRACK_MIN_LATENCY);
+    sample_max_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, insert), TRACK_MAX_LATENCY);
 
     /*
      * Move popthreads aside to narrow possible race with the monitor thread. The latency tracking
@@ -1646,6 +1710,14 @@ execute_populate(WTPERF *wtperf)
 
     lprintf(wtperf, 0, 1, "Finished load of %" PRIu32 " items", opts->icount);
     msecs = WT_CLOCKDIFF_MS(stop, start);
+    insert_ops_per_sec = msecs == 0 ? 0 : (wtperf->insert_ops * WT_THOUSAND) / msecs;
+
+    lprintf(wtperf, 0, 1,
+      "total ops per sec: %" PRIu64 ", sample average latency(us): %" PRIu64 ", sample min latency(us): %" PRIu64 ", sample max latency(us): %" PRIu64,
+      insert_ops_per_sec, 
+      sample_average_latency, 
+      sample_min_latency, 
+      sample_max_latency);
 
     /*
      * This is needed as the divisions will fail if the insert takes no time which will only be the
@@ -1719,6 +1791,7 @@ close_reopen(WTPERF *wtperf)
     return (0);
 }
 
+//一直运行直到run_ops或者run_time配置满足要求，worker线程才会停止
 static int
 execute_workload(WTPERF *wtperf)
 {
@@ -1784,12 +1857,14 @@ execute_workload(WTPERF *wtperf)
         threads += workp->threads;
     }
 
+    //注意这里会等待120秒后，才会下面的report逻辑
     if (opts->warmup != 0) {
         lprintf(wtperf, 0, 1, "Waiting for warmup duration of %" PRIu32, opts->warmup);
         sleep(opts->warmup);
         wtperf->in_warmup = false;
     }
 
+    //一直运行直到run_ops或者run_time配置满足要求，worker线程才会停止
     for (interval = opts->report_interval, run_time = opts->run_time, run_ops = opts->run_ops;
          !wtperf->error;) {
         /*
@@ -1797,13 +1872,7 @@ execute_workload(WTPERF *wtperf)
          * and if we're only tracking run time, go back to sleep.
          */
         sleep(1);
-        if (run_time != 0) {
-            if (--run_time == 0)
-                break;
-            if (!interval && !run_ops)
-                continue;
-        }
-
+        
         /* Sum the operations we've done. */
         wtperf->ckpt_ops = sum_ckpt_ops(wtperf);
         wtperf->flush_ops = sum_flush_ops(wtperf);
@@ -1814,18 +1883,13 @@ execute_workload(WTPERF *wtperf)
         wtperf->update_ops = sum_update_ops(wtperf);
         wtperf->truncate_ops = sum_truncate_ops(wtperf);
 
-        /* If we're checking total operations, see if we're done. */
-        if (run_ops != 0 &&
-          run_ops <=
-            wtperf->insert_ops + wtperf->modify_ops + wtperf->read_ops + wtperf->update_ops)
-            break;
-
         /* If writing out throughput information, see if it's time. */
         if (interval == 0 || --interval > 0)
             continue;
         interval = opts->report_interval;
         wtperf->totalsec += opts->report_interval;
 
+        //记录到test.stat文件
         lprintf(wtperf, 0, 1,
           "%" PRIu64 " inserts, %" PRIu64 " modifies, %" PRIu64 " reads, %" PRIu64
           " truncates, %" PRIu64 " updates, %" PRIu64 " backups, %" PRIu64 " checkpoints, %" PRIu64
@@ -1844,6 +1908,19 @@ execute_workload(WTPERF *wtperf)
         last_flushes = wtperf->flush_ops;
         last_scans = wtperf->scan_ops;
         last_backup = wtperf->backup_ops;
+
+        if (run_time != 0) {
+            if (--run_time == 0)
+                break;
+            if (!interval && !run_ops)
+                continue;
+        }
+
+        /* If we're checking total operations, see if we're done. */
+        if (run_ops != 0 &&
+          run_ops <=
+            wtperf->insert_ops + wtperf->modify_ops + wtperf->read_ops + wtperf->update_ops)
+            break;
     }
 
 /* Notify the worker threads they are done. */
@@ -2278,7 +2355,8 @@ start_run(WTPERF *wtperf)
 {
     CONFIG_OPTS *opts;
     wt_thread_t monitor_thread;
-    uint64_t total_ops;
+    uint64_t total_ops, sample_average_latency, 
+        sample_max_latency, sample_min_latency;
     uint32_t run_time;
     int monitor_created, ret, t_ret;
 
@@ -2307,11 +2385,13 @@ start_run(WTPERF *wtperf)
         testutil_check(__wt_thread_create(NULL, &monitor_thread, monitor, wtperf));
         monitor_created = 1;
     }
-
+    
     /* If creating, populate the table. */
+    //execute_populate函数启用多个populate线程持续性的写数据，icount数据写完后才会返回，对应的写入监控数据记录到monitor  monitor.json中
     if (opts->create != 0 && execute_populate(wtperf) != 0)
         goto err;
-
+    
+    //只有上面的execute_populate中数据准备好后，才会走到这里来，对应的写入监控数据记录到monitor  monitor.json中
     /* Optional workload. */
     if (wtperf->workers_cnt != 0 && (opts->run_time != 0 || opts->run_ops != 0)) {
         /*
@@ -2352,11 +2432,14 @@ start_run(WTPERF *wtperf)
         }
         if (opts->pre_load_data)
             pre_load_data(wtperf);
-
+            
         /* Execute the workload. */
+        //threads=((count=20,reads=95,updates=5))配置
+        //这里面循环执行worker线程回调，一直运行直到run_ops或者run_time配置满足要求，worker线程才会停止
         if ((ret = execute_workload(wtperf)) != 0)
             goto err;
 
+        //worker运行结束后才会走到这里, 运行结束的统计
         /* One final summation of the operations we've completed. */
         wtperf->insert_ops = sum_insert_ops(wtperf);
         wtperf->modify_ops = sum_modify_ops(wtperf);
@@ -2370,25 +2453,46 @@ start_run(WTPERF *wtperf)
         total_ops = wtperf->insert_ops + wtperf->modify_ops + wtperf->read_ops + wtperf->update_ops;
 
         run_time = opts->run_time == 0 ? 1 : opts->run_time;
+
+        sample_average_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, insert), TRACK_AVERAGE_LATENCY);
+        sample_min_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, insert), TRACK_MIN_LATENCY);
+        sample_max_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, insert), TRACK_MAX_LATENCY);
         lprintf(wtperf, 0, 1,
-          "Executed %" PRIu64 " insert operations (%" PRIu64 "%%) %" PRIu64 " ops/sec",
+          "Executed %" PRIu64 " insert operations (%" PRIu64 "%%) %" PRIu64 " ops/sec, %" PRIu64 " average latencay %" PRIu64 " min latencay %" PRIu64 " max latencay",
           wtperf->insert_ops, (wtperf->insert_ops * 100) / total_ops,
-          wtperf->insert_ops / run_time);
+          wtperf->insert_ops / run_time, sample_average_latency, sample_min_latency, sample_max_latency);
+          
+        sample_average_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, modify ), TRACK_AVERAGE_LATENCY);
+        sample_min_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, modify ), TRACK_MIN_LATENCY);
+        sample_max_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, modify ), TRACK_MAX_LATENCY);
         lprintf(wtperf, 0, 1,
-          "Executed %" PRIu64 " modify operations (%" PRIu64 "%%) %" PRIu64 " ops/sec",
+          "Executed %" PRIu64 " modify operations (%" PRIu64 "%%) %" PRIu64 " ops/sec, %" PRIu64 " average latencay %" PRIu64 " min latencay %" PRIu64 " max latencay",
           wtperf->modify_ops, (wtperf->modify_ops * 100) / total_ops,
-          wtperf->modify_ops / run_time);
+          wtperf->modify_ops / run_time, sample_average_latency, sample_min_latency, sample_max_latency);
+
+        sample_average_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, read), TRACK_AVERAGE_LATENCY);
+        sample_min_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, read), TRACK_MIN_LATENCY);
+        sample_max_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, read), TRACK_MAX_LATENCY);
         lprintf(wtperf, 0, 1,
-          "Executed %" PRIu64 " read operations (%" PRIu64 "%%) %" PRIu64 " ops/sec",
-          wtperf->read_ops, (wtperf->read_ops * 100) / total_ops, wtperf->read_ops / run_time);
+          "Executed %" PRIu64 " read operations (%" PRIu64 "%%) %" PRIu64 " ops/sec, %" PRIu64 " average latencay %" PRIu64 " min latencay %" PRIu64 " max latencay",
+          wtperf->read_ops, (wtperf->read_ops * 100) / total_ops, wtperf->read_ops / run_time, sample_average_latency, sample_min_latency, sample_max_latency);
+
+        sample_average_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, truncate), TRACK_AVERAGE_LATENCY);
+        sample_min_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, truncate), TRACK_MIN_LATENCY);
+        sample_max_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, truncate), TRACK_MAX_LATENCY);
         lprintf(wtperf, 0, 1,
-          "Executed %" PRIu64 " truncate operations (%" PRIu64 "%%) %" PRIu64 " ops/sec",
+          "Executed %" PRIu64 " truncate operations (%" PRIu64 "%%) %" PRIu64 " ops/sec, %" PRIu64 " average latencay %" PRIu64 " min latencay %" PRIu64 " max latencay",
           wtperf->truncate_ops, (wtperf->truncate_ops * 100) / total_ops,
-          wtperf->truncate_ops / run_time);
+          wtperf->truncate_ops / run_time, sample_average_latency, sample_min_latency, sample_max_latency);
+
+        sample_average_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, update), TRACK_AVERAGE_LATENCY);
+        sample_min_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, update), TRACK_MIN_LATENCY);
+        sample_max_latency = get_track_latency(wtperf, offsetof(WTPERF_THREAD, update), TRACK_MAX_LATENCY);
         lprintf(wtperf, 0, 1,
-          "Executed %" PRIu64 " update operations (%" PRIu64 "%%) %" PRIu64 " ops/sec",
+          "Executed %" PRIu64 " update operations (%" PRIu64 "%%) %" PRIu64 " ops/sec, %" PRIu64 " average latencay %" PRIu64 " min latencay %" PRIu64 " max latencay",
           wtperf->update_ops, (wtperf->update_ops * 100) / total_ops,
-          wtperf->update_ops / run_time);
+          wtperf->update_ops / run_time, sample_average_latency, sample_min_latency, sample_max_latency);
+          
         lprintf(wtperf, 0, 1, "Executed %" PRIu64 " backup operations", wtperf->backup_ops);
         lprintf(wtperf, 0, 1, "Executed %" PRIu64 " checkpoint operations", wtperf->ckpt_ops);
         lprintf(wtperf, 0, 1, "Executed %" PRIu64 " flush_tier operations", wtperf->flush_ops);

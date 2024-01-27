@@ -376,6 +376,7 @@ operations(u_int ops_seconds, bool lastrun)
              */
             set_alarm(120);
 
+            //__conn_debug_info
             (void)conn->debug_info(conn, "txn");
             (void)conn->debug_info(conn, "cache");
 

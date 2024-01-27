@@ -870,7 +870,7 @@ directory_open:
     /*
      * Ignore fadvise when doing direct I/O, the kernel cache isn't interesting.
      */
-    if (!pfh->direct_io)
+    if (!pfh->direct_io) //posix_fadvise清理系统中的文件缓存
         file_handle->fh_advise = __posix_file_advise;
 #endif
     file_handle->fh_extend = __wt_posix_file_extend;

@@ -10,6 +10,10 @@ cmake -DENABLE_SNAPPY=0 ../.
 
 ./configure --prefix=/usr/local/python-3.8.8  --enable-shared CFLAGS=-fPIC --enable-optimizations  升级python时候源码编译一定带上，否则高版本wiredtiger编译的时候会报错
 
+wtperf使用: ./wtperf -o in_memory=true -o verbose=2 
+./wtperf -o ../bench/wtperf/runners/500m-btree-50r50u-backup.wtperf
+python ../test/suite/run.py  test_io_capacity01
+
 c单元测试:ctest -C Debug
 c++单元测试: 编译 cmake -DENABLE_SNAPPY=0  -DHAVE_UNITTEST=1  -DHAVE_DIAGNOSTIC=1 -DENABLE_CPPSUITE=1 ../.           然后make  然后./test/unittest/catch2-unittests
 

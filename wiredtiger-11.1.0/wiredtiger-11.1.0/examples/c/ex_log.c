@@ -35,7 +35,7 @@ static const char *home2 = "WT_HOME_LOG_2";
 
 static const char *const uri = "table:logtest";
 
-#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,remove=false)"
+#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,remove=false),verbose=[log:5, fileops:5]"
 #define MAX_KEYS 10
 
 static void

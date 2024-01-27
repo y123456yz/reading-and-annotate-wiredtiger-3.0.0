@@ -2266,8 +2266,8 @@ __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
      //       conn->verbose[i] = 0; //yang add test xxxxxxxxxxxx
     } while(0);
 
-    printf("yang test ...........__wt_verbose_config..............%d\r\n", conn->verbose[WT_VERB_EVICT]);
-    printf("yang test ...........__wt_verbose_config.....WT_VERB_EVICTSERVER.........%d\r\n", conn->verbose[WT_VERB_EVICTSERVER]);
+   // printf("yang test ...........__wt_verbose_config..............%d\r\n", conn->verbose[WT_VERB_EVICT]);
+   // printf("yang test ...........__wt_verbose_config.....WT_VERB_EVICTSERVER.........%d\r\n", conn->verbose[WT_VERB_EVICTSERVER]);
     return (0);
 }
 
@@ -2820,7 +2820,8 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
      * to trust the environment before reading the filesystem, the wiredtiger_open config string is
      * the only way.
      */
-    WT_ERR(__wt_config_gets(session, cfg, "in_memory", &cval));
+   // printf("yang test ............................wiredtiger_open.....111..... \r\n");
+    WT_ERR(__wt_config_gets(session, cfg, "in_memory", &cval));//in_memory不能和log.enabled一起配置，否则报错
     if (cval.val != 0)
         F_SET(conn, WT_CONN_IN_MEMORY);
     WT_ERR(__wt_config_gets(session, cfg, "readonly", &cval));
@@ -2917,9 +2918,11 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
      * we can handle it). Get those settings again so we can override other configuration settings
      * as they are processed.
      */
-    WT_ERR(__wt_config_gets(session, cfg, "in_memory", &cval));
+    WT_ERR(__wt_config_gets(session, cfg, "in_memory", &cval));//in_memory不能和log.enabled一起配置，否则报错
     if (cval.val != 0)
         F_SET(conn, WT_CONN_IN_MEMORY);
+
+      //  printf("yang test ............................wiredtiger_open.....222..... \r\n");
     WT_ERR(__wt_config_gets(session, cfg, "readonly", &cval));
     if (cval.val)
         F_SET(conn, WT_CONN_READONLY);
@@ -3202,6 +3205,8 @@ wiredtiger_open(const char *home, WT_EVENT_HANDLER *event_handler, const char *c
     *connectionp = &conn->iface;
 
 err:
+    printf("yang test ............................wiredtiger_open.....333..... \r\n");
+
     /* Discard the scratch buffers. */
     __wt_scr_free(session, &encbuf);
     __wt_scr_free(session, &i1);
