@@ -98,6 +98,7 @@ __logmgr_get_log_version(WT_VERSION version)
     if (__wt_version_lt(version, WT_LOG_V2_VERSION))
         return (1);
     else if (__wt_version_lt(version, WT_LOG_V3_VERSION))
+        //yang add todo xxxxxxx， 这里用WT_LOG_VERSION_SYSTEM比较好
         return (2);
     else if (__wt_version_lt(version, WT_LOG_V4_VERSION))
         return (3);
@@ -154,6 +155,7 @@ __logmgr_version(WT_SESSION_IMPL *session, bool reconfig)
     else
         first_record = WT_LOG_END_HEADER;
 
+    //printf("yang test ......................log->log_version:%d, new_version:%d\r\n", log->log_version, new_version);
     __wt_logmgr_compat_version(session);
 
     /*
@@ -192,7 +194,7 @@ __logmgr_version(WT_SESSION_IMPL *session, bool reconfig)
  *     Parse and setup the logging server options.
  */
 //mongodb 配置log=(enabled=true,archive=true,path=journal,compressor=snappy)及默认引擎配置transaction_sync=(enabled=false,method=fsync)
- //wiredtiger_open
+ //wiredtiger_open  log相关配置文件解析
 int
 __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
 {
@@ -309,6 +311,7 @@ __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
      * dictates.
      */
     WT_RET(__wt_config_gets(session, cfg, "log.prealloc", &cval));
+    //yang add todo xxxxxxxxxxxx  这里不应该和0比较
     if (cval.val != 0)
         conn->log_prealloc = 1;
 
@@ -476,6 +479,7 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
      * Allocate up to the maximum number, accounting for any existing files that may not have been
      * used yet.
      */
+    //获取所有WiredTigerPreplog.xxx的所有文件
     WT_ERR(__wt_fs_directory_list(session, conn->log_path, WT_LOG_PREPNAME, &recfiles, &reccount));
 
     /*
@@ -500,10 +504,12 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
     /*
      * Allocate up to the maximum number that we just computed and detected.
      */
+    //一次性创建个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
     for (i = reccount; i < (u_int)conn->log_prealloc; i++) {
         WT_ERR(__wt_log_allocfile(session, ++log->prep_fileid, WT_LOG_PREPNAME));
         WT_STAT_CONN_INCR(session, log_prealloc_files);
     }
+    
     /*
      * Reset the missed count now. If we missed during pre-allocating the log files, it means the
      * allocation is not keeping up, not that we didn't allocate enough. So we don't just want to

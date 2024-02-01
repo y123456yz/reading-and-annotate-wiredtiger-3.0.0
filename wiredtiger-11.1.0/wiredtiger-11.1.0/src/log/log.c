@@ -83,7 +83,7 @@ __log_get_files(WT_SESSION_IMPL *session, const char *file_prefix, char ***files
 /*
  * __log_get_files_single --
  *     Retrieve a single log-related file of the given prefix type.
- */
+ */ //只获取一个prefix前缀的文件
 static int
 __log_get_files_single(
   WT_SESSION_IMPL *session, const char *file_prefix, char ***filesp, u_int *countp)
@@ -98,6 +98,7 @@ __log_get_files_single(
     log_path = conn->log_path;
     if (log_path == NULL)
         log_path = "";
+    //只获取一个prefix前缀的文件
     return (__wt_fs_directory_list_single(session, log_path, file_prefix, filesp, countp));
 }
 
@@ -199,6 +200,7 @@ __log_fs_read(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, 
  *     Wrapper when writing to a log file. If we're writing to a new log file for the first time
  *     wait for writes to the previous log file.
  */
+//向slot文件的offset位置写入len字节的buf数据
 static int
 __log_fs_write(
   WT_SESSION_IMPL *session, WT_LOGSLOT *slot, wt_off_t offset, size_t len, const void *buf)
@@ -506,10 +508,12 @@ err:
  * __wt_log_filename --
  *     Given a log number, return a WT_ITEM of a generated log file name of the given prefix type.
  */
+//生成类似WiredTigerlog.xxxx的文件字符串存入buf
 int
 __wt_log_filename(WT_SESSION_IMPL *session, uint32_t id, const char *file_prefix, WT_ITEM *buf)
 {
     return (
+        //生成类似file_prefix.xxxx的文件字符串存入buf
       __wt_filename_construct(session, S2C(session)->log_path, file_prefix, UINTMAX_MAX, id, buf));
 }
 
@@ -583,6 +587,8 @@ err:
  * __log_prealloc --
  *     Pre-allocate a log file.
  */
+ 
+//一般不启用file_extend配置，这里直接返回
 static int
 __log_prealloc(WT_SESSION_IMPL *session, WT_FH *fh)
 {
@@ -691,7 +697,9 @@ __log_decrypt(WT_SESSION_IMPL *session, WT_ITEM *in, WT_ITEM *out)
  */
 int
 __wt_log_fill(
-  WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool force, WT_ITEM *record, WT_LSN *lsnp)
+  WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool force, 
+    //record对应WT_LOG_RECORD
+    WT_ITEM *record, WT_LSN *lsnp)
 {
     WT_DECL_RET;
 
@@ -706,6 +714,7 @@ __wt_log_fill(
         /*
          * If this is a force or unbuffered write, write it now.
          */
+        //向slot文件的slot_start_offset位置写入record信息
         WT_ERR(__log_fs_write(session, myslot->slot,
           myslot->offset + myslot->slot->slot_start_offset, record->size, record->mem));
 
@@ -724,7 +733,9 @@ err:
  * __log_file_header --
  *     Create and write a log file header into a file handle. If writing into the main log, it will
  *     be called locked. If writing into a pre-allocated log, it will be called unlocked.
+ verfify可以配合__log_open_verify阅读
  */
+//log WT_LOG_RECORD头部信息写入磁盘
 static int
 __log_file_header(WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool prealloc)
 {
@@ -749,6 +760,7 @@ __log_file_header(WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool pre
     memset(buf->mem, 0, log->allocsize);
     buf->size = log->allocsize;
 
+    //log文件头部信息: WT_LOG_RECORD+WT_LOG_DESC
     logrec = (WT_LOG_RECORD *)buf->mem;
     desc = (WT_LOG_DESC *)logrec->record;
     desc->log_magic = WT_LOG_MAGIC;
@@ -773,6 +785,7 @@ __log_file_header(WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool pre
 
     WT_CLEAR(tmp);
     memset(&myslot, 0, sizeof(myslot));
+    //引入tmp的目的是记录下fh，进行后面的刷盘操作
     myslot.slot = &tmp;
 
     /*
@@ -787,6 +800,7 @@ __log_file_header(WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool pre
         WT_ASSERT(session, fh == NULL);
         WT_ERR(__wt_log_acquire(session, log->allocsize, &tmp));
     }
+    //log文件头部信息: WT_LOG_RECORD+WT_LOG_DESC写入磁盘
     WT_ERR(__wt_log_fill(session, &myslot, true, buf, NULL));
     /*
      * Make sure the header gets to disk.
@@ -818,7 +832,7 @@ __log_openfile(WT_SESSION_IMPL *session, uint32_t id, uint32_t flags, WT_FH **fh
      * If we are creating the file then we use a temporary file name. Otherwise it is a log file
      * name.
      */
-    if (LF_ISSET(WT_LOG_OPEN_CREATE_OK)) {
+    if (LF_ISSET(WT_LOG_OPEN_CREATE_OK)) {//创建WiredTigerTmplog.xxxxxx文件
         wtopen_flags = WT_FS_OPEN_CREATE;
         WT_ERR(__wt_log_filename(session, id, WT_LOG_TMPNAME, buf));
     } else {
@@ -839,6 +853,7 @@ err:
  *     Open a log file with the given log file number, verify its header and return various pieces
  *     of system information about this log file.
  */
+//配合__log_file_header阅读
 static int
 __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *lsnp,
   uint16_t *versionp, bool *need_salvagep)
@@ -879,11 +894,14 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *ls
      * Read in the log file header and verify it.
      */
     WT_ERR(__log_openfile(session, id, 0, &fh));
+    //读出log文件allocsize字节头部信息
     WT_ERR(__log_fs_read(session, fh, 0, allocsize, buf->mem));
     logrec = (WT_LOG_RECORD *)buf->mem;
     __wt_log_record_byteswap(logrec);
     desc = (WT_LOG_DESC *)logrec->record;
     __wt_log_desc_byteswap(desc);
+
+    //magic检查
     if (desc->log_magic != WT_LOG_MAGIC) {
         if (salvage_mode)
             WT_ERR_MSG(session, WT_ERROR, "log file %s corrupted: Bad magic number %" PRIu32,
@@ -895,6 +913,7 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *ls
     /*
      * We cannot read future log file formats.
      */
+    //version检查
     if (desc->version > WT_LOG_VERSION)
         WT_ERR_MSG(session, WT_ERROR,
           "unsupported WiredTiger file version: this build only supports versions up to %d, and "
@@ -930,10 +949,12 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *ls
      * about the LSN. Otherwise read that record in and set up the LSN. We already have a buffer
      * that is the correct size. Reuse it.
      */
+    printf("yang test ..............................desc->version:%d\r\n", desc->version);
     if (lsnp == NULL || (desc->version < WT_LOG_VERSION_SYSTEM))
         goto err;
 
     memset(buf->mem, 0, allocsize);
+    //读取第二个allocsiz头部长度，如果version >= WT_LOG_VERSION_SYSTEM，会有两个allocsie长度
     WT_ERR(__log_fs_read(session, fh, allocsize, allocsize, buf->mem));
     logrec = (WT_LOG_RECORD *)buf->mem;
     /*
@@ -1052,6 +1073,7 @@ __log_alloc_prealloc(WT_SESSION_IMPL *session, uint32_t to_num)
     /*
      * If there are no pre-allocated files, return WT_NOTFOUND.
      */
+    //只获取一个WiredTigerPreplog前缀的文件, 也就是确定有没有WiredTigerPreplog.xxxx文件存在
     WT_RET(__log_get_files_single(session, WT_LOG_PREPNAME, &logfiles, &logcount));
     if (logcount == 0)
         return (WT_NOTFOUND);
@@ -1144,17 +1166,19 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
     if (conn->log_prealloc > 0 && conn->hot_backup_start == 0) {
         WT_WITH_HOTBACKUP_READ_LOCK(
           session, ret = __log_alloc_prealloc(session, log->fileid), &skipp);
-
+        printf("yang test ...............__log_newfile....1............ ret:%d, skip:%d\r\n", ret, skipp);
         if (!skipp) {
             /*
              * If ret is 0 it means we found a pre-allocated file. If ret is WT_NOTFOUND, create the
              * new log file and signal the server, we missed our pre-allocation. If ret is non-zero
              * but not WT_NOTFOUND, return the error.
              */
+            //如果ref=WT_NOTFOUND, 也就是没有WiredTigerPreplog.xxx文件, 走else流程
             WT_RET_NOTFOUND_OK(ret);
             if (ret == 0)
                 create_log = false;
             else {
+                //LogStat('log_prealloc_missed', 'pre-allocated log files not ready and missed'),
                 WT_STAT_CONN_INCR(session, log_prealloc_missed);
                 if (conn->log_cond != NULL)
                     __wt_cond_signal(session, conn->log_cond);
@@ -1164,6 +1188,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
     /*
      * If we need to create the log file, do so now.
      */
+    printf("yang test ...............__log_newfile....1............ create_log:%d\r\n", create_log);
     if (create_log) {
         /*
          * Increment the missed pre-allocated file counter only if a hot backup is not in progress.
@@ -1171,6 +1196,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
          */
         if (conn->hot_backup_start == 0)
             log->prep_missed++;
+        //新建一个WiredTigerlog.lognum文件，别写入log WT_LOG_RECORD信息
         WT_RET(__wt_log_allocfile(session, log->fileid, WT_LOG_FILENAME));
     }
     /*
@@ -1190,6 +1216,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
     /*
      * We need to setup the LSNs. Set the end LSN and alloc LSN to the end of the header.
      */
+    //log->alloc_lsn前面32位存log->fileid, 后面32位存WT_LOG_END_HEADER
     WT_SET_LSN(&log->alloc_lsn, log->fileid, WT_LOG_END_HEADER);
     /*
      * If we're running the version where we write a system record do so now and update the
@@ -1476,6 +1503,7 @@ err:
  *     Given a log number, create a new log file by writing the header, pre-allocating the file and
  *     moving it to the destination name.
  */
+//新建一个WiredTigerlog.lognum文件，别写入log WT_LOG_RECORD信息
 int
 __wt_log_allocfile(WT_SESSION_IMPL *session, uint32_t lognum, const char *dest)
 {
@@ -1501,22 +1529,28 @@ __wt_log_allocfile(WT_SESSION_IMPL *session, uint32_t lognum, const char *dest)
     WT_RET(__wt_scr_alloc(session, 0, &from_path));
     WT_ERR(__wt_scr_alloc(session, 0, &to_path));
     tmp_id = __wt_atomic_add32(&log->tmp_fileid, 1);
+    //生成类似WiredTigerTmplog.xxxx的文件字符串存入from_path
     WT_ERR(__wt_log_filename(session, tmp_id, WT_LOG_TMPNAME, from_path));
     WT_ERR(__wt_log_filename(session, lognum, dest, to_path));
     __wt_spin_lock(session, &log->log_fs_lock);
     /*
      * Set up the temporary file.
      */
+    //创建WiredTigerTmplog.xxxxxx文件，这里面操作的文件和上面的from_path是同一个
     WT_ERR(__log_openfile(session, tmp_id, WT_LOG_OPEN_CREATE_OK, &log_fh));
+    //log WT_LOG_RECORD头部信息写入磁盘
     WT_ERR(__log_file_header(session, log_fh, NULL, true));
     WT_ERR(__log_prealloc(session, log_fh));
+    //yang add todo xxxxxxx 这里和__log_file_header的__wt_fsync重复了
     WT_ERR(__wt_fsync(session, log_fh, true));
+    //yang add todo xxxxxxx __wt_close和下面的err中的也重复了
     WT_ERR(__wt_close(session, &log_fh));
     __wt_verbose(session, WT_VERB_LOG, "log_allocfile: rename %s to %s",
       (const char *)from_path->data, (const char *)to_path->data);
     /*
      * Rename it into place and make it available.
      */
+    //WiredTigerTmplog.xxxxxx重命名为WiredTigerlog.xxxxxx
     WT_ERR(__wt_fs_rename(session, from_path->data, to_path->data, false));
 
 err:
@@ -1624,6 +1658,8 @@ again:
         lastlog = WT_MAX(lastlog, lognum);
         firstlog = WT_MIN(firstlog, lognum);
     }
+
+    //记录最大的WiredTigerLog.xxxxx的id
     log->fileid = lastlog;
     __wt_verbose(
       session, WT_VERB_LOG, "log_open: first log %" PRIu32 " last log %" PRIu32, firstlog, lastlog);

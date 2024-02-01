@@ -36,6 +36,8 @@ static const char *home2 = "WT_HOME_LOG_2";
 static const char *const uri = "table:logtest";
 
 #define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,remove=false),verbose=[log:5, fileops:5]"
+//#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,remove=false)"
+
 #define MAX_KEYS 10
 
 static void
@@ -123,6 +125,8 @@ simple_walk_log(WT_SESSION *session, int count_min)
         print_record(log_file, log_offset, opcount, rectype, optype, txnid, fileid, &logrec_key,
           &logrec_value);
     }
+    
+    printf("yang test .........simple_walk_log................count:%d, count_min:%d\r\n", count, count_min);
     scan_end_check(ret == WT_NOTFOUND);
     error_check(cursor->close(cursor));
 
@@ -260,13 +264,16 @@ main(int argc, char *argv[])
     error_check(wiredtiger_open(home1, NULL, CONN_CONFIG, &wt_conn));
 
     error_check(wt_conn->open_session(wt_conn, NULL, NULL, &session));
+    //"table:logtest";
     error_check(session->create(session, uri, "key_format=S,value_format=S"));
     count_min++;
 
+    //"table:logtest";
     error_check(session->open_cursor(session, uri, NULL, NULL, &cursor));
     /*
      * Perform some operations with individual auto-commit transactions.
-     */
+     */  
+    //#define MAX_KEYS 10
     for (record_count = 0, i = 0; i < MAX_KEYS; i++, record_count++) {
         (void)snprintf(k, sizeof(k), "key%d", i);
         (void)snprintf(v, sizeof(v), "value%d", i);
@@ -304,6 +311,7 @@ main(int argc, char *argv[])
 
     error_check(wt_conn->open_session(wt_conn, NULL, NULL, &session));
     simple_walk_log(session, count_min);
+    printf("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nyang test xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     walk_log(session);
     error_check(wt_conn->close(wt_conn, NULL));
 

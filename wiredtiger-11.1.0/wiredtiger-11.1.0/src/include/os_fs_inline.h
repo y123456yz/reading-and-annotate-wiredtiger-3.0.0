@@ -48,7 +48,7 @@ __wt_fs_directory_list(
 /*
  * __wt_fs_directory_list_single --
  *     Return a single matching file from a directory.
- */
+ */  //只获取一个prefix前缀的文件
 static inline int
 __wt_fs_directory_list_single(
   WT_SESSION_IMPL *session, const char *dir, const char *prefix, char ***dirlistp, u_int *countp)
@@ -68,6 +68,7 @@ __wt_fs_directory_list_single(
 
     file_system = __wt_fs_file_system(session);
     wt_session = (WT_SESSION *)session;
+     //只获取一个prefix前缀的文件
     ret = file_system->fs_directory_list_single(
       file_system, wt_session, path, prefix, dirlistp, countp);
 

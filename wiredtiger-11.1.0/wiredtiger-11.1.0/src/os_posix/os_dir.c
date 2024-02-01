@@ -14,7 +14,7 @@
  * __directory_list_worker --
  *     Get a list of files from a directory, POSIX version.
  */
- //获取directory目录下的所有prefix前缀的文件
+ //获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件
 static int
 __directory_list_worker(WT_FILE_SYSTEM *file_system, WT_SESSION *wt_session, const char *directory,
   const char *prefix, char ***dirlistp, uint32_t *countp, bool single)
@@ -106,7 +106,7 @@ int
 __wt_posix_directory_list_single(WT_FILE_SYSTEM *file_system, WT_SESSION *wt_session,
   const char *directory, const char *prefix, char ***dirlistp, uint32_t *countp)
 {
-    return (
+    return ( //只获取一个prefix前缀的文件
       __directory_list_worker(file_system, wt_session, directory, prefix, dirlistp, countp, true));
 }
 

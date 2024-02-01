@@ -9,6 +9,7 @@ __wt_logrec_alloc(WT_SESSION_IMPL *session, size_t size, WT_ITEM **logrecp)
 
     WT_RET(__wt_scr_alloc(session, WT_ALIGN(size + 1, WT_LOG_ALIGN), &logrec));
     WT_CLEAR(*(WT_LOG_RECORD *)logrec->data);
+    //size长度到record位置
     logrec->size = offsetof(WT_LOG_RECORD, record);
 
     *logrecp = logrec;
@@ -671,6 +672,7 @@ __wt_logop_checkpoint_start_print(
     return (0);
 }
 
+//对prev_lsn进行封包处理
 int
 __wt_logop_prev_lsn_pack(WT_SESSION_IMPL *session, WT_ITEM *logrec, WT_LSN *prev_lsn)
 {

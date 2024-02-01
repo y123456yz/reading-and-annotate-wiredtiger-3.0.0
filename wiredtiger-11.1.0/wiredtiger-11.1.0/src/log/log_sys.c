@@ -32,10 +32,14 @@ __wt_log_system_record(WT_SESSION_IMPL *session, WT_FH *log_fh, WT_LSN *lsn)
     WT_RET(__wt_logrec_alloc(session, log->allocsize, &logrec_buf));
     memset((uint8_t *)logrec_buf->mem, 0, log->allocsize);
 
+    //rectype编码及打包存储到logrec_buf
     WT_ERR(__wt_struct_size(session, &recsize, fmt, rectype));
     WT_ERR(__wt_struct_pack(
       session, (uint8_t *)logrec_buf->data + logrec_buf->size, recsize, fmt, rectype));
+      
+    //rectype打包到logrec_buf后，移动buf位置
     logrec_buf->size += recsize;
+    //对prev_lsn进行封包处理
     WT_ERR(__wt_logop_prev_lsn_pack(session, logrec_buf, lsn));
     WT_ASSERT(session, logrec_buf->size <= log->allocsize);
 

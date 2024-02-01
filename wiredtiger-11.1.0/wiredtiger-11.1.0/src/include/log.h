@@ -39,6 +39,8 @@ union __wt_lsn {
         uint32_t file;
 #endif
     } l;
+    
+    //WT_SET_LSN进行设置
     uint64_t file_offset;
 };
 
@@ -55,6 +57,7 @@ union __wt_lsn {
  * explicitly assign the 64-bit field. And WT_SET_LSN atomically sets the LSN given a file/offset.
  */
 #define WT_ASSIGN_LSN(dstl, srcl) (dstl)->file_offset = (srcl)->file_offset
+//前面32位存f, 后面32位存o
 #define WT_SET_LSN(l, f, o) (l)->file_offset = (((uint64_t)(f) << 32) + (o))
 
 #define WT_INIT_LSN(l) WT_SET_LSN((l), 1, 0)
@@ -192,7 +195,10 @@ struct __wt_logslot {
     volatile int64_t slot_state; /* Slot state */
     int64_t slot_unbuffered;     /* Unbuffered data in this slot */
     int slot_error;              /* Error value */
+
+    //赋值见__wt_log_slot_activate
     wt_off_t slot_start_offset;  /* Starting file offset */
+    //赋值见__wt_log_slot_activate
     wt_off_t slot_last_offset;   /* Last record offset */
     WT_LSN slot_release_lsn;     /* Slot release LSN */
     WT_LSN slot_start_lsn;       /* Slot starting LSN */
@@ -245,8 +251,10 @@ struct __wt_log {
                             * Log file information
                             */
     uint32_t fileid;       /* Current log file number */
+    //WiredTigerPreplog.xxxx的xxx，是一个自增项
     uint32_t prep_fileid;  /* Pre-allocated file number */
     uint32_t tmp_fileid;   /* Temporary file number */
+    //__log_newfile中自增,__log_prealloc_once中置为0
     uint32_t prep_missed;  /* Pre-allocated file misses */
     WT_FH *log_fh;         /* Logging file handle */
     //__wt_log_open中赋值，指定日志目录
@@ -254,6 +262,7 @@ struct __wt_log {
     WT_FH *log_close_fh;   /* Logging file handle to close */
     WT_LSN log_close_lsn;  /* LSN needed to close */
 
+    //当前版本默认为5，赋值见__log_set_version
     uint16_t log_version; /* Version of log file */
 
     /*
@@ -309,6 +318,7 @@ struct __wt_log {
     uint32_t flags;
 };
 
+//log record头部填充见__log_file_header
 struct __wt_log_record {
     uint32_t len;      /* 00-03: Record length including hdr */
     uint32_t checksum; /* 04-07: Checksum of the record */
@@ -325,6 +335,8 @@ struct __wt_log_record {
     uint16_t flags;    /* 08-09: Flags */
     uint8_t unused[2]; /* 10-11: Padding */
     uint32_t mem_len;  /* 12-15: Uncompressed len if needed */
+
+    //下面的是具体的内容(例如WT_LOG_DESC结构)，前面的字段是头部
     uint8_t record[0]; /* Beginning of actual data */
 };
 
@@ -358,11 +370,14 @@ struct __wt_log_desc {
                          * release. There are no actual log file format changes in versions 2
                          * through 5.
                          */
-#define WT_LOG_VERSION 5
+//#define WT_LOG_VERSION 5
     uint16_t version;  /* 04-05: Log version */
     uint16_t unused;   /* 06-07: Unused */
     uint64_t log_size; /* 08-15: Log file size */
 };
+
+#define WT_LOG_VERSION 5
+
 /*
  * This is the log version that introduced the system record.
  */

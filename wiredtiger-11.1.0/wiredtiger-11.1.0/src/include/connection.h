@@ -292,6 +292,7 @@ struct __wt_connection_impl {
     bool unclean_shutdown; /* Flag to indicate the earlier shutdown status */
 #endif
 
+    //赋值见__wt_conn_compat_config
     WT_VERSION compat_version; /* WiredTiger version for compatibility checks */
     WT_VERSION compat_req_max; /* Maximum allowed version of WiredTiger for compatibility checks */
     WT_VERSION compat_req_min; /* Minimum allowed version of WiredTiger for compatibility checks */
@@ -552,7 +553,8 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 [user_00@TENCENT64 /data2/containers/175591266/db/journal]$
 */ //journal日志目录
     const char *log_path;                  /* Logging path format */
-    //"log.prealloc"配置
+    //"log.prealloc"配置，默认true，初始值1，见__wt_logmgr_config，
+    //一次性创建个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
     uint32_t log_prealloc;                 /* Log file pre-allocation */
     uint16_t log_req_max;                  /* Max required log version */
     uint16_t log_req_min;                  /* Min required log version */
@@ -611,6 +613,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 
     //file_extend配置，默认为0
     wt_off_t data_extend_len; /* file_extend data length */
+    //file_extend配置，默认不配置，值为WT_CONFIG_UNSET
     wt_off_t log_extend_len;  /* file_extend log length */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */

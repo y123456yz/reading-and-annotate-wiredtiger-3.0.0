@@ -4638,6 +4638,7 @@ struct __wt_file_system {
 	/*
 	 * Return a single file name for the named directory.
 	 */
+	//__wt_posix_directory_list_single //只获取一个prefix前缀的文件
 	int (*fs_directory_list_single)(WT_FILE_SYSTEM *file_system,
 	    WT_SESSION *session, const char *directory, const char *prefix,
 	    char ***dirlist, uint32_t *countp);

@@ -53,6 +53,7 @@ __wt_conn_compat_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfi
     new_compat = min_compat = max_compat = WT_NO_VERSION;
     unchg = false;
 
+    //如果没有compatibility配置"compatibility.release"则默认为wiredtiger的版本
     WT_RET(__wt_config_gets(session, cfg, "compatibility.release", &cval));
     if (cval.len == 0) {
         new_compat.major = WIREDTIGER_VERSION_MAJOR;
