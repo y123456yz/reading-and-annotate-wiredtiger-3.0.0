@@ -11,7 +11,9 @@
 /*
  * __wt_log_system_record --
  *     Write a system log record for the previous LSN.
+ //__wt_log_system_record 和 __wt_log_recover_system配合，分别对应封包和解包
  */
+//system log record打包封装并写入磁盘, WT_LOG_RECORD头部 + rectype + lsn
 int
 __wt_log_system_record(WT_SESSION_IMPL *session, WT_FH *log_fh, WT_LSN *lsn)
 {
@@ -31,6 +33,8 @@ __wt_log_system_record(WT_SESSION_IMPL *session, WT_FH *log_fh, WT_LSN *lsn)
 
     WT_RET(__wt_logrec_alloc(session, log->allocsize, &logrec_buf));
     memset((uint8_t *)logrec_buf->mem, 0, log->allocsize);
+
+    //WT_LOG_RECORD头部 + rectype + lsn
 
     //rectype编码及打包存储到logrec_buf
     WT_ERR(__wt_struct_size(session, &recsize, fmt, rectype));
@@ -77,13 +81,18 @@ err:
 /*
  * __wt_log_recover_system --
  *     Process a system log record for the previous LSN in recovery.
+ //__wt_log_system_record 和 __wt_log_recover_system配合，分别对应封包和解包
  */
+ 
+//__wt_log_system_record 和 __wt_log_recover_system配合，分别对应封包和解包
+//WT_LOGREC_SYSTEM类型的日志解包
 int
 __wt_log_recover_system(
   WT_SESSION_IMPL *session, const uint8_t **pp, const uint8_t *end, WT_LSN *lsnp)
 {
     WT_DECL_RET;
 
+    //从pp内存中解析出WT_LSN结构成员并赋值
     if ((ret = __wt_logop_prev_lsn_unpack(session, pp, end, lsnp)) != 0)
         WT_RET_MSG(session, ret, "log_recover_prevlsn: unpack failure");
 

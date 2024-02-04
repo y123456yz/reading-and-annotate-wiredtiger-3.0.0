@@ -485,6 +485,7 @@ __wt_close_connection_close(WT_SESSION_IMPL *session)
 /*
  * __wt_file_zero --
  *     Zero out the file from offset for size bytes.
+ //start_off开始的size字节对应文件内容清0
  */
 int
 __wt_file_zero(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t start_off, wt_off_t size)

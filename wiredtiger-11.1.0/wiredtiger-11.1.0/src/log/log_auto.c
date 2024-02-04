@@ -693,6 +693,7 @@ __wt_logop_prev_lsn_pack(WT_SESSION_IMPL *session, WT_ITEM *logrec, WT_LSN *prev
     return (0);
 }
 
+//从pp内存中解析出WT_LSN结构成员并赋值
 int
 __wt_logop_prev_lsn_unpack(
   WT_SESSION_IMPL *session, const uint8_t **pp, const uint8_t *end, WT_LSN *prev_lsnp)

@@ -40,7 +40,7 @@ union __wt_lsn {
 #endif
     } l;
     
-    //WT_SET_LSN进行设置
+    //WT_SET_LSN进行设置，filedid+offset
     uint64_t file_offset;
 };
 
@@ -69,7 +69,7 @@ union __wt_lsn {
 
 /*
  * Test for initial LSN. We only need to shift the 1 for comparison.
- */
+ */ //参考WT_INIT_LSN
 #define WT_IS_INIT_LSN(l) ((l)->file_offset == ((uint64_t)1 << 32))
 /*
  * Original tested INT32_MAX. But if we read one from an older release we may see UINT32_MAX.
@@ -235,6 +235,7 @@ struct __wt_myslot {
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_MYSLOT_CLOSE 0x1u         /* This thread is closing the slot */
 #define WT_MYSLOT_NEEDS_RELEASE 0x2u /* This thread is releasing the slot */
+//__wt_log_slot_join中置位
 #define WT_MYSLOT_UNBUFFERED 0x4u    /* Write directly */
                                      /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
     uint32_t flags;
@@ -257,7 +258,7 @@ struct __wt_log {
     //__log_newfile中自增,__log_prealloc_once中置为0
     uint32_t prep_missed;  /* Pre-allocated file misses */
     WT_FH *log_fh;         /* Logging file handle */
-    //__wt_log_open中赋值，指定日志目录
+    //__wt_log_open中赋值，也就是存放wiredtigerlog.xxxxx的目录，作用主要是把目录中所有的wiredtigerlog.xxxxx sync到磁盘
     WT_FH *log_dir_fh;     /* Log directory file handle */
     WT_FH *log_close_fh;   /* Logging file handle to close */
     WT_LSN log_close_lsn;  /* LSN needed to close */
@@ -268,6 +269,7 @@ struct __wt_log {
     /*
      * System LSNs
      */
+    //alloc_lsn也就是end lsn，参考__wt_log_scan
     WT_LSN alloc_lsn;       /* Next LSN for allocation */
     WT_LSN ckpt_lsn;        /* Last checkpoint LSN */
     WT_LSN dirty_lsn;       /* LSN of last non-synced write */
@@ -439,3 +441,4 @@ struct __wt_log_op_desc {
     const char *fmt;
     int (*print)(WT_SESSION_IMPL *session, uint8_t **pp, uint8_t *end);
 };
+

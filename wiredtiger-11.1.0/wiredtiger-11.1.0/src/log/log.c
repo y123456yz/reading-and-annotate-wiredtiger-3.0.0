@@ -257,6 +257,7 @@ __wt_log_ckpt(WT_SESSION_IMPL *session, WT_LSN *ckpt_lsn)
  * __wt_log_flush_lsn --
  *     Force out buffered records and return the LSN, either the write_start_lsn or write_lsn
  *     depending on the argument.
+ 把还没有写入操作系统的日志写入到操作系统中，并记录写入位置到lsn中
  */
 int
 __wt_log_flush_lsn(WT_SESSION_IMPL *session, WT_LSN *lsn, bool start)
@@ -278,6 +279,7 @@ __wt_log_flush_lsn(WT_SESSION_IMPL *session, WT_LSN *lsn, bool start)
 /*
  * __wt_log_force_sync --
  *     Force a sync of the log and files.
+ 把文件编号小于min_lsn的所以日志sync到磁盘
  */
 int
 __wt_log_force_sync(WT_SESSION_IMPL *session, WT_LSN *min_lsn)
@@ -377,6 +379,7 @@ __wt_log_needs_recovery(WT_SESSION_IMPL *session, WT_LSN *ckp_lsn, bool *recp)
      * log. If there are none then we can skip recovery.
      */
     WT_RET(__wt_curlog_open(session, "log:", NULL, &c));
+    //__wt_cursor_set_key
     c->set_key(c, ckp_lsn->l.file, ckp_lsn->l.offset, 0);
     if ((ret = c->search(c)) == 0) {
         while ((ret = c->next(c)) == 0) {
@@ -694,6 +697,7 @@ __log_decrypt(WT_SESSION_IMPL *session, WT_ITEM *in, WT_ITEM *out)
 /*
  * __wt_log_fill --
  *     Copy a thread's log records into the assigned slot.
+ log写入内存还是直接write到操作系统中
  */
 int
 __wt_log_fill(
@@ -733,7 +737,7 @@ err:
  * __log_file_header --
  *     Create and write a log file header into a file handle. If writing into the main log, it will
  *     be called locked. If writing into a pre-allocated log, it will be called unlocked.
- verfify可以配合__log_open_verify阅读
+ __log_file_header可以配合__log_open_verify阅读
  */
 //log WT_LOG_RECORD头部信息写入磁盘
 static int
@@ -852,8 +856,10 @@ err:
  * __log_open_verify --
  *     Open a log file with the given log file number, verify its header and return various pieces
  *     of system information about this log file.
+  __log_file_header可以配合__log_open_verify阅读
  */
 //配合__log_file_header阅读
+//header及lsnp检查，从log文件读取一条WT_LOGREC_SYSTEM日志存入lsnp，并把id对应文件fd返回
 static int
 __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *lsnp,
   uint16_t *versionp, bool *need_salvagep)
@@ -893,6 +899,7 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *ls
     /*
      * Read in the log file header and verify it.
      */
+    //根据id确认对应的wiredtigerLog.xxxxxx文件fh
     WT_ERR(__log_openfile(session, id, 0, &fh));
     //读出log文件allocsize字节头部信息
     WT_ERR(__log_fs_read(session, fh, 0, allocsize, buf->mem));
@@ -969,11 +976,17 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *ls
     if (!__log_checksum_match(buf, allocsize))
         WT_ERR_MSG(session, WT_ERROR, "%s: System log record checksum mismatch", fh->name);
     __wt_log_record_byteswap(logrec);
+
+    //跳过头部字段
     p = WT_LOG_SKIP_HEADER(buf->data);
     end = (const uint8_t *)buf->data + allocsize;
+
+    //解析出日志类型
     WT_ERR(__wt_logrec_read(session, &p, end, &rectype));
     if (rectype != WT_LOGREC_SYSTEM)
         WT_ERR_MSG(session, WT_ERROR, "System log record missing");
+
+    //从p内存中解析出WT_LSN结构成员并赋值给lsnp
     WT_ERR(__wt_log_recover_system(session, &p, end, lsnp));
 
 err:
@@ -1196,7 +1209,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
          */
         if (conn->hot_backup_start == 0)
             log->prep_missed++;
-        //新建一个WiredTigerlog.lognum文件，别写入log WT_LOG_RECORD信息
+        //新建一个WiredTigerlog.lognum文件，并写入log WT_LOG_RECORD信息
         WT_RET(__wt_log_allocfile(session, log->fileid, WT_LOG_FILENAME));
     }
     /*
@@ -1204,6 +1217,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
      * and filling in the new file handle, we must pass in a local file handle. Otherwise there is a
      * wide window where another thread could see a NULL log file handle.
      */
+    //header及lsnp检查，从log文件读取一条WT_LOGREC_SYSTEM日志存入lsnp，并把id对应文件log_fh
     WT_RET(__log_open_verify(session, log->fileid, &log_fh, NULL, NULL, NULL));
     /*
      * Write the LSN at the end of the last record in the previous log file as the first record in
@@ -1223,9 +1237,12 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
      * alloc_lsn.
      */
     if (log->log_version >= WT_LOG_VERSION_SYSTEM) {
+        //system log record打包封装并写入磁盘
         WT_RET(__wt_log_system_record(session, log_fh, &logrec_lsn));
         WT_SET_LSN(&log->alloc_lsn, log->fileid, log->first_record);
     }
+    printf("yang test ..........end lsn............__log_newfile......................%u, %u\r\n", 
+        log->fileid, log->first_record);
     WT_ASSIGN_LSN(&end_lsn, &log->alloc_lsn);
     WT_PUBLISH(log->log_fh, log_fh);
 
@@ -1239,9 +1256,12 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
         WT_ASSIGN_LSN(&log->write_lsn, &end_lsn);
         WT_ASSIGN_LSN(&log->write_start_lsn, &end_lsn);
     }
+
+    //yang add todo xxxxxxxxxxxxxx dirty_lsn 是不是应该conn_open = false的时候设置?
     WT_ASSIGN_LSN(&log->dirty_lsn, &log->alloc_lsn);
     if (created != NULL)
         *created = create_log;
+        
     return (0);
 }
 
@@ -1386,6 +1406,7 @@ __log_truncate_file(WT_SESSION_IMPL *session, WT_FH *log_fh, wt_off_t offset)
     log = conn->log;
 
     if (!F_ISSET(log, WT_LOG_TRUNCATE_NOTSUP) && conn->hot_backup_start == 0) {
+        //truncate文件到offset长度
         WT_WITH_HOTBACKUP_READ_LOCK(session, ret = __wt_ftruncate(session, log_fh, offset), &skipp);
         if (!skipp) {
             if (ret != ENOTSUP)
@@ -1394,6 +1415,7 @@ __log_truncate_file(WT_SESSION_IMPL *session, WT_FH *log_fh, wt_off_t offset)
         }
     }
 
+    //start_off开始的size字节对应文件内容清0
     return (__wt_file_zero(session, log_fh, offset, conn->log_file_max));
 }
 
@@ -1773,6 +1795,7 @@ __wt_log_close(WT_SESSION_IMPL *session)
  *     Determine if the current offset represents a hole in the log file (i.e. there is valid data
  *     somewhere after the hole), or if this is the end of this log file and the remainder of the
  *     file is zeroes.
+ //也就是fh对应[off, rdlen]中的内容是否有连续为0的空洞
  */
 static int
 __log_has_hole(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t log_size, wt_off_t offset,
@@ -2471,6 +2494,7 @@ err:
  * __wt_log_force_write --
  *     Force a switch and release and write of the current slot. Wrapper function that takes the
  *     lock.
+ yang add todo xxxxxxxxxxxxxxxxxxx   调用的地方用了1或者0，做好用true或者false
  */
 int
 __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
