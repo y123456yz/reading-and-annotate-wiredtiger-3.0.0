@@ -640,9 +640,18 @@ __wt_txn_truncate_end(WT_SESSION_IMPL *session)
 /*
  * __txn_printlog --
  *     Print a log record in a human-readable format.
+ 打印一条log
+ ./wt printlog -u
+ ../../../wt printlog -ux
  */
+
+//打印lsnp这条log
 static int
-__txn_printlog(WT_SESSION_IMPL *session, WT_ITEM *rawrec, WT_LSN *lsnp, WT_LSN *next_lsnp,
+__txn_printlog(WT_SESSION_IMPL *session, 
+    //log内容保持在rawrec中
+    WT_ITEM *rawrec, 
+    //这条log的序号信息，代表在对应文件中的位置
+    WT_LSN *lsnp, WT_LSN *next_lsnp,
   void *cookie, int firstrecord)
 {
     WT_LOG_RECORD *logrec;
@@ -663,15 +672,18 @@ __txn_printlog(WT_SESSION_IMPL *session, WT_ITEM *rawrec, WT_LSN *lsnp, WT_LSN *
     compressed = F_ISSET(logrec, WT_LOG_RECORD_COMPRESSED);
 
     /* First, peek at the log record type. */
+    //读取log header以外的log内容，解包获取rectype
     WT_RET(__wt_logrec_read(session, &p, end, &rectype));
 
     /*
      * When printing just the message records, display the message by itself without the usual log
      * header information.
      */
+    // ./wt printlog -m 只获取message信息
     if (F_ISSET(args, WT_TXN_PRINTLOG_MSG)) {
         if (rectype != WT_LOGREC_MESSAGE)
             return (0);
+            
         WT_RET(__wt_struct_unpack(session, p, WT_PTRDIFF(end, p), WT_UNCHECKED_STRING(S), &msg));
         return (__wt_fprintf(session, args->fs, "%s\n", msg));
     }
@@ -683,12 +695,14 @@ __txn_printlog(WT_SESSION_IMPL *session, WT_ITEM *rawrec, WT_LSN *lsnp, WT_LSN *
       lsnp->l.file, lsnp->l.offset));
     WT_RET(__wt_fprintf(
       session, args->fs, "    \"hdr_flags\" : \"%s\",\n", compressed ? "compressed" : ""));
+    //lsnp->l.file + lsnp->l.offset确定log在文件的起始位置，logrec->len确定整个log的内容
     WT_RET(__wt_fprintf(session, args->fs, "    \"rec_len\" : %" PRIu32 ",\n", logrec->len));
     WT_RET(__wt_fprintf(session, args->fs, "    \"mem_len\" : %" PRIu32 ",\n",
       compressed ? logrec->mem_len : logrec->len));
 
     switch (rectype) {
     case WT_LOGREC_CHECKPOINT:
+        //配合__wt_txn_checkpoint_log阅读
         WT_RET(__wt_struct_unpack(
           session, p, WT_PTRDIFF(end, p), WT_UNCHECKED_STRING(II), &lsnfile, &lsnoffset));
         WT_RET(__wt_fprintf(session, args->fs, "    \"type\" : \"checkpoint\",\n"));
@@ -699,6 +713,7 @@ __txn_printlog(WT_SESSION_IMPL *session, WT_ITEM *rawrec, WT_LSN *lsnp, WT_LSN *
     case WT_LOGREC_COMMIT:
         WT_RET(__wt_vunpack_uint(&p, WT_PTRDIFF(end, p), &txnid));
         WT_RET(__wt_fprintf(session, args->fs, "    \"type\" : \"commit\",\n"));
+        //赋值来源参考__txn_logrec_init，同一个session的txnid是自增的
         WT_RET(__wt_fprintf(session, args->fs, "    \"txnid\" : %" PRIu64 ",\n", txnid));
         WT_RET(__txn_oplist_printlog(session, &p, end, args));
         break;
@@ -733,10 +748,11 @@ __txn_printlog(WT_SESSION_IMPL *session, WT_ITEM *rawrec, WT_LSN *lsnp, WT_LSN *
 /*
  * __wt_txn_printlog --
  *     Print the log in a human-readable format.
+ ../../../wt printlog -u
  */
 int
 __wt_txn_printlog(WT_SESSION *wt_session, const char *ofile, uint32_t flags, WT_LSN *start_lsn,
-  WT_LSN *end_lsn) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+  WT_LSN *end_lsn) //WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     WT_DECL_RET;
     WT_FSTREAM *fs;
@@ -752,6 +768,7 @@ __wt_txn_printlog(WT_SESSION *wt_session, const char *ofile, uint32_t flags, WT_
 
     if (!LF_ISSET(WT_TXN_PRINTLOG_MSG))
         WT_ERR(__wt_fprintf(session, fs, "[\n"));
+    //解析出的日志记录到fs这个文件中
     args.fs = fs;
     args.flags = flags;
     WT_ERR(__wt_log_scan(session, start_lsn, end_lsn, 0x0, __txn_printlog, &args));

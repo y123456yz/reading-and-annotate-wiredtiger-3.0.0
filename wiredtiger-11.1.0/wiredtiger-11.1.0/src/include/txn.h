@@ -249,6 +249,7 @@ struct __wt_txn_op {
  *	Per-session transaction context.
  */
 struct __wt_txn {
+    //同一个session的id是自增的
     uint64_t id;
 
     WT_TXN_ISOLATION isolation;

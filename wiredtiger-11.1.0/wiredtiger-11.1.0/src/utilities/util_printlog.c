@@ -74,6 +74,7 @@ util_printlog(WT_SESSION *session, int argc, char *argv[])
         case 'm': /* messages only */
             LF_SET(WT_TXN_PRINTLOG_MSG);
             break;
+        //全部信息打印，不因此用户的log信息，直接打印，如果没有u参数，则会用REDACT字符串替换
         case 'u': /* print user data, don't redact */
             LF_SET(WT_TXN_PRINTLOG_UNREDACT);
             break;

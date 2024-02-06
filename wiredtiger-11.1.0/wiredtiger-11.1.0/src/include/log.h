@@ -40,7 +40,8 @@ union __wt_lsn {
 #endif
     } l;
     
-    //WT_SET_LSN进行设置，filedid+offset
+    //WT_SET_LSN进行设置，filedid+offset， 一个对应文件号，一个对应该lsn在文件总的起始位置
+    //配合__txn_printlog阅读
     uint64_t file_offset;
 };
 
@@ -190,6 +191,7 @@ union __wt_lsn {
       !FLD_LOG_SLOT_ISSET((uint64_t)(state), WT_LOG_SLOT_CLOSE) &&        \
       WT_LOG_SLOT_JOINED(state) < WT_LOG_SLOT_BUF_MAX)
 
+//该struct WT_CACHE_LINE_ALIGNMENT字节对齐
 struct __wt_logslot {
     WT_CACHE_LINE_PAD_BEGIN
     volatile int64_t slot_state; /* Slot state */
@@ -241,6 +243,16 @@ struct __wt_myslot {
     uint32_t flags;
 };
 
+
+/*
+ * Consolidation array information Our testing shows that the more consolidation we generate the
+ * better the performance we see which equates to an active slot count of one.
+ *
+ * Note: this can't be an array, we impose cache-line alignment and gcc doesn't support that for
+ * arrays.
+ */
+#define WT_SLOT_POOL 128
+
 #define WT_LOG_END_HEADER log->allocsize
 
 struct __wt_log {
@@ -276,7 +288,9 @@ struct __wt_log {
     WT_LSN first_lsn;       /* First LSN */
     WT_LSN sync_dir_lsn;    /* LSN of the last directory sync */
     WT_LSN sync_lsn;        /* LSN of the last sync */
+    //记录wiredtigerLog.xxxxxxxxxxx的异常日志位置，主要通过magic校验定位，见__wt_log_scan
     WT_LSN trunc_lsn;       /* End LSN for recovery truncation */
+    //赋值见__wt_log_wrlsn  __wt_log_release， 也就是slot->slot_end_lsn
     WT_LSN write_lsn;       /* End of last LSN written */
     WT_LSN write_start_lsn; /* Beginning of last LSN written */
 
@@ -303,7 +317,7 @@ struct __wt_log {
  * Note: this can't be an array, we impose cache-line alignment and gcc doesn't support that for
  * arrays.
  */
-#define WT_SLOT_POOL 128
+//#define WT_SLOT_POOL 128
     WT_LOGSLOT *active_slot;            /* Active slot */
     WT_LOGSLOT slot_pool[WT_SLOT_POOL]; /* Pool of all slots */
     int32_t pool_index;                 /* Index into slot pool */
@@ -336,9 +350,10 @@ struct __wt_log_record {
 #define WT_LOG_RECORD_ALL_FLAGS (WT_LOG_RECORD_COMPRESSED | WT_LOG_RECORD_ENCRYPTED)
     uint16_t flags;    /* 08-09: Flags */
     uint8_t unused[2]; /* 10-11: Padding */
+    //压缩后的长度
     uint32_t mem_len;  /* 12-15: Uncompressed len if needed */
 
-    //下面的是具体的内容(例如WT_LOG_DESC结构)，前面的字段是头部
+    //下面的是具体的内容(例如WT_LOG_DESC结构、WT_LOGREC_SYSTEM等)，前面的字段是头部
     uint8_t record[0]; /* Beginning of actual data */
 };
 
@@ -418,7 +433,9 @@ struct __wt_txn_printlog_args {
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_TXN_PRINTLOG_HEX 0x1u      /* Add hex output */
+//  ./wt printlog -m 只获取message信息
 #define WT_TXN_PRINTLOG_MSG 0x2u      /* Messages only */
+//只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
 #define WT_TXN_PRINTLOG_UNREDACT 0x4u /* Don't redact user data from output */
                                       /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
     uint32_t flags;

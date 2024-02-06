@@ -115,6 +115,7 @@ struct __wt_btree {
     WT_COLLATOR *collator; /* Row-store comparator */
     int collator_owned;    /* The collator needs to be freed */
 
+    //每个表对应一个唯一的id号，用于log使用，使用的地方参考__wt_txn_log_op
     uint32_t id; /* File ID, for logging */
 
 /* https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview

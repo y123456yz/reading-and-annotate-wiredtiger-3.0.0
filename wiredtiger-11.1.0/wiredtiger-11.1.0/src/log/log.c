@@ -24,6 +24,7 @@ static int __log_write_internal(WT_SESSION_IMPL *, WT_ITEM *, WT_LSN *, uint32_t
  * __wt_log_printf --
  *     Write a text message to the log.
  */
+// WT_LOGREC_MESSAGE类型的log写入磁盘
 int
 __wt_log_printf(WT_SESSION_IMPL *session, const char *format, ...)
 {
@@ -2081,6 +2082,7 @@ __log_salvage_message(
 /*
  * __wt_log_scan --
  *     Scan the logs, calling a function on each record found.
+ __wt_txn_printlog中
  */
 int
 __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, uint32_t flags,
@@ -2132,6 +2134,8 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
         allocsize = log->allocsize;
         WT_ASSIGN_LSN(&end_lsn, &log->alloc_lsn);
         WT_ASSIGN_LSN(&start_lsn, &log->first_lsn);
+
+        //如果没有指定start_lsnp，则从log->ckpt_lsn开始
         if (start_lsnp == NULL) {
             if (LF_ISSET(WT_LOGSCAN_FROM_CKP))
                 WT_ASSIGN_LSN(&start_lsn, &log->ckpt_lsn);
@@ -2169,6 +2173,7 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
          * WT_NOTFOUND. It is not an error. But if it is from recovery, we expect valid LSNs so give
          * more information about that.
          */
+        //offset检查
         if (start_lsnp->l.offset % allocsize != 0) {
             if (LF_ISSET(WT_LOGSCAN_RECOVER | WT_LOGSCAN_RECOVER_METADATA))
                 WT_ERR_MSG(session, WT_NOTFOUND, "__wt_log_scan unaligned LSN %" PRIu32 "/%" PRIu32,
@@ -2181,6 +2186,7 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
          * return WT_NOTFOUND. It is not an error. But if it is from recovery, we expect valid LSNs
          * so give more information about that.
          */
+        //file文件号检查
         if (start_lsnp->l.file > lastlog) {
             if (LF_ISSET(WT_LOGSCAN_RECOVER | WT_LOGSCAN_RECOVER_METADATA))
                 WT_ERR_MSG(session, WT_NOTFOUND,
@@ -2196,10 +2202,14 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
         if (!WT_IS_INIT_LSN(start_lsnp))
             WT_ASSIGN_LSN(&start_lsn, start_lsnp);
     }
+
+    //做校验并返回file对应文件log_fh
     WT_ERR(__log_open_verify(session, start_lsn.l.file, &log_fh, &prev_lsn, NULL, &need_salvage));
     if (need_salvage)
         WT_ERR_MSG(session, WT_ERROR, "log file requires salvage");
     WT_ERR(__wt_filesize(session, log_fh, &log_size));
+
+    //要遍历的起始lsn
     WT_ASSIGN_LSN(&rd_lsn, &start_lsn);
     if (LF_ISSET(WT_LOGSCAN_RECOVER | WT_LOGSCAN_RECOVER_METADATA))
         __wt_verbose(session, WT_VERB_RECOVERY_PROGRESS,
@@ -2208,6 +2218,8 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
     WT_ERR(__wt_scr_alloc(session, WT_LOG_ALIGN, &buf));
     WT_ERR(__wt_scr_alloc(session, 0, &decryptitem));
     WT_ERR(__wt_scr_alloc(session, 0, &uncitem));
+
+    //从rd_lsn offset位置循环遍历前面的log_fh文件
     for (;;) {
         if (rd_lsn.l.offset + allocsize > log_size) {
 advance:
@@ -2288,12 +2300,14 @@ advance:
          */
         WT_ASSERT(session, buf->memsize >= allocsize);
         need_salvage = F_ISSET(conn, WT_CONN_SALVAGE);
+        //从文件log_fh读一条lsn数据
         WT_ERR(__log_fs_read(session, log_fh, rd_lsn.l.offset, (size_t)allocsize, buf->mem));
         need_salvage = false;
         /*
          * See if we need to read more than the allocation size. We expect that we rarely will have
          * to read more. Most log records will be fairly small.
          */
+        //获取整个log的长度，包括头部字段
         reclen = ((WT_LOG_RECORD *)buf->mem)->len;
 #ifdef WORDS_BIGENDIAN
         reclen = __wt_bswap32(reclen);
@@ -2318,20 +2332,27 @@ advance:
             /* Last record in log.  Look for more. */
             goto advance;
         }
+
         rdup_len = __wt_rduppo2(reclen, allocsize);
+
+        //日志长度大于allocsize，但是前面只从文件中读了allocsize字节，因此扩充buf内存，从新从offset处读取rdup_len字节
+        //也就是把rdup_len一次性读取出来
         if (reclen > allocsize) {
             /*
              * The log file end could be the middle of this log record. If we have a partially
              * written record then this is considered the end of the log.
              */
+            //日志文件结尾可能是此日志记录的中间位置，也就是一条log可能横跨两个wiredtigerLog.xxxx文件
             if (rd_lsn.l.offset + rdup_len > log_size) {
                 eol = true;
                 break;
             }
+            
             /*
              * We need to round up and read in the full padded record, especially for direct I/O.
              */
             WT_ERR(__wt_buf_grow(session, buf, rdup_len));
+            //??????? yang add todo xxxxxxxxxxxxxxxxxx 这里是不是可以少读allocsize字节，从rd_lsn.l.offset开始读取，减少磁盘IO
             WT_ERR(__log_fs_read(session, log_fh, rd_lsn.l.offset, (size_t)rdup_len, buf->mem));
             WT_STAT_CONN_INCR(session, log_scan_rereads);
         }
@@ -2403,6 +2424,7 @@ advance:
          */
         WT_STAT_CONN_INCR(session, log_scan_records);
         WT_ASSIGN_LSN(&next_lsn, &rd_lsn);
+        //游标指向了下一条log的起始位置
         next_lsn.l.offset += rdup_len;
         if (rd_lsn.l.offset != 0) {
             /*
@@ -2422,6 +2444,8 @@ advance:
                 WT_ERR(__log_decompress(session, cbbuf, uncitem));
                 cbbuf = uncitem;
             }
+
+            //执行func函数
             WT_ERR((*func)(session, cbbuf, &rd_lsn, &next_lsn, cookie, firstrecord));
 
             firstrecord = 0;
@@ -2436,10 +2460,12 @@ advance:
         if (end_lsnp != NULL && __wt_log_cmp(&next_lsn, end_lsnp) > 0)
             break;
 
+        //指向下一个lsn日志
         WT_ASSIGN_LSN(&rd_lsn, &next_lsn);
     }
 
     /* Truncate if we're in recovery. */
+    //在trunc_lsn位置异常了，则把文件后面的部分truncat掉，避免错误数据
     if (LF_ISSET(WT_LOGSCAN_RECOVER) && __wt_log_cmp(&rd_lsn, &log->trunc_lsn) < 0) {
         __wt_verbose(session, WT_VERB_LOG,
           "End of recovery truncate end of log %" PRIu32 "/%" PRIu32, rd_lsn.l.file,
@@ -2616,6 +2642,8 @@ __wt_log_write(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, uint32_t
         F_SET(newlrp, WT_LOG_RECORD_ENCRYPTED);
         WT_ASSERT(session, new_size < UINT32_MAX && ip->size < UINT32_MAX);
     }
+
+    //把ip这个record记录到lsnp对应的位置
     ret = __log_write_internal(session, ip, lsnp, flags);
 
 err:
@@ -2658,6 +2686,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
      * is big enough and zero-filled so that we can write the full amount. Do this whether or not
      * direct_io is in use because it makes the reading code cleaner.
      */
+    //实际的字节数，不包括填充字段
     WT_STAT_CONN_INCRV(session, log_bytes_payload, record->size);
     rdup_len = __wt_rduppo2((uint32_t)record->size, log->allocsize);
     WT_ERR(__wt_buf_grow(session, record, rdup_len));
@@ -2670,6 +2699,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
      */
     fill_size = rdup_len - (uint32_t)record->size;
     if (fill_size != 0) {
+        //填充的字段设置为0
         memset((uint8_t *)record->mem + record->size, 0, fill_size);
         /*
          * Set the last byte of the log record to a non-zero value, that allows us, on the input
@@ -2690,6 +2720,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
          * This is not a log format change, as we only are changing a byte in the padding portion of
          * a record, and no logging code has ever checked that it is any particular value up to now.
          */
+        //填充的最后一个字节内容为WT_DEBUG_BYTE
         if (fill_size > 1)
             *((uint8_t *)record->mem + rdup_len - 1) = WT_DEBUG_BYTE;
         record->size = rdup_len;
@@ -2721,6 +2752,8 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
     ret = 0;
     if (myslot.end_offset >= WT_LOG_SLOT_BUF_MAX || F_ISSET(&myslot, WT_MYSLOT_UNBUFFERED) || force)
         ret = __wt_log_slot_switch(session, &myslot, true, false, NULL);
+
+    //log record写入磁盘
     if (ret == 0)
         ret = __wt_log_fill(session, &myslot, false, record, &lsn);
     release_size = __wt_log_slot_release(&myslot, (int64_t)rdup_len);
@@ -2781,6 +2814,7 @@ err:
 /*
  * __wt_log_vprintf --
  *     Write a message into the log.
+ WT_LOGREC_MESSAGE类型的log写入磁盘
  */
 int
 __wt_log_vprintf(WT_SESSION_IMPL *session, const char *fmt, va_list ap)

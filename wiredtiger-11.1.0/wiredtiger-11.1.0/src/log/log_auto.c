@@ -122,6 +122,7 @@ __wt_logop_col_modify_print(
 
     WT_RET(__wt_logop_col_modify_unpack(session, pp, end, &fileid, &recno, &value));
 
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
     if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
         return (__wt_fprintf(session, args->fs, " REDACTED"));
 
@@ -192,8 +193,9 @@ __wt_logop_col_put_print(
 
     WT_RET(__wt_logop_col_put_unpack(session, pp, end, &fileid, &recno, &value));
 
-    if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
-        return (__wt_fprintf(session, args->fs, " REDACTED"));
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
+    //if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
+    //    return (__wt_fprintf(session, args->fs, " REDACTED"));
 
     WT_RET(__wt_fprintf(session, args->fs, " \"optype\": \"col_put\",\n"));
     WT_ERR(__wt_fprintf(
@@ -259,6 +261,7 @@ __wt_logop_col_remove_print(
 
     WT_RET(__wt_logop_col_remove_unpack(session, pp, end, &fileid, &recno));
 
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
     if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
         return (__wt_fprintf(session, args->fs, " REDACTED"));
 
@@ -317,6 +320,7 @@ __wt_logop_col_truncate_print(
 
     WT_RET(__wt_logop_col_truncate_unpack(session, pp, end, &fileid, &start, &stop));
 
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
     if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
         return (__wt_fprintf(session, args->fs, " REDACTED"));
 
@@ -378,6 +382,7 @@ __wt_logop_row_modify_print(
 
     WT_RET(__wt_logop_row_modify_unpack(session, pp, end, &fileid, &key, &value));
 
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
     if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
         return (__wt_fprintf(session, args->fs, " REDACTED"));
 
@@ -454,6 +459,7 @@ __wt_logop_row_put_print(
 
     WT_RET(__wt_logop_row_put_unpack(session, pp, end, &fileid, &key, &value));
 
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
     if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
         return (__wt_fprintf(session, args->fs, " REDACTED"));
 
@@ -528,6 +534,7 @@ __wt_logop_row_remove_print(
 
     WT_RET(__wt_logop_row_remove_unpack(session, pp, end, &fileid, &key));
 
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
     if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
         return (__wt_fprintf(session, args->fs, " REDACTED"));
 
@@ -598,6 +605,7 @@ __wt_logop_row_truncate_print(
 
     WT_RET(__wt_logop_row_truncate_unpack(session, pp, end, &fileid, &start, &stop, &mode));
 
+    //只打印fileid = WT_METAFILE_ID的元数据信息，用户的log使用"REDACTED"字符串替换
     if (!FLD_ISSET(args->flags, WT_TXN_PRINTLOG_UNREDACT) && fileid != WT_METAFILE_ID)
         return (__wt_fprintf(session, args->fs, " REDACTED"));
 

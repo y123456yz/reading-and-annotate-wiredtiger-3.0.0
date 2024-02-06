@@ -112,6 +112,10 @@ __wt_ispo2(uint32_t v)
 /*
  * __wt_rduppo2 --
  *     Round the given int up to the next multiple of N, where N is power of 2.
+ 例如n=4, po2为128，则返回值为128
+ 例如n=133, po2为128，则返回值为256
+
+ 也就是比n大的最接近po2的值
  */
 uint32_t
 __wt_rduppo2(uint32_t n, uint32_t po2)

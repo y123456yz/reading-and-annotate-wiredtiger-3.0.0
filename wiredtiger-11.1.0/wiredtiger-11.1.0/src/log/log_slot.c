@@ -523,10 +523,10 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
     WT_CONNECTION_IMPL *conn;
     WT_LOG *log;
     WT_LOGSLOT *slot;
+    bool closed, diag_yield, raced, slept, unbuffered, yielded;
     uint64_t time_start, time_stop, usecs;
     int64_t flag_state, new_state, old_state, released;
     int32_t join_offset, new_join, wait_cnt;
-    bool closed, diag_yield, raced, slept, unbuffered, yielded;
 
     conn = S2C(session);
     log = conn->log;

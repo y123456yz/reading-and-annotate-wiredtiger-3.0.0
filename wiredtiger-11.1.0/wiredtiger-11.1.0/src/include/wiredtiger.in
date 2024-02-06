@@ -5229,7 +5229,7 @@ extern int wiredtiger_extension_terminate(WT_CONNECTION *connection);
  * never change because they're written into the log.  Append
  * any new records or operations to the appropriate set.
  */
-//rectype类型取值
+//rectype类型取值，可以参考__txn_printlog
 /*! Checkpoint. */
 #define	WT_LOGREC_CHECKPOINT	0
 /*! Transaction commit. */
@@ -5239,6 +5239,7 @@ extern int wiredtiger_extension_terminate(WT_CONNECTION *connection);
 /*! Message. */
 #define	WT_LOGREC_MESSAGE	3
 //__wt_log_system_record, WT_LOG_RECORD头部 + rectype + lsn
+//system rec对应的选项可以参考__wt_txn_op_printlog
 /*! System/internal record. */
 #define	WT_LOGREC_SYSTEM	4
 

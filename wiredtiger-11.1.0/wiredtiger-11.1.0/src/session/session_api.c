@@ -1050,7 +1050,7 @@ err:
  */
 static int
 __session_log_printf(WT_SESSION *wt_session, const char *fmt, ...)
-  WT_GCC_FUNC_ATTRIBUTE((format(printf, 2, 3)))
+//WT_GCC_FUNC_ATTRIBUTE((format(printf, 2, 3)))
 {
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
