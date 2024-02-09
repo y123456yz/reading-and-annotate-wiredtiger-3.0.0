@@ -280,7 +280,7 @@ __wt_log_flush_lsn(WT_SESSION_IMPL *session, WT_LSN *lsn, bool start)
 /*
  * __wt_log_force_sync --
  *     Force a sync of the log and files.
- 把文件编号小于min_lsn的所以日志sync到磁盘
+ 把文件编号小于min_lsn的所以日志sync到磁盘  
  */
 int
 __wt_log_force_sync(WT_SESSION_IMPL *session, WT_LSN *min_lsn)
@@ -713,16 +713,23 @@ __wt_log_fill(
      * becomes a unit of WT_LOG_ALIGN this is where we would multiply by WT_LOG_ALIGN to get the
      * real file byte offset for write().
      */
-    if (!force && !F_ISSET(myslot, WT_MYSLOT_UNBUFFERED))
+    if (!force && !F_ISSET(myslot, WT_MYSLOT_UNBUFFERED)) 
+        //record先记录到slot内存中,然后在__wt_log_release中把slot_buf写入磁盘
         memcpy((char *)myslot->slot->slot_buf.mem + myslot->offset, record->mem, record->size);
     else
         /*
          * If this is a force or unbuffered write, write it now.
          */
-        //向slot文件的slot_start_offset位置写入record信息
+        //向slot文件的slot_start_offset位置写入record信息， 
+        //record太大不能存入slot_buf，则直接写入磁盘，这里可能有个场景，假设已经在slot中记录了一条record,
+        // 这里可能前面的一条record会在后面的__wt_log_release中写入磁盘，会造成后面的record先写入磁盘，假设后面这条
+        // log record写入磁盘成功后，前面的record还没用通过__wt_log_release写入磁盘，这时候进程挂了，这会不会有问题
+        // ????????? yang add todo xxxxxxxxxxxxxx   是不是在recover的时候可以在__wt_log_scan->__log_open_verify中检测出来??????
         WT_ERR(__log_fs_write(session, myslot->slot,
+          //代表这条record在log文件对应磁盘的起始位置
           myslot->offset + myslot->slot->slot_start_offset, record->size, record->mem));
 
+    //yang add todo xxxxxxxxxxxxxxxx 这里如果走memcpy分支，是不是这里不应该计数
     WT_STAT_CONN_INCRV(session, log_bytes_written, record->size);
     if (lsnp != NULL) {
         *lsnp = myslot->slot->slot_start_lsn;
@@ -740,7 +747,7 @@ err:
  *     be called locked. If writing into a pre-allocated log, it will be called unlocked.
  __log_file_header可以配合__log_open_verify阅读
  */
-//log WT_LOG_RECORD头部信息写入磁盘
+//log WT_LOG_RECORD头部信息写入磁盘 
 static int
 __log_file_header(WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool prealloc)
 {
@@ -1941,6 +1948,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
 
     /* Write the buffered records */
     if (release_buffered != 0)
+        //到这里执行__log_fs_write后，也就是该slot对应slot_buf中的所有slot全部写入磁盘，配合__wt_log_fill阅读
         WT_ERR(__log_fs_write(
           session, slot, slot->slot_start_offset, (size_t)release_buffered, slot->slot_buf.mem));
 
@@ -1975,6 +1983,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
     WT_ASSIGN_LSN(&log->write_lsn, &slot->slot_end_lsn);
 
     WT_ASSERT(session, slot != log->active_slot);
+    //到这里说明一个slot上面的所有log已经write到操作系统，则发送log_write_cond通知所有用户写log到该slot的线程
     __wt_cond_signal(session, log->log_write_cond);
     F_CLR(slot, WT_SLOT_FLUSH);
 
@@ -2047,7 +2056,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
             fsync_duration_usecs = WT_CLOCKDIFF_US(time_stop, time_start);
             WT_STAT_CONN_INCRV(session, log_sync_duration, fsync_duration_usecs);
             WT_ASSIGN_LSN(&log->sync_lsn, &sync_lsn);
-            __wt_cond_signal(session, log->log_sync_cond);
+            __wt_cond_signal(session, log->log_sync_cond); 
         }
         /*
          * Clear the flags before leaving the loop.
@@ -2203,7 +2212,7 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
             WT_ASSIGN_LSN(&start_lsn, start_lsnp);
     }
 
-    //做校验并返回file对应文件log_fh
+    //做校验并返回file对应文件log_fh  
     WT_ERR(__log_open_verify(session, start_lsn.l.file, &log_fh, &prev_lsn, NULL, &need_salvage));
     if (need_salvage)
         WT_ERR_MSG(session, WT_ERROR, "log file requires salvage");
@@ -2744,12 +2753,15 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
     /*
      * The only time joining a slot should ever return an error is if it detects a panic.
      */
+    //确定mysize对应log在slot中的位置[join_off, setjoin_offset + mysize],
     __wt_log_slot_join(session, rdup_len, flags, &myslot);
     /*
      * If the addition of this record crosses the buffer boundary, switch in a new slot.
      */
     force = LF_ISSET(WT_LOG_FLUSH | WT_LOG_FSYNC);
+    //printf("yang test .....__log_write_internal..................flags:%u, force:%u\r\n", flags, force);
     ret = 0;
+    //slot中的结尾超限了，说明需要一个新的slot拼接存储record剩余部分的内容
     if (myslot.end_offset >= WT_LOG_SLOT_BUF_MAX || F_ISSET(&myslot, WT_MYSLOT_UNBUFFERED) || force)
         ret = __wt_log_slot_switch(session, &myslot, true, false, NULL);
 
@@ -2783,9 +2795,12 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
     if (LF_ISSET(WT_LOG_FLUSH)) {
         /* Wait for our writes to reach the OS */
         while (__wt_log_cmp(&log->write_lsn, &lsn) <= 0 && myslot.slot->slot_error == 0)
+            //yang add todo xxxxxxxxx 这里用10 * WT_THOUSAND会不会更好
+            //__wt_log_release中一个slot上面所有的log全部写入操作系统后通知这里返回
             __wt_cond_wait(session, log->log_write_cond, 10000, NULL);
     } else if (LF_ISSET(WT_LOG_FSYNC)) {
         /* Wait for our writes to reach disk */
+        //等待__log_file_server  __wt_log_release  __wt_log_force_sync发送信号
         while (__wt_log_cmp(&log->sync_lsn, &lsn) <= 0 && myslot.slot->slot_error == 0)
             __wt_cond_wait(session, log->log_sync_cond, 10000, NULL);
     }

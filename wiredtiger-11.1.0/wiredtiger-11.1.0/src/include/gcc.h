@@ -98,6 +98,12 @@
 #error "Clang versions 3.5 and earlier are unsupported by WiredTiger"
 #endif
 
+/*
+首先这个指令是原子操作，叫CAS指令（比较并交换），
+bool __atomic_compare_exchange_n (type *ptr, type *expected, type desired, 
+bool weak, int success_memorder, int failure_memorder)
+ptr为要操作的指针，expected是期待的值，如果ptr和expected不相同，则指令返回失败，如果相同，则将ptr更新，更新值为desired。
+*/
 //比较ptr、oldp指向内容，若相同则将newv中的值写到ptr,否则将ptr中的值写入oldp
 #define WT_ATOMIC_CAS(ptr, oldp, newv) \
     __atomic_compare_exchange_n(ptr, oldp, newv, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)

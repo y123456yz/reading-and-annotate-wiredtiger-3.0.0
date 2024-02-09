@@ -449,6 +449,7 @@ __wt_log_slot_init(WT_SESSION_IMPL *session, bool alloc)
      * switch log files very aggressively.  Scale back the buffer for
      * small log file sizes.
      */
+    //给slot pool分配空间
     if (alloc) {
         log->slot_buf_size =
           (uint32_t)WT_MIN((size_t)conn->log_file_max / 10, WT_LOG_SLOT_BUF_SIZE);
@@ -516,6 +517,7 @@ __wt_log_slot_destroy(WT_SESSION_IMPL *session)
 /*
  * __wt_log_slot_join --
  *     Join a consolidated logging slot.
+ //确定mysize对应log在slot中的位置[join_off, setjoin_offset + mysize],
  */
 void
 __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT_MYSLOT *myslot)
@@ -541,13 +543,13 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
     unbuffered = yielded = false;
     closed = raced = slept = false;
     wait_cnt = 0;
-#ifdef HAVE_DIAGNOSTIC
-    diag_yield = (++log->write_calls % 7) == 0;
-    if ((log->write_calls % WT_THOUSAND) == 0 || mysize > WT_LOG_SLOT_BUF_MAX) {
-#else
+//#ifdef HAVE_DIAGNOSTIC
+//    diag_yield = (++log->write_calls % 7) == 0;
+//    if ((log->write_calls % WT_THOUSAND) == 0 || mysize > WT_LOG_SLOT_BUF_MAX) {
+//#else
     diag_yield = false;
     if (mysize > WT_LOG_SLOT_BUF_MAX) {
-#endif
+//#endif
         unbuffered = true;
         F_SET(myslot, WT_MYSLOT_UNBUFFERED);
     }
@@ -564,9 +566,12 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
             released = WT_LOG_SLOT_RELEASED(old_state);
             join_offset = WT_LOG_SLOT_JOINED(old_state);
             if (unbuffered)
+                //yang add todo xxxxxxxxxxxxxx 这里mysize可能大于WT_LOG_SLOT_UNBUFFERED，加这个的目的是啥呢，本来WT_MYSLOT_UNBUFFERED标识可以区分该log
                 new_join = join_offset + WT_LOG_SLOT_UNBUFFERED;
             else
                 new_join = join_offset + (int32_t)mysize;
+
+            //更新stat的join，这里join已经发生了变化
             new_state = (int64_t)WT_LOG_SLOT_JOIN_REL(
               (int64_t)new_join, (int64_t)released, (int64_t)flag_state);
 
@@ -579,6 +584,7 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
             /*
              * Attempt to swap our size into the state.
              */
+            //slot_state置为新的new_state
             if (__wt_atomic_casiv64(&slot->slot_state, old_state, new_state))
                 break;
             WT_STAT_CONN_INCR(session, log_slot_races);
@@ -629,7 +635,10 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
         WT_STAT_CONN_INCR(session, log_slot_unbuffered);
         slot->slot_unbuffered = (int64_t)mysize;
     }
+
+    //对应的slot pool中的slot
     myslot->slot = slot;
+    //mysize长度的log在该slot中的位置
     myslot->offset = join_offset;
     myslot->end_offset = (wt_off_t)((uint64_t)join_offset + mysize);
 }

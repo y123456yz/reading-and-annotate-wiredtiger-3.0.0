@@ -195,6 +195,7 @@ __wt_txn_op_free(WT_SESSION_IMPL *session, WT_TXN_OP *op)
 /*
  * __txn_logrec_init --
  *     Allocate and initialize a buffer for a transaction's log records.
+ //分配一个WT_LOG_RECORD空间并存入rectype txn->id封包存入data中
  */
 static int
 __txn_logrec_init(WT_SESSION_IMPL *session)
@@ -224,9 +225,11 @@ __txn_logrec_init(WT_SESSION_IMPL *session)
     else
         WT_ASSERT(session, txn->id != WT_TXN_NONE);
 
+    //计算rectype txn->id封包后的长度存入header_size
     WT_RET(__wt_struct_size(session, &header_size, fmt, rectype, txn->id));
     WT_RET(__wt_logrec_alloc(session, header_size, &logrec));
 
+    //rectype txn->id封包存入data中
     WT_ERR(__wt_struct_pack(
       session, (uint8_t *)logrec->data + logrec->size, header_size, fmt, rectype, txn->id));
     logrec->size += (uint32_t)header_size;

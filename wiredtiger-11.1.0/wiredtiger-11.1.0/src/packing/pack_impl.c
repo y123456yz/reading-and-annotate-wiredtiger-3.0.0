@@ -54,6 +54,7 @@ __wt_struct_confchk(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *v)
 /*
  * __wt_struct_size --
  *     Calculate the size of a packed byte string.
+ __wt_struct_size + __wt_struct_pack配合进行封包，目的是节省空间，可以参考__txn_logrec_init
  */
 int
 __wt_struct_size(WT_SESSION_IMPL *session, size_t *lenp, const char *fmt, ...)

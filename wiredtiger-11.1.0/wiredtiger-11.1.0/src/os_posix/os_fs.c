@@ -795,6 +795,16 @@ __posix_open_file(WT_FILE_SYSTEM *file_system, WT_SESSION *wt_session, const cha
         f |= O_NOATIME;
 #endif
 
+/*
+O_SYNC: requires that any write operations block until all data and all metadata have been written to persistent storage.
+O_DSYNC: like O_SYNC, except that there is no requirement to wait for any metadata changes which are not necessary to read the 
+    just-written data. In practice, O_DSYNC means that the application does not need to wait until ancillary information (the 
+    file modification time, for example) has been written to disk. Using O_DSYNC instead of O_SYNC can often eliminate the need to flush the file inode on a write.
+O_RSYNC: this flag, which only affects read operations, must be used in combination with either O_SYNC or O_DSYNC. It will 
+    cause aread() call to block until the data (and maybe metadata) being read has been flushed to disk (if necessary). 
+    This flag thus gives the kernel the option of delaying the flushing of data to disk; any number of writes can happen, 
+    but data need not be flushed until the application reads it back.
+*/
     if (file_type == WT_FS_OPEN_FILE_TYPE_LOG && FLD_ISSET(conn->txn_logsync, WT_LOG_DSYNC)) {
 #ifdef O_DSYNC
         f |= O_DSYNC;

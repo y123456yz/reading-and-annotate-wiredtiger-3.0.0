@@ -15,10 +15,13 @@
 /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//赋值参考__logmgr_sync_cfg  transaction_sync.method配置
+//真正生效见__posix_open_file   WT_LOG_DSYNC和WT_LOG_FSYNC的差别参考https://www.cnblogs.com/buptlyn/p/4139407.html
 #define WT_LOG_DSYNC 0x1u
-//"WT_SESSION.log_flush"配置默认sync on __session_log_flush
+//con级别配置见__logmgr_sync_cfg， session级别配置"WT_SESSION.log_flush"配置默认sync on __session_log_flush     
 #define WT_LOG_FLUSH 0x2u
 #define WT_LOG_FSYNC 0x4u
+//transaction_sync.method配置，赋值见__logmgr_sync_cfg
 #define WT_LOG_SYNC_ENABLED 0x8u
 /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
 
@@ -151,6 +154,7 @@ union __wt_lsn {
  */
 #define WT_LOG_SLOT_BITS 2
 #define WT_LOG_SLOT_MAXBITS (32 - WT_LOG_SLOT_BITS)
+//WT_LOG_SLOT_CLOSE高位的第2位，WT_LOG_SLOT_RESERVED对应高位的第一位
 #define WT_LOG_SLOT_CLOSE 0x4000000000000000LL    /* Force slot close */
 #define WT_LOG_SLOT_RESERVED 0x8000000000000000LL /* Reserved states */
 
@@ -159,18 +163,32 @@ union __wt_lsn {
  */
 #define WT_LOG_SLOT_UNBUFFERED_ISSET(state) ((state) & ((int64_t)WT_LOG_SLOT_UNBUFFERED << 32))
 
+//高位30位(高位的第31和32位为WT_LOG_SLOT_CLOSE和WT_LOG_SLOT_RESERVED)，低位32位
 #define WT_LOG_SLOT_MASK_OFF 0x3fffffffffffffffLL
 #define WT_LOG_SLOT_MASK_ON ~(WT_LOG_SLOT_MASK_OFF)
+//也就是获取高位的第1-30位
 #define WT_LOG_SLOT_JOIN_MASK (WT_LOG_SLOT_MASK_OFF >> 32)
 
 /*
+参考__wt_log_slot_join
+flag_state = WT_LOG_SLOT_FLAGS(old_state);
+released = WT_LOG_SLOT_RELEASED(old_state);
+join_offset = WT_LOG_SLOT_JOINED(old_state);
+
+位 64--63                   62----33                  32------1
+    flag                      joined                    release
+ WT_LOG_SLOT_FLAGS      WT_LOG_SLOT_JOINED         WT_LOG_SLOT_RELEASED
+
  * These macros manipulate the slot state and its component parts.
  */
+//也就是获取state高位的第31和32位
 #define WT_LOG_SLOT_FLAGS(state) ((state)&WT_LOG_SLOT_MASK_ON)
+//获取state高1-30位
 #define WT_LOG_SLOT_JOINED(state) (((state)&WT_LOG_SLOT_MASK_OFF) >> 32)
 #define WT_LOG_SLOT_JOINED_BUFFERED(state) \
     (WT_LOG_SLOT_JOINED(state) & (WT_LOG_SLOT_UNBUFFERED - 1))
 #define WT_LOG_SLOT_JOIN_REL(j, r, s) (((j) << 32) + (r) + (s))
+//获取state低32位
 #define WT_LOG_SLOT_RELEASED(state) ((int64_t)(int32_t)(state))
 #define WT_LOG_SLOT_RELEASED_BUFFERED(state) \
     ((int64_t)((int32_t)WT_LOG_SLOT_RELEASED(state) & (WT_LOG_SLOT_UNBUFFERED - 1)))
@@ -183,6 +201,7 @@ union __wt_lsn {
       (FLD_LOG_SLOT_ISSET((uint64_t)(state), WT_LOG_SLOT_CLOSE) && \
         !FLD_LOG_SLOT_ISSET((uint64_t)(state), WT_LOG_SLOT_RESERVED)))
 /* Slot is in use, all data copied into buffer */
+//高30位和低32位不相等，则认为该slot在使用
 #define WT_LOG_SLOT_INPROGRESS(state) (WT_LOG_SLOT_RELEASED(state) != WT_LOG_SLOT_JOINED(state))
 #define WT_LOG_SLOT_DONE(state) (WT_LOG_SLOT_CLOSED(state) && !WT_LOG_SLOT_INPROGRESS(state))
 /* Slot is in use, more threads may join this slot */
@@ -194,11 +213,13 @@ union __wt_lsn {
 //该struct WT_CACHE_LINE_ALIGNMENT字节对齐
 struct __wt_logslot {
     WT_CACHE_LINE_PAD_BEGIN
+    //赋值参考__wt_log_slot_join
     volatile int64_t slot_state; /* Slot state */
+    //赋值参考__wt_log_slot_join
     int64_t slot_unbuffered;     /* Unbuffered data in this slot */
     int slot_error;              /* Error value */
 
-    //赋值见__wt_log_slot_activate
+    //赋值见__wt_log_slot_activate 代表该slot对应的内容在磁盘上的起始位置
     wt_off_t slot_start_offset;  /* Starting file offset */
     //赋值见__wt_log_slot_activate
     wt_off_t slot_last_offset;   /* Last record offset */
@@ -206,13 +227,17 @@ struct __wt_logslot {
     WT_LSN slot_start_lsn;       /* Slot starting LSN */
     WT_LSN slot_end_lsn;         /* Slot ending LSN */
     WT_FH *slot_fh;              /* File handle for this group */
+
+    //存储日志rec log的slot内存buf
     WT_ITEM slot_buf;            /* Buffer for grouped writes */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_SLOT_CLOSEFH 0x01u    /* Close old fh on release */
+//下面3个赋值参考__wt_log_slot_join
 #define WT_SLOT_FLUSH 0x02u      /* Wait for write */
 #define WT_SLOT_SYNC 0x04u       /* Needs sync on release */
 #define WT_SLOT_SYNC_DIR 0x08u   /* Directory sync on release */
+//asynchronous sync异步sync，赋值见__log_slot_dirty_max_check
 #define WT_SLOT_SYNC_DIRTY 0x10u /* Sync system buffers on release */
                                  /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
     uint32_t flags;
@@ -237,7 +262,7 @@ struct __wt_myslot {
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_MYSLOT_CLOSE 0x1u         /* This thread is closing the slot */
 #define WT_MYSLOT_NEEDS_RELEASE 0x2u /* This thread is releasing the slot */
-//__wt_log_slot_join中置位
+//__wt_log_slot_join中置位，说明log长度大于WT_LOG_SLOT_BUF_MAX
 #define WT_MYSLOT_UNBUFFERED 0x4u    /* Write directly */
                                      /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
     uint32_t flags;
@@ -306,6 +331,7 @@ struct __wt_log {
     WT_RWLOCK log_remove_lock; /* Remove and log cursors */
 
     /* Notify any waiting threads when sync_lsn is updated. */
+    //__log_file_server  __wt_log_release  __wt_log_force_sync发送信号
     WT_CONDVAR *log_sync_cond;
     /* Notify any waiting threads when write_lsn is updated. */
     WT_CONDVAR *log_write_cond;
@@ -318,6 +344,7 @@ struct __wt_log {
  * arrays.
  */
 //#define WT_SLOT_POOL 128
+    //初始值指向pool 0，然后在__log_slot_new中指向新的slot
     WT_LOGSLOT *active_slot;            /* Active slot */
     WT_LOGSLOT slot_pool[WT_SLOT_POOL]; /* Pool of all slots */
     int32_t pool_index;                 /* Index into slot pool */
@@ -354,7 +381,7 @@ struct __wt_log_record {
     uint32_t mem_len;  /* 12-15: Uncompressed len if needed */
 
     //下面的是具体的内容(例如WT_LOG_DESC结构、WT_LOGREC_SYSTEM等)，前面的字段是头部
-    uint8_t record[0]; /* Beginning of actual data */
+    uint8_t record[0]; /* Beginning of actual data */ 
 };
 
 /*
@@ -378,6 +405,8 @@ __wt_log_record_byteswap(WT_LOG_RECORD *record)
  * WT_LOG_DESC --
  *	The log file's description.
  */
+//记录文件相关的元数据信息，参考__log_file_header __log_open_verify
+//填充到__wt_log_record.record位置
 struct __wt_log_desc {
 #define WT_LOG_MAGIC 0x101064u
     uint32_t log_magic; /* 00-03: Magic number */

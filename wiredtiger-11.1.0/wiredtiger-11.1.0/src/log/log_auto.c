@@ -409,6 +409,7 @@ err:
     return (ret);
 }
 
+//计算optype, 0, fileid, key, value封包后的长度
 int
 __wt_logop_row_put_pack(
   WT_SESSION_IMPL *session, WT_ITEM *logrec, uint32_t fileid, WT_ITEM *key, WT_ITEM *value)
