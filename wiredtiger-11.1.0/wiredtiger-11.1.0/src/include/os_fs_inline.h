@@ -19,6 +19,8 @@ __wt_fs_file_system(WT_SESSION_IMPL *session)
 /*
  * __wt_fs_directory_list --
  *     Return a list of files from a directory.
+//获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件，
+//countp返回目录中满足条件的文件数，dirlistp[]数组存储对应的文件名
  */
 static inline int
 __wt_fs_directory_list(

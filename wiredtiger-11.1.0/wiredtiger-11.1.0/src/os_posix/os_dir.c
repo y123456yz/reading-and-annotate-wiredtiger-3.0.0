@@ -14,7 +14,8 @@
  * __directory_list_worker --
  *     Get a list of files from a directory, POSIX version.
  */
- //获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件
+ //获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件，
+ //countp返回目录中满足条件的文件数，dirlistp[]数组存储对应的文件名
 static int
 __directory_list_worker(WT_FILE_SYSTEM *file_system, WT_SESSION *wt_session, const char *directory,
   const char *prefix, char ***dirlistp, uint32_t *countp, bool single)
@@ -89,6 +90,8 @@ err:
 /*
  * __wt_posix_directory_list --
  *     Get a list of files from a directory, POSIX version.
+ //获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件，
+ //countp返回目录中满足条件的文件数，dirlistp[]数组存储对应的文件名
  */
 int
 __wt_posix_directory_list(WT_FILE_SYSTEM *file_system, WT_SESSION *wt_session,

@@ -90,10 +90,14 @@ struct __wt_rwlock { /* Read/write lock */
  *
  * WiredTiger uses spinlocks for fast mutual exclusion (where operations done while holding the spin
  * lock are expected to complete in a small number of instructions).
+  cmake -DENABLE_SNAPPY=0  -DHAVE_UNITTEST=1  -DHAVE_DIAGNOSTIC=0 -DENABLE_CPPSUITE=1 -DSPINLOCK_TYPE=gcc ../.
+  DSPINLOCK_TYPE指定spinlock使用那种
  */
 #define SPINLOCK_GCC 0
 #define SPINLOCK_MSVC 1
+//默认方式
 #define SPINLOCK_PTHREAD_MUTEX 2
+//可以参考https://stackoverflow.com/questions/19863734/what-is-pthread-mutex-adaptive-np
 #define SPINLOCK_PTHREAD_MUTEX_ADAPTIVE 3
 
 struct __wt_spinlock {

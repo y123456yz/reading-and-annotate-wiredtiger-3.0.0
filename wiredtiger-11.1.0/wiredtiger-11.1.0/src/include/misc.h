@@ -193,6 +193,7 @@
  *
  * The "compare_lt" argument is a function or macro that returns true when its first argument is
  * less than its second argument.
+ //数组arrayp[]从小到达排序
  */
 #define WT_INSERTION_SORT(arrayp, n, value_type, compare_lt)                           \
     do {                                                                               \

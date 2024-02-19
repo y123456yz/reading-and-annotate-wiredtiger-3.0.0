@@ -136,6 +136,13 @@ __wt_atomic_cas_ptr(void *vp, void *old, void *newv)
     return (WT_ATOMIC_CAS((void **)vp, &old, newv));
 }
 
+/*
+__atomic_load_n(ptr, order);       
+// 原子加载操作__atomic_store_n(ptr, value, order); 
+// 原子存储操作__atomic_add_fetch(ptr, value, order); 
+// 原子加法操作并返回新值__atomic_sub_fetch(ptr, value, order); 
+// 原子减法操作并返回新值
+*/
 #define WT_ATOMIC_FUNC(name, ret, vp_arg, v_arg)                 \
     static inline ret __wt_atomic_add##name(vp_arg, v_arg)       \
     {                                                            \

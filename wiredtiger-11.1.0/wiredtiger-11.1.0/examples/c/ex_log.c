@@ -35,10 +35,10 @@ static const char *home2 = "WT_HOME_LOG_2";
 
 static const char *const uri = "table:logtest";
 
-#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,remove=false),verbose=[log:5]"
+#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,remove=false),verbose=[log:5,api:5,config_all_verbos:5]"
 //#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,remove=false)"
 
-#define MAX_KEYS 10
+#define MAX_KEYS 1000
 
 static void
 setup_copy(WT_CONNECTION **wt_connp, WT_SESSION **sessionp)
@@ -251,7 +251,8 @@ main(int argc, char *argv[])
     WT_CURSOR *cursor;
     WT_SESSION *session;
     int count_min, i, record_count;
-    char cmd_buf[256], k[32], v[32];
+    //char cmd_buf[256], k[32], v[32];
+    char cmd_buf[256], k[128], v[128];
 
     (void)argc; /* Unused variable */
     (void)testutil_set_progname(argv);
@@ -273,16 +274,19 @@ main(int argc, char *argv[])
     /*
      * Perform some operations with individual auto-commit transactions.
      */  
+    printf("\r\n\r\nyang test main 111111 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     //#define MAX_KEYS 10
     for (record_count = 0, i = 0; i < MAX_KEYS; i++, record_count++) {
-        (void)snprintf(k, sizeof(k), "key%d", i);
-        (void)snprintf(v, sizeof(v), "value%d", i);
+        (void)snprintf(k, sizeof(k), "key @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d", i);
+        (void)snprintf(v, sizeof(v), "value @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%d", i);
         cursor->set_key(cursor, k);
         cursor->set_value(cursor, v);
         error_check(cursor->insert(cursor));
         count_min++;
     }
+    printf("\r\n\r\nyang test main 22222 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     error_check(session->begin_transaction(session, NULL));
+    printf("\r\n\r\nyang test main 33333 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     /*
      * Perform some operations within a single transaction.
      */
@@ -293,7 +297,9 @@ main(int argc, char *argv[])
         cursor->set_value(cursor, v);
         error_check(cursor->insert(cursor));
     }
+    printf("\r\n\r\nyang test main 44444 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     error_check(session->commit_transaction(session, NULL));
+    printf("\r\n\r\nyang test main 55555 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     count_min++;
     error_check(cursor->close(cursor));
 

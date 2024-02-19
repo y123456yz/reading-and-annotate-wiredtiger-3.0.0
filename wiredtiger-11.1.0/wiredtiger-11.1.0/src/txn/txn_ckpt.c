@@ -1008,7 +1008,7 @@ __txn_checkpoint_clear_time(WT_SESSION_IMPL *session)
  *     Checkpoint a database or a list of objects in the database.
  //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
   //__wt_txn_checkpoint->__txn_checkpoint_wrapper->__txn_checkpoint
- */
+ */ 
 static int
 __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
 {

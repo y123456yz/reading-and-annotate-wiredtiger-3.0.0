@@ -516,13 +516,17 @@ struct __wt_connection_impl {
 #define WT_CONN_LOG_RECOVER_DONE 0x080u    /* Recovery completed */
 #define WT_CONN_LOG_RECOVER_ERR 0x100u     /* Error if recovery required */
 #define WT_CONN_LOG_RECOVER_FAILED 0x200u  /* Recovery failed */
+//默认为ture, log.remove配置
 #define WT_CONN_LOG_REMOVE 0x400u          /* Removal is enabled */
+//默认false zero_fill=false
 #define WT_CONN_LOG_ZERO_FILL 0x800u       /* Manually zero files */
                                            /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
 
     //journal日志相关，默认mongod配置log=(enabled=true,archive=true,path=journal,compressor=snappy)
     //默认使能为WT_CONN_LOG_ENABLED，参考__wt_logmgr_create
     uint32_t log_flags;                    /* Global logging configuration */
+    //__log_server线程等待该信号，__log_newfile  __wt_log_ckpt  __log_write_internal发送信号
+    //默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
     WT_CONDVAR *log_cond;                  /* Log server wait mutex */
     WT_SESSION_IMPL *log_session;          /* Log server session */
     wt_thread_t log_tid;                   /* Log server thread */
@@ -531,6 +535,8 @@ struct __wt_connection_impl {
     WT_SESSION_IMPL *log_file_session;     /* Log file thread session */
     wt_thread_t log_file_tid;              /* Log file thread */
     bool log_file_tid_set;                 /* Log file thread set */
+    //__log_wrlsn_server write lsn线程等待该cond，然后__wt_log_wrlsn把日志写入磁盘，__log_wait_for_earlier_slot发送信号
+    //wait一次最多等待10ms左右，见__wt_logmgr_open   
     WT_CONDVAR *log_wrlsn_cond;            /* Log write lsn thread wait mutex */
     WT_SESSION_IMPL *log_wrlsn_session;    /* Log write lsn thread session */
     wt_thread_t log_wrlsn_tid;             /* Log write lsn thread */
@@ -540,11 +546,11 @@ struct __wt_connection_impl {
     //journal日志压缩算法
     WT_COMPRESSOR *log_compressor;         /* Logging compressor */
     uint32_t log_cursors;                  /* Log cursor count */
-    //"log.os_cache_dirty_pct"配置
+    //"log.os_cache_dirty_pct"配置，默认值为0
     wt_off_t log_dirty_max;                /* Log dirty system cache max size */
-    //log.file_max配置
+    //log.file_max配置  file_max=100MB
     wt_off_t log_file_max;                 /* Log file max size */
-    //"log.force_write_wait"配置
+    //"log.force_write_wait"配置，默认值为0
     uint32_t log_force_write_wait;         /* Log force write wait configuration */
 /*
 [user_00@TENCENT64 /data2/containers/175591266/db]$ cd journal/
@@ -554,11 +560,12 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 */ //journal日志目录
     const char *log_path;                  /* Logging path format */
     //"log.prealloc"配置，默认true，初始值1，见__wt_logmgr_config，
-    //一次性创建个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
+    //一次性创建log_prealloc个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
     uint32_t log_prealloc;                 /* Log file pre-allocation */
     uint16_t log_req_max;                  /* Max required log version */
     uint16_t log_req_min;                  /* Min required log version */
-    //transaction_sync配置，参考__logmgr_sync_cfg
+    //transaction_sync配置，参考__logmgr_sync_cfg，
+    //最终在__wt_txn_begin中被赋值给txn->txn_logsync使用
     uint32_t txn_logsync;                  /* Log sync configuration */
 
     WT_SESSION_IMPL *meta_ckpt_session; /* Metadata checkpoint session */

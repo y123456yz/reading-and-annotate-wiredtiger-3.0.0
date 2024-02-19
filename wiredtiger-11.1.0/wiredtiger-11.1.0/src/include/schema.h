@@ -122,6 +122,8 @@ struct __wt_import_list {
 /*
  * WT_WITH_LOCK_WAIT --
  *	Wait for a lock, perform an operation, drop the lock.
+ 如果一个线程进入else分支，则加锁后会置位lock_flags，其他线程进来后就不需要加锁而是直接执行op
+ //注意这里的lock_flags是诊断本session的，也就是本线程内的循环op调度
  */
 #define WT_WITH_LOCK_WAIT(session, lock, flag, op)    \
     do {                                              \

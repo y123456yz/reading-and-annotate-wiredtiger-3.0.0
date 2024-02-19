@@ -678,6 +678,7 @@ __bm_switch_object_readonly(WT_BM *bm, WT_SESSION_IMPL *session, uint32_t object
 /*
  * __bm_sync --
  *     Flush a file to disk.
+ __wt_sync_file __wt_checkpoint_syncµ÷ÓÃ
  */
 static int
 __bm_sync(WT_BM *bm, WT_SESSION_IMPL *session, bool block)

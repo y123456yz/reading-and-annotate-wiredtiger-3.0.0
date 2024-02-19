@@ -957,6 +957,8 @@ __wt_os_posix(WT_SESSION_IMPL *session)
     WT_RET(__wt_calloc_one(session, &file_system));
 
     /* Initialize the POSIX jump table. */
+    //获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件，
+    //countp返回目录中满足条件的文件数，dirlistp[]数组存储对应的文件名
     file_system->fs_directory_list = __wt_posix_directory_list;
     file_system->fs_directory_list_single = __wt_posix_directory_list_single;
     file_system->fs_directory_list_free = __wt_posix_directory_list_free;

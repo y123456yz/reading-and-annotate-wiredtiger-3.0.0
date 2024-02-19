@@ -27,6 +27,7 @@ __logmgr_sync_cfg(WT_SESSION_IMPL *session, const char **cfg)
      * processing during a reconfigure.
      */
     txn_logsync = 0;
+    //transaction_sync.enabled默认值为false
     WT_RET(__wt_config_gets(session, cfg, "transaction_sync.enabled", &cval));
     if (cval.val)
         FLD_SET(txn_logsync, WT_LOG_SYNC_ENABLED);
@@ -40,6 +41,9 @@ __logmgr_sync_cfg(WT_SESSION_IMPL *session, const char **cfg)
         FLD_SET(txn_logsync, WT_LOG_FSYNC);
     else if (WT_STRING_MATCH("none", cval.str, cval.len))
         FLD_SET(txn_logsync, WT_LOG_FLUSH);
+
+    //最终在__wt_txn_begin中被赋值给txn->txn_logsync, 真正生效见__wt_txn_log_commit
+    //如果没使能，则__wt_txn_commit中会置txn_logsync为0，也就是不会sync, flags中不会满足上面的WT_LOG_FLUSH WT_LOG_FSYNC WT_LOG_DSYNC
     WT_PUBLISH(conn->txn_logsync, txn_logsync);
     return (0);
 }
@@ -275,6 +279,7 @@ __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
      * The configuration string log.archive is deprecated, only take it if it's explicitly set by
      * the application, that is, ignore its default value. Look for an explicit log.remove setting,
      * then an explicit log.archive setting, then the default log.remove setting.
+     //log=(archive=true,compressor=,enabled=,file_max=100MB,force_write_wait=0,os_cache_dirty_pct=0,path=".",prealloc=true,recover=on,remove=true,zero_fill=false)
      */
     if (__wt_config_gets(session, cfg + 1, "log.remove", &cval) != 0 &&
       __wt_config_gets(session, cfg + 1, "log.archive", &cval) != 0)
@@ -360,6 +365,7 @@ __wt_logmgr_reconfig(WT_SESSION_IMPL *session, const char **cfg)
  * __log_remove_once_int --
  *     Helper for __log_remove_once. Intended to be called while holding the hot backup read lock.
  */
+//遍历logfiles[]数组中存储的所有wiredtigerLog.xxxx文件，删除文件号小于min_lognum的所有文件
 static int
 __log_remove_once_int(
   WT_SESSION_IMPL *session, char **logfiles, u_int logcount, uint32_t min_lognum)
@@ -368,6 +374,7 @@ __log_remove_once_int(
     u_int i;
 
     for (i = 0; i < logcount; i++) {
+        //从文件名name中解析处234存入id
         WT_RET(__wt_log_extract_lognum(session, logfiles[i], &lognum));
         if (lognum < min_lognum)
             WT_RET(__wt_log_remove(session, WT_LOG_FILENAME, lognum));
@@ -379,6 +386,7 @@ __log_remove_once_int(
 /*
  * __log_remove_once --
  *     Perform one iteration of log removal. Must be called with the log removal lock held.
+ 删除
  */
 static int
 __log_remove_once(WT_SESSION_IMPL *session, uint32_t backup_file)
@@ -431,6 +439,7 @@ __log_remove_once(WT_SESSION_IMPL *session, uint32_t backup_file)
      * Main remove code. Get the list of all log files and remove any earlier than the minimum log
      * number.
      */
+    //获取目录中所有WiredTigerLog.xxxx文件名存入logfiles[]数组中，数组大小存入logcount
     WT_ERR(__wt_fs_directory_list(session, conn->log_path, WT_LOG_FILENAME, &logfiles, &logcount));
 
     /*
@@ -441,6 +450,7 @@ __log_remove_once(WT_SESSION_IMPL *session, uint32_t backup_file)
         ret = __log_remove_once_int(session, logfiles, logcount, min_lognum);
     else
         WT_WITH_HOTBACKUP_READ_LOCK(
+          //遍历logfiles[]数组中存储的所有wiredtigerLog.xxxx文件，删除文件号小于min_lognum的所有文件
           session, ret = __log_remove_once_int(session, logfiles, logcount, min_lognum), NULL);
     WT_ERR(ret);
 
@@ -480,6 +490,8 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
      * used yet.
      */
     //获取所有WiredTigerPreplog.xxx的所有文件
+    //获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件，
+    //reccount返回目录中满足条件的文件数，recfiles[]数组存储对应的文件名
     WT_ERR(__wt_fs_directory_list(session, conn->log_path, WT_LOG_PREPNAME, &recfiles, &reccount));
 
     /*
@@ -504,7 +516,7 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
     /*
      * Allocate up to the maximum number that we just computed and detected.
      */
-    //一次性创建个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
+    //一次性创建log_prealloc个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
     for (i = reccount; i < (u_int)conn->log_prealloc; i++) {
         WT_ERR(__wt_log_allocfile(session, ++log->prep_fileid, WT_LOG_PREPNAME));
         WT_STAT_CONN_INCR(session, log_prealloc_files);
@@ -564,6 +576,9 @@ __wt_log_truncate_files(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool force)
  * __log_file_server --
  *     The log file server thread. This worker thread manages log file operations such as closing
  *     and syncing.
+ __log_server线程: 默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
+__log_file_server线程: 用于文件close
+__log_wrlsn_server线程: 维护更新write_lsn
  */
 static WT_THREAD_RET
 __log_file_server(void *arg)
@@ -634,6 +649,7 @@ __log_file_server(void *arg)
         }
 
         /* Wait until the next event. */
+        //100ms
         __wt_cond_wait(session, conn->log_file_cond, 100000, NULL);
     }
 
@@ -648,9 +664,12 @@ err:
 
 /*
  * Simple structure for sorting written slots.
+ __wt_log_wrlsn线程使用
  */
 typedef struct {
+    //记录是对应slot的slot->slot_release_lsn
     WT_LSN lsn;
+    //对应slot_pool[]数组的游标
     uint32_t slot_index;
 } WT_LOG_WRLSN_ENTRY;
 
@@ -668,6 +687,9 @@ typedef struct {
  *     Process written log slots and attempt to coalesce them if the LSNs are contiguous. The
  *     purpose of this function is to advance the write_lsn in LSN order after the buffer is written
  *     to the log file.
+ 用于对WT_LOG_SLOT_WRITTEN的slot进行处理， 该__log_wrlsn_server线程主要用来更新write_lsn，增加该线程目的是因为
+ transaction_sync.enabled=false不会进行sync操作，sync操作不会由用户线程主动触发，而是由checkpoint等线程触发或者用户主动触发
+ ，因此普通用户线程的log sync的lsn用户线程不知道，所有增加__log_wrlsn_server线程来维护sync lsn
  */
 void
 __wt_log_wrlsn(WT_SESSION_IMPL *session, int *yield)
@@ -692,11 +714,14 @@ restart:
     /*
      * Walk the array once saving any slots that are in the WT_LOG_SLOT_WRITTEN state.
      */
+    //获取slot pool中state为WT_LOG_SLOT_WRITTEN的所有slot存入written[]数组
     while (i < WT_SLOT_POOL) {
         save_i = i;
         slot = &log->slot_pool[i++];
         if (slot->slot_state != WT_LOG_SLOT_WRITTEN)
             continue;
+        
+        //对应slot_pool[]数组的游标
         written[written_i].slot_index = save_i;
         WT_ASSIGN_LSN(&written[written_i++].lsn, &slot->slot_release_lsn);
     }
@@ -707,6 +732,7 @@ restart:
     if (written_i > 0) {
         if (yield != NULL)
             *yield = 0;
+        //数组written[]从小到达排序
         WT_INSERTION_SORT(written, written_i, WT_LOG_WRLSN_ENTRY, WT_WRLSN_ENTRY_CMP_LT);
         /*
          * We know the written array is sorted by LSN. Go through them either advancing write_lsn or
@@ -752,6 +778,13 @@ restart:
                  * check when coalescing slots.
                  */
                 WT_ASSIGN_LSN(&save_lsn, &log->write_lsn);
+                __wt_verbose(session, WT_VERB_LOG,"yang test 11... __wt_log_wrlsn...write_start_lsn: %u, write_lsn: %u, sync_lsn:%u, alloc_lsn:%u", 
+                    log->write_start_lsn.l.offset, log->write_lsn.l.offset,
+                    log->sync_lsn.l.offset, log->alloc_lsn.l.offset);
+
+                __wt_verbose(session, WT_VERB_LOG,
+                   "yang test .22. __wt_log_wrlsn...index: %" PRIu32 ", write_lsn: %" PRIx64 " slot_release_lsn %" PRIx64,
+                   (uint32_t)written[i].slot_index, (uint64_t)log->write_lsn.file_offset, (uint64_t)(written[i].lsn.file_offset));
                 if (__wt_log_cmp(&log->write_lsn, &written[i].lsn) != 0) {
                     coalescing = slot;
                     continue;
@@ -786,6 +819,13 @@ restart:
 /*
  * __log_wrlsn_server --
  *     The log wrlsn server thread.
+  用于对WT_LOG_SLOT_WRITTEN的slot进行处理， 该__log_wrlsn_server线程主要用来更新write_lsn，增加该线程目的是因为
+ transaction_sync.enabled=false不会进行sync操作，sync操作不会由用户线程主动触发，而是由checkpoint等线程触发或者用户主动触发
+ ，因此普通用户线程的log sync的lsn用户线程不知道，所有增加__log_wrlsn_server线程来维护sync lsn
+
+__log_server线程: 默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
+__log_file_server线程: 用于文件close
+__log_wrlsn_server线程: 维护更新write_lsn
  */
 static WT_THREAD_RET
 __log_wrlsn_server(void *arg)
@@ -815,6 +855,7 @@ __log_wrlsn_server(void *arg)
         else
             WT_STAT_CONN_INCR(session, log_write_lsn_skip);
         prev = log->alloc_lsn;
+        //yang add todo xxxxxxxxxxxxx 用false
         did_work = yield == 0;
 
         /*
@@ -823,6 +864,7 @@ __log_wrlsn_server(void *arg)
         if (yield++ < WT_THOUSAND)
             __wt_yield();
         else
+            //最多等待10ms
             __wt_cond_auto_wait(session, conn->log_wrlsn_cond, did_work, NULL);
     }
     /*
@@ -841,6 +883,13 @@ err:
 /*
  * __log_server --
  *     The log server thread.
+ 用户线程: 通过__wt_txn_log_commit->__wt_log_write->__log_write_internal走到这里
+  __log_server线程: __log_server->__wt_log_force_write走到这里进行刷盘
+
+ 
+__log_server线程: 默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
+__log_file_server线程: 用于文件close
+__log_wrlsn_server线程: 维护更新write_lsn
  */
 static WT_THREAD_RET
 __log_server(void *arg)
@@ -884,6 +933,7 @@ __log_server(void *arg)
          */
         if (conn->log_force_write_wait == 0 ||
           force_write_timediff >= conn->log_force_write_wait * WT_THOUSAND) {
+            //默认50ms强制刷盘
             WT_ERR_ERROR_OK(__wt_log_force_write(session, 0, &did_work), EBUSY, false);
             force_write_time_start = __wt_clock(session);
         }
@@ -921,6 +971,9 @@ __log_server(void *arg)
         }
 
         /* Wait until the next event. */
+        //默认等待时间50ms,见__wt_logmgr_open
+        //注意，有时候__log_server线程在一个50ms周期可能没有新的lsn log到来，这时候did_work为false,则等待时间会增加
+        //如果是因为超时返回signalled会被置位false
         __wt_cond_auto_wait_signal(session, conn->log_cond, did_work, NULL, &signalled);
         time_stop = __wt_clock(session);
         timediff = WT_CLOCKDIFF_MS(time_stop, time_start);
@@ -1032,6 +1085,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
      */
     WT_RET(__wt_open_internal_session(
       conn, "log-wrlsn-server", false, session_flags, 0, &conn->log_wrlsn_session));
+    //yang add todo xxxxxxxxxxxxx 10000最好用10 *  WT_THOUSAND
     WT_RET(__wt_cond_auto_alloc(
       conn->log_wrlsn_session, "log write lsn server", 10000, WT_MILLION, &conn->log_wrlsn_cond));
     WT_RET(__wt_thread_create(
@@ -1051,7 +1105,8 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
         /* The log server gets its own session. */
         WT_RET(__wt_open_internal_session(
           conn, "log-server", false, session_flags, 0, &conn->log_session));
-        WT_RET(__wt_cond_auto_alloc(
+        WT_RET(__wt_cond_auto_alloc(//yang add todo xxxxxxx，这里50000转为50*WT_THOUSAND 
+          //默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
           conn->log_session, "log server", 50000, WT_MILLION, &conn->log_cond));
 
         /*

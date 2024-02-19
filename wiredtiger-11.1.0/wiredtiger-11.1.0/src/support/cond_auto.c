@@ -37,10 +37,16 @@ __wt_cond_auto_alloc(
  * __wt_cond_auto_wait_signal --
  *     Wait on a mutex, optionally timing out. If we get it before the time out period expires, let
  *     the caller know.
+ 等待cond信号到来，并动态调整等待时间
  */
 void
-__wt_cond_auto_wait_signal(WT_SESSION_IMPL *session, WT_CONDVAR *cond, bool progress,
-  bool (*run_func)(WT_SESSION_IMPL *), bool *signalled)
+__wt_cond_auto_wait_signal(WT_SESSION_IMPL *session, WT_CONDVAR *cond, 
+  //本次cond等待是直接使用min_wait，还是使用上一次的prev_wait并进行动态调整等待时间
+  bool progress,
+  bool (*run_func)(WT_SESSION_IMPL *), 
+  //本次wait完成后，是否需要把prev_wait恢复为min_wait;
+  //如果是因为超时返回signalled会被置位false，同时需要把prev_wait恢复为min_wait;
+  bool *signalled)
 {
     uint64_t delta, saved_prev_wait;
 
@@ -64,13 +70,18 @@ __wt_cond_auto_wait_signal(WT_SESSION_IMPL *session, WT_CONDVAR *cond, bool prog
         WT_ORDERED_READ(saved_prev_wait, cond->prev_wait);
         if (!__wt_atomic_cas64(
               &cond->prev_wait, saved_prev_wait, WT_MIN(cond->max_wait, saved_prev_wait + delta)))
+            //auto adjusting condition wait raced to update timeout and skipped updating'
             WT_STAT_CONN_INCR(session, cond_auto_wait_skipped);
     }
 
+    //如果是因为超时返回signalled会被置位false
     __wt_cond_wait_signal(session, cond, cond->prev_wait, run_func, signalled);
 
     if (progress || *signalled)
+        //auto adjusting condition resets
         WT_STAT_CONN_INCR(session, cond_auto_wait_reset);
+    //本次wait完成后，如果signalled为TRUE则恢复prev_wait为初始值min_wait
+    //说明是因为收到了其他线程发送的cond信号，而不是超时,这时候就需要恢复等待时间为min_wait
     if (*signalled)
         cond->prev_wait = cond->min_wait;
 }

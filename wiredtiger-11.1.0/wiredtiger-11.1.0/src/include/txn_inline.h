@@ -1436,6 +1436,7 @@ __wt_txn_modify_block(
     F_CLR(txn, WT_TXN_IGNORE_PREPARE);
     for (; upd != NULL && !__wt_txn_upd_visible(session, upd); upd = upd->next) {
         if (upd->txnid != WT_TXN_ABORTED) {
+            //ret = __log_slot_close(session, slot, &release, forced);后增加一个延迟 __wt_sleep(0, 30000);//yang add change  即可模拟出来
             __wt_verbose_debug1(session, WT_VERB_TRANSACTION,
               "Conflict with update with txn id %" PRIu64 " at timestamp: %s", upd->txnid,
               __wt_timestamp_to_string(upd->start_ts, ts_string));

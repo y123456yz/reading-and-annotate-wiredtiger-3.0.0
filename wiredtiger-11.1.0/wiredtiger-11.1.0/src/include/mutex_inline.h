@@ -115,6 +115,7 @@ __wt_spin_init(WT_SESSION_IMPL *session, WT_SPINLOCK *t, const char *name)
     pthread_mutexattr_t attr;
 
     WT_RET(pthread_mutexattr_init(&attr));
+    //¿ÉÒÔ²Î¿¼https://stackoverflow.com/questions/19863734/what-is-pthread-mutex-adaptive-np
     ret = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ADAPTIVE_NP);
     if (ret == 0)
         ret = pthread_mutex_init(&t->lock, &attr);

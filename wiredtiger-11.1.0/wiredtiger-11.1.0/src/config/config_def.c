@@ -824,7 +824,8 @@ static const WT_CONFIG_CHECK confchk_wiredtiger_open_hash_subconfigs[] = {
 static const WT_CONFIG_CHECK confchk_wiredtiger_open_log_subconfigs[] = {
   {"archive", "boolean", NULL, NULL, NULL, 0}, {"compressor", "string", NULL, NULL, NULL, 0},
   {"enabled", "boolean", NULL, NULL, NULL, 0},
-  {"file_max", "int", NULL, "min=100KB,max=2GB", NULL, 0},
+  //yang add change 100KB调整到了10KB，为了方便测试
+  {"file_max", "int", NULL, "min=10KB,max=2GB", NULL, 0},
   {"force_write_wait", "int", NULL, "min=1,max=60", NULL, 0},
   {"os_cache_dirty_pct", "int", NULL, "min=0,max=100", NULL, 0},
   {"path", "string", NULL, NULL, NULL, 0}, {"prealloc", "boolean", NULL, NULL, NULL, 0},

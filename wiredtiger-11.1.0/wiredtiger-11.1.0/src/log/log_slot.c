@@ -89,6 +89,7 @@ __wt_log_slot_activate(WT_SESSION_IMPL *session, WT_LOGSLOT *slot)
  * __log_slot_close --
  *     Close out the slot the caller is using. The slot may already be closed or freed by another
  *     thread.
+ 设置slot stat状态，增加WT_LOG_SLOT_CLOSE标识，并更新slot_end_lsn字段等
  */
 static int
 __log_slot_close(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *releasep, bool forced)
@@ -144,6 +145,7 @@ retry:
     WT_STAT_CONN_INCR(session, log_slot_closes);
     if (WT_LOG_SLOT_DONE(new_state))
         *releasep = true;
+    //这里实际上是完成file赋值，下面完成offset赋值
     WT_ASSIGN_LSN(&slot->slot_end_lsn, &slot->slot_start_lsn);
 /*
  * A thread setting the unbuffered flag sets the unbuffered size after setting the flag. There could
@@ -200,6 +202,7 @@ __log_slot_dirty_max_check(WT_SESSION_IMPL *session, WT_LOGSLOT *slot)
     WT_LOG *log;
     WT_LSN *current, *last_sync;
 
+    //默认为0直接返回
     if (S2C(session)->log_dirty_max == 0)
         return;
 
@@ -222,6 +225,8 @@ __log_slot_dirty_max_check(WT_SESSION_IMPL *session, WT_LOGSLOT *slot)
 /*
  * __log_slot_new --
  *     Find a free slot and switch it as the new active slot. Must be called holding the slot lock.
+  __wt_log_slot_switch->__log_slot_switch_internal->__log_slot_new
+ //从slot pool中找出一个空闲slot, 然后__wt_log_acquire初始化这个slot，log->active_slot这里指向新的new slot
  */
 static int
 __log_slot_new(WT_SESSION_IMPL *session)
@@ -252,20 +257,24 @@ __log_slot_new(WT_SESSION_IMPL *session)
          * inside the loop because this function may release the lock and needs to check again after
          * acquiring it again.
          */
+        //这里加判断是因为可能在for循环中运行多次
         if ((slot = log->active_slot) != NULL && WT_LOG_SLOT_OPEN(slot->slot_state))
             return (0);
         /*
          * Rotate among the slots to lessen collisions.
          */
         WT_RET(WT_SESSION_CHECK_PANIC(session));
+        //从slot pool中查找可用的slot, 找到直接返回，找不到进入后面的__wt_yield等待
         for (i = 0, pool_i = log->pool_index; i < WT_SLOT_POOL; i++, pool_i++) {
             if (pool_i >= WT_SLOT_POOL)
                 pool_i = 0;
             slot = &log->slot_pool[pool_i];
-            if (slot->slot_state == WT_LOG_SLOT_FREE) {
+            
+            if (slot->slot_state == WT_LOG_SLOT_FREE) {//参考__wt_log_slot_free，__wt_log_slot_free后的slot可以在这里重新被复用
                 /*
                  * Acquire our starting position in the log file. Assume the full buffer size.
                  */
+                //对这个新的slot进行相关初始化工作
                 WT_RET(__wt_log_acquire(session, log->slot_buf_size, slot));
                 /*
                  * We have a new, initialized slot to use. Set it as the active slot.
@@ -280,8 +289,11 @@ __log_slot_new(WT_SESSION_IMPL *session)
          * If we didn't find any free slots signal the worker thread. Release the lock so that any
          * threads waiting for it can acquire and possibly move things forward.
          */
+        //slot transitions unable to find free slot
         WT_STAT_CONN_INCR(session, log_slot_no_free_slots);
         __wt_cond_signal(session, conn->log_wrlsn_cond);
+
+        //注意，这里在外层的 __wt_log_slot_switch->__log_slot_switch_internal有加锁
         __wt_spin_unlock(session, &log->log_slot_lock);
         __wt_yield();
         __wt_spin_lock(session, &log->log_slot_lock);
@@ -304,6 +316,7 @@ __log_slot_new(WT_SESSION_IMPL *session)
 /*
  * __log_slot_switch_internal --
  *     Switch out the current slot and set up a new one.
+ 该函数会通过WT_WITH_SLOT_LOCK加锁   
  */
 static int
 __log_slot_switch_internal(WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool forced, bool *did_work)
@@ -330,6 +343,7 @@ __log_slot_switch_internal(WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool for
      * non-forced switch we always switch because the slot could be part of an unbuffered operation.
      */
     joined = WT_LOG_SLOT_JOINED(slot->slot_state);
+    //例如一个__log_server周期内都没有新log日志到来就会满足该条件
     if (joined == 0 && forced && !F_ISSET(log, WT_LOG_FORCE_NEWFILE)) {
         WT_STAT_CONN_INCR(session, log_force_write_skip);
         if (did_work != NULL)
@@ -342,7 +356,10 @@ __log_slot_switch_internal(WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool for
      * it already, don't try to do it again but still set up the new slot.
      */
     if (!F_ISSET(myslot, WT_MYSLOT_CLOSE)) {
+        // 设置slot stat状态，增加WT_LOG_SLOT_CLOSE标识，并更新slot_end_lsn字段等
         ret = __log_slot_close(session, slot, &release, forced);
+
+        //__wt_sleep(0, 30000);//yang add change
         /*
          * If close returns WT_NOTFOUND it means that someone else is processing the slot change.
          */
@@ -362,6 +379,7 @@ __log_slot_switch_internal(WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool for
      * Now that the slot is closed, set up a new one so that joining threads don't have to wait on
      * writing the previous slot if we release it. Release after setting a new one.
      */
+     //从slot pool中找出一个空闲slot, 然后__wt_log_acquire初始化这个slot，log->active_slot这里指向新的new slot
     WT_RET(__log_slot_new(session));
     F_CLR(myslot, WT_MYSLOT_CLOSE);
     if (F_ISSET(myslot, WT_MYSLOT_NEEDS_RELEASE)) {
@@ -370,9 +388,11 @@ __log_slot_switch_internal(WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool for
          * slot switch needs to be sure that any earlier slot switches have completed, including
          * writing out the buffer contents of earlier slots.
          */
+        //slot上存储的log内容写入磁盘，并fsync到磁盘
         WT_RET(__wt_log_release(session, slot, &free_slot));
         F_CLR(myslot, WT_MYSLOT_NEEDS_RELEASE);
         if (free_slot)
+            //slot相关字段复位，标识该slog后面可以被重新使用了,配合__log_slot_new阅读
             __wt_log_slot_free(session, slot);
     }
     return (ret);
@@ -381,6 +401,10 @@ __log_slot_switch_internal(WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool for
 /*
  * __wt_log_slot_switch --
  *     Switch out the current slot and set up a new one.
+ 如果需要强制把切换到新的slot，同时把当前已经写满的slot持久化到OS
+
+用户线程: 通过__wt_txn_log_commit->__wt_log_write->__log_write_internal走到这里
+ __log_server线程: __log_server->__wt_log_force_write走到这里进行刷盘
  */
 int
 __wt_log_slot_switch(
@@ -389,6 +413,7 @@ __wt_log_slot_switch(
     WT_DECL_RET;
     WT_LOG *log;
 
+    printf("yang test ..............__wt_log_slot_switch...............%d, %d\r\n", retry, forced);
     log = S2C(session)->log;
 
     /*
@@ -403,12 +428,13 @@ __wt_log_slot_switch(
      * because we are responsible for setting up the new slot.
      */
     do {
-        WT_WITH_SLOT_LOCK(
+        WT_WITH_SLOT_LOCK( 
           session, log, ret = __log_slot_switch_internal(session, myslot, forced, did_work));
         /*
          * If we get an unexpected error, we need to panic. If we cannot switch the slot because of
          * a real error, such as running out of space, there's nothing we can do.
          */
+
         if (ret == EBUSY) {
             WT_STAT_CONN_INCR(session, log_slot_switch_busy);
             __wt_yield();
@@ -434,11 +460,21 @@ __wt_log_slot_init(WT_SESSION_IMPL *session, bool alloc)
     WT_LOG *log;
     WT_LOGSLOT *slot;
     int32_t i;
+    //uint64_t ttt = 0x8000000000000000LL;
+    int64_t ttt = -3;
 
     conn = S2C(session);
     log = conn->log;
     for (i = 0; i < WT_SLOT_POOL; i++)
         log->slot_pool[i].slot_state = WT_LOG_SLOT_FREE;
+
+    printf("yang test ....1.....__wt_log_slot_init.......%d\n",  FLD_LOG_SLOT_ISSET((uint64_t)ttt, WT_LOG_SLOT_RESERVED));
+
+    ttt = WT_LOG_SLOT_FREE;
+    printf("yang test ....2.....__wt_log_slot_init.......%d\n",  FLD_LOG_SLOT_ISSET((uint64_t)ttt, WT_LOG_SLOT_RESERVED));
+
+    ttt = WT_LOG_SLOT_WRITTEN;
+    printf("yang test ....2.....__wt_log_slot_init.......%d\n",  FLD_LOG_SLOT_ISSET((uint64_t)ttt, WT_LOG_SLOT_RESERVED));
 
     /*
      * Allocate memory for buffers now that the arrays are setup. Separate this from the loop above
@@ -453,6 +489,8 @@ __wt_log_slot_init(WT_SESSION_IMPL *session, bool alloc)
     if (alloc) {
         log->slot_buf_size =
           (uint32_t)WT_MIN((size_t)conn->log_file_max / 10, WT_LOG_SLOT_BUF_SIZE);
+
+        printf("yang test ..........__wt_log_slot_init...........slot_buf_size:%d  OX:%16lx\r\n", (int)log->slot_buf_size, log->slot_buf_size);
         for (i = 0; i < WT_SLOT_POOL; i++) {
             WT_ERR(__wt_buf_init(session, &log->slot_pool[i].slot_buf, log->slot_buf_size));
             F_SET(&log->slot_pool[i], WT_SLOT_INIT_FLAGS);
@@ -517,6 +555,10 @@ __wt_log_slot_destroy(WT_SESSION_IMPL *session)
 /*
  * __wt_log_slot_join --
  *     Join a consolidated logging slot.
+__wt_log_slot_join: 更新了slot_state的new_join高62----33位，没有更新released和flag
+__wt_log_slot_release: 更新了slot_state的release高1----32位，没有更新join和flag
+__log_slot_close  __wt_log_slot_free: 这两个会置位高2位flag
+
  //确定mysize对应log在slot中的位置[join_off, setjoin_offset + mysize],
  */
 void
@@ -554,9 +596,17 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
         F_SET(myslot, WT_MYSLOT_UNBUFFERED);
     }
     for (;;) {
+        //__wt_verbose(session, WT_VERB_LOG,  "yang test 1...__wt_log_slot_join.......befor join slot:%u, old state:%" PRIx64, 
+        //    (uint32_t)log->pool_index, (uint64_t)log->active_slot->slot_state);
+        
         WT_BARRIER();
+
         slot = log->active_slot;
         old_state = slot->slot_state;
+        //如果前面的sesso线程joint后没有realease，则join和release会一直不相等，就不会进入if循环
+        //例如进入swich逻辑，前面线程在__wt_log_slot_switch中会一直占用这个old slot，只有等前面线程修改active_slot为新的slot，并且
+        //  在__wt_log_slot_release中释放当前slot，当active_slot指向新的slot的时候，这里就会满足if条件，就会更新新slot的offset位置，该rec log写入新slog对应位置
+        //  __log_slot_switch_internal中加个sleep就很容易模拟出来
         if (WT_LOG_SLOT_OPEN(old_state)) {
             /*
              * Try to join our size into the existing size and atomically write it back into the
@@ -572,7 +622,9 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
                 new_join = join_offset + (int32_t)mysize;
 
             //更新stat的join，这里join已经发生了变化
+            //注意这里只更新了slot_state的new_join高62----33位，没有更新released和flag
             new_state = (int64_t)WT_LOG_SLOT_JOIN_REL(
+              //62----33                32------1             64--63     
               (int64_t)new_join, (int64_t)released, (int64_t)flag_state);
 
             /*
@@ -584,9 +636,13 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
             /*
              * Attempt to swap our size into the state.
              */
+            //__wt_verbose(session, WT_VERB_LOG,  "yang test join __wt_log_slot_join...index: %" PRIu32 ", old state: %" PRIx64 " new slot_state %" PRIx64,
+            //  (uint32_t)log->pool_index, (uint64_t)old_state, (uint64_t)(new_state));
+
             //slot_state置为新的new_state
             if (__wt_atomic_casiv64(&slot->slot_state, old_state, new_state))
                 break;
+
             WT_STAT_CONN_INCR(session, log_slot_races);
             raced = true;
         } else {
@@ -617,6 +673,9 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
         time_stop = __wt_clock(session);
         usecs = WT_CLOCKDIFF_US(time_stop, time_start);
         WT_STAT_CONN_INCRV(session, log_slot_yield_duration, usecs);
+
+        //yang add todo xxxxxxxxxxxxxxxx  log_slot_yield_close和log_slot_yield_race可以去掉，重复了
+        //log_slot_yield_sleep放到slept = true;前面最好
         if (closed)
             WT_STAT_CONN_INCR(session, log_slot_yield_close);
         if (raced)
@@ -636,6 +695,7 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
         slot->slot_unbuffered = (int64_t)mysize;
     }
 
+    
     //对应的slot pool中的slot
     myslot->slot = slot;
     //mysize长度的log在该slot中的位置
@@ -647,6 +707,9 @@ __wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT
  * __wt_log_slot_release --
  *     Each thread in a consolidated group releases its portion to signal it has completed copying
  *     its piece of the log into the memory buffer.
+ __wt_log_slot_join: 更新了slot_state的new_join高62----33位，没有更新released和flag
+ __wt_log_slot_release: 更新了slot_state的release高1----32位，没有更新join和flag
+  __log_slot_close  __wt_log_slot_free: 这两个会置位高2位flag
  */
 int64_t
 __wt_log_slot_release(WT_MYSLOT *myslot, int64_t size)
@@ -677,7 +740,9 @@ __wt_log_slot_release(WT_MYSLOT *myslot, int64_t size)
      */
     rel_size = size;
     if (F_ISSET(myslot, WT_MYSLOT_UNBUFFERED))
+        //yang add todo xxxxxxxxxxxxxxxxxx 这里是不是应该为slot->slot_unbuffered，参考__wt_log_slot_join
         rel_size = WT_LOG_SLOT_UNBUFFERED;
+    //注意这里更新了slot_state的released低1----32位，没有更新join和flag
     my_size = (int64_t)WT_LOG_SLOT_JOIN_REL((int64_t)0, rel_size, 0);
     return (__wt_atomic_addiv64(&slot->slot_state, my_size));
 }
@@ -699,3 +764,4 @@ __wt_log_slot_free(WT_SESSION_IMPL *session, WT_LOGSLOT *slot)
     slot->slot_error = 0;
     slot->slot_state = WT_LOG_SLOT_FREE;
 }
+

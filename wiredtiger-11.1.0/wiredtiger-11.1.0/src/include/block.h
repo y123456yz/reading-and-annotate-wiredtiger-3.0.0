@@ -274,7 +274,7 @@ struct __wt_bm {
     int (*size)(WT_BM *, WT_SESSION_IMPL *, wt_off_t *);
     int (*stat)(WT_BM *, WT_SESSION_IMPL *, WT_DSRC_STATS *stats);
     int (*switch_object)(WT_BM *, WT_SESSION_IMPL *, uint32_t);
-    //__bm_sync
+    //__bm_sync,  __wt_sync_file __wt_checkpoint_syncµ÷ÓÃ
     int (*sync)(WT_BM *, WT_SESSION_IMPL *, bool);
     //__bm_verify_addr
     int (*verify_addr)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);

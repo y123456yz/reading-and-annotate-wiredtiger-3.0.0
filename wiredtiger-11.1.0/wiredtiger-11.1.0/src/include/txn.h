@@ -265,6 +265,9 @@ struct __wt_txn {
     uint64_t snap_min, snap_max;
     uint64_t *snapshot;
     uint32_t snapshot_count;
+    //赋值见__wt_txn_begin，也就是conn->txn_logsync(__logmgr_sync_cfg)
+    //最终在__wt_txn_log_commit中用该变量决定提交事务的时候是否需要fsyn或者flush
+    //如果没使能，则__wt_txn_commit中会置txn_logsync为0
     uint32_t txn_logsync; /* Log sync configuration */
 
     /*

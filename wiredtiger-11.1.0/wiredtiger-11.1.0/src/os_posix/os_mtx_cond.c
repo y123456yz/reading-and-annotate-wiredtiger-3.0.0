@@ -54,7 +54,9 @@ err:
  */
 void
 __wt_cond_wait_signal(WT_SESSION_IMPL *session, WT_CONDVAR *cond, uint64_t usecs,
-  bool (*run_func)(WT_SESSION_IMPL *), bool *signalled)
+  bool (*run_func)(WT_SESSION_IMPL *), 
+  //如果是因为超时返回signalled会被置位false
+  bool *signalled)
 {
     struct timespec ts;
     WT_DECL_RET;

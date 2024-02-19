@@ -4629,6 +4629,8 @@ struct __wt_file_system {
 	 *    directory.
 	 * @param[out] countp the number of entries returned
 	 */
+    //获取directory目录下的所有prefix前缀的文件, 或者只获取一个prefix前缀的文件，
+    //countp返回目录中满足条件的文件数，dirlistp[]数组存储对应的文件名
 	//__wt_posix_directory_list   //获取directory目录下的所有prefix前缀的文件
 	int (*fs_directory_list)(WT_FILE_SYSTEM *file_system,
 	    WT_SESSION *session, const char *directory, const char *prefix,
