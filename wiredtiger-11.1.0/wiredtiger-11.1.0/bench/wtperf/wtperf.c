@@ -2053,6 +2053,7 @@ create_tables(WTPERF *wtperf)
 
     opts = wtperf->opts;
 
+    //如果这里crush coredump了，记得替换libwiredtiger.xxx.so库文件，特别是wtperf crush coredump
     if ((ret = wtperf->conn->open_session(wtperf->conn, NULL, opts->sess_config, &session)) != 0) {
         lprintf(wtperf, ret, 0, "Error opening a session on %s", wtperf->home);
         return (ret);

@@ -304,6 +304,7 @@ static const WT_CONFIG_CHECK confchk_WT_SESSION_create_tiered_storage_subconfigs
   {"name", "string", NULL, NULL, NULL, 0}, {"object_target_size", "int", NULL, "min=0", NULL, 0},
   {NULL, NULL, NULL, NULL, NULL, 0}};
 
+//db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, leaf_key_max=4K"}}})
 static const WT_CONFIG_CHECK confchk_WT_SESSION_create[] = {
   {"access_pattern_hint", "string", NULL, "choices=[\"none\",\"random\",\"sequential\"]", NULL, 0},
   {"allocation_size", "int", NULL, "min=512B,max=128MB", NULL, 0},

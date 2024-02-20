@@ -576,9 +576,9 @@ __wt_log_truncate_files(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool force)
  * __log_file_server --
  *     The log file server thread. This worker thread manages log file operations such as closing
  *     and syncing.
- __log_server线程: 默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
+ __log_server线程: 负责wiredtigerPrelog.xxx的创建和wiredtigerLog.xxx删除工作，默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
 __log_file_server线程: 用于文件close
-__log_wrlsn_server线程: 维护更新write_lsn
+__log_wrlsn_server线程: 维护更新write_lsn及slot free操作
  */
 static WT_THREAD_RET
 __log_file_server(void *arg)
@@ -750,6 +750,7 @@ restart:
                 __wt_log_slot_free(session, slot);
                 continue;
             }
+            
             if (coalescing != NULL) {
                 /*
                  * If the write_lsn changed, we may be able to process slots. Try again.
@@ -777,7 +778,7 @@ restart:
                  * slots. A synchronous write may update write_lsn so save the last one we saw to
                  * check when coalescing slots.
                  */
-                WT_ASSIGN_LSN(&save_lsn, &log->write_lsn);
+                
                 __wt_verbose(session, WT_VERB_LOG,"yang test 11... __wt_log_wrlsn...write_start_lsn: %u, write_lsn: %u, sync_lsn:%u, alloc_lsn:%u", 
                     log->write_start_lsn.l.offset, log->write_lsn.l.offset,
                     log->sync_lsn.l.offset, log->alloc_lsn.l.offset);
@@ -785,6 +786,8 @@ restart:
                 __wt_verbose(session, WT_VERB_LOG,
                    "yang test .22. __wt_log_wrlsn...index: %" PRIu32 ", write_lsn: %" PRIx64 " slot_release_lsn %" PRIx64,
                    (uint32_t)written[i].slot_index, (uint64_t)log->write_lsn.file_offset, (uint64_t)(written[i].lsn.file_offset));
+
+                WT_ASSIGN_LSN(&save_lsn, &log->write_lsn);
                 if (__wt_log_cmp(&log->write_lsn, &written[i].lsn) != 0) {
                     coalescing = slot;
                     continue;
@@ -823,9 +826,9 @@ restart:
  transaction_sync.enabled=false不会进行sync操作，sync操作不会由用户线程主动触发，而是由checkpoint等线程触发或者用户主动触发
  ，因此普通用户线程的log sync的lsn用户线程不知道，所有增加__log_wrlsn_server线程来维护sync lsn
 
-__log_server线程: 默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
+__log_server线程: 负责wiredtigerPrelog.xxx的创建和wiredtigerLog.xxx删除工作，默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
 __log_file_server线程: 用于文件close
-__log_wrlsn_server线程: 维护更新write_lsn
+__log_wrlsn_server线程: 维护更新write_lsn及slot free操作
  */
 static WT_THREAD_RET
 __log_wrlsn_server(void *arg)
@@ -887,9 +890,9 @@ err:
   __log_server线程: __log_server->__wt_log_force_write走到这里进行刷盘
 
  
-__log_server线程: 默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
+__log_server线程: 负责wiredtigerPrelog.xxx的创建和wiredtigerLog.xxx删除工作，同时默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
 __log_file_server线程: 用于文件close
-__log_wrlsn_server线程: 维护更新write_lsn
+__log_wrlsn_server线程: 维护更新write_lsn，及slot free操作
  */
 static WT_THREAD_RET
 __log_server(void *arg)
@@ -933,7 +936,7 @@ __log_server(void *arg)
          */
         if (conn->log_force_write_wait == 0 ||
           force_write_timediff >= conn->log_force_write_wait * WT_THOUSAND) {
-            //默认50ms强制刷盘
+            //默认50ms强制write到磁盘
             WT_ERR_ERROR_OK(__wt_log_force_write(session, 0, &did_work), EBUSY, false);
             force_write_time_start = __wt_clock(session);
         }

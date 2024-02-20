@@ -401,7 +401,7 @@ __log_slot_switch_internal(WT_SESSION_IMPL *session, WT_MYSLOT *myslot, bool for
 /*
  * __wt_log_slot_switch --
  *     Switch out the current slot and set up a new one.
- 如果需要强制把切换到新的slot，同时把当前已经写满的slot持久化到OS
+ 需要强制把切换到新的slot，同时把当前slot对应内存空间write到OS中
 
 用户线程: 通过__wt_txn_log_commit->__wt_log_write->__log_write_internal走到这里
  __log_server线程: __log_server->__wt_log_force_write走到这里进行刷盘

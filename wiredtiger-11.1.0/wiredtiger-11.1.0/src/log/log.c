@@ -153,7 +153,7 @@ err:
  例如如果slot-2的数据先写入日志文件,而slot-1数据尚未写入, 接下来sync以后
  日志文件slot-1的部分就会是空洞,可能会对正确性造成影响
  */
-static void
+static void 
 __log_wait_for_earlier_slot(WT_SESSION_IMPL *session, WT_LOGSLOT *slot)
 {
     WT_CONNECTION_IMPL *conn;
@@ -2004,6 +2004,11 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
         WT_ERR(__log_fs_write(
           session, slot, slot->slot_start_offset, (size_t)release_buffered, slot->slot_buf.mem));
 
+    //重要日志，误删
+    __wt_verbose(session, WT_VERB_LOG,"yang test 11... __wt_log_release...write_start_lsn: %u, write_lsn: %u, sync_lsn:%u, alloc_lsn:%u", 
+        log->write_start_lsn.l.offset, log->write_lsn.l.offset,
+        log->sync_lsn.l.offset, log->alloc_lsn.l.offset);
+
     /*
      * If we have to wait for a synchronous operation, we do not pass handling of this slot off to
      * the worker thread. The caller is responsible for freeing the slot in that case. Otherwise the
@@ -2018,11 +2023,8 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
         //交由__wt_log_wrlsn线程处理的情况，这里是不是应该增加一个异步log_release_write_lsn的统计 yang add todo xxxxxxxx
         slot->slot_state = WT_LOG_SLOT_WRITTEN;
         //printf("yang test .......__wt_log_release.....xx.........\r\n");
-        //重要日志，误删
-        __wt_verbose(session, WT_VERB_LOG,"yang test 11... __wt_log_release...write_start_lsn: %u, write_lsn: %u, sync_lsn:%u, alloc_lsn:%u", 
-            log->write_start_lsn.l.offset, log->write_lsn.l.offset,
-            log->sync_lsn.l.offset, log->alloc_lsn.l.offset);
-
+        //走到这个分支write_lsn是不会更新的，因此在__wt_log_wrlsn线程来做更新操作
+       
         /*
          * After this point the worker thread owns the slot. There is nothing more to do but return.
          */
@@ -2618,7 +2620,7 @@ __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
     myslot.slot = log->active_slot;
 
     printf("yang test ..............__wt_log_force_write...............%d\r\n", retry);
-    // 如果需要强制把切换到新的slot，同时把当前已经写满的slot持久化到OS
+    // 如果需要强制把切换到新的slot，同时把当前slot write到OS
     return (__wt_log_slot_switch(session, &myslot, retry, true, did_work));
 }
 

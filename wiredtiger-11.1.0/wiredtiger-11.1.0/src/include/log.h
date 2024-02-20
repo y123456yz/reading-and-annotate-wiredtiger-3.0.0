@@ -355,12 +355,12 @@ struct __wt_log {
     WT_LSN dirty_lsn;       /* LSN of last non-synced write */
     WT_LSN first_lsn;       /* First LSN */
     WT_LSN sync_dir_lsn;    /* LSN of the last directory sync */
-    //sync刷盘的最后一条lsn, 赋值见__wt_log_release
+    //sync刷盘的最后一条lsn, slot最后一个lsn的end offset 赋值见__wt_log_release
     WT_LSN sync_lsn;        /* LSN of the last sync */
     //记录wiredtigerLog.xxxxxxxxxxx的异常日志位置，主要通过magic校验定位，见__wt_log_scan
     WT_LSN trunc_lsn;       /* End LSN for recovery truncation */
     //赋值见__wt_log_wrlsn  __wt_log_release， 也就是slot->slot_end_lsn
-    //标识当前write到磁盘的slot的最后一条lsn，注意只是write没有sync
+    //标识当前write到磁盘的slot的最后一条lsn的end offset，注意只是write没有sync
     WT_LSN write_lsn;       /* End of last LSN written */
     //赋值见__wt_log_release，也就是slot->slot_start_lsn
     WT_LSN write_start_lsn; /* Beginning of last LSN written */
@@ -380,6 +380,7 @@ struct __wt_log {
     //__log_file_server  __wt_log_release  __wt_log_force_sync发送信号
     WT_CONDVAR *log_sync_cond;
     /* Notify any waiting threads when write_lsn is updated. */
+    //__log_wrlsn_server及__wt_log_release通知，__log_write_internal及__log_wait_for_earlier_slot等待
     WT_CONDVAR *log_write_cond;
 
 /*
