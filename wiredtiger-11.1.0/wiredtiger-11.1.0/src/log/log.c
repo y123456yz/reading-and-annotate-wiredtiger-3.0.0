@@ -619,7 +619,6 @@ __log_prealloc(WT_SESSION_IMPL *session, WT_FH *fh)
 
     conn = S2C(session);
     log = conn->log;
-
     /*
      * If the user configured zero filling, pre-allocate the log file manually. Otherwise use the
      * file extension method to create and zero the log file based on what is available.
@@ -849,6 +848,7 @@ __log_file_header(WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool pre
     /*
      * Make sure the header gets to disk.
      */
+    printf("yang test ........__log_file_header.........__wt_fsync..........\r\n");
     WT_ERR(__wt_fsync(session, tmp.slot_fh, true));
     if (end_lsn != NULL)
         WT_ASSIGN_LSN(end_lsn, &tmp.slot_end_lsn);
@@ -1165,6 +1165,10 @@ err:
 /*
  * __log_newfile --
  *     Create the next log file and write the file header record into it.
+  __log_newfile: 会调用__wt_log_allocfile创建log文件并写入头部信息，同时会增加释放上一个log句柄、头部校验、lsn维护等工资
+ __wt_log_allocfile: 创建WiredTigerlog文件并写入头部内容
+
+ 
  创建一个新的log文件，并且写入文件头部内容
  */
 static int
@@ -1242,6 +1246,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
                 //LogStat('log_prealloc_missed', 'pre-allocated log files not ready and missed'),
                 WT_STAT_CONN_INCR(session, log_prealloc_missed);
                 if (conn->log_cond != NULL)
+                    //通知__log_server线程赶紧创建WiredTigerPreplog.xxxx文件，避免WiredTigerPreplog.xxxx文件不够用，尽量减少用户线程创建WiredTigerPreplog文件
                     __wt_cond_signal(session, conn->log_cond);
             }
         }
@@ -1250,6 +1255,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
      * If we need to create the log file, do so now.
      */
     printf("yang test ...............__log_newfile....1............ create_log:%d\r\n", create_log);
+    //如果没有现成的WiredTigerPreplog.xxxxx文件，则需要用户线程自己创建
     if (create_log) {
         /*
          * Increment the missed pre-allocated file counter only if a hot backup is not in progress.
@@ -1418,7 +1424,7 @@ __wt_log_acquire(WT_SESSION_IMPL *session, uint64_t recsize, WT_LOGSLOT *slot)
      * but does not eliminate, log files that exceed the maximum file size. We want to minimize the
      * risk of an error due to no space.
      */
-    //该log文件内存空间不够了或者需要强制创建新的log file，则需要close旧的file文件创建新的log file
+    //该log文件空间不够了或者需要强制创建新的log file，则需要close旧的file文件创建新的log file
     if (F_ISSET(log, WT_LOG_FORCE_NEWFILE) || !__log_size_fit(session, &log->alloc_lsn, recsize)) {
         // 创建一个新的log文件，并且写入文件头部内容
         WT_RET(__log_newfile(session, false, &created_log));
@@ -1577,6 +1583,8 @@ err:
  * __wt_log_allocfile --
  *     Given a log number, create a new log file by writing the header, pre-allocating the file and
  *     moving it to the destination name.
+ __log_newfile: 会调用__wt_log_allocfile创建log文件并写入头部信息，同时会增加释放上一个log句柄、头部校验、lsn维护等工资
+ __wt_log_allocfile: 创建WiredTigerlog文件并写入头部内容
  */
 //新建一个WiredTigerlog.lognum文件，别写入log WT_LOG_RECORD信息
 int
@@ -1614,9 +1622,11 @@ __wt_log_allocfile(WT_SESSION_IMPL *session, uint32_t lognum, const char *dest)
     //创建WiredTigerTmplog.xxxxxx文件，这里面操作的文件和上面的from_path是同一个
     WT_ERR(__log_openfile(session, tmp_id, WT_LOG_OPEN_CREATE_OK, &log_fh));
     //log WT_LOG_RECORD头部信息写入磁盘
+    //printf("yang test ....1....__wt_log_allocfile.........__wt_fsync..........\r\n");
     WT_ERR(__log_file_header(session, log_fh, NULL, true));
     WT_ERR(__log_prealloc(session, log_fh));
     //yang add todo xxxxxxx 这里和__log_file_header的__wt_fsync重复了
+    //printf("yang test ...2.....__wt_log_allocfile.........__wt_fsync..........\r\n");
     WT_ERR(__wt_fsync(session, log_fh, true));
     //yang add todo xxxxxxx __wt_close和下面的err中的也重复了
     WT_ERR(__wt_close(session, &log_fh));
@@ -1979,7 +1989,6 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
     log = conn->log;
     locked = false;
     if (freep != NULL)
-        //yang add todo xxxxxxxxxxxxxxxxxx 这里为true会更好
         *freep = 1;
     release_buffered = WT_LOG_SLOT_RELEASED_BUFFERED(slot->slot_state);
         
@@ -1999,7 +2008,6 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
     /* Write the buffered records */
     //注意这里只是把release_buffered写入磁盘 slot_unbuffered不包含在里面
     if (release_buffered != 0)
-        //yang add todo xxxxxxxxxxxxxxxx __wt_log_fill中已经把unbuffer的数据写入磁盘了，为什么前面release_bytes还需要加上slot_unbuffered??????????????
         //到这里执行__log_fs_write后，也就是该slot对应slot_buf中的所有slot全部写入操作系统(还没有fsync)，配合__wt_log_fill阅读
         WT_ERR(__log_fs_write(
           session, slot, slot->slot_start_offset, (size_t)release_buffered, slot->slot_buf.mem));
@@ -2020,7 +2028,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
         if (freep != NULL)
             *freep = 0;
             
-        //交由__wt_log_wrlsn线程处理的情况，这里是不是应该增加一个异步log_release_write_lsn的统计 yang add todo xxxxxxxx
+        //交由__wt_log_wrlsn线程处理的情况，这里是不是应该增加一个异步log_release_write_lsn的统计 
         slot->slot_state = WT_LOG_SLOT_WRITTEN;
         //printf("yang test .......__wt_log_release.....xx.........\r\n");
         //走到这个分支write_lsn是不会更新的，因此在__wt_log_wrlsn线程来做更新操作
@@ -2604,7 +2612,6 @@ err:
  * __wt_log_force_write --
  *     Force a switch and release and write of the current slot. Wrapper function that takes the
  *     lock.
- yang add todo xxxxxxxxxxxxxxxxxxx   调用的地方用了1或者0，做好用true或者false
  */
 int
 __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
@@ -2619,7 +2626,7 @@ __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
         *did_work = true;
     myslot.slot = log->active_slot;
 
-    printf("yang test ..............__wt_log_force_write...............%d\r\n", retry);
+    //printf("yang test ..............__wt_log_force_write...............%d\r\n", retry);
     // 如果需要强制把切换到新的slot，同时把当前slot write到OS
     return (__wt_log_slot_switch(session, &myslot, retry, true, did_work));
 }
@@ -2648,7 +2655,7 @@ __wt_log_write(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp,
     uint8_t *dst, *src;
     int compression_failed;
 
-    printf("yang test ............__wt_log_write......record size:%d........ flag:0X%x\r\n", (int)record->size, flags);
+    //printf("yang test ............__wt_log_write......record size:%d........ flag:0X%x\r\n", (int)record->size, flags);
     conn = S2C(session);
     log = conn->log;
     /*
@@ -2864,9 +2871,8 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
     if (myslot.end_offset >= WT_LOG_SLOT_BUF_MAX || F_ISSET(&myslot, WT_MYSLOT_UNBUFFERED) || force)
         ret = __wt_log_slot_switch(session, &myslot, true, false, NULL);
 
-    //log record写入磁盘
     if (ret == 0)
-        // log写入内存或者直接write到操作系统中,并用lsn记录本log在文件中的位置
+        // slot没有超限的情况下log写入内存或者直接write到操作系统中,并用lsn记录本log在文件中的位置
         ret = __wt_log_fill(session, &myslot, false, record, &lsn);
 
     //release_size也就是该slot中包含的多条log的总长度
@@ -2909,7 +2915,6 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
     if (LF_ISSET(WT_LOG_FLUSH)) {
         /* Wait for our writes to reach the OS */
         while (__wt_log_cmp(&log->write_lsn, &lsn) <= 0 && myslot.slot->slot_error == 0)
-            //yang add todo xxxxxxxxx 这里用10 * WT_THOUSAND会不会更好
             //__wt_log_release中一个slot上面所有的log全部写入操作系统后通知这里返回
             __wt_cond_wait(session, log->log_write_cond, 10000, NULL);
     } else if (LF_ISSET(WT_LOG_FSYNC)) {
@@ -2919,7 +2924,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
             __wt_cond_wait(session, log->log_sync_cond, 10000, NULL);
     }
 
-    printf("yang test .....__log_write_internal..................end\r\n");
+    //printf("yang test .....__log_write_internal..................end\r\n");
 err:
     if (ret == 0 && lsnp != NULL)
         *lsnp = lsn;

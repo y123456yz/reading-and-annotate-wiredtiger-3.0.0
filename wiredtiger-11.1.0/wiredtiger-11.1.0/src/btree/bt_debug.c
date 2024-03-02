@@ -892,6 +892,7 @@ __wt_debug_tree_all(void *session_arg, WT_BTREE *btree, WT_REF *ref, const char 
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
 
+    return 0;
     /*
      * Allow an explicit btree as an argument, as one may not yet be set on the session.
      */

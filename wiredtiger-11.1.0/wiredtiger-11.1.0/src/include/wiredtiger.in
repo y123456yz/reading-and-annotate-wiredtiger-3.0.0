@@ -4656,6 +4656,7 @@ struct __wt_file_system {
 	 * @param dirlist array returned by WT_FILE_SYSTEM::directory_list
 	 * @param count count returned by WT_FILE_SYSTEM::directory_list
 	 */
+	//__wt_posix_directory_list_free
 	int (*fs_directory_list_free)(WT_FILE_SYSTEM *file_system,
 	    WT_SESSION *session, char **dirlist, uint32_t count);
 

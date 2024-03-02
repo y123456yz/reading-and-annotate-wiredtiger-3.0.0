@@ -81,6 +81,7 @@ __wt_fs_directory_list_single(
 /*
  * __wt_fs_directory_list_free --
  *     Free memory allocated by __wt_fs_directory_list.
+ 释放dirlistp相关的内存
  */
 static inline int
 __wt_fs_directory_list_free(WT_SESSION_IMPL *session, char ***dirlistp, u_int count)

@@ -1046,7 +1046,7 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
      */
     btree->splitmempage = (8 * btree->maxmempage) / 10;
 
-    printf("yang test .....22...................btree->maxintlpage:%d, btree->maxleafpage:%d, maxmempage:%d, splitmempage:%d, maxmempage_image:%u\r\n",
+    printf("yang test .....22...................btree->maxintlpage:%d, btree->maxleafpage:%d, maxmempage:%d, splitmempage:%d, maxmempage_image:%u, \r\n",
         (int)(btree->maxintlpage),(int)(btree->maxleafpage), (int)btree->maxmempage, (int)btree->splitmempage, (btree->maxmempage_image));
     /*
      * Get the split percentage (reconciliation splits pages into smaller than the maximum page size

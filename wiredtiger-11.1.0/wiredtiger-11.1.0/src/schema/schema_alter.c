@@ -391,6 +391,7 @@ __schema_alter(WT_SESSION_IMPL *session, const char *uri, const char *newcfg[])
 {
     WT_CONFIG_ITEM cv;
     uint32_t flags;
+    //confchk_WT_SESSION_alter
     const char *cfg[] = {WT_CONFIG_BASE(session, WT_SESSION_alter), newcfg[0], NULL};
     bool exclusive_refreshed;
 

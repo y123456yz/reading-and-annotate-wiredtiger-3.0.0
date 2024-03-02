@@ -2724,6 +2724,7 @@ err:
         elapsed = WT_CLOCKDIFF_US(time_stop, time_start);
         //这里需要一个用户线程进行evict的次数统计 application_cache_ops
         WT_STAT_CONN_INCRV(session, application_cache_time, elapsed);
+        //参考mongo server的WiredTigerOperationStats::_statNameMap
         WT_STAT_SESSION_INCRV(session, cache_time, elapsed);
         session->cache_wait_us += elapsed;
         if (cache_max_wait_us != 0 && session->cache_wait_us > cache_max_wait_us) {

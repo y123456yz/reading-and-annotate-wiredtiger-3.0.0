@@ -413,7 +413,7 @@ __wt_log_slot_switch(
     WT_DECL_RET;
     WT_LOG *log;
 
-    printf("yang test ..............__wt_log_slot_switch...............%d, %d\r\n", retry, forced);
+    //printf("yang test ..............__wt_log_slot_switch...............%d, %d\r\n", retry, forced);
     log = S2C(session)->log;
 
     /*

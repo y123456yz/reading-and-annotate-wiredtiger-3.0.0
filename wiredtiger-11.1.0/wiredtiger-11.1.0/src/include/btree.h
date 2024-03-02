@@ -139,7 +139,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     //注意cache_size这里是/1000而不是除100
     //memory_page_max配置默认5M,取MIN(5M, (conn->cache->eviction_dirty_trigger * cache_size) / 1000) example测试也就是默认2M
     uint64_t maxmempage;       /* In-memory page max size */
-    //4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);   reconcile在磁盘上面一个reconcile的磁盘大小
+    //4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);  
     uint32_t maxmempage_image; /* In-memory page image max size */
     //80% * maxmempage
     uint64_t splitmempage;     /* In-memory split trigger size */
@@ -314,6 +314,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
 /* AUTOMATIC FLAG VALUE GENERATION START 12 */
 #define WT_BTREE_ALTER 0x0001000u          /* Handle is for alter */
 ///* Bulk handles require exclusive access. */ __wt_curfile_open
+//bulk配置
 #define WT_BTREE_BULK 0x0002000u           /* Bulk-load handle */
 #define WT_BTREE_CLOSED 0x0004000u         /* Handle closed */
 #define WT_BTREE_IGNORE_CACHE 0x0008000u   /* Cache-resident object */

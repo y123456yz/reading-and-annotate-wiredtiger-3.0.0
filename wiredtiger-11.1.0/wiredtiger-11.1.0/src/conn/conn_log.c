@@ -316,7 +316,6 @@ __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
      * dictates.
      */
     WT_RET(__wt_config_gets(session, cfg, "log.prealloc", &cval));
-    //yang add todo xxxxxxxxxxxx  这里不应该和0比较
     if (cval.val != 0)
         conn->log_prealloc = 1;
 
@@ -408,6 +407,7 @@ __log_remove_once(WT_SESSION_IMPL *session, uint32_t backup_file)
      * backup or the checkpoint LSN. Otherwise we want the minimum of the last log file written to
      * disk and the checkpoint LSN.
      */
+    //做checkpoint后，checkpoint之前的wiredtigerLog.xxxx就可以删除释放掉了
     min_lognum = backup_file == 0 ? WT_MIN(log->ckpt_lsn.l.file, log->sync_lsn.l.file) :
                                     WT_MIN(log->ckpt_lsn.l.file, backup_file);
 
@@ -458,6 +458,7 @@ __log_remove_once(WT_SESSION_IMPL *session, uint32_t backup_file)
      * Indicate what is our new earliest LSN. It is the start of the log file containing the last
      * checkpoint.
      */
+    //赋值见__log_remove_once，也就是当前所有wiredtigerLog.xxxx中最小的lsn
     WT_SET_LSN(&log->first_lsn, min_lognum, 0);
 
     if (0)
@@ -502,6 +503,7 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
         conn->log_prealloc += log->prep_missed;
         __wt_verbose(session, WT_VERB_LOG, "Missed %" PRIu32 ". Now pre-allocating up to %" PRIu32,
           log->prep_missed, conn->log_prealloc);
+    //目录中剩余的WiredTigerPreplog.xxxxx文件很多，这时候可以减少log_prealloc
     } else if (reccount > conn->log_prealloc / 2 && conn->log_prealloc > 2) {
         /*
          * If we used less than half, then start adjusting down.
@@ -516,10 +518,10 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
     /*
      * Allocate up to the maximum number that we just computed and detected.
      */
-    //一次性创建log_prealloc个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
+    //一次性创建log_prealloc-reccount个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
     for (i = reccount; i < (u_int)conn->log_prealloc; i++) {
         WT_ERR(__wt_log_allocfile(session, ++log->prep_fileid, WT_LOG_PREPNAME));
-        WT_STAT_CONN_INCR(session, log_prealloc_files);
+        WT_STAT_CONN_INCRV(session, log_prealloc_files, (u_int)conn->log_prealloc - reccount);
     }
     
     /*
@@ -858,7 +860,6 @@ __log_wrlsn_server(void *arg)
         else
             WT_STAT_CONN_INCR(session, log_write_lsn_skip);
         prev = log->alloc_lsn;
-        //yang add todo xxxxxxxxxxxxx 用false
         did_work = yield == 0;
 
         /*
@@ -940,12 +941,11 @@ __log_server(void *arg)
             WT_ERR_ERROR_OK(__wt_log_force_write(session, 0, &did_work), EBUSY, false);
             force_write_time_start = __wt_clock(session);
         }
-        /*
+        /* 1000ms,也就是一秒钟进入该循环一次，或者有其他线程主动发送log_cond信号也会进入该循环
          * We don't want to remove or pre-allocate files as often as we want to force out log
          * buffers. Only do it once per second or if the condition was signalled.
          */
         if (timediff >= WT_THOUSAND || signalled) {
-
             /*
              * Perform log pre-allocation.
              */
@@ -976,7 +976,7 @@ __log_server(void *arg)
         /* Wait until the next event. */
         //默认等待时间50ms,见__wt_logmgr_open
         //注意，有时候__log_server线程在一个50ms周期可能没有新的lsn log到来，这时候did_work为false,则等待时间会增加
-        //如果是因为超时返回signalled会被置位false
+        //如果是因为超时返回signalled会被置位false, 如果其他线程发送了log_cond信号，则signalled为true
         __wt_cond_auto_wait_signal(session, conn->log_cond, did_work, NULL, &signalled);
         time_stop = __wt_clock(session);
         timediff = WT_CLOCKDIFF_MS(time_stop, time_start);
@@ -1088,7 +1088,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
      */
     WT_RET(__wt_open_internal_session(
       conn, "log-wrlsn-server", false, session_flags, 0, &conn->log_wrlsn_session));
-    //yang add todo xxxxxxxxxxxxx 10000最好用10 *  WT_THOUSAND
+
     WT_RET(__wt_cond_auto_alloc(
       conn->log_wrlsn_session, "log write lsn server", 10000, WT_MILLION, &conn->log_wrlsn_cond));
     WT_RET(__wt_thread_create(
@@ -1108,7 +1108,7 @@ __wt_logmgr_open(WT_SESSION_IMPL *session)
         /* The log server gets its own session. */
         WT_RET(__wt_open_internal_session(
           conn, "log-server", false, session_flags, 0, &conn->log_session));
-        WT_RET(__wt_cond_auto_alloc(//yang add todo xxxxxxx，这里50000转为50*WT_THOUSAND 
+        WT_RET(__wt_cond_auto_alloc( 
           //默认50ms __log_server线程进行一次强制刷盘，见__wt_logmgr_open
           conn->log_session, "log server", 50000, WT_MILLION, &conn->log_cond));
 

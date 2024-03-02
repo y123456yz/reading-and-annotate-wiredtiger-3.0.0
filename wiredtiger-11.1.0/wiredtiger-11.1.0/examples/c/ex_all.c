@@ -675,6 +675,7 @@ session_ops(WT_SESSION *session)
 
     conn = session->connection;
 
+    printf("yang test................................begin session_ops_create\r\n\r\n\r\n");
     /* WT_SESSION.create operations. */
     session_ops_create(session);
 
@@ -685,29 +686,37 @@ session_ops(WT_SESSION *session)
         /* Create a table for the session operations. */
         error_check(session->create(session, "table:mytable", "key_format=S,value_format=S"));
 
+        printf("yang test................................begin alter\r\n\r\n\r\n");
         /*! [Alter a table] */
+        //__session_alter修改表属性，也就是修改表的配置参数，参考confchk_WT_SESSION_alter
         error_check(session->alter(session, "table:mytable", "access_pattern_hint=random"));
         /*! [Alter a table] */
 
         /*! [Compact a table] */
+        printf("yang test................................begin compact\r\n\r\n\r\n");
         error_check(session->compact(session, "table:mytable", NULL));
         /*! [Compact a table] */
 
         error_check(
           session->create(session, "table:old", "key_format=r,value_format=S,cache_resident=true"));
+
+        printf("yang test................................begin rename\r\n\r\n\r\n");
         /*! [Rename a table] */
         error_check(session->rename(session, "table:old", "table:new", NULL));
         /*! [Rename a table] */
 
         /*! [Salvage a table] */
+        printf("yang test................................begin salvage\r\n\r\n\r\n");
         error_check(session->salvage(session, "table:mytable", NULL));
         /*! [Salvage a table] */
 
         /*! [Truncate a table] */
+        printf("yang test................................begin truncate\r\n\r\n\r\n");
         error_check(session->truncate(session, "table:mytable", NULL, NULL, NULL));
         /*! [Truncate a table] */
 
         /*! [Reset the session] */
+        printf("yang test................................begin reset\r\n\r\n\r\n");
         error_check(session->reset(session));
         /*! [Reset the session] */
 
@@ -715,7 +724,9 @@ session_ops(WT_SESSION *session)
             /*
              * Insert a pair of keys so we can truncate a range.
              */
+            
             WT_CURSOR *cursor;
+            printf("yang test................................begin update\r\n\r\n\r\n");
             error_check(session->open_cursor(session, "table:mytable", NULL, NULL, &cursor));
             cursor->set_key(cursor, "June01");
             cursor->set_value(cursor, "value");
@@ -728,6 +739,7 @@ session_ops(WT_SESSION *session)
             {
                 /*! [Truncate a range] */
                 WT_CURSOR *start, *stop;
+                printf("yang test................................begin search\r\n\r\n\r\n");
 
                 error_check(session->open_cursor(session, "table:mytable", NULL, NULL, &start));
                 start->set_key(start, "June01");
@@ -737,20 +749,24 @@ session_ops(WT_SESSION *session)
                 stop->set_key(stop, "June30");
                 error_check(stop->search(stop));
 
+                printf("yang test................................begin truncate\r\n\r\n\r\n");
                 error_check(session->truncate(session, NULL, start, stop, NULL));
                 /*! [Truncate a range] */
                 error_check(stop->close(stop));
                 error_check(start->close(start));
             }
         }
-
+        
+        printf("yang test................................begin checkpoint\r\n\r\n\r\n");
         error_check(session->checkpoint(session, NULL));
 
         /*! [Upgrade a table] */
+        printf("yang test................................begin upgrade\r\n\r\n\r\n");
         error_check(session->upgrade(session, "table:mytable", NULL));
         /*! [Upgrade a table] */
 
         /*! [Verify a table] */
+        printf("yang test................................begin verify\r\n\r\n\r\n");
         error_check(session->verify(session, "table:mytable", NULL));
         /*! [Verify a table] */
 
@@ -762,11 +778,17 @@ session_ops(WT_SESSION *session)
         (void)backup;
 
         /* Call other functions, where possible. */
+        printf("yang test................................begin checkpoint_ops\r\n\r\n\r\n");
         checkpoint_ops(session);
+        printf("yang test................................begin error_check\r\n\r\n\r\n");
         error_check(cursor_ops(session));
+        printf("yang test................................begin cursor_statistics\r\n\r\n\r\n");
         cursor_statistics(session);
+        printf("yang test................................begin pack_ops\r\n\r\n\r\n");
         pack_ops(session);
+        printf("yang test................................begin transaction_ops\r\n\r\n\r\n\r\n\r\n\r\n");
         transaction_ops(session);
+        printf("yang test................................end transaction_ops\r\n\r\n\r\n\r\n\r\n\r\n");
 
         /*! [Close a session] */
         error_check(session->close(session, NULL));
@@ -1054,7 +1076,7 @@ connection_ops(WT_CONNECTION *conn)
         WT_SESSION *session;
         error_check(conn->open_session(conn, NULL, NULL, &session));
         /*! [Open a session] */
-
+        
         session_ops(session);
     }
 
@@ -1169,10 +1191,12 @@ main(int argc, char *argv[])
 
     /*! [Open a connection] */
     error_check(wiredtiger_open(
-      home, NULL, "create,cache_size=5GB,log=(enabled,recover=on),statistics=(all)", &conn));
+      home, NULL, "create,cache_size=100MB,log=(enabled,recover=on),statistics=(all),verbose=[log:5,api:5,config_all_verbos:5,fileops:5]", &conn));
     /*! [Open a connection] */
 
     connection_ops(conn);
+
+    return (EXIT_SUCCESS);//yang add change
     /*
      * The connection has been closed.
      */

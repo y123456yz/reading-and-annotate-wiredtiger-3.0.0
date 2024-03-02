@@ -1,0 +1,82 @@
+git checkout -b  v5.0_cpuload_perfect remotes/origin/v5.0  从指定分支克隆子分支
+git push origin v5.0_cpuload_perfect  提交到子分支
+
+
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# git push origin v5.0_cpuload_perfect
+Username for 'https://github.com': y123456yz
+Password for 'https://y123456yz@github.com': 
+remote: Support for password authentication was removed on August 13, 2021.
+remote: Please see https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls for information on currently recommended modes of authentication.
+fatal: Authentication failed for 'https://github.com/y123456yz/mongo.git/'
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# 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
+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 : command not found
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# ^C
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# git branch
+  master
+* v5.0_cpuload_perfect
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# git branch -v
+  master               92f8fdcffe0 normal collection perfect
+* v5.0_cpuload_perfect b2fa75ac0b9 [behind 2] SERVER-64764 Fix '$$ROOT' handling in $expr rewrite
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# git remote -v
+origin  https://github.com/y123456yz/mongo.git (fetch)
+origin  https://github.com/y123456yz/mongo.git (push)
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# git remote set-url origin https://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@github.com/y123456yz/mongo.git
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# git push
+fatal: The upstream branch of your current branch does not match
+the name of your current branch.  To push to the upstream branch
+on the remote, use
+
+    git push origin HEAD:v5.0
+
+To push to the branch of the same name on the remote, use
+
+    git push origin HEAD
+
+To choose either option permanently, see push.default in 'git help config'.
+[root@VM-242-181-centos ~/mongodb-src-guanfangdaima/master/mongo]# git push origin v5.0_cpuload_perfect
+Total 0 (delta 0), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: Create a pull request for 'v5.0_cpuload_perfect' on GitHub by visiting:
+remote:      https://github.com/y123456yz/mongo/pull/new/v5.0_cpuload_perfect
+remote: 
+To https://github.com/y123456yz/mongo.git
+ * [new branch]              v5.0_cpuload_perfect -> v5.0_cpuload_perfect
+
+ 
+
+ 
+
+git checkout -b  v5.0_candidate_index_perfect  remotes/upstream/v5.0   注意是从remotes拉取代码
+ git push origin v5.0_candidate_index_perfect2  提交是向自己得仓库origin提交
+
+
+git reset --merge //回退到merge之前 解决切换分支错误提示
+然后git pull upstream master 
+看不到分支，敲git rebase --skip
+可以参考https://blog.csdn.net/xo3ylAF9kGs/article/details/114810781
+
+
+https://www.cnblogs.com/funnyboy0128/p/16736118.html
+github如何给开源项目提交PR
+前提：假设B要提交PR给A在github的项目p，其步骤如下：
+A的仓库：http://github.com/a/p
+B的仓库：http://github.com/b
+ 
+1、B登录github,进入A的空间，fork项目p到B的空间，这个时候B的项目为：
+      http://github.com/b/p
+ 
+2、B克隆项目到本地：git clone git://github.com/b/p
+3、B本地建立与A的项目连接
+     查看本地项目与那些项目建立了连接：git remote -v
+     建立本地项目与A项目的连接：git remote add upstream https://github.com/a/p   【注意这里是A的仓库项目地址】
+4、B可以新建一个分支,并在分支开发，并提交代码commit到分支
+ 
+如何同步A的代码到本地：     git fetch A的名称（这里是上面的upstream）
+合并A的代码到本地：            git merge upstream/master        (使用git rebase upstream/master也可以，建议使用)
+遇到冲突，解决完冲突后执行：
+    git add 冲突的文件
+    git rebase --continue
+将合并推送到B自己的仓库：git push origin master
+ 
+5、发起PR（在B的工作空间发起PR）
+☺☺☺爱学习的逗比☺☺☺

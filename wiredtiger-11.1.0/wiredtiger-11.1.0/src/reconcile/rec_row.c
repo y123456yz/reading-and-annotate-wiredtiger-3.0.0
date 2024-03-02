@@ -846,7 +846,8 @@ __wt_rec_row_leaf(
     cbt->iface.session = (WT_SESSION *)session;
 
     WT_RET(__wt_rec_split_init(session, r, page, 0, btree->maxleafpage_precomp, 0));
-   // printf("yang test ............__wt_rec_row_leaf..........split_size:%u, min_split_size:%u\r\n", r->split_size, r->min_split_size);
+    printf("yang test ............__wt_rec_row_leaf..........maxleafpage_precomp:%lu, split_size:%u, min_split_size:%u\r\n", 
+        btree->maxleafpage_precomp, r->split_size, r->min_split_size);
 
     /*
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.

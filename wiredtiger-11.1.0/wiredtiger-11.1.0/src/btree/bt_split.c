@@ -686,6 +686,15 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
     uint32_t *deleted_refs;
     uint32_t hint, i, j;
     bool empty_parent;
+    WT_PAGE *page;
+
+    for (uint32_t ii = 0; ii < new_entries; ii++) {
+        page = ref_new[ii]->page;
+        if (page)
+            __wt_verbose(
+                session, WT_VERB_EVICT, "__split_parent,page%u: %p (%s) memory_footprint:%d, page->dsk->mem_size:%d, entries:%d", ii, (void *)page, 
+                __wt_page_type_string(page->type), (int)page->memory_footprint, page->dsk ? (int)page->dsk->mem_size : 0, (int)page->entries);
+    }
 
     btree = S2BT(session);
     //也就是ref的父节点

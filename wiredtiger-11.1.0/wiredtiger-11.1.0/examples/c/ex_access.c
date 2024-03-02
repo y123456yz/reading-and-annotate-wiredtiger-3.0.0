@@ -50,6 +50,39 @@ cursor_search(WT_CURSOR *cursor)
     return (0);
 }
 
+
+static void
+print_cursor_for_access(WT_CURSOR *cursor)
+{
+    const char *desc, *pvalue;
+    int64_t value;
+    int ret;
+
+    //pvalue和value值是一样的，至少一个是字符串，一个是对应数字
+    while ((ret = cursor->next(cursor)) == 0) {
+        error_check(cursor->get_value(cursor, &desc, &pvalue, &value));
+        if (value != 0)
+            printf("%s=%s\n", desc, pvalue);
+    }
+    scan_end_check(ret == WT_NOTFOUND);
+}
+
+static void
+print_session_stats_for_access(WT_SESSION *session)
+{
+    WT_CURSOR *stat_cursor;
+
+    /*! [statistics session function] */
+    //error_check(session->open_cursor(session, "statistics:session", NULL, NULL, &stat_cursor));
+    error_check(session->open_cursor(session, "statistics:session", NULL, "statistics=(fast)", &stat_cursor));
+
+    print_cursor_for_access(stat_cursor);
+    stat_cursor->reset(stat_cursor);//yang add todo xxxxxxxx   加这个就不会自己去做减法了
+    error_check(stat_cursor->close(stat_cursor));
+    /*! [statistics session function] */
+}
+
+
 static void
 access_example(void)
 {
@@ -93,14 +126,15 @@ access_example(void)
     /*! [access example connection] */
 
     /*! [access example table create] */
-    error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u"));
+    //error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u"));
+    error_check(session->create(session, "table:access", "leaf_page_max=32KB,key_format=q,value_format=u"));
     /*! [access example table create] */
 
     /*! [access example cursor open] */
     error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
     /*! [access example cursor open] */
 
-    value_item.data = "value old @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
+    value_item.data = "value old @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
     /*
       "abcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyz"
       "abcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyz"
@@ -109,26 +143,42 @@ access_example(void)
     */
     /*value_item.data ="yangyazhou abcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyz"
 "klmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyz\0";*/
-    value_item.size = strlen(value_item.data);
+    value_item.size = sizeof(value_item.data);
     printf("yang test ..............size:%d\r\n", (int)sizeof("123456\0\0\0"));
     __wt_random_init_seed(NULL, &rnd);
 
-    value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
+    value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
     value_item2.size = strlen(value_item2.data);
-    for (i=1500;i > 0; i--) {
+    for (i=511001;i > 0; i--) {
+   // for (i=0;i < 9011 ; i++) {
         rval = __wt_random(&rnd);
 
         cursor->set_key(cursor, i); /* Insert a record. */
-        cursor->set_value(cursor, &value_item);
+        cursor->set_value(cursor, &value_item2);
         if (max_i < rval % 12000)
             max_i =  (rval % 12000);
 
-        if (i % 5 == 0)
-            continue;
+       // if (i % 5 == 0)
+        //    continue;
 
         //printf("yang test insert ......... i:%lu, max_i:%lu\r\n", rval % 23519, max_i);
         error_check(cursor->insert(cursor));
     }
+
+    session->checkpoint(session, "force");
+    print_session_stats_for_access(session);
+     printf("yang test ............serch begin\r\n"); 
+    cursor->set_key(cursor, 411001);
+    error_check(cursor->search(cursor));
+    error_check(cursor->get_value(cursor, &value_item));
+
+    cursor->set_key(cursor, 311001);
+    error_check(cursor->search(cursor));
+    error_check(cursor->get_value(cursor, &value_item));
+
+    printf("yang test ............get len:%d, value:%s\r\n", (int)value_item.size, "xxxxxxxxxxxxxxxxxx");
+    print_session_stats_for_access(session);
+    sleep(10);
   /*   for (i=120;i > 0; i--) {
         rval = __wt_random(&rnd);
 

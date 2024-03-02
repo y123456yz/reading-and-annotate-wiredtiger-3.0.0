@@ -123,7 +123,8 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
     local_gen = false;
 
     __wt_verbose(
-        session, WT_VERB_EVICT, "__wt_evict evict page %p (%s)", (void *)page, __wt_page_type_string(page->type));
+        session, WT_VERB_EVICT, "__wt_evict evict page %p (%s) memory_footprint:%d, page->dsk->mem_size:%d, entries:%d", (void *)page, 
+        __wt_page_type_string(page->type), (int)page->memory_footprint, page->dsk ? (int)page->dsk->mem_size : 0, (int)page->entries);
       //session, WT_VERB_EVICT, "page %p (%s)", (void *)page, __wt_page_type_string(page->type));
    // printf("yang test .............__wt_evict......:%s\r\n", __wt_page_type_string(page->type));
 
@@ -186,12 +187,15 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
      * If we decide to do an in-memory split. Do it now. If an in-memory split completes, the page
      * stays in memory and the tree is left in the desired state: avoid the usual cleanup.
      */
+    //page消耗的内存没有超过splitmempage，并且满足下列两条件中的任何一个则进行内存split
+    //  1. 大于maxleafpage * 2，并且至少有5个KV 
+    //  2. 有超过30个KV并且page内存超过maxleafpage
     if (inmem_split) {//page内存超限，通过这里进行split
         WT_ERR(__wt_split_insert(session, ref));
         goto done;
     }
 
-    //page内存超过了限制，并且该page之前已经splite过，也就是带有WT_PAGE_SPLIT_INSERT标记，则进入主动reconcile evict流程
+    //page内存超过了splitmempage(即80% * maxmempage)限制，并且该page之前已经splite过，也就是带有WT_PAGE_SPLIT_INSERT标记，则进入主动reconcile evict流程
 
     //
     /* No need to reconcile the page if it is from a dead tree or it is clean. */

@@ -1037,7 +1037,6 @@ err:
     return (WT_THREAD_RET_VALUE);
 }
 
-//yang add todo xxxxxxxxxxxxx 运行结果需要一个总的平均耗时 平均QPS等
 static WT_THREAD_RET
 monitor(void *arg)
 {

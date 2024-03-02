@@ -80,6 +80,7 @@ print_file_stats(WT_SESSION *session)
     error_check(session->open_cursor(session, "statistics:table:access", NULL, NULL, &cursor));
 
     print_cursor(cursor);
+    cursor->reset(cursor);//yang add todo xxx
     error_check(cursor->close(cursor));
     /*! [statistics table function] */
 }
@@ -113,9 +114,11 @@ print_session_stats(WT_SESSION *session)
     WT_CURSOR *stat_cursor;
 
     /*! [statistics session function] */
-    error_check(session->open_cursor(session, "statistics:session", NULL, NULL, &stat_cursor));
+    //error_check(session->open_cursor(session, "statistics:session", NULL, NULL, &stat_cursor));
+    error_check(session->open_cursor(session, "statistics:session", NULL, "statistics=(fast)", &stat_cursor));
 
     print_cursor(stat_cursor);
+    stat_cursor->reset(stat_cursor);//yang add todo xxxxxxxx   加这个就不会自己去做减法了
     error_check(stat_cursor->close(stat_cursor));
     /*! [statistics session function] */
 }
@@ -198,7 +201,8 @@ main(int argc, char *argv[])
     WT_CONNECTION *conn;
     WT_CURSOR *cursor;
     WT_SESSION *session;
-
+    char value_item[256];
+    
     home = example_setup(argc, argv);
 
     error_check(wiredtiger_open(home, NULL, "create,statistics=(all)", &conn));
@@ -215,7 +219,7 @@ main(int argc, char *argv[])
     cursor->set_value(cursor, "value");
     error_check(cursor->insert(cursor));
 
-    error_check(cursor->close(cursor));
+    //error_check(cursor->close(cursor));
 
     error_check(session->checkpoint(session, NULL));
 
@@ -225,9 +229,22 @@ main(int argc, char *argv[])
     print_file_stats(session);
     printf("yang test 2222222222222222222222222\r\n");
 
-    print_join_cursor_stats(session);
+   // print_join_cursor_stats(session);
 
+    printf("yang test 33333333333333333333333333333\r\n\r\n\r\n");
     print_session_stats(session);
+    cursor->set_key(cursor, "key22222222222222222");
+    cursor->set_value(cursor, "value333333333333333333333");
+    error_check(cursor->insert(cursor));
+    error_check(session->checkpoint(session, NULL));
+    print_session_stats(session);
+    cursor->set_key(cursor, "key22222222222222222");
+    error_check(cursor->search(cursor));
+    error_check(cursor->get_value(cursor, value_item));
+    print_session_stats(session);
+    error_check(cursor->close(cursor));
+
+    printf("yang test 44444444444444444444444444444 value_item:%s\r\n\r\n\r\n", value_item);
 
     print_overflow_pages(session);
 

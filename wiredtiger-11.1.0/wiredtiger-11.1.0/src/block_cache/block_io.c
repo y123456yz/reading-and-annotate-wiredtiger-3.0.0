@@ -143,6 +143,9 @@ __wt_blkcache_read(WT_SESSION_IMPL *session, WT_ITEM *buf, const uint8_t *addr, 
             time_diff = WT_CLOCKDIFF_US(time_stop, time_start);
             WT_STAT_CONN_INCR(session, cache_read_app_count);
             WT_STAT_CONN_INCRV(session, cache_read_app_time, time_diff);
+            //session添加次数统计"storage":{"data":{"bytesRead":6552449495,"timeReadingMicros":595459}},"remote":"10.5.210.112:34066","protocol":"op_msg","durationMillis":9624}}
+            //WiredTigerOperationStats::_statNameMap
+            //这样我们可以算出单次耗时，以及单词读的page大小，确定一个page在磁盘的大小
             WT_STAT_SESSION_INCRV(session, read_time, time_diff);
         }
 
@@ -435,6 +438,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
     dsk = ip->mem;
     WT_ASSERT(session, dsk->write_gen != 0);
 
+    //对应查询对应mongo server的WiredTigerOperationStats::_statNameMap
     WT_STAT_CONN_DATA_INCR(session, cache_write);
     WT_STAT_CONN_DATA_INCRV(session, cache_bytes_write, dsk->mem_size);
     WT_STAT_SESSION_INCRV(session, bytes_write, dsk->mem_size);

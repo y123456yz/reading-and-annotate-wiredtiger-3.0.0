@@ -317,7 +317,7 @@ __wt_txn_log_commit(WT_SESSION_IMPL *session, const char *cfg[])
     if (txn->logrec == NULL)
         return (0);
 
-    printf("yang test .............................__wt_txn_log_commit..........\r\n");
+   // printf("yang test .............................__wt_txn_log_commit..........\r\n");
     /* Write updates to the log. */
     ////txn_logsync赋值见__wt_txn_begin，也就是conn->txn_logsync(__logmgr_sync_cfg)
     //transaction_sync.method配置存入到了txn_logsync，也就是sync还是flush
@@ -453,7 +453,7 @@ __wt_txn_checkpoint_log(WT_SESSION_IMPL *session, bool full, uint32_t flags, WT_
     txn = session->txn;
     ckpt_lsn = &txn->ckpt_lsn;
 
-    printf("yang test .............................__wt_txn_checkpoint_log........flags:0x%x\r\n", flags);
+   // printf("yang test .............................__wt_txn_checkpoint_log........flags:0x%x\r\n", flags);
 
     /*
      * If this is a file sync, log it unless there is a full checkpoint in progress.

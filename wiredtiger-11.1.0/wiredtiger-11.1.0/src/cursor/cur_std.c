@@ -819,6 +819,7 @@ __wt_cursor_cache_get(WT_SESSION_IMPL *session, const char *uri, uint64_t hash_v
     uint64_t bucket, overwrite_flag;
     bool have_config;
 
+    //printf("yang test ......................................... __wt_cursor_cache_get\r\n");
     if (!F_ISSET(session, WT_SESSION_CACHE_CURSORS))
         return (WT_NOTFOUND);
 

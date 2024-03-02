@@ -100,6 +100,7 @@ __wt_session_cursor_cache_sweep(WT_SESSION_IMPL *session)
     uint32_t position;
     int i, t_ret, nbuckets, nexamined, nclosed;
     bool productive;
+    printf("yang test ......................................... __wt_session_cursor_cache_sweep\r\n");
 
     if (!F_ISSET(session, WT_SESSION_CACHE_CURSORS))
         return (0);
@@ -845,7 +846,7 @@ __session_blocking_checkpoint(WT_SESSION_IMPL *session)
  *     Alter a table setting.
  */
 //WT_SESSION::alter allows modification of some table settings after creation.
-//修改表属性
+//修改表属性   修改表的一些配置参数，参考confchk_WT_SESSION_alter
 static int
 __session_alter(WT_SESSION *wt_session, const char *uri, const char *config)
 {

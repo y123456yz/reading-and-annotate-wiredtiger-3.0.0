@@ -1830,6 +1830,7 @@ __wt_leaf_page_can_split(WT_SESSION_IMPL *session, WT_PAGE *page)
 #define WT_MIN_SPLIT_COUNT 30
 #define WT_MIN_SPLIT_MULTIPLIER 16 /* At level 2, we see 1/16th entries */
     //通过level2大概算一下有多少KV及使用的内存,这样可以避免扫描所有KV影响性能
+    //有超过30个KV并且page内存超过maxleafpage
     for (count2 = 0, size = 0, ins = ins_head->head[WT_MIN_SPLIT_DEPTH]; ins != NULL;
          ins = ins->next[WT_MIN_SPLIT_DEPTH]) {
         count2 += WT_MIN_SPLIT_MULTIPLIER;
