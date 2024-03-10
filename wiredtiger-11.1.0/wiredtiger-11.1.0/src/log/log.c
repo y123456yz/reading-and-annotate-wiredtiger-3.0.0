@@ -2877,6 +2877,7 @@ __log_write_internal(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, ui
 
     //release_size也就是该slot中包含的多条log的总长度
     //注意这里更新了slot_state的released低1----32位，没有更新join和flag
+    //到这里只有__wt_log_slot_release更新release后，其他线程在__wt_log_slot_join中才会返回
     release_size = __wt_log_slot_release(&myslot, (int64_t)rdup_len);
      __wt_verbose(session, WT_VERB_LOG,
         "yang test release __log_write_internal...index: %" PRIu32 ", rdup_len: %" PRIx64 " slot_state %" PRIx64,

@@ -2080,6 +2080,7 @@ __rec_split_write_reuse(
 /*
  * __rec_compression_adjust --
  *     Adjust the pre-compression page size based on compression results.
+ //初始化的时候默认压缩比为4倍，参考__btree_conf说明，这里根据实际的数据写入情况进行压缩比调整
  */
 static inline void
 __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compressed_size,
@@ -2166,7 +2167,9 @@ __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compress
 //chunk数据写入磁盘，并保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)到WT_MULTI中
 static int
 __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk,
-  WT_ITEM *compressed_image, bool last_block)
+  WT_ITEM *compressed_image, 
+  //代表
+  bool last_block)
 {
     WT_BTREE *btree;
     WT_MULTI *multi;
@@ -2317,6 +2320,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->addr.size = (uint8_t)addr_size;
 
     /* Adjust the pre-compression page size based on compression results. */
+    //初始化的时候默认压缩比为4倍，参考__btree_conf说明，这里根据实际的数据写入情况进行压缩比调整
     if (WT_PAGE_IS_INTERNAL(page) && compressed_size != 0 && btree->intlpage_compadjust)
         __rec_compression_adjust(
           session, btree->maxintlpage, compressed_size, last_block, &btree->maxintlpage_precomp);

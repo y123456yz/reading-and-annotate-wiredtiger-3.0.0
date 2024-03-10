@@ -214,11 +214,13 @@ __compressor_confchk(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval, WT_COMPRESS
         return (0);
 
     conn = S2C(session);
-    TAILQ_FOREACH (ncomp, &conn->compqh, q)
+    TAILQ_FOREACH (ncomp, &conn->compqh, q) {
+        printf("yang test ....__compressor_confchk..................%s\r\n", ncomp->name);
         if (WT_STRING_MATCH(ncomp->name, cval->str, cval->len)) {
             *compressorp = ncomp->compressor;
             return (0);
         }
+    }
     WT_RET_MSG(session, EINVAL, "unknown compressor '%.*s'", (int)cval->len, cval->str);
 }
 
@@ -234,7 +236,7 @@ __wt_compressor_config(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval, WT_COMPRE
 
 /*
  * __conn_add_compressor --
- *     WT_CONNECTION->add_compressor method.
+ *     WT_CONNECTION->add_compressor method.   snappy_extension_init
  */ //例如snappy算法在snappy_extension_init中初始化调用
 static int
 __conn_add_compressor(
@@ -245,6 +247,7 @@ __conn_add_compressor(
     WT_NAMED_COMPRESSOR *ncomp;
     WT_SESSION_IMPL *session;
 
+    printf("yang test ....__conn_add_compressor..................%s\r\n", name);
     ncomp = NULL;
 
     conn = (WT_CONNECTION_IMPL *)wt_conn;

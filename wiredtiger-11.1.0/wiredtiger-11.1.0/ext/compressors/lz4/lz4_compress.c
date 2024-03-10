@@ -276,6 +276,7 @@ lz_add_compressor(WT_CONNECTION *connection, const char *name)
     lz4_compressor->wt_api = connection->get_extension_api(connection);
 
     /* Load the compressor */
+    //__conn_add_compressor
     if ((ret = connection->add_compressor(
            connection, name, (WT_COMPRESSOR *)lz4_compressor, NULL)) == 0)
         return (0);

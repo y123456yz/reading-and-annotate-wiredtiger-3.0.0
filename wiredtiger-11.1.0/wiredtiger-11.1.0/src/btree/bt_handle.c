@@ -498,7 +498,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt, bool is_ckpt)
     btree->maxintlpage_precomp = btree->maxintlpage;
     btree->leafpage_compadjust = false;
     btree->maxleafpage_precomp = btree->maxleafpage;
-    //启用压缩默认值
+    //启用压缩默认值，压缩比默认4倍，参考上面的说明
     if (btree->compressor != NULL && btree->compressor->compress != NULL &&
       btree->type != BTREE_COL_FIX) {
         /*

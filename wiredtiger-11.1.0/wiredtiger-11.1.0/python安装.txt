@@ -7,6 +7,8 @@ collect2: error: ld returned 1 exit status
 如果编译报错，可以跳过snappy，对应命令如下:
 cmake -DENABLE_SNAPPY=0 ../.
 
+启用snappy用DHAVE_BUILTIN_EXTENSION_SNAPPY=1， 不要用DENABLE_SNAPPY=1
+cmake  -DHAVE_UNITTEST=1  -DHAVE_DIAGNOSTIC=1 -DENABLE_CPPSUITE=1 -DHAVE_BUILTIN_EXTENSION_SNAPPY=1  ../.
 
 ./configure --prefix=/usr/local/python-3.8.8  --enable-shared CFLAGS=-fPIC --enable-optimizations  升级python时候源码编译一定带上，否则高版本wiredtiger编译的时候会报错
 
@@ -15,6 +17,16 @@ wtperf使用: ./wtperf -o in_memory=true -o verbose=2
 python ../test/suite/run.py  test_io_capacity01
 
 c单元测试:ctest -C Debug
-c++单元测试: 编译 cmake -DENABLE_SNAPPY=0  -DHAVE_UNITTEST=1  -DHAVE_DIAGNOSTIC=1 -DENABLE_CPPSUITE=1 ../.           然后make  然后./test/unittest/catch2-unittests
+c++单元测试: 编译 cmake -DHAVE_BUILTIN_EXTENSION_SNAPPY=1  -DHAVE_UNITTEST=1  -DHAVE_DIAGNOSTIC=1 -DENABLE_CPPSUITE=1 ../.           然后make  然后./test/unittest/catch2-unittests
+
+
+DENABLE_SNAPPY启用snappy编译不过问题解决办法如下:
+1. git clone git@github.com:google/snappy #下载源码
+   注意下载代码后需要在CMakeLists.txt文件的option(BUILD_SHARED_LIBS "Build shared libraries(DLLs)." ON)前面一行增加set(CMAKE_POSITION_INDEPENDENT_CODE ON)    #开启PIC
+   这样就可以编码前面的snappy启用编译报错问题，可以参考https://blog.csdn.net/mybachelor123/article/details/117519710
+2. git submodule update --init
+3. mkdir build
+4. cd build && cmake ../ && make
+
 
  ctest -C Debug -j 15 进行test_wt2323_join_visibility等c模块的单元测试，假设第一次运行结束有几个模块失败，下次直接在build中再次运行该 ctest -C Debug -j 15命令可以从失败的模块进行重新测试，如果想单独运行这个模块，在build中find找该模块，如果找不到，可以清理build路径，然后 cmake -DENABLE_SNAPPY=0 -DHAVE_DIAGNOSTIC=1 ../. 后，make -j 3重新编译就会有该模块了，可以find找到

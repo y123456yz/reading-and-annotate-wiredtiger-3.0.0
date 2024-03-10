@@ -127,7 +127,7 @@ access_example(void)
 
     /*! [access example table create] */
     //error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u"));
-    error_check(session->create(session, "table:access", "leaf_page_max=32KB,key_format=q,value_format=u"));
+    error_check(session->create(session, "table:access", "block_compressor=snappy,leaf_page_max=32KB,key_format=q,value_format=u"));
     /*! [access example table create] */
 
     /*! [access example cursor open] */

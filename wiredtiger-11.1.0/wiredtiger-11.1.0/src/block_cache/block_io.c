@@ -276,7 +276,9 @@ err:
 //__rec_write->__wt_blkcache_write
 int
 __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_t *addr_sizep,
-  size_t *compressed_sizep, bool checkpoint, bool checkpoint_io, bool compressed)
+  //压缩后的数据长度，如果没有压缩，或者压缩后空间并没有减少，则直接compressed_sizep返回0
+  size_t *compressed_sizep, 
+  bool checkpoint, bool checkpoint_io, bool compressed)
 {
     WT_BLKCACHE *blkcache;
     WT_BM *bm;
@@ -293,6 +295,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
     int compression_failed; /* Extension API, so not a bool. */
     bool data_checksum, encrypted, timer;
 
+    //如果没有压缩，或者压缩后空间并没有减少，则直接compressed_sizep返回0
     if (compressed_sizep != NULL)
         *compressed_sizep = 0;
 
@@ -350,6 +353,8 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
          * output requires), it just means the uncompressed version is as good as it gets, and
          * that's what we use.
          */
+        //1. 压缩失败
+        //2. 压缩后数据反而更大了，也就是代表压缩没有效果
         if (compression_failed || buf->size / btree->allocsize <= result_len / btree->allocsize) {
             ip = buf;
             WT_STAT_DATA_INCR(session, compress_write_fail);
@@ -367,6 +372,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
             F_SET(dsk, WT_PAGE_COMPRESSED);
 
             /* Optionally return the compressed size. */
+            //压缩后的数据长度
             if (compressed_sizep != NULL)
                 *compressed_sizep = result_len;
         }

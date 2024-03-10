@@ -232,6 +232,7 @@ snappy_extension_init(WT_CONNECTION *connection, WT_CONFIG_ARG *config)
 
     (void)config; /* Unused parameters */
 
+    printf("yang test ...........snappy_extension_init........snappy.... \r\n");
     if ((snappy_compressor = calloc(1, sizeof(SNAPPY_COMPRESSOR))) == NULL)
         return (errno);
 
@@ -242,6 +243,7 @@ snappy_extension_init(WT_CONNECTION *connection, WT_CONFIG_ARG *config)
 
     snappy_compressor->wt_api = connection->get_extension_api(connection);
 
+    //__conn_add_compressor
     if ((ret = connection->add_compressor(
            connection, "snappy", (WT_COMPRESSOR *)snappy_compressor, NULL)) == 0)
         return (0);

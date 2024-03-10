@@ -176,7 +176,8 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
                                    * It's an 8B value because it's updated without a lock.
                                    */
     bool leafpage_compadjust;     /* Run-time compression adjustment */
-    //启用压缩= btree->maxmempage_image, 也就是4 * WT_MAX(btree->maxintlpage, btree->maxleafpage);
+    //启用压缩= btree->maxmempage_image, 也就是4 * WT_MAX(btree->maxintlpage, btree->maxleafpage); 也就是4倍压缩比，
+    //  参考__btree_conf说明，压缩比会根据数据实际写入情况进行调整，见__rec_split_write
     //不启用压缩=btree->maxleafpage;
     uint64_t maxleafpage_precomp; /* Leaf page pre-compression size */
     bool intlpage_compadjust;     /* Run-time compression adjustment */
