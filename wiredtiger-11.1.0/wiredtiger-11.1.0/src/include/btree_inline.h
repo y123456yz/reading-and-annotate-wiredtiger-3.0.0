@@ -1734,6 +1734,8 @@ __wt_btree_syncing_by_other_session(WT_SESSION_IMPL *session)
     return (WT_BTREE_SYNCING(btree) && !WT_SESSION_BTREE_SYNC(session));
 }
 
+//一个page在内存中最大可以超过maxmempage*80%(也就是默认大概4M)__wt_leaf_page_can_split，该page在reconcile的时候会按照space_avail拆分为多个chunk image
+// 写入磁盘，space_avail的大小大概是maxleafpage_precomp(也就是默认4个leafpage,也就是按照默认4倍压缩)
 /*
  * __wt_leaf_page_can_split --
  *     Check whether a page can be split in memory.

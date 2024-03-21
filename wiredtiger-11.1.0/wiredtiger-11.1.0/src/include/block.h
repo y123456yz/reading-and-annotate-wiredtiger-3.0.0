@@ -450,6 +450,9 @@ __wt_block_desc_byteswap(WT_BLOCK_DESC *desc)
 
  参考https://source.wiredtiger.com/develop/arch-block.html
  */
+//WT_PAGE_HEADER(__wt_page_header)在__rec_split_write_header中完成赋值，对应内存位置见WT_BLOCK_HEADER_REF
+//WT_BLOCK_HEADER(__wt_block_header)赋值在写磁盘完成后，在__block_write_off赋值,对应内存偏移见WT_PAGE_HEADER_BYTE_SIZE
+//如果配置了压缩，则__wt_page_header记录的是压缩前的数据信息,__wt_block_header记录的是压缩后的数据信息
 struct __wt_block_header {
     /*
      * We write the page size in the on-disk page header because it makes salvage easier. (If we

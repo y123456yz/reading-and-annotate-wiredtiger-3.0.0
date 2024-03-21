@@ -72,7 +72,17 @@ struct __wt_rec_chunk {
     //__wt_rec_split_crossing_bnd赋值
     //也就是最解决image mem内存中，离min_space_avail最近的游标位置
     //把cur_ptr第一次接近min_space_avail可用阈值时候的成员数以及min_offset偏移量记录下来，在外层的__rec_split_finish_process_prev使用
-    size_t min_offset; /* byte offset */
+
+    //该变量的主要作用是假设一个page超过maxmempage*80%限制，这时候就会在按照min_space_avail(代表一个prev_ptr的前半段)
+    // 和space_avail把一个page内容封装到多个WT_REC_CHUNK，每个WT_REC_CHUNK在__wt_rec_split_crossing_bnd拆分为两段，
+    // [0-min_space_avail]+[min_space_avail,space_avail]，两段总长度为90%*split_size。那么问题来了，最后一个WT_REC_CHUNK可能字节数很少，
+    // 
+    // 如果最后一个WT_REC_CHUNK+pre_ptr对应WT_REC_CHUNK小于split_size(也就是最后一个WT_REC_CHUNK长度小于10%*split_size),这时候
+    // 我们就把prev_ptr和最后一个WT_REC_CHUNK合并，合并方法是把prev_ptr的前半部分min_space_avail和当前最后这个WT_REC_CHUNK合并。
+    // 这样好处是最后两个chunk会相对比较平均,也就是最后两个WT_REC_CHUNK变化过程如下: 
+    //   合并前: prev_ptr=[0-min_space_avail+min_space_avail-space_avail] + 当前WT_REC_CHUNK
+    //   合并后: prev_ptr=[0-min_space_avail] +  当前cur_ptr=[min_space_avail+当前WT_REC_CHUNK] 
+    size_t min_offset; /* byte offset */ //宏定义WT_CROSSING_MIN_BND
 
     //磁盘中的数据信息，参考__rec_split_write
     //block size = WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据
@@ -216,6 +226,10 @@ yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:2866
     //yang add change，修改位置
     //__wt_rec_split_init初始化，__wt_rec_need_split->WT_CHECK_CROSSING_BND判断是否需要split
     //split_size - WT_PAGE_HEADER_BYTE_SIZE, 除去头部字段的真实可用数据部分
+
+    //一个page在内存中最大可以超过maxmempage*80%(也就是默认大概4M)，该page在reconcile的时候会按照space_avail拆分为多个chunk image
+    // 写入磁盘，space_avail的大小大概是maxleafpage_precomp(也就是默认4个leafpage,也就是按照默认4倍压缩)
+    // __rec_compression_adjust中可以动态调整maxintlpage_precomp，从而使reconcile的时候space_avail也会得到调整，见__wt_rec_split_init
     size_t space_avail;     /* Remaining space in this chunk */
     //min_split_size - WT_PAGE_HEADER_BYTE_SIZE, 除去头部字段的真实可用数据部分
     size_t min_space_avail; /* Remaining space in this chunk to put a minimum size boundary */

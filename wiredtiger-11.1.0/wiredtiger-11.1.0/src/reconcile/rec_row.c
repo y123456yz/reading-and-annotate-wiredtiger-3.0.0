@@ -712,7 +712,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
                 if (!ovfl_key)
                     WT_RET(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
-            //printf("yang test .........__rec_row_leaf_insert.....__wt_rec_need_split.......__wt_rec_split_crossing_bnd.........................\r\n");
+            printf("yang test .........__rec_row_leaf_insert.....__wt_rec_need_split.......__wt_rec_split_crossing_bnd.........................\r\n");
             //也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
 
             //key->len + val->len表示该KV当前还没有添加到r->first_free空间中
@@ -846,8 +846,9 @@ __wt_rec_row_leaf(
     cbt->iface.session = (WT_SESSION *)session;
 
     WT_RET(__wt_rec_split_init(session, r, page, 0, btree->maxleafpage_precomp, 0));
-    printf("yang test ............__wt_rec_row_leaf..........maxleafpage_precomp:%lu, split_size:%u, min_split_size:%u\r\n", 
-        btree->maxleafpage_precomp, r->split_size, r->min_split_size);
+    printf("yang test __wt_rec_row_leaf......btree->maxmempage:%lu, page->memory_footprintmax:%lu, leafpage_precomp:%lu, \
+        split_size:%u, min_split_size:%u\r\n", 
+        btree->maxmempage, page->memory_footprint, btree->maxleafpage_precomp, r->split_size, r->min_split_size);
 
     /*
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
@@ -1133,7 +1134,7 @@ slow:
                     WT_ERR(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
 
-            //printf("yang test ......2222222222222222222222........__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
+            printf("yang test ......2222222222222222222222........__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
             WT_ERR(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
 

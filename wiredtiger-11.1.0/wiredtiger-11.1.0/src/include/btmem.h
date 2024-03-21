@@ -56,6 +56,12 @@
  block-manager specific information such as flags and version.
  参考reconcile官方文档:https://github.com/wiredtiger/wiredtiger/wiki/Reconciliation-overview
  */
+
+//WT_PAGE_HEADER(__wt_page_header)在__rec_split_write_header中完成赋值，对应内存位置见WT_BLOCK_HEADER_REF
+//WT_BLOCK_HEADER(__wt_block_header)赋值在写磁盘完成后，在__block_write_off赋值,对应内存偏移见WT_PAGE_HEADER_BYTE_SIZE
+//如果配置了压缩，则__wt_page_header记录的是压缩前的数据信息,__wt_block_header记录的是压缩后的数据信息
+
+ 
 //一个page数据在磁盘中连续空间内容: __wt_page_header + WT_BLOCK_HEADER + WT_CELL
 //分片空间和赋值可以参考__wt_rec_cell_build_ovfl
 //page->dsk为该类型
@@ -77,7 +83,7 @@ struct __wt_page_header {
      * The page's in-memory size isn't rounded or aligned, it's the actual number of bytes the
      * disk-image consumes when instantiated in memory.
      */
-    //header + data总长度，代表该page在磁盘上面的长度
+    //header + data总长度，代表该page在磁盘上面的长度，
     uint32_t mem_size; /* 16-19: in-memory page size */
 
     union {
@@ -130,6 +136,11 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
 #endif
 }
 
+
+//WT_PAGE_HEADER(__wt_page_header)在__rec_split_write_header中完成赋值，对应内存位置见WT_BLOCK_HEADER_REF
+//WT_BLOCK_HEADER(__wt_block_header)赋值在写磁盘完成后，在__block_write_off赋值,对应内存偏移见WT_PAGE_HEADER_BYTE_SIZE
+//如果配置了压缩，则__wt_page_header记录的是压缩前的数据信息,__wt_block_header记录的是压缩后的数据信息
+
 /*
  * The block-manager specific information immediately follows the WT_PAGE_HEADER structure.
  */
@@ -140,8 +151,12 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
  * WT_PAGE_HEADER_BYTE_SIZE --
  *	The first usable data byte on the block (past the combined headers).
  */
+//WT_PAGE_HEADER(__wt_page_header)在__rec_split_write_header中完成赋值，对应内存位置见WT_BLOCK_HEADER_REF
+//WT_BLOCK_HEADER(__wt_block_header)赋值在写磁盘完成后，在__block_write_off赋值,对应内存偏移见WT_PAGE_HEADER_BYTE_SIZE
+//如果配置了压缩，则__wt_page_header记录的是压缩前的数据信息,__wt_block_header记录的是压缩后的数据信息
+
 //page header(WT_PAGE_HEADER_SIZE) + block header(WT_BLOCK_HEADER_SIZE)
-#define WT_PAGE_HEADER_BYTE_SIZE(btree) ((u_int)(WT_PAGE_HEADER_SIZE + (btree)->block_header))
+#define WT_PAGE_HEADER_BYTE_SIZE(btree) ((u_int)(WT_PAGE_HEADER_SIZE + (btree)->block_header)) 
 //dsk开始跳过page header + block header,也就是这个page对应的实际数据起始地址
 #define WT_PAGE_HEADER_BYTE(btree, dsk) \
     ((void *)((uint8_t *)(dsk) + WT_PAGE_HEADER_BYTE_SIZE(btree)))

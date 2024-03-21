@@ -96,6 +96,7 @@ typedef enum {
         txn_shared->pinned_id = saved_txn_shared.pinned_id;                     \
     } while (0)
 
+//__wt_txn_global.checkpoint_txn_shared为该类型
 struct __wt_txn_shared {
     WT_CACHE_LINE_PAD_BEGIN
     volatile uint64_t id;
@@ -118,7 +119,10 @@ struct __wt_txn_shared {
     WT_CACHE_LINE_PAD_END
 };
 
+//conn.txn_global为该类型
 struct __wt_txn_global {
+    //初始值为1，参考__wt_txn_global_init, __wt_txn_id_alloc中自增
+    //txn_global->current在__txn_get_snapshot_int->__txn_sort_snapshot中会被赋值给txn->snap_max
     volatile uint64_t current; /* Current transaction ID. */
 
     /* The oldest running transaction ID (may race). */
@@ -127,6 +131,7 @@ struct __wt_txn_global {
     /*
      * The oldest transaction ID that is not yet visible to some transaction in the system.
      */
+    //初始值为1，参考__wt_txn_global_init，__wt_txn_update_oldest中赋值
     volatile uint64_t oldest_id;
 
     wt_timestamp_t durable_timestamp;
@@ -172,6 +177,7 @@ struct __wt_txn_global {
     WT_TXN_SHARED *txn_shared_list; /* Per-session shared transaction states */
 };
 
+//事务隔离级别
 typedef enum __wt_txn_isolation {
     WT_ISO_READ_COMMITTED,
     WT_ISO_READ_UNCOMMITTED,
@@ -252,6 +258,7 @@ struct __wt_txn {
     //同一个session的id是自增的
     uint64_t id;
 
+    //事务隔离级别 __wt_txn_begin配置，默认WT_ISO_SNAPSHOT，赋值见__wt_txn_begin
     WT_TXN_ISOLATION isolation;
 
     uint32_t forced_iso; /* Isolation is currently forced. */
@@ -262,8 +269,12 @@ struct __wt_txn {
      *	ids < snap_min are visible,
      *	everything else is visible unless it is in the snapshot.
      */
+    //赋值见__txn_sort_snapshot
     uint64_t snap_min, snap_max;
+    //数组结构，数组大小见__wt_txn_init，实际上指向的是本结构的txn->__snapshot数组;
+    //数组成员赋值见__txn_get_snapshot_int
     uint64_t *snapshot;
+    //赋值见__txn_sort_snapshot
     uint32_t snapshot_count;
     //赋值见__wt_txn_begin，也就是conn->txn_logsync(__logmgr_sync_cfg)
     //最终在__wt_txn_log_commit中用该变量决定提交事务的时候是否需要fsyn或者flush
@@ -275,18 +286,21 @@ struct __wt_txn {
      *
      * In some use cases, this can be updated while the transaction is running.
      */
+    //__wt_txn_set_commit_timestamp中赋值
     wt_timestamp_t commit_timestamp;
 
     /*
      * Durable timestamp copied into updates created by this transaction. It is used to decide
      * whether to consider this update to be persisted or not by stable checkpoint.
      */
+    //__wt_txn_set_commit_timestamp中赋值
     wt_timestamp_t durable_timestamp;
 
     /*
      * Set to the first commit timestamp used in the transaction and fixed while the transaction is
      * on the public list of committed timestamps.
      */
+    //__wt_txn_set_commit_timestamp中赋值
     wt_timestamp_t first_commit_timestamp;
 
     /*
@@ -304,6 +318,7 @@ struct __wt_txn {
     /* Array of modifications by this transaction. */
     WT_TXN_OP *mod;
     size_t mod_alloc;
+    //__txn_next_op中自增，__wt_txn_unmodify中自减
     u_int mod_count;
 #ifdef HAVE_DIAGNOSTIC
     u_int prepare_count;
@@ -341,14 +356,17 @@ struct __wt_txn {
 #define WT_TXN_ERROR 0x00002u
 #define WT_TXN_HAS_ID 0x00004u
 #define WT_TXN_HAS_SNAPSHOT 0x00008u
+//__wt_txn_set_commit_timestamp中置位
 #define WT_TXN_HAS_TS_COMMIT 0x00010u
 #define WT_TXN_HAS_TS_DURABLE 0x00020u
 #define WT_TXN_HAS_TS_PREPARE 0x00040u
 #define WT_TXN_IGNORE_PREPARE 0x00080u
 #define WT_TXN_IS_CHECKPOINT 0x00100u
+//__wt_txn_prepare中置位
 #define WT_TXN_PREPARE 0x00200u
 #define WT_TXN_PREPARE_IGNORE_API_CHECK 0x00400u
 #define WT_TXN_READONLY 0x00800u
+//__wt_txn_begin中置位
 #define WT_TXN_RUNNING 0x01000u
 #define WT_TXN_SHARED_TS_DURABLE 0x02000u
 #define WT_TXN_SHARED_TS_READ 0x04000u

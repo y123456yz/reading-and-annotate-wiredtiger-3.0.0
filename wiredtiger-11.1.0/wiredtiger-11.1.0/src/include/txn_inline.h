@@ -1195,6 +1195,7 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
 
     WT_ASSERT(session, !F_ISSET(txn, WT_TXN_RUNNING));
 
+    //session ¬ŒÒ≈‰÷√Ω‚Œˆ
     WT_RET(__wt_txn_config(session, cfg));
 
     /*

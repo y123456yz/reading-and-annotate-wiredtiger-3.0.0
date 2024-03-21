@@ -6,6 +6,15 @@
  * See the file LICENSE for redistribution information.
  */
 
+//该变量的主要作用是假设一个page超过maxmempage*80%限制，这时候就会在按照min_space_avail(代表一个prev_ptr的前半段)
+// 和space_avail把一个page内容封装到多个WT_REC_CHUNK，每个WT_REC_CHUNK在__wt_rec_split_crossing_bnd拆分为两段，
+// [0-min_space_avail]+[min_space_avail,space_avail]，两段总长度为90%*split_size。那么问题来了，最后一个WT_REC_CHUNK可能字节数很少，
+// 
+// 如果最后一个WT_REC_CHUNK+pre_ptr对应WT_REC_CHUNK小于split_size(也就是最后一个WT_REC_CHUNK长度小于10%*split_size),这时候
+// 我们就把prev_ptr和最后一个WT_REC_CHUNK合并，合并方法是把prev_ptr的前半部分min_space_avail和当前最后这个WT_REC_CHUNK合并。
+// 这样好处是最后两个chunk会相对比较平均,也就是最后两个WT_REC_CHUNK变化过程如下: 
+//   合并前: prev_ptr=[0-min_space_avail+min_space_avail-space_avail] + 当前WT_REC_CHUNK
+//   合并后: prev_ptr=[0-min_space_avail] +  当前cur_ptr=[min_space_avail+当前WT_REC_CHUNK] 
 #define WT_CROSSING_MIN_BND(r, next_len) \
     ((r)->cur_ptr->min_offset == 0 && (next_len) > (r)->min_space_avail)
 #define WT_CROSSING_SPLIT_BND(r, next_len) ((next_len) > (r)->space_avail)

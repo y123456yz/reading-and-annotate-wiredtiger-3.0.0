@@ -398,8 +398,8 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
         WT_STAT_CONN_INCRV(session, block_byte_write_checkpoint, align_size);
 
     __wt_verbose_debug2(session, WT_VERB_WRITE,
-      "off %" PRIuMAX ", size %" PRIuMAX ", checksum %#" PRIx32, (uintmax_t)offset,
-      (uintmax_t)align_size, checksum);
+      "off %" PRIuMAX ", size %" PRIuMAX ", padding len %" PRIuMAX ", checksum %#" PRIx32, (uintmax_t)offset,
+      (uintmax_t)align_size, (uintmax_t)align_size - buf->size, checksum);
 
     *objectidp = objectid;
     *offsetp = offset;

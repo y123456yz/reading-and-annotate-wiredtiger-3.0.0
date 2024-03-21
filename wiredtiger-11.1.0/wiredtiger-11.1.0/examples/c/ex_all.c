@@ -822,12 +822,26 @@ transaction_ops(WT_SESSION *session_arg)
      * allows applications to cache cursors and use them for multiple operations.
      */
     error_check(session->open_cursor(session, "table:mytable", NULL, NULL, &cursor));
+    printf("yang test ...........###################.....transaction_ops.....begin_transaction\r\n\r\n");
     error_check(session->begin_transaction(session, NULL));
+    cursor->set_key(cursor, "key1");
+    cursor->set_value(cursor, "value111111111111111111111111");
+    error_check(cursor->insert(cursor));
+    
+    cursor->set_key(cursor, "key2");
+    cursor->set_value(cursor, "value222222222222222222222222222");
+    error_check(cursor->insert(cursor));
 
-    cursor->set_key(cursor, "key");
-    cursor->set_value(cursor, "value");
+    cursor->set_key(cursor, "key1");
+    cursor->set_value(cursor, "value111111111111111111111111 new");
+    error_check(cursor->update(cursor));
+
+    cursor->set_key(cursor, "key2");
+    cursor->set_value(cursor, "value222222222222222222222222222 new");
+    //error_check(cursor->update(cursor));
     switch (cursor->update(cursor)) {
     case 0: /* Update success */
+        //__session_commit_transaction
         error_check(session->commit_transaction(session, NULL));
         /*
          * If commit_transaction succeeds, cursors remain positioned; if commit_transaction fails,
@@ -840,7 +854,9 @@ transaction_ops(WT_SESSION *session_arg)
         /* The rollback_transaction call resets all cursors. */
         break;
     }
-
+    printf("yang test ...........###################.....transaction_ops.....commit_transaction\r\n\r\n");
+    
+    
     /*
      * Cursors remain open and may be used for multiple transactions.
      */
@@ -1076,8 +1092,19 @@ connection_ops(WT_CONNECTION *conn)
         WT_SESSION *session;
         error_check(conn->open_session(conn, NULL, NULL, &session));
         /*! [Open a session] */
-        
-        session_ops(session);
+
+        //yang add change dodo xxxxxxxxxxxxxx 下面是我改的
+        printf("yang test ...........###################............... begain transaction\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+        error_check(session->reconfigure(session, "isolation=snapshot"));
+        error_check(session->create(session, "table:mytable", "key_format=S,value_format=S"));
+
+        transaction_ops(session);
+        error_check(session->close(session, NULL));
+        printf("yang test ...........###################............... end transaction\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+    
+        //大部分功能入口在这里, 故意不让走session_ops逻辑
+        if (0)
+          session_ops(session);
     }
 
     /*! [Configure method configuration] */

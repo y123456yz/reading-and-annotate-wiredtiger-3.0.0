@@ -1443,9 +1443,11 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
 
     btree = S2BT(session);
    // printf("yang test .................__wt_rec_split................ \r\n");
-   // printf("yang test ...........__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d\r\n",
-   //     (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->split_size);
-
+    printf("yang test .....__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d, min_split_size:%d, \
+        space_avail:%d, min_space_avail:%d\r\n",
+        (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->split_size,
+            (int)r->min_split_size, (int)r->space_avail, (int)r->min_space_avail);
+   // printf("yang test ...........x......__wt_rec_split................ \r\n");
     /*
      * We should never split during salvage, and we're about to drop core because there's no parent
      * page.
@@ -1592,12 +1594,12 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
      * the next record is large enough, just split at this point.
      */
 
-    /*printf("yang test ......__wt_rec_split_crossing_bnd....inuse:%d, r->entries:%d,(r)->min_space_avail:%d \
-    , (r)->space_avail:%d, next_len:%d, r->cur_ptr->min_offset:%d, __wt_rec_need_split(r, 0):%d, \
-    r->supd_next:%d\r\n",
+    printf("yang test ......__wt_rec_split_crossing_bnd....inuse:%d, r->entries:%d,(r)->min_space_avail:%d \
+        , (r)->space_avail:%d, next_len:%d, r->cur_ptr->min_offset:%d, __wt_rec_need_split(r, 0):%d, \
+        r->supd_next:%d\r\n",
         (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->min_space_avail,
         (int)r->space_avail, (int)next_len, (int)r->cur_ptr->min_offset, __wt_rec_need_split(r, 0),
-        (int)r->supd_next);*/
+        (int)r->supd_next);
 
     //已用空间超过了min_space_avail，但是没有超过space_avail，并且不需要rec split
     if (WT_CROSSING_MIN_BND(r, next_len) && !WT_CROSSING_SPLIT_BND(r, next_len) &&
@@ -1631,7 +1633,9 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
         return (0);
     }
 
-    //到这里说明space_avail可用空间不足了，需要rec split
+    //到这里说明cur_ptr的avail空间不够用了，需要在__wt_rec_split中检查prev_ptr是否为空，如果不为空则把prev_ptr内容写入磁盘
+    // 同时把当前cur_ptr保持到prev_ptr，然后cur_ptr用来进行新的数据拷贝
+    // 
 
     /* We are crossing a split boundary */
     //也就是把当前正在操作的page中已经到达磁盘允许阈值的数据放入prev_ptr,prev_ptr可以写入磁盘了, 当前cur_ptr指向新的干净image空间
@@ -1668,9 +1672,13 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
      * to include the header twice.
      */
     combined_size = prev_ptr->image.size + (cur_ptr->image.size - WT_PAGE_HEADER_BYTE_SIZE(btree));
-   // printf("yang test ....111111111111111111111......__rec_split_finish_process_prev......combined_size:%d,r->page_size:%d, prev_ptr->min_offset:%d, cur_ptr->image.size:%d\r\n",
-     //   (int)combined_size, (int)r->page_size, (int)prev_ptr->min_offset, (int)cur_ptr->image.size);
+    printf("yang test ..........__rec_split_finish_process_prev......combined_size:%d,r->page_size:%d, prev_ptr->min_offset:%d, cur_ptr->image.size:%d\r\n",
+        (int)combined_size, (int)r->page_size, (int)prev_ptr->min_offset, (int)cur_ptr->image.size);
 
+
+    //每个r的大小默认最大为split_size(90% * page_size),当当前r(也就是cur_ptr)已经是该page的最后一个的时候，就需要和prev做比较，看是否需要
+    // 合并，如果当前cur_ptr+prev_ptr大小都没到page_size，则直接合并
+    
     //可以合并到一个chunk image中
     if (combined_size <= r->page_size) {//cur_ptr和prev_ptr两个chunk合并成一个存入prev_ptr，cur_ptr重新用新的image空间
         /* This won't work for FLCS pages, so make sure we don't get here by accident. */
@@ -1697,7 +1705,7 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
         return (__rec_split_chunk_init(session, r, r->prev_ptr));
     }
 
-    //下面分支，说明合并后的数据大于pagesize了
+    //下面分支，说明可以合并，合并方法是把上一个pre_ptr的后半部分内容和当前cur_pre合并，主要原因是
 
     //这里因为合并时候会超过pagesize，因此把prev_ptr对应image空间的前面min_offset部分存入prev_ptr，
     //min_offset后半部分内容和cur_ptr合并到一起，存入cur_ptr
@@ -1744,7 +1752,9 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
        // (int)r->min_split_size, (int)prev_ptr->image.size, (int)cur_ptr->image.size);
     }
 
+    printf("yang test ....111111111111111111111......__rec_split_finish_process_prev\r\n");
     /* Write out the previous image */
+    //走到这里说明prev和cur不能合并，因为合并会超限
     return (__rec_split_write(session, r, r->prev_ptr, NULL, false));
 }
 
@@ -1770,7 +1780,7 @@ __wt_rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
     if (r->entries == 0 && (r->supd_next == 0 || F_ISSET(r, WT_REC_CHECKPOINT)))
         return (0);
 
-    //printf("yang test .................__wt_rec_split_finish................ \r\n");
+    printf("yang test .................__wt_rec_split_finish................ \r\n");
     /* Set the number of entries and size for the just finished chunk. */
     r->cur_ptr->entries = r->entries;
     if (r->page->type == WT_PAGE_COL_FIX) {
@@ -1955,6 +1965,8 @@ __rec_set_page_write_gen(WT_BTREE *btree, WT_PAGE_HEADER *dsk)
  *     Initialize a disk page's header.
  */
 //__rec_split_write_header: page header初始化
+// 1. WT_PAGE_HEADER *dsk对应page header成员赋值   
+// 2. btree->block_header空间置为0
 static void
 __rec_split_write_header(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk,
   WT_MULTI *multi, WT_PAGE_HEADER *dsk)
@@ -1965,6 +1977,7 @@ __rec_split_write_header(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK
     btree = S2BT(session);
     page = r->page;
 
+    //下面对header头部对应dsk成员赋值
     dsk->recno = btree->type == BTREE_ROW ? WT_RECNO_OOB : multi->key.recno;
 
     __rec_set_page_write_gen(btree, dsk);
@@ -1991,6 +2004,7 @@ __rec_split_write_header(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK
     dsk->version = WT_PAGE_VERSION_TS;
 
     /* Clear the memory owned by the block manager. */
+    //block_header的空间置为0
     memset(WT_BLOCK_HEADER_REF(dsk), 0, btree->block_header);
 }
 
@@ -2083,12 +2097,19 @@ __rec_split_write_reuse(
  //初始化的时候默认压缩比为4倍，参考__btree_conf说明，这里根据实际的数据写入情况进行压缩比调整
  */
 static inline void
-__rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compressed_size,
-  bool last_block, uint64_t *adjustp)
+__rec_compression_adjust(WT_SESSION_IMPL *session, 
+    //maxleafpage
+    uint32_t max, 
+    //压缩后的实际字节数
+    size_t compressed_size,
+    bool last_block, 
+    //压缩比计数出的压缩前字节数maxleafpage_precomp
+    uint64_t *adjustp)
 {
     WT_BTREE *btree;
     uint64_t adjust, current, new;
     u_int ten_percent;
+    uint64_t max_adjustp_mempage;
 
     btree = S2BT(session);
     ten_percent = max / 10;
@@ -2108,6 +2129,8 @@ __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compress
     WT_ORDERED_READ(current, *adjustp);
     WT_ASSERT_ALWAYS(session, current >= max, "Writing beyond the max page size");
 
+    //如果压缩效率比比预期的低，例如默认是4倍压缩，如果压缩后的字节数大于maxleafpage大小，则说明需要调小
+    // 压缩比，这时候maxleafpage_precomp可以一次减少maxleafpage/10
     if (compressed_size > max) {
         /*
          * The compressed size is GT the page maximum. Check if the pre-compression size is larger
@@ -2127,7 +2150,7 @@ __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compress
             new = max;
         else
             return;
-    } else {
+    } else {//压缩比比实际4X还高，则调大maxleafpage_precomp
         /*
          * The compressed size is LTE the page maximum.
          *
@@ -2141,13 +2164,26 @@ __rec_compression_adjust(WT_SESSION_IMPL *session, uint32_t max, size_t compress
         if (last_block || compressed_size > max - ten_percent)
             return;
 
+        //printf("yang test ...................... current:%d, ten_percent:%d\r\n", (int)current, (int)ten_percent);
+      
+      max_adjustp_mempage = WT_MAX(btree->maxmempage, btree->maxmempage_image);
+      
+      adjust = current + ten_percent;
+      if (adjust < max_adjustp_mempage)
+          new = adjust;
+      else if (current != max_adjustp_mempage)
+          new = max_adjustp_mempage;
+      else
+          return;
+       
+        /*  
         adjust = current + ten_percent;
         if (adjust < btree->maxmempage_image)
             new = adjust;
         else if (current != btree->maxmempage_image)
             new = btree->maxmempage_image;
         else
-            return;
+            return;*/
     }
     *adjustp = new;
 }
@@ -2179,6 +2215,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
 #ifdef HAVE_DIAGNOSTIC
     bool verify_image;
 #endif
+    uint64_t maxleafpage_precomp_temp;
 
     btree = S2BT(session);
     page = r->page;
@@ -2227,8 +2264,8 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->size = WT_STORE_SIZE(chunk->image.size);
     multi->checksum = 0;
     multi->supd_restore = false;
-   // printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n",
-    //    (int)r->multi_next, (int)multi->size);
+    printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n",
+        (int)r->multi_next, (int)multi->size);
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
@@ -2242,7 +2279,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
         WT_RET(__rec_split_write_supd(session, r, chunk, multi, last_block));
 
     /* Initialize the page header(s). */
-    //page header初始化
+    //page header(WT_PAGE_HEADER)初始化赋值
     __rec_split_write_header(session, r, chunk, multi, chunk->image.mem);
     if (r->page->type == WT_PAGE_COL_FIX)
         __wt_rec_col_fix_write_auxheader(session, chunk->entries, chunk->aux_start_offset,
@@ -2319,6 +2356,8 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     WT_RET(__wt_memdup(session, addr, addr_size, &multi->addr.addr));
     multi->addr.size = (uint8_t)addr_size;
 
+    maxleafpage_precomp_temp = btree->maxleafpage_precomp;
+
     /* Adjust the pre-compression page size based on compression results. */
     //初始化的时候默认压缩比为4倍，参考__btree_conf说明，这里根据实际的数据写入情况进行压缩比调整
     if (WT_PAGE_IS_INTERNAL(page) && compressed_size != 0 && btree->intlpage_compadjust)
@@ -2327,6 +2366,9 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     if (!WT_PAGE_IS_INTERNAL(page) && compressed_size != 0 && btree->leafpage_compadjust)
         __rec_compression_adjust(
           session, btree->maxleafpage, compressed_size, last_block, &btree->maxleafpage_precomp);
+
+    printf("yang test ...__rec_split_write...btree->maxleafpage:%d, compressed_size:%d, befor:%d, after:%d\r\n", 
+        (int)btree->maxleafpage, (int)compressed_size, (int)maxleafpage_precomp_temp, (int)btree->maxleafpage_precomp);
 
     /* Update the per-page reconciliation time statistics now that we've written something. */
     __rec_page_time_stats(session, r);

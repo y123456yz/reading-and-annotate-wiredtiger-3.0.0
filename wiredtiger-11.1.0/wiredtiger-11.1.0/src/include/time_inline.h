@@ -170,6 +170,9 @@ __wt_op_timer_start(WT_SESSION_IMPL *session)
 {
     uint64_t timeout_us;
 
+    //如果session维度的operation_timeout_us配置没有配置则以conn维度的operation_timeout_us为准
+    //如果session维度的operation_timeout_us配置有配置，则以session维度配置为准
+
     /* Timer can be configured per-transaction, and defaults to per-connection. */
     //operation_timeout_ms配置，默认0
     //wiredtiger_open conn维度operation_timeout_ms获取，一般默认值为0
@@ -199,6 +202,7 @@ __wt_op_timer_stop(WT_SESSION_IMPL *session)
 /*
  * __wt_op_timer_fired --
  *     Check the operations timers.
+ //operation_timeout_ms配置超时处理后，在__wt_cache_eviction_worker  __wt_txn_is_blocking中生效
  */
 static inline bool
 __wt_op_timer_fired(WT_SESSION_IMPL *session)

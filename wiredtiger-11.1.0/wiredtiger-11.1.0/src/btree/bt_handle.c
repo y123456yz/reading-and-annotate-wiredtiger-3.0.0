@@ -509,12 +509,17 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt, bool is_ckpt)
          * Don't do compression adjustment when on-disk page sizes are equal to the maximum
          * in-memory page image, the bytes taken for compression can't grow past the base value.
          */
-        if (btree->maxintlpage >= 16 * 1024 && btree->maxmempage_image > btree->maxintlpage) {
+        //if (btree->maxintlpage >= 16 * 1024 && btree->maxmempage_image > btree->maxintlpage) {
+        if (btree->maxintlpage >= 4 * 1024 && btree->maxmempage_image > btree->maxintlpage) {
             btree->intlpage_compadjust = true;
+            //btree->maxmempage_image默认值4 * WT_MAX(btree->maxintlpage, btree->maxleafpage); 
             btree->maxintlpage_precomp = btree->maxmempage_image;
         }
-        if (btree->maxleafpage >= 16 * 1024 && btree->maxmempage_image > btree->maxleafpage) {
+
+        //if (btree->maxleafpage >= 16 * 1024 && btree->maxmempage_image > btree->maxleafpage) {
+        if (btree->maxleafpage >= 4 * 1024 && btree->maxmempage_image > btree->maxleafpage) {
             btree->leafpage_compadjust = true;
+            //btree->maxmempage_image默认值4 * WT_MAX(btree->maxintlpage, btree->maxleafpage); 
             btree->maxleafpage_precomp = btree->maxmempage_image;
         }
     }
@@ -980,6 +985,7 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
      * Get the internal/leaf page sizes. All page sizes must be in units of the allocation size.
      */
     WT_RET(__wt_direct_io_size_check(session, cfg, "internal_page_max", &btree->maxintlpage));
+    //yang add todo xxxxxxxxx是否需要4K字节对齐比较号
     WT_RET(__wt_direct_io_size_check(session, cfg, "leaf_page_max", &btree->maxleafpage));
     if (btree->maxintlpage < btree->allocsize || btree->maxintlpage % btree->allocsize != 0 ||
       btree->maxleafpage < btree->allocsize || btree->maxleafpage % btree->allocsize != 0)

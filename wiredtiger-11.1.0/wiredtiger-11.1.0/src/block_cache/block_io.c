@@ -338,12 +338,15 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
         WT_ERR(__wt_scr_alloc(session, size, &ctmp));
 
         /* Skip the header bytes of the destination data. */
+        //压缩后的数据存储到这里
         dst = (uint8_t *)ctmp->mem + WT_BLOCK_COMPRESS_SKIP;
         dst_len = len;
 
         compression_failed = 0;
         WT_ERR(btree->compressor->compress(btree->compressor, &session->iface, src, src_len, dst,
           dst_len, &result_len, &compression_failed));
+
+        //长度要加上WT_BLOCK_COMPRESS_SKIP
         result_len += WT_BLOCK_COMPRESS_SKIP;
 
         /*
@@ -363,6 +366,7 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
             WT_STAT_DATA_INCR(session, compress_write);
 
             /* Copy in the skipped header bytes and set the final data size. */
+            //头部WT_BLOCK_COMPRESS_SKIP字节拷贝到压缩后的ctmp数据头部
             memcpy(ctmp->mem, buf->mem, WT_BLOCK_COMPRESS_SKIP);
             ctmp->size = result_len;
             ip = ctmp;
@@ -372,12 +376,14 @@ __wt_blkcache_write(WT_SESSION_IMPL *session, WT_ITEM *buf, uint8_t *addr, size_
             F_SET(dsk, WT_PAGE_COMPRESSED);
 
             /* Optionally return the compressed size. */
-            //压缩后的数据长度
+            //压缩后的数据长度, 注意不包括WT_BLOCK_COMPRESS_SKIP头部没压缩的字段
             if (compressed_sizep != NULL)
                 *compressed_sizep = result_len;
         }
+        printf("yang test ...__wt_blkcache_write....befor compress len:%d, after len:%d\r\n",
+            (int)src_len, (int)result_len - WT_BLOCK_COMPRESS_SKIP);
     }
-
+    
     /*
      * Optionally encrypt the data. We need to add in the original length, in case both compression
      * and encryption are done.

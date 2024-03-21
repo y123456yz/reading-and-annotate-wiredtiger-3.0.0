@@ -308,6 +308,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 #define WT_SESSION_NO_RECONCILE 0x02000u
 #define WT_SESSION_QUIET_CORRUPT_FILE 0x04000u
 #define WT_SESSION_READ_WONT_NEED 0x08000u
+//__session_commit_transaction中置位，__wt_txn_commit执行完成后复位
 #define WT_SESSION_RESOLVING_TXN 0x10000u
 #define WT_SESSION_ROLLBACK_TO_STABLE 0x20000u
 #define WT_SESSION_SCHEMA_TXN 0x40000u

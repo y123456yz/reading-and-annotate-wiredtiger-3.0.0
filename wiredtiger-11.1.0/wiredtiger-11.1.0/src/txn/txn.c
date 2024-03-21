@@ -90,6 +90,7 @@ __txn_remove_from_global_table(WT_SESSION_IMPL *session)
 /*
  * __txn_sort_snapshot --
  *     Sort a snapshot for faster searching and set the min/max bounds.
+ //session->txn的snap_min和snap_max赋值
  */
 static void
 __txn_sort_snapshot(WT_SESSION_IMPL *session, uint32_t n, uint64_t snap_max)
@@ -233,6 +234,8 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
         if (publish)
             txn_shared->metadata_pinned = id;
     }
+    printf("yang test __txn_get_snapshot_int....session id:%u, txn:%lu, current_id:%lu, prev_oldest_id:%lu, txn_global->checkpoint_txn_shared.id:%lu\r\n\r\n",
+        session->id, txn->id, current_id, prev_oldest_id, txn_global->checkpoint_txn_shared.id);
 
     /* For pure read-only workloads, avoid scanning. */
     if (prev_oldest_id == current_id) {
@@ -244,8 +247,10 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
 
     /* Walk the array of concurrent transactions. */
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
+    //transaction walk of concurrent sessions
     WT_STAT_CONN_INCR(session, txn_walk_sessions);
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
+        //yang add todo xxxxxxxxxx 这里可以添加到外层，用WT_STAT_CONN_SET(session, txn_sessions_walked,session_cnt);
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /*
          * Build our snapshot of any concurrent transaction IDs.
@@ -483,8 +488,10 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
     /* Update the public IDs. */
     if (WT_TXNID_LT(txn_global->metadata_pinned, metadata_pinned))
         txn_global->metadata_pinned = metadata_pinned;
-    if (WT_TXNID_LT(txn_global->oldest_id, oldest_id))
+    if (WT_TXNID_LT(txn_global->oldest_id, oldest_id)) {
         txn_global->oldest_id = oldest_id;
+        printf("yang test ..........__wt_txn_update_oldest....oldest_id:%lu\r\n", oldest_id);
+    }
     if (WT_TXNID_LT(txn_global->last_running, last_running)) {
         txn_global->last_running = last_running;
 
@@ -506,6 +513,7 @@ done:
 /*
  * __txn_config_operation_timeout --
  *     Configure a transactions operation timeout duration.
+ //如果配置了transaction.operation_timeout_ms，则启动定时器kill超时的事务
  */
 static int
 __txn_config_operation_timeout(WT_SESSION_IMPL *session, const char *cfg[], bool start_timer)
@@ -1539,6 +1547,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
     WT_ASSERT(session, !F_ISSET(txn, WT_TXN_ERROR) || txn->mod_count == 0);
 
     /* Configure the timeout for this commit operation. */
+    //如果配置了transaction.operation_timeout_ms，则启动定时器kill超时的事务
     WT_ERR(__txn_config_operation_timeout(session, cfg, true));
 
     /*

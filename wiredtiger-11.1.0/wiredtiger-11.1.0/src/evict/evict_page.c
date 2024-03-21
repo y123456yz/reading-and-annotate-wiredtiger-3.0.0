@@ -188,8 +188,9 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
      * stays in memory and the tree is left in the desired state: avoid the usual cleanup.
      */
     //page消耗的内存没有超过splitmempage，并且满足下列两条件中的任何一个则进行内存split
-    //  1. 大于maxleafpage * 2，并且至少有5个KV 
-    //  2. 有超过30个KV并且page内存超过maxleafpage
+    //  1. page内存大于splitmempage(80% * maxmempage)才可以进行内存splite，参考__wt_leaf_page_can_split
+    //  2. 大于maxleafpage * 2，并且至少有5个KV 
+    //  3. 有超过30个KV并且page内存超过maxleafpage
     if (inmem_split) {//page内存超限，通过这里进行split
         WT_ERR(__wt_split_insert(session, ref));
         goto done;
