@@ -57,7 +57,7 @@ static char home[1024]; /* Program working dir */
  * inserted and it records the timestamp that was used for that insertion.
  */
 #define INVALID_KEY UINT64_MAX
-#define MAX_CKPT_INVL 5 /* Maximum interval between checkpoints */
+#define MAX_CKPT_INVL 3 /* Maximum interval between checkpoints */
 #define MAX_TH 200      /* Maximum configurable threads */
 #define MAX_TIME 40
 #define MAX_VAL 1024
@@ -67,11 +67,12 @@ static char home[1024]; /* Program working dir */
 #define PREPARE_FREQ 5
 #define PREPARE_PCT 10
 #define PREPARE_YIELD (PREPARE_FREQ * 10)
+//thread_run写如该records-线程号文件，主线程读该文件
 #define RECORDS_FILE "records-%" PRIu32
 /* Include worker threads and prepare extra sessions */
 #define SESSION_MAX (MAX_TH + 3 + MAX_TH * PREPARE_PCT)
 #define STAT_WAIT 1
-#define USEC_STAT 10000
+#define USEC_STAT 10000 //10000   yang add change
 
 static const char *table_pfx = "table";
 static const char *const uri_collection = "collection";
@@ -96,22 +97,26 @@ static TEST_OPTS *opts, _opts;
 #define ENV_CONFIG_ADD_EVICT_DIRTY ",eviction_dirty_target=20,eviction_dirty_trigger=90"
 #define ENV_CONFIG_ADD_STRESS ",timing_stress_for_test=[prepare_checkpoint_delay]"
 
+//statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中
 #define ENV_CONFIG_DEF                                        \
     "cache_size=%" PRIu32                                     \
-    "M,create,"                                               \
+    "M,create,verbose=[config_all_verbos:2,log:0, transaction:5],"                  \
     "debug_mode=(table_logging=true,checkpoint_retention=5)," \
     "eviction_updates_target=20,eviction_updates_trigger=90," \
     "log=(enabled,file_max=10M,remove=true),session_max=%d,"  \
-    "statistics=(all),statistics_log=(wait=%d,json,on_close)"
+    "statistics=(all)"
 #define ENV_CONFIG_TXNSYNC \
     ENV_CONFIG_DEF         \
     ",transaction_sync=(enabled,method=none)"
+
+//"statistics=(all),statistics_log=(wait=%d,json,on_close)"
 
 /*
  * A minimum width of 10, along with zero filling, means that all the keys sort according to their
  * integer value, making each thread's key space distinct. For column-store we just use the integer
  * values and that has the same effect.
  */
+//例如0会被转换为0000000000  1转换为0000000001  11转换为0000000011
 #define KEY_STRINGFORMAT ("%010" PRIu64)
 
 #define SHARED_PARSE_OPTIONS "b:CmP:h:p"
@@ -126,10 +131,13 @@ typedef struct {
 
 typedef struct {
     WT_CONNECTION *conn;
+    //该线程对应的起始key
     uint64_t start;
+    //第几个线程
     uint32_t info;
 } THREAD_DATA;
 
+//线程数
 static uint32_t nth;                      /* Number of threads. */
 static wt_timestamp_t *active_timestamps; /* Oldest timestamps still in use. */
 
@@ -149,6 +157,7 @@ static WT_EVENT_HANDLER my_event = {NULL, NULL, NULL, NULL, handle_general};
 /*
  * stat_func --
  *     Function to run with the early connection and gather statistics.
+ session相关的统计
  */
 static WT_THREAD_RET
 stat_func(void *arg)
@@ -165,6 +174,7 @@ stat_func(void *arg)
     last = -1;
     value = 0;
     while (stat_run) {
+        //usleep(USEC_STAT); //yang add change
         testutil_check(stat_session->open_cursor(stat_session, "statistics:", NULL, NULL, &stat_c));
 
         /* Pick some statistic that is likely changed during recovery RTS. */
@@ -173,7 +183,8 @@ stat_func(void *arg)
         testutil_check(stat_c->get_value(stat_c, &desc, &pvalue, &value));
         testutil_check(stat_c->close(stat_c));
         if (desc != NULL && value != last)
-            printf("%s: %" PRId64 "\n", desc, value);
+            printf("%s: %" PRId64 "  xxxxxxxxxxx1111111111111111111\n", desc, value); //yang add change
+            //WT_UNUSED(last);//printf("%s: %" PRId64 "\n", desc, value); yang add change
         last = value;
         usleep(USEC_STAT);
     }
@@ -229,8 +240,11 @@ handle_general(WT_EVENT_HANDLER *handler, WT_CONNECTION *conn, WT_SESSION *sessi
     WT_UNUSED(session);
     WT_UNUSED(arg);
 
+    //__conn_close的时候回走到这里
     if (type == WT_EVENT_CONN_CLOSE)
         handle_conn_close();
+
+    //wiredtiger_open的时候走到这里
     else if (type == WT_EVENT_CONN_READY)
         handle_conn_ready(conn);
     return (0);
@@ -384,6 +398,7 @@ thread_run(void *arg)
     char cbuf[MAX_VAL], lbuf[MAX_VAL], obuf[MAX_VAL];
     char kname[64], tscfg[64], uri[128];
     bool durable_ahead_commit, use_prep;
+    WT_CONNECTION* conn;
 
     __wt_random_init(&rnd);
     memset(cbuf, 0, sizeof(cbuf));
@@ -419,6 +434,7 @@ thread_run(void *arg)
      * transactions cannot have any operations that modify a table that is logged. But we also want
      * to test mixed logged and not-logged transactions.
      */
+    //这里获取了2个session
     testutil_check(td->conn->open_session(td->conn, NULL, "isolation=snapshot", &session));
     if (use_prep)
         testutil_check(
@@ -431,6 +447,7 @@ thread_run(void *arg)
         testutil_check(prepared_session->open_cursor(prepared_session, uri, NULL, NULL, &cur_coll));
     else
         testutil_check(session->open_cursor(session, uri, NULL, NULL, &cur_coll));
+        
     testutil_check(__wt_snprintf(uri, sizeof(uri), "%s:%s", table_pfx, uri_shadow));
     if (use_prep)
         testutil_check(
@@ -444,21 +461,46 @@ thread_run(void *arg)
           prepared_session->open_cursor(prepared_session, uri, NULL, NULL, &cur_local));
     else
         testutil_check(session->open_cursor(session, uri, NULL, NULL, &cur_local));
+
+    //注意oplog没有使用prepared_session
     testutil_check(__wt_snprintf(uri, sizeof(uri), "%s:%s", table_pfx, uri_oplog));
+    //__session_open_cursor
     testutil_check(session->open_cursor(session, uri, NULL, NULL, &cur_oplog));
 
     /*
      * Write our portion of the key space until we're killed.
      */
-    printf("Thread %" PRIu32 " starts at %" PRIu64 "\n", td->info, td->start);
+    printf("Thread %" PRIu32 " starts at %" PRIu64 "\n\n\n\n\n\n\n\n", td->info, td->start);
     active_ts = 0;
-    for (i = td->start;; ++i) {
+    //for (i = td->start; i < td->start + 5000; ++i) { yang add change xxxxxxxxxxx
+   // for (i = td->start;; ++i) {
+    use_prep = 0;//yang add todo xxxxxxxxx
+    {
+        printf("yang test ..............thread_run.........%p, %p, %p, %p  \r\n\r\n\r\n\r\n", 
+            session, CUR2S((WT_CURSOR_BTREE *)cur_coll), CUR2S((WT_CURSOR_BTREE *)cur_shadow),
+            CUR2S((WT_CURSOR_BTREE *)cur_local));
+    }
+    
+    //注意: 同一个事务，下面的session和prepared_session是两个不同的session id, 
+    // 同一个session打开的多个表cursor，这些cursor对应的session  CUR2S会是同一个session ,
+    // 此外每个__curfile_insert(coll->insert)都会__txn_get_snapshot_int获取快照，并通过__wt_txn_id_alloc获取事务id,
+    //    但是每个insert结尾都会通过TXN_API_END->__wt_txn_commit来提交事务
+    for (i = td->start;i < td->start + 10; ++i) {
+        printf("yang test ..............thread_run...................use_ts:%d, start:%lu\r\n",use_ts, i);
+        
+        //第一轮循环结果如下: 
+        //  coll表普通session的commit_timestamp: 1
+        //  shadow表普通session的commit_timestamp: 2
+        //  oplog表普通session的commit_timestamp: 2
+        //  prepared_session相关 prepare_timestamp=2 commit_timestamp=2 durable_timestamp=6
         testutil_check(session->begin_transaction(session, NULL));
         if (use_prep)
             testutil_check(prepared_session->begin_transaction(prepared_session, NULL));
-
-        if (use_ts) {
+    
+        //if (use_ts) {
+        if (1) {
             /* Allocate two timestamps. */
+            //获取原来的值赋值给active_ts，然后global_ts+2
             active_ts = __wt_atomic_fetch_addv64(&global_ts, 2);
             testutil_check(
               __wt_snprintf(tscfg, sizeof(tscfg), "commit_timestamp=%" PRIx64, active_ts));
@@ -467,9 +509,11 @@ thread_run(void *arg)
              * prepared transactions, set the timestamp for the session used for oplog. The
              * collection session in that case would continue to use this timestamp.
              */
+            //__session_timestamp_transaction
             testutil_check(session->timestamp_transaction(session, tscfg));
         }
 
+        //printf("yang test ......thread_run........1 global_ts:%lu, active_ts:%lu, start:%lu\r\n", global_ts,active_ts, i);
         if (columns) {
             cur_coll->set_key(cur_coll, i + 1);
             cur_local->set_key(cur_local, i + 1);
@@ -493,23 +537,32 @@ thread_run(void *arg)
           "OPLOG: thread:%" PRIu32 " ts:%" PRIu64 " key: %" PRIu64, td->info, active_ts, i));
         data.size = __wt_random(&rnd) % MAX_VAL;
         data.data = cbuf;
+        //printf("yang test ..................size:%d, cbuf:%s\r\n", (int)data.size, cbuf);
+        
+        //写入collection表
         cur_coll->set_value(cur_coll, &data);
         if ((ret = cur_coll->insert(cur_coll)) == WT_ROLLBACK)
             goto rollback;
         testutil_check(ret);
+
+        //写入shadow表  shadow和collection用相同的data
         cur_shadow->set_value(cur_shadow, &data);
-        if (use_ts) {
+        if (1) {
             /*
              * Change the timestamp in the middle of the transaction so that we simulate a
              * secondary.
              */
             ++active_ts;
+            //__session_timestamp_transaction
             testutil_check(
               __wt_snprintf(tscfg, sizeof(tscfg), "commit_timestamp=%" PRIx64, active_ts));
             testutil_check(session->timestamp_transaction(session, tscfg));
         }
         if ((ret = cur_shadow->insert(cur_shadow)) == WT_ROLLBACK)
             goto rollback;
+
+        //printf("yang test ..............thread_run........2...........active_ts:%lu, start:%lu\r\n",active_ts, i);
+        //写入oplog表
         data.size = __wt_random(&rnd) % MAX_VAL;
         data.data = obuf;
         cur_oplog->set_value(cur_oplog, &data);
@@ -543,18 +596,37 @@ thread_run(void *arg)
 
             testutil_check(prepared_session->commit_transaction(prepared_session, tscfg));
         }
+
+        {
+            conn = &S2C(session)->iface;
+            (void)conn->debug_info(conn, "txn"); // __wt_verbose_dump_txn   yang add change todo 
+        }
+
+        //
         testutil_check(session->commit_transaction(session, NULL));
+
+        
         /*
          * Insert into the local table outside the timestamp txn. This must occur after the
          * timestamp transaction, not before, because of the possibility of rollback in the
          * transaction. The local table must stay in sync with the other tables.
          */
+         
+        //写入local表, 注意这里在事务外层
         data.size = __wt_random(&rnd) % MAX_VAL;
         data.data = lbuf;
         cur_local->set_value(cur_local, &data);
         testutil_check(cur_local->insert(cur_local));
 
+        //usleep(1000 * td->info);//目的是避免多个线程输出信息相互影响
+        sleep(1);
+        
+        {
+            conn = &S2C(session)->iface;
+            (void)conn->debug_info(conn, "txn"); // __wt_verbose_dump_txn   yang add change todo 
+        }
         /* Save the timestamps and key separately for checking later. */
+        //写入records-线程号文件
         if (fprintf(fp, "%" PRIu64 " %" PRIu64 " %" PRIu64 "\n", active_ts,
               durable_ahead_commit ? active_ts + 4 : active_ts, i) < 0)
             testutil_die(EIO, "fprintf");
@@ -571,6 +643,8 @@ rollback:
             WT_PUBLISH(active_timestamps[td->info], active_ts);
     }
     /* NOTREACHED */
+    printf("yang test ..............thread_run.........222222222222222222222\r\n\r\n\r\n\r\n");
+    return 0;//yang add change xxxxxxxxxxxxxx
 }
 
 static void run_workload(void) WT_GCC_FUNC_DECL_ATTRIBUTE((noreturn));
@@ -579,6 +653,7 @@ static void run_workload(void) WT_GCC_FUNC_DECL_ATTRIBUTE((noreturn));
  * run_workload --
  *     Child process creates the database and table, and then creates worker threads to add data
  *     until it is killed by the parent.
+ 主进程在sleep timeout时间后会kill该进程
  */
 static void
 run_workload(void)
@@ -591,6 +666,7 @@ run_workload(void)
     char envconf[512], uri[128];
     const char *table_config, *table_config_nolog;
 
+    //多加了2个线程
     thr = dcalloc(nth + 2, sizeof(*thr));
     td = dcalloc(nth + 2, sizeof(THREAD_DATA));
     active_timestamps = dcalloc(nth, sizeof(wt_timestamp_t));
@@ -608,10 +684,10 @@ run_workload(void)
         testutil_die(errno, "Child chdir: %s", home);
     if (opts->inmem)
         testutil_check(__wt_snprintf(
-          envconf, sizeof(envconf), ENV_CONFIG_DEF, cache_mb, SESSION_MAX, STAT_WAIT));
+          envconf, sizeof(envconf), ENV_CONFIG_DEF, cache_mb, SESSION_MAX));//, STAT_WAIT));
     else
         testutil_check(__wt_snprintf(
-          envconf, sizeof(envconf), ENV_CONFIG_TXNSYNC, cache_mb, SESSION_MAX, STAT_WAIT));
+          envconf, sizeof(envconf), ENV_CONFIG_TXNSYNC, cache_mb, SESSION_MAX));//, STAT_WAIT));
     if (opts->compat)
         strcat(envconf, TESTUTIL_ENV_CONFIG_COMPAT);
     if (stress)
@@ -652,13 +728,14 @@ run_workload(void)
     testutil_check(session->close(session, NULL));
 
     /* The checkpoint, timestamp and worker threads are added at the end. */
+    //多加的2个线程一个对应checkpoint，一个对应use ts
     ckpt_id = nth;
     td[ckpt_id].conn = conn;
     td[ckpt_id].info = nth;
     printf("Create checkpoint thread\n");
     testutil_check(__wt_thread_create(NULL, &thr[ckpt_id], thread_ckpt_run, &td[ckpt_id]));
     ts_id = nth + 1;
-    if (use_ts) {
+    if (use_ts) {//默认true
         td[ts_id].conn = conn;
         td[ts_id].info = nth;
         printf("Create timestamp thread\n");
@@ -667,6 +744,7 @@ run_workload(void)
     printf("Create %" PRIu32 " writer threads\n", nth);
     for (i = 0; i < nth; ++i) {
         td[i].conn = conn;
+        //这个线程从这个key开始写数据，这样就避免了不同线程操作相同的数据
         td[i].start = WT_BILLION * (uint64_t)i;
         td[i].info = i;
         testutil_check(__wt_thread_create(NULL, &thr[i], thread_run, &td[i]));
@@ -763,7 +841,10 @@ main(int argc, char *argv[])
 
     columns = stress = false;
     use_ts = true;
+    //下面的nth = __wt_random(&rnd) % MAX_TH;
     nth = MIN_TH;
+    //rand_th线程数随机生成， -T可以设置为false
+    //rand_time设置timeout时间，可以在后面timeout = __wt_random(&rnd) % MAX_TIME;随机生成， -t设置为false
     rand_th = rand_time = true;
     timeout = MIN_TIME;
     verify_only = false;
@@ -784,6 +865,7 @@ main(int argc, char *argv[])
             break;
         case 'T':
             rand_th = false;
+            //线程数
             nth = (uint32_t)atoi(__wt_optarg);
             if (nth > MAX_TH) {
                 fprintf(
@@ -822,16 +904,18 @@ main(int argc, char *argv[])
         fprintf(stderr, "Verify option requires specifying number of threads\n");
         exit(EXIT_FAILURE);
     }
+
+    //默认false, -v设置为true
     if (!verify_only) {
         testutil_make_work_dir(home);
 
         __wt_random_init_seed(NULL, &rnd);
-        if (rand_time) {
+        if (rand_time) {//默认true
             timeout = __wt_random(&rnd) % MAX_TIME;
             if (timeout < MIN_TIME)
                 timeout = MIN_TIME;
         }
-        if (rand_th) {
+        if (rand_th) {//默认true
             nth = __wt_random(&rnd) % MAX_TH;
             if (nth < MIN_TH)
                 nth = MIN_TH;
@@ -869,7 +953,8 @@ main(int argc, char *argv[])
         testutil_check(__wt_snprintf(statname, sizeof(statname), "%s/%s", home, ckpt_file));
         while (stat(statname, &sb) != 0)
             testutil_sleep_wait(1, pid);
-        sleep(timeout);
+        sleep(timeout); //yang add change
+        //usleep(5 * 1000);
         sa.sa_handler = SIG_DFL;
         testutil_assert_errno(sigaction(SIGCHLD, &sa, NULL) == 0);
 
@@ -900,6 +985,7 @@ main(int argc, char *argv[])
     /*
      * Open the connection which forces recovery to be run.
      */
+    //statistic统计相关输出通过my_event进行
     testutil_wiredtiger_open(opts, buf, &my_event, &conn, true);
 
     printf("Connection open and recovery complete. Verify content\n");
@@ -935,6 +1021,7 @@ main(int argc, char *argv[])
         initialize_rep(&c_rep[i]);
         initialize_rep(&l_rep[i]);
         initialize_rep(&o_rep[i]);
+        //records-线程号文件,配合thread_run阅读
         testutil_check(__wt_snprintf(fname, sizeof(fname), RECORDS_FILE, i));
         if ((fp = fopen(fname, "r")) == NULL)
             testutil_die(errno, "fopen: %s", fname);
@@ -979,6 +1066,8 @@ main(int argc, char *argv[])
                 cur_shadow->set_key(cur_shadow, key + 1);
             } else {
                 testutil_check(__wt_snprintf(kname, sizeof(kname), KEY_STRINGFORMAT, key));
+                //0000000000
+                //printf("yang test ...................... timestamp abort main, kname:%s\r\n", kname);
                 cur_coll->set_key(cur_coll, kname);
                 cur_local->set_key(cur_local, kname);
                 cur_oplog->set_key(cur_oplog, kname);
@@ -1113,7 +1202,8 @@ main(int argc, char *argv[])
         /* At this point $PATH is inside `home`, which we intend to delete. cd to the parent dir. */
         if (chdir("../") != 0)
             testutil_die(errno, "root chdir: %s", home);
-        testutil_clean_work_dir(home);
+       // testutil_clean_work_dir(home);  yang add change
     }
     return (EXIT_SUCCESS);
 }
+

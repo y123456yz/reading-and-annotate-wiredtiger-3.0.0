@@ -40,6 +40,11 @@ err:
  * __wt_row_modify --
  *     Row-store insert, update and delete.
  */
+
+//__cursor_row_search和__wt_row_modify的关系:
+//  __cursor_row_search用于确定K在btree中的位置以及是否存在等
+//  __wt_row_modify负责在__cursor_row_search找到的位置把新KV添加到btree合适位置
+ 
 //__search_insert_append: 如果srch_key比调表中最大的key大，则记录最末尾KV的位置, 如果跳跃表上面还没有KV，则直接返回啥也不做
 //__wt_search_insert: leaf page对应ins_head跳跃表上查找srch_key在跳跃表中的位置记录到cbt->next_stack[] cbt->ins_stack[]等中
 //__wt_row_modify: 真正把KV添加到跳跃表中

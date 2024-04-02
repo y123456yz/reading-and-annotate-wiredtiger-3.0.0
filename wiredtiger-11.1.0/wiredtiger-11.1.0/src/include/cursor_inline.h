@@ -410,6 +410,7 @@ __cursor_kv_return(WT_CURSOR_BTREE *cbt, WT_UPDATE_VALUE *upd_value)
 /*
  * __wt_cursor_func_init --
  *     Cursor call setup.
+ 查找写入等cursor操作都会走到这里
  */
 static inline int
 __wt_cursor_func_init(WT_CURSOR_BTREE *cbt, bool reenter)

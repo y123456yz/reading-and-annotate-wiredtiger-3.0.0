@@ -48,6 +48,8 @@ struct __wt_rwlock { /* Read/write lock */
         } s;
     } u;
 
+
+    //¸³Öµ²Î¿¼__wt_spin_lock_track
     int16_t stat_read_count_off;    /* read acquisitions offset */
     int16_t stat_write_count_off;   /* write acquisitions offset */
     int16_t stat_app_usecs_off;     /* waiting application threads offset */

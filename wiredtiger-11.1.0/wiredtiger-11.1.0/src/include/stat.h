@@ -670,6 +670,8 @@ struct __wt_connection_stats {
     int64_t dh_session_sweeps;
 
     //"lock"
+    //# Locking statistics相关统计参考这里，例如lock_checkpoint_count lock_checkpoint_wait_application lock_checkpoint_wait_internal等
+    //相关值统计增加见__wt_spin_lock_track
     int64_t lock_checkpoint_count;
     int64_t lock_checkpoint_wait_application;
     int64_t lock_checkpoint_wait_internal;

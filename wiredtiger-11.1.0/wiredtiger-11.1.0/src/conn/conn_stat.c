@@ -87,6 +87,7 @@ __wt_conn_stat_init(WT_SESSION_IMPL *session)
  * __statlog_config --
  *     Parse and setup the statistics server options.
  */
+ //statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中
 static int
 __statlog_config(WT_SESSION_IMPL *session, const char **cfg, bool *runp)
 {

@@ -142,6 +142,10 @@ __atomic_load_n(ptr, order);
 // 原子存储操作__atomic_add_fetch(ptr, value, order); 
 // 原子加法操作并返回新值__atomic_sub_fetch(ptr, value, order); 
 // 原子减法操作并返回新值
+
+例如global_ts =1;active_ts = __wt_atomic_fetch_addv64(&global_ts, 2); 
+// 表示active_ts先获取global_ts的值，然后global_ts=global_ts+2, 最终active_ts=1，global_ts=3
+
 */
 #define WT_ATOMIC_FUNC(name, ret, vp_arg, v_arg)                 \
     static inline ret __wt_atomic_add##name(vp_arg, v_arg)       \

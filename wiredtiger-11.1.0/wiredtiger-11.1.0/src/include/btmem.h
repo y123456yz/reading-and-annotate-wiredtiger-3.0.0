@@ -1472,8 +1472,10 @@ struct __wt_update {
      * from memory rather than using the local variable, mark the shared transaction IDs volatile to
      * prevent unexpected repeated/reordered reads.
      */
+    //改upd对应的事务id，赋值见__wt_txn_modify
     volatile uint64_t txnid; /* transaction ID */
 
+    //赋值见__wt_txn_op_set_timestamp
     wt_timestamp_t durable_ts; /* timestamps */
     wt_timestamp_t start_ts;
 
@@ -1490,6 +1492,7 @@ struct __wt_update {
 
 #define WT_UPDATE_INVALID 0   /* diagnostic check */
 #define WT_UPDATE_MODIFY 1    /* partial-update modify value */
+//__wt_btcur_reserve中设置
 #define WT_UPDATE_RESERVE 2   /* reserved */
 #define WT_UPDATE_STANDARD 3  /* complete value */
 #define WT_UPDATE_TOMBSTONE 4 /* deleted */

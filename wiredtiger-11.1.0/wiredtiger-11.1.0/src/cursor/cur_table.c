@@ -1046,7 +1046,6 @@ mongodb创建cursor:
 外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，外部WT_SESSION->open_cursor
     ->__wt_schema_get_table_uri->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle(使用缓存的dhandle)
 */
-//"table:"走这里
 int
 __wt_curtable_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, const char *cfg[],
   WT_CURSOR **cursorp)
@@ -1100,8 +1099,11 @@ __wt_curtable_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, 
     //确保表已经创建成功
     WT_RET(__curtable_complete(session, table)); /* completeness check */
 
-    if (table->is_simple) {
+    if (table->is_simple) {//走这里
         /* Just return a cursor on the underlying data source. */
+        //yang test .......__wt_curtable_open..........22222222222222222...old uri:table:collection, new uri:file:collection.wt
+        //printf("yang test .......__wt_curtable_open..........22222222222222222...old uri:%s, new uri:%s\r\n",
+        //    uri, table->cgroups[0]->source);
         ret = __wt_open_cursor(session, table->cgroups[0]->source, NULL, cfg, cursorp);
 
         WT_TRET(__wt_schema_release_table(session, &table));

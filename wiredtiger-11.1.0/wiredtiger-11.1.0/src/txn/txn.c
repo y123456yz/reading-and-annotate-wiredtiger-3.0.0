@@ -65,6 +65,7 @@ __snapsort(uint64_t *array, uint32_t size)
  * __txn_remove_from_global_table --
  *     Remove the transaction id from the global transaction table.
  */
+//把txn_shared_list[]数组中session对应id置位WT_TXN_NONE, 也就是本session管理的事务id清0
 static inline void
 __txn_remove_from_global_table(WT_SESSION_IMPL *session)
 {
@@ -90,7 +91,11 @@ __txn_remove_from_global_table(WT_SESSION_IMPL *session)
 /*
  * __txn_sort_snapshot --
  *     Sort a snapshot for faster searching and set the min/max bounds.
+
+  __txn_sort_snapshot __txn_get_snapshot_int和__wt_txn_release_snapshot对应
+  
  //session->txn的snap_min和snap_max赋值
+ //对该session能看到的所有事务按照事务id进行排序，并记录能看到的所有事务id的最小值和最大值
  */
 static void
 __txn_sort_snapshot(WT_SESSION_IMPL *session, uint32_t n, uint64_t snap_max)
@@ -115,6 +120,9 @@ __txn_sort_snapshot(WT_SESSION_IMPL *session, uint32_t n, uint64_t snap_max)
  *     Release the snapshot in the current transaction.
  //[1701957314:925541][56918:0x7fe1ab82e800], close_ckpt: [WT_VERB_CHECKPOINT_PROGRESS][DEBUG_1]: saving checkpoint snapshot
  //  min: 10005, snapshot max: 10005 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0) base write gen: 1
+
+ __txn_sort_snapshot __txn_get_snapshot_int和__wt_txn_release_snapshot对应
+
  */
 void
 __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
@@ -147,6 +155,8 @@ __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
  *     back. It is possible that we race with commit, prepare or rollback and a transaction is still
  *     active before the start of the call is eventually reported as resolved.
  */
+//判断txnid对应事务是否已经提交或者回滚或者prepared, 也就是该事务id小于全局oldest_id 或者 事务id大于全局oldest_id并且在txn_shared_list中可以找到
+//
 bool
 __wt_txn_active(WT_SESSION_IMPL *session, uint64_t txnid)
 {
@@ -174,6 +184,7 @@ __wt_txn_active(WT_SESSION_IMPL *session, uint64_t txnid)
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
     WT_STAT_CONN_INCR(session, txn_walk_sessions);
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
+        //yang add todo xxxxxxxxxxxxxx 这里可以放到外层，可以搜索这里，这里有多个地方这样用
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /* If the transaction is in the list, it is uncommitted. */
         if (s->id == txnid)
@@ -189,6 +200,7 @@ done:
 /*
  * __txn_get_snapshot_int --
  *     Allocate a snapshot, optionally update our shared txn ids.
+   __txn_sort_snapshot __txn_get_snapshot_int和__wt_txn_release_snapshot对应
  */
 static void
 __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
@@ -230,13 +242,23 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
      */
     if ((id = txn_global->checkpoint_txn_shared.id) != WT_TXN_NONE) {
         if (txn->id != id)
+            //也就是记录对应得checkpoint id信息
             txn->snapshot[n++] = id;
+            
         if (publish)
             txn_shared->metadata_pinned = id;
     }
-    printf("yang test __txn_get_snapshot_int....session id:%u, txn:%lu, current_id:%lu, prev_oldest_id:%lu, txn_global->checkpoint_txn_shared.id:%lu\r\n\r\n",
-        session->id, txn->id, current_id, prev_oldest_id, txn_global->checkpoint_txn_shared.id);
+    
+    {
+        char buf[512];
 
+        //注意: 如果一个事务中对多个表操作，每个表访问cursor不一样，session也会不一样
+        snprintf(buf, 512, "session:%p, yang test __txn_get_snapshot_int....session id:%u, session txn id:%lu, current_id:%lu, prev_oldest_id:%lu, txn_global->checkpoint_txn_shared.id:%lu\r\n\r\n",
+            session, session->id, txn->id, current_id, prev_oldest_id, txn_global->checkpoint_txn_shared.id);
+        __wt_verbose_debug1(
+                  session, WT_VERB_TRANSACTION, "%s", buf);
+    }
+    
     /* For pure read-only workloads, avoid scanning. */
     if (prev_oldest_id == current_id) {
         pinned_id = current_id;
@@ -246,9 +268,12 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
     }
 
     /* Walk the array of concurrent transactions. */
+    //代表实例中同时在使用的最大session数量
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
     //transaction walk of concurrent sessions
     WT_STAT_CONN_INCR(session, txn_walk_sessions);
+    //获取txn_shared_list[]数组中，获取所有大于prev_oldest_id的session事务
+    //也就是获取当前session可以看到的所有其他事务(大于prev_oldest_id的session事务)
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
         //yang add todo xxxxxxxxxx 这里可以添加到外层，用WT_STAT_CONN_SET(session, txn_sessions_walked,session_cnt);
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
@@ -266,6 +291,8 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
          *    this case, we ignore this transaction because it would
          *    not be visible to the current snapshot.
          */
+        printf("yang test ........................i=%u, txn_shared_list[%u].id=%lu\r\n", i, i, s->id);
+        //txn_global->txn_shared_list[]数组中不是当前session id，并且事务id不为0，
         while (s != txn_shared && (id = s->id) != WT_TXN_NONE && WT_TXNID_LE(prev_oldest_id, id) &&
           WT_TXNID_LT(id, current_id)) {
             /*
@@ -281,7 +308,9 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
                  * allocation.
                  */
                 WT_READ_BARRIER();
+                //id代表的是事务id
                 if (id == s->id) {
+                    //n也就是当前txn_shared_list[]数组中除自己以外的所有大于prev_oldest_id的session事务总数
                     txn->snapshot[n++] = id;
                     if (WT_TXNID_LT(id, pinned_id))
                         pinned_id = id;
@@ -302,11 +331,17 @@ done:
         txn_shared->pinned_id = pinned_id;
     __wt_readunlock(session, &txn_global->rwlock);
     __txn_sort_snapshot(session, n, current_id);
+    {
+        int ret = __wt_verbose_dump_txn_one(session, session, 0, NULL);//yang add change
+        (void)(ret);
+    }
 }
 
 /*
  * __wt_txn_get_snapshot --
  *     Common case, allocate a snapshot and update our shared ids.
+  __wt_txn_begin->__wt_txn_get_snapshot
+  curosr读写都会调用__wt_cursor_func_init->__wt_txn_cursor_op->__wt_txn_get_snapshot
  */
 void
 __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
@@ -688,9 +723,11 @@ __wt_txn_release(WT_SESSION_IMPL *session)
          * If transaction is prepared, this would have been done in prepare.
          */
         if (!F_ISSET(txn, WT_TXN_PREPARE))
+            //把txn_shared_list[]数组中session对应id置位WT_TXN_NONE, 也就是本session对应的共享事务id清0
             __txn_remove_from_global_table(session);
         else
             WT_ASSERT(session, WT_SESSION_TXN_SHARED(session)->id == WT_TXN_NONE);
+        //把本session管理的事务id清0
         txn->id = WT_TXN_NONE;
     }
 
@@ -723,6 +760,7 @@ __wt_txn_release(WT_SESSION_IMPL *session)
     txn->prepare_timestamp = WT_TS_NONE;
 
     /* Clear operation timer. */
+    //这里的__wt_op_timer_stop(s); 在API_END释放
     txn->operation_timeout_us = 0;
 }
 
@@ -1195,6 +1233,7 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
           __wt_timestamp_to_string(txn->commit_timestamp, ts_string[1]),
           __wt_timestamp_to_string(txn->durable_timestamp, ts_string[2]));
     else
+        //yang add todo xxxxxxxxx  "and timestamp"这里少了一个空格，应该为" and timestamp"
         __wt_verbose_debug2(session, WT_VERB_TRANSACTION,
           "rollback resolving prepared transaction with txnid: %" PRIu64 "and timestamp:%s",
           txn->id, __wt_timestamp_to_string(txn->prepare_timestamp, ts_string[0]));
@@ -1531,6 +1570,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
     u_int i;
     bool cannot_fail, locked, prepare, readonly, update_durable_ts;
 
+    printf("yang test .....__wt_txn_commit..........session id:%u\r\n", session->id);
     conn = S2C(session);
     cursor = NULL;
     txn = session->txn;
@@ -1660,6 +1700,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
                 /*
                  * Switch reserved operations to abort to simplify obsolete update list truncation.
                  */
+                //只有WT_CURSOR->reserve()接口才会满足该条件，一般不会进来，可以先忽略
                 if (upd->type == WT_UPDATE_RESERVE) {
                     upd->txnid = WT_TXN_ABORTED;
                     break;
@@ -2353,6 +2394,8 @@ __wt_txn_global_init(WT_SESSION_IMPL *session, const char *cfg[])
 
     WT_RET(__wt_calloc_def(session, conn->session_size, &txn_global->txn_shared_list));
 
+    printf("yang test ..............__wt_txn_global_init...............session_size:%u\r\n",
+        conn->session_size);
     for (i = 0, s = txn_global->txn_shared_list; i < conn->session_size; i++, s++)
         s->id = s->metadata_pinned = s->pinned_id = WT_TXN_NONE;
 
@@ -2548,7 +2591,7 @@ __wt_verbose_dump_txn_one(
      */
     WT_RET(
       __wt_snprintf(buf, sizeof(buf),
-        "transaction id: %" PRIu64 ", mod count: %u"
+        "session id:%" PRIu32 ", transaction id: %" PRIu64 ", mod count: %u"
         ", snap min: %" PRIu64 ", snap max: %" PRIu64 ", snapshot count: %u"
         ", commit_timestamp: %s"
         ", durable_timestamp: %s"
@@ -2560,7 +2603,7 @@ __wt_verbose_dump_txn_one(
         ", full checkpoint: %s"
         ", rollback reason: %s"
         ", flags: 0x%08" PRIx32 ", isolation: %s",
-        txn->id, txn->mod_count, txn->snap_min, txn->snap_max, txn->snapshot_count,
+        txn_session->id,txn->id, txn->mod_count, txn->snap_min, txn->snap_max, txn->snapshot_count,
         __wt_timestamp_to_string(txn->commit_timestamp, ts_string[0]),
         __wt_timestamp_to_string(txn->durable_timestamp, ts_string[1]),
         __wt_timestamp_to_string(txn->first_commit_timestamp, ts_string[2]),

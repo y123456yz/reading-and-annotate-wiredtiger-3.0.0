@@ -8,10 +8,10 @@
 
 #ifndef	__WIREDTIGER_H_
 #define	__WIREDTIGER_H_
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
 
 /*******************************************
  * Version information

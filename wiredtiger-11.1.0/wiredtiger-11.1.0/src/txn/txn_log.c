@@ -195,6 +195,7 @@ __wt_txn_op_free(WT_SESSION_IMPL *session, WT_TXN_OP *op)
 /*
  * __txn_logrec_init --
  *     Allocate and initialize a buffer for a transaction's log records.
+  //__wt_txn_log_op  __wt_txn_ts_log调用
  //分配一个WT_LOG_RECORD空间并存入rectype txn->id封包存入data中
  */
 static int

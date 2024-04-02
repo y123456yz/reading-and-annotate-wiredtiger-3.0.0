@@ -9,6 +9,7 @@
 #define WT_TXN_NONE 0                /* Beginning of time */
 #define WT_TXN_FIRST 1               /* First transaction to run */
 #define WT_TXN_MAX (UINT64_MAX - 10) /* End of time */
+//__wt_txn_rollback事务回滚时候置位
 #define WT_TXN_ABORTED UINT64_MAX    /* Update rolled back */
 
 #define WT_TS_NONE 0         /* Beginning of time */
@@ -58,7 +59,9 @@ typedef enum {
 #define WT_TXNID_LE(t1, t2) ((t1) <= (t2))
 
 #define WT_TXNID_LT(t1, t2) ((t1) < (t2))
-
+//该session->id对应的__wt_txn_shared
+//这里(s)->id代表session id，txn_shared_list[(s)->id])代表该session id对应的事务id
+//WT_SESSION_TXN_SHARED是全局共享的，记录了所有的事务，[]数组每个成员内容代表一个session操作的事务，这里要注意如果是多文档操作，会有多个cursor，这时候在同一个事务中实际上会有多个session对这个多文档事务进行操作，参考src/test/csuit/timestamp_abort
 #define WT_SESSION_TXN_SHARED(s)                         \
     (S2C(s)->txn_global.txn_shared_list == NULL ? NULL : \
                                                   &S2C(s)->txn_global.txn_shared_list[(s)->id])
@@ -73,6 +76,7 @@ typedef enum {
  * while this operation is in progress). Check for those cases: the bugs they cause are hard to
  * debug.
  */
+//__evict_reconcile
 #define WT_WITH_TXN_ISOLATION(s, iso, op)                                       \
     do {                                                                        \
         WT_TXN_ISOLATION saved_iso = (s)->isolation;                            \
@@ -96,17 +100,28 @@ typedef enum {
         txn_shared->pinned_id = saved_txn_shared.pinned_id;                     \
     } while (0)
 
-//__wt_txn_global.checkpoint_txn_shared为该类型
+//__wt_txn_global.checkpoint_txn_shared 和 __wt_txn_global.txn_shared_list为该类型
+//checkpoint_txn_shared整个结构体赋值见__checkpoint_prepare
+
+//每个成员赋值的地方实际上在WT_WITH_TXN_ISOLATION
 struct __wt_txn_shared {
     WT_CACHE_LINE_PAD_BEGIN
+    //赋值参考__wt_txn_id_alloc，也就是txn_global->current-1
+    //代表事务id
     volatile uint64_t id;
+    //__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]赋值, 代表该session所能看到的最小事务id
+    //__checkpoint_prepare中对checkpoint_txn_shared.pinned_id赋值
+    //__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
     volatile uint64_t pinned_id;
+    //赋值见__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]
+    //__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
     volatile uint64_t metadata_pinned;
 
     /*
      * The first commit or durable timestamp used for this transaction. Determines its position in
      * the durable queue and prevents the all_durable timestamp moving past this point.
      */
+    //__wt_txn_publish_durable_timestamp中赋值
     wt_timestamp_t pinned_durable_timestamp;
 
     /*
@@ -167,6 +182,7 @@ struct __wt_txn_global {
     volatile bool checkpoint_running;    /* Checkpoint running */
     volatile bool checkpoint_running_hs; /* Checkpoint running and processing history store file */
     volatile uint32_t checkpoint_id;     /* Checkpoint's session ID */
+    //checkpoint_txn_shared整个结构体赋值见__checkpoint_prepare
     WT_TXN_SHARED checkpoint_txn_shared; /* Checkpoint's txn shared state */
     wt_timestamp_t checkpoint_timestamp; /* Checkpoint's timestamp */
 
@@ -174,6 +190,10 @@ struct __wt_txn_global {
     uint64_t debug_rollback;           /* Debug mode rollback */
     volatile uint64_t metadata_pinned; /* Oldest ID for metadata */
 
+    //链表上的成员数为conn->session_cnt，参考__txn_get_snapshot_int
+    //数组空间分配及数组大小赋值参考__wt_txn_global_init，数组每个成员id对应所有session->id
+
+    //成员赋值参考WT_WITH_TXN_ISOLATION
     WT_TXN_SHARED *txn_shared_list; /* Per-session shared transaction states */
 };
 
@@ -184,6 +204,7 @@ typedef enum __wt_txn_isolation {
     WT_ISO_SNAPSHOT
 } WT_TXN_ISOLATION;
 
+//事务类型
 typedef enum __wt_txn_type {
     WT_TXN_OP_NONE = 0,
     WT_TXN_OP_BASIC_COL,
@@ -208,12 +229,16 @@ typedef enum {
  *	of these operations as it runs, then uses the array to either write log
  *	records during commit or undo the operations during rollback.
  */
+//__txn_next_op中分配空间
 struct __wt_txn_op {
     WT_BTREE *btree;
+    //赋值参考__wt_txn_modify
     WT_TXN_TYPE type;
     union {
         /* WT_TXN_OP_BASIC_ROW, WT_TXN_OP_INMEM_ROW */
+        //下面的op_upd
         struct {
+            //赋值见__wt_txn_modify
             WT_UPDATE *upd;
             WT_ITEM key;
         } op_row;
@@ -227,6 +252,7 @@ struct __wt_txn_op {
  * upd is pointing to same memory in both op_row and op_col, so for simplicity just chose op_row upd
  */
 #undef op_upd
+//赋值见__wt_txn_modify
 #define op_upd op_row.upd
 
         /* WT_TXN_OP_REF_DELETE */
@@ -253,9 +279,16 @@ struct __wt_txn_op {
 /*
  * WT_TXN --
  *	Per-session transaction context.
+ __wt_txn_release中相关成员全部清理初始化
  */
 struct __wt_txn {
-    //同一个session的id是自增的
+    //同一个session的id是自增的,初始值0，session->txn->id实际上等于txn_global->current-1, 
+    // session->txn->id实际上是全局递增的，这也是为什么txn_global->current初始值为1，赋值见__wt_txn_id_alloc
+
+    //同一个session一个完整事务有一个id,该sesson下一个事务的时候，回通过__wt_txn_id_alloc从新获取一个id
+    //也就是每个session->txn->id都是唯一的，并且是递增的，等于获取id时候的txn_global->current-1, 
+
+    //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置为0 WT_TXN_NONE
     uint64_t id;
 
     //事务隔离级别 __wt_txn_begin配置，默认WT_ISO_SNAPSHOT，赋值见__wt_txn_begin
@@ -272,7 +305,7 @@ struct __wt_txn {
     //赋值见__txn_sort_snapshot
     uint64_t snap_min, snap_max;
     //数组结构，数组大小见__wt_txn_init，实际上指向的是本结构的txn->__snapshot数组;
-    //数组成员赋值见__txn_get_snapshot_int
+    //数组成员赋值见__txn_get_snapshot_int，数组中记录的是当前正在使用的不同session的事务id
     uint64_t *snapshot;
     //赋值见__txn_sort_snapshot
     uint32_t snapshot_count;
@@ -293,7 +326,7 @@ struct __wt_txn {
      * Durable timestamp copied into updates created by this transaction. It is used to decide
      * whether to consider this update to be persisted or not by stable checkpoint.
      */
-    //__wt_txn_set_commit_timestamp中赋值
+    //__wt_txn_set_commit_timestamp  __wt_txn_set_durable_timestamp中赋值
     wt_timestamp_t durable_timestamp;
 
     /*
@@ -306,6 +339,7 @@ struct __wt_txn {
     /*
      * Timestamp copied into updates created by this transaction, when this transaction is prepared.
      */
+    //__wt_txn_set_prepare_timestamp中赋值
     wt_timestamp_t prepare_timestamp;
 
     /*
@@ -316,9 +350,11 @@ struct __wt_txn {
     wt_timestamp_t checkpoint_oldest_timestamp;
 
     /* Array of modifications by this transaction. */
+    //实际上是一个数组，数组大小为下面的mod_count，可以参考__txn_next_op
     WT_TXN_OP *mod;
     size_t mod_alloc;
-    //__txn_next_op中自增，__wt_txn_unmodify中自减
+    //__txn_next_op中自增，__wt_txn_unmodify中自减 
+    //代表这个事务中有多少个写请求，也就是上面的mod[]数组大小
     u_int mod_count;
 #ifdef HAVE_DIAGNOSTIC
     u_int prepare_count;
@@ -337,6 +373,7 @@ struct __wt_txn {
     //operation_timeout_ms配置，默认0
     uint64_t operation_timeout_us;
 
+    //回滚原因赋值见__wt_txn_rollback_required
     const char *rollback_reason; /* If rollback, the reason */
 
 /*
@@ -353,12 +390,17 @@ struct __wt_txn {
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_TXN_AUTOCOMMIT 0x00001u
+//__wt_txn_err_set中设置,一个事务中任何一个写操作失败，都会把该次事务的session->txn的状态置位该状态
 #define WT_TXN_ERROR 0x00002u
+//__wt_txn_id_check中给一个事务的session生成了一个id
 #define WT_TXN_HAS_ID 0x00004u
+//__txn_sort_snapshot中置位，__wt_txn_release_snapshot中清理该标识
 #define WT_TXN_HAS_SNAPSHOT 0x00008u
 //__wt_txn_set_commit_timestamp中置位
 #define WT_TXN_HAS_TS_COMMIT 0x00010u
+//__wt_txn_set_durable_timestamp中置位
 #define WT_TXN_HAS_TS_DURABLE 0x00020u
+//__wt_txn_set_prepare_timestamp中置位
 #define WT_TXN_HAS_TS_PREPARE 0x00040u
 #define WT_TXN_IGNORE_PREPARE 0x00080u
 #define WT_TXN_IS_CHECKPOINT 0x00100u
@@ -368,7 +410,9 @@ struct __wt_txn {
 #define WT_TXN_READONLY 0x00800u
 //__wt_txn_begin中置位
 #define WT_TXN_RUNNING 0x01000u
+//__wt_txn_publish_durable_timestamp中置位
 #define WT_TXN_SHARED_TS_DURABLE 0x02000u
+//__wt_txn_set_read_timestamp中置位
 #define WT_TXN_SHARED_TS_READ 0x04000u
 #define WT_TXN_SYNC_SET 0x08000u
 #define WT_TXN_TS_NOT_SET 0x10000u

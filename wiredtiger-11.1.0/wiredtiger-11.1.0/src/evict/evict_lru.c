@@ -2761,7 +2761,7 @@ __wt_page_evict_urgent(WT_SESSION_IMPL *session, WT_REF *ref)
 
     /* Root pages should never be evicted via LRU. */
     WT_ASSERT(session, !__wt_ref_is_root(ref));
-    printf("yang test .....................__wt_page_evict_urgent...............\r\n");
+    //printf("yang test .....................__wt_page_evict_urgent...............\r\n");
 
     page = ref->page;
     if (F_ISSET_ATOMIC_16(page, WT_PAGE_EVICT_LRU) || S2BT(session)->evict_disabled > 0)

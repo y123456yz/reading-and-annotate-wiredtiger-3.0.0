@@ -1443,10 +1443,9 @@ __wt_rec_split(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t next_len)
 
     btree = S2BT(session);
    // printf("yang test .................__wt_rec_split................ \r\n");
-    printf("yang test .....__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d, min_split_size:%d, \
-        space_avail:%d, min_space_avail:%d\r\n",
-        (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->split_size,
-            (int)r->min_split_size, (int)r->space_avail, (int)r->min_space_avail);
+  //  printf("yang test .....__wt_rec_split....inuse:%d.....r->entries:%d, r->split_size:%d, min_split_size:%d,  space_avail:%d, min_space_avail:%d\r\n",
+  //      (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->split_size,
+   //         (int)r->min_split_size, (int)r->space_avail, (int)r->min_space_avail);
    // printf("yang test ...........x......__wt_rec_split................ \r\n");
     /*
      * We should never split during salvage, and we're about to drop core because there's no parent
@@ -1594,12 +1593,12 @@ __wt_rec_split_crossing_bnd(WT_SESSION_IMPL *session, WT_RECONCILE *r, size_t ne
      * the next record is large enough, just split at this point.
      */
 
-    printf("yang test ......__wt_rec_split_crossing_bnd....inuse:%d, r->entries:%d,(r)->min_space_avail:%d \
+   /* printf("yang test ......__wt_rec_split_crossing_bnd....inuse:%d, r->entries:%d,(r)->min_space_avail:%d \
         , (r)->space_avail:%d, next_len:%d, r->cur_ptr->min_offset:%d, __wt_rec_need_split(r, 0):%d, \
         r->supd_next:%d\r\n",
         (int)WT_PTRDIFF(r->first_free, r->cur_ptr->image.mem), (int)r->entries, (int)r->min_space_avail,
         (int)r->space_avail, (int)next_len, (int)r->cur_ptr->min_offset, __wt_rec_need_split(r, 0),
-        (int)r->supd_next);
+        (int)r->supd_next);*/
 
     //已用空间超过了min_space_avail，但是没有超过space_avail，并且不需要rec split
     if (WT_CROSSING_MIN_BND(r, next_len) && !WT_CROSSING_SPLIT_BND(r, next_len) &&
@@ -2264,8 +2263,8 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->size = WT_STORE_SIZE(chunk->image.size);
     multi->checksum = 0;
     multi->supd_restore = false;
-    printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n",
-        (int)r->multi_next, (int)multi->size);
+   // printf("yang test ........xx.......__rec_split_write............multi_next:%d, size:%d\r\n",
+    //    (int)r->multi_next, (int)multi->size);
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
@@ -2357,7 +2356,8 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     multi->addr.size = (uint8_t)addr_size;
 
     maxleafpage_precomp_temp = btree->maxleafpage_precomp;
-
+    WT_UNUSED(maxleafpage_precomp_temp);
+    
     /* Adjust the pre-compression page size based on compression results. */
     //初始化的时候默认压缩比为4倍，参考__btree_conf说明，这里根据实际的数据写入情况进行压缩比调整
     if (WT_PAGE_IS_INTERNAL(page) && compressed_size != 0 && btree->intlpage_compadjust)
@@ -2367,8 +2367,8 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
         __rec_compression_adjust(
           session, btree->maxleafpage, compressed_size, last_block, &btree->maxleafpage_precomp);
 
-    printf("yang test ...__rec_split_write...btree->maxleafpage:%d, compressed_size:%d, befor:%d, after:%d\r\n", 
-        (int)btree->maxleafpage, (int)compressed_size, (int)maxleafpage_precomp_temp, (int)btree->maxleafpage_precomp);
+    //printf("yang test ...__rec_split_write...btree->maxleafpage:%d, compressed_size:%d, befor:%d, after:%d\r\n", 
+      //  (int)btree->maxleafpage, (int)compressed_size, (int)maxleafpage_precomp_temp, (int)btree->maxleafpage_precomp);
 
     /* Update the per-page reconciliation time statistics now that we've written something. */
     __rec_page_time_stats(session, r);

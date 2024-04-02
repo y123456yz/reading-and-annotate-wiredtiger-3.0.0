@@ -935,6 +935,7 @@ __wt_cursor_cache_get(WT_SESSION_IMPL *session, const char *uri, uint64_t hash_v
             return (0);
         }
     }
+    
     return (WT_NOTFOUND);
 }
 

@@ -1721,6 +1721,7 @@ __conn_hash_config(WT_SESSION_IMPL *session, const char *cfg[])
     return (0);
 }
 
+//yang add todo xxxxxxxxxxxxxxxx 可以增加一个获取WT version的接口
 /*
  * __conn_home --
  *     Set the database home directory.

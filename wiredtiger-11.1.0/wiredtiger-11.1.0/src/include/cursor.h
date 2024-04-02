@@ -36,6 +36,7 @@ Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):            _curso
 Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    invariant(WiredTigerRecoveryUnit::get(_opCtx)->getSession() == _cursor->getSession());
 Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    WT_CURSOR* c = _cursor->get();
 */
+//同一个session打开的多个表cursor，这些cursor对应的session  CUR2S会是同一个session 
 /* Get the session from any cursor. */
 #define CUR2S(c) ((WT_SESSION_IMPL *)((WT_CURSOR *)c)->session)
 

@@ -100,7 +100,7 @@ __wt_session_cursor_cache_sweep(WT_SESSION_IMPL *session)
     uint32_t position;
     int i, t_ret, nbuckets, nexamined, nclosed;
     bool productive;
-    printf("yang test ......................................... __wt_session_cursor_cache_sweep\r\n");
+  // printf("yang test ......................................... __wt_session_cursor_cache_sweep\r\n");
 
     if (!F_ISSET(session, WT_SESSION_CACHE_CURSORS))
         return (0);
@@ -659,8 +659,10 @@ __wt_open_cursor(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, co
 
     hash_value = 0;
 
+    //printf("yang test ......__wt_open_cursor.......... uri:%s, hs_cursor_counter:%u\r\n", 
+    //    uri, session->hs_cursor_counter);
     /* We should not open other cursors when there are open history store cursors in the session. */
-    WT_ASSERT(session, strcmp(uri, WT_HS_URI) == 0 || session->hs_cursor_counter == 0);
+   // WT_ASSERT(session, strcmp(uri, WT_HS_URI) == 0 || session->hs_cursor_counter == 0); //yang add change
 
     /* We do not cache any subordinate tables/files cursors. */
     if (owner == NULL) {//先从cache中获取
@@ -720,9 +722,12 @@ __session_open_cursor(WT_SESSION *wt_session, const char *uri, WT_CURSOR *to_dup
 
         __wt_cursor_get_hash(session, uri, to_dup, &hash_value);
         //session->cursor_cache[bucket]中查找
-        if ((ret = __wt_cursor_cache_get(session, uri, hash_value, to_dup, cfg, &cursor)) == 0)
+        if ((ret = __wt_cursor_cache_get(session, uri, hash_value, to_dup, cfg, &cursor)) == 0) {
+            //printf("yang test .......__session_open_cursor..........11111111111111....\r\n");
             goto done;//找到直接返回
-
+        } 
+        //printf("yang test .......__session_open_cursor..........22222222222222222....\r\n");
+        
         /*
          * Detect if we're duplicating a backup cursor specifically. That needs special handling.
          */
@@ -1907,6 +1912,9 @@ __session_commit_transaction(WT_SESSION *wt_session, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
     txn = session->txn;
+    printf("yang test ...............__session_commit_transaction, session->id:%u, txn->id:%lu\r\n", 
+        session->id, txn->id);
+
     SESSION_API_CALL_PREPARE_ALLOWED(session, commit_transaction, __session_commit_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_commit);
 
@@ -1918,6 +1926,7 @@ __session_commit_transaction(WT_SESSION *wt_session, const char *config)
     WT_ERR(__wt_txn_context_check(session, true));
 
     /* Permit the commit if the transaction failed, but was read-only. */
+    //事务中任何一个操作例如insert失败最终都会在对应api中__wt_txn_err_set设置WT_TXN_ERROR，这里直接给出回滚原因后返回
     if (F_ISSET(txn, WT_TXN_ERROR) && txn->mod_count != 0)
         WT_ERR_MSG(session, EINVAL, "failed %s transaction requires rollback%s%s",
           F_ISSET(txn, WT_TXN_PREPARE) ? "prepared " : "", txn->rollback_reason == NULL ? "" : ": ",
@@ -1929,6 +1938,7 @@ err:
      * transaction running, and we check the former as part of the api macros before we check the
      * latter. Deal with it here: if there's an error and a transaction is running, roll it back.
      */
+
     if (ret == 0) {
         F_SET(session, WT_SESSION_RESOLVING_TXN);
         ret = __wt_txn_commit(session, cfg);
@@ -2480,6 +2490,7 @@ __open_session(WT_CONNECTION_IMPL *conn, WT_EVENT_HANDLER *event_handler, const 
      * session count on error, as long as we don't mark this session as active, we'll clean it up on
      * close.
      */
+    //代表实例中同时在使用的最大session数量
     if (i >= conn->session_cnt) /* Defend against off-by-one errors. */
         conn->session_cnt = i + 1;
 

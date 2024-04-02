@@ -155,6 +155,7 @@ __txn_resolve_prepared_update(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __txn_next_op --
  *     Mark a WT_UPDATE object modified by the current transaction.
+ //__wt_txn_modify->__txn_next_op获取一个事务的op成员，并对op赋值等
  */
 static inline int
 __txn_next_op(WT_SESSION_IMPL *session, WT_TXN_OP **opp)
@@ -382,6 +383,7 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
 /*
  * __wt_txn_modify --
  *     Mark a WT_UPDATE object modified by the current transaction.
+ //获取一个事务op并对相关成员赋值  __wt_row_modify->__wt_txn_modify->__txn_next_op
  */
 static inline int
 __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
@@ -398,6 +400,7 @@ __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
         WT_RET_MSG(session, WT_ROLLBACK, "Attempt to update in a read-only transaction");
     }
 
+    //获取一个事务op
     WT_RET(__txn_next_op(session, &op));
     if (F_ISSET(session, WT_SESSION_LOGGING_INMEM)) {
         if (op->btree->type == BTREE_ROW)
@@ -1275,6 +1278,7 @@ __wt_txn_idle_cache_check(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_id_alloc --
  *     Allocate a new transaction ID.
+ //__wt_txn_id_check->__wt_txn_id_alloc
  */
 static inline uint64_t
 __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
@@ -1305,7 +1309,8 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
      * We rely on atomic reads of the current ID to create snapshots, so for unlocked reads to be
      * well defined, we must use an atomic increment here.
      */
-    if (publish) {
+    
+    if (publish) {//btree都走这里
         WT_PUBLISH(txn_shared->is_allocating, true);
         WT_PUBLISH(txn_shared->id, txn_global->current);
         id = __wt_atomic_addv64(&txn_global->current, 1) - 1;
@@ -1314,6 +1319,9 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
         WT_PUBLISH(txn_shared->is_allocating, false);
     } else
         id = __wt_atomic_addv64(&txn_global->current, 1) - 1;
+        
+    printf("yang test ......__wt_txn_id_alloc......., sessionid:%u, session_name:%s, publish:%d, txn_global->current:%lu, session->txn->id:%lu, txn_shared->id:%lu\r\n", 
+        session->id, session->name, publish, txn_global->current, session->txn->id, txn_shared->id);
 
     return (id);
 }
@@ -1321,6 +1329,8 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
 /*
  * __wt_txn_id_check --
  *     A transaction is going to do an update, allocate a transaction ID.
+//__wt_txn_log_op  __wt_txn_ts_log->__txn_logrec_init->__wt_txn_id_check
+//__wt_txn_modify->__txn_next_op->__wt_txn_id_check
  */
 static inline int
 __wt_txn_id_check(WT_SESSION_IMPL *session)
@@ -1330,7 +1340,8 @@ __wt_txn_id_check(WT_SESSION_IMPL *session)
     txn = session->txn;
 
     WT_ASSERT(session, F_ISSET(txn, WT_TXN_RUNNING));
-
+    printf("yang test ...................in __wt_txn_id_check..........befor __wt_txn_id_alloc............\r\n");
+    //这里就保证了同一个session下的单次事务的id只有一个
     if (F_ISSET(txn, WT_TXN_HAS_ID))
         return (0);
 
@@ -1591,6 +1602,7 @@ __wt_txn_read_last(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_cursor_op --
  *     Called for each cursor operation.
+ curosr读写都会调用__wt_cursor_func_init->__wt_txn_cursor_op
  */
 static inline void
 __wt_txn_cursor_op(WT_SESSION_IMPL *session)

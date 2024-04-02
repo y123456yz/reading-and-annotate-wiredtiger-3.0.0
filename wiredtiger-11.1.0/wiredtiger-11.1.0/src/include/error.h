@@ -30,6 +30,8 @@
       session, error, __PRETTY_FUNCTION__, __LINE__, WT_VERBOSE_CATEGORY_DEFAULT, __VA_ARGS__)
 #define __wt_errx(session, ...) \
     __wt_errx_func(session, __PRETTY_FUNCTION__, __LINE__, WT_VERBOSE_CATEGORY_DEFAULT, __VA_ARGS__)
+
+//WT_ERR_MSG只是打印异常，WT_RET_PANIC会崩
 #define __wt_panic(session, error, ...) \
     __wt_panic_func(                    \
       session, error, __PRETTY_FUNCTION__, __LINE__, WT_VERBOSE_CATEGORY_DEFAULT, __VA_ARGS__)
@@ -42,6 +44,8 @@
         if ((ret = (a)) != 0) \
             goto err;         \
     } while (0)
+
+//WT_ERR_MSG只是打印异常，WT_RET_PANIC会崩
 #define WT_ERR_MSG(session, v, ...)          \
     do {                                     \
         ret = (v);                           \
@@ -117,6 +121,7 @@
 #define WT_TRET_NOTFOUND_OK(a) WT_TRET_ERROR_OK(a, WT_NOTFOUND)
 
 /* Return WT_PANIC regardless of earlier return codes. */
+//WT_ERR_MSG只是打印异常，WT_RET_PANIC会崩
 #define WT_RET_PANIC(session, v, ...) return (__wt_panic(session, v, __VA_ARGS__))
 
 /* Called on unexpected code path: locate the failure. */

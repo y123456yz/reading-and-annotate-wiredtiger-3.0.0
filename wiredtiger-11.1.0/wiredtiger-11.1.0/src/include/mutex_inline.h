@@ -273,6 +273,8 @@ __wt_spin_unlock(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
  * Implemented as a macro so we can pass in a statistics field and convert
  * it into a statistics structure array offset.
  */
+//# Locking statistics相关统计参考WT_SPIN_INIT_TRACKED这里，例如lock_checkpoint_count lock_check point_wait_application lock_checkpoint_wait_internal等
+//相关值统计增加见__wt_spin_lock_track
 #define WT_SPIN_INIT_TRACKED(session, t, name)                                                    \
     do {                                                                                          \
         WT_RET(__wt_spin_init(session, t, #name));                                                \
@@ -294,6 +296,8 @@ __wt_spin_unlock(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
 /*
  * __wt_spin_lock_track --
  *     Spinlock acquisition, with tracking.
+ //相关值统计增加见__wt_spin_lock_track
+ //# Locking statistics相关统计参考WT_SPIN_INIT_TRACKED这里，例如lock_checkpoint_count lock_check point_wait_application lock_checkpoint_wait_internal等
  */
 static inline void
 __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)

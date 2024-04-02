@@ -552,7 +552,12 @@ __cursor_col_search(WT_CURSOR_BTREE *cbt, WT_REF *leaf, bool *leaf_foundp)
 /*
  * __cursor_row_search --
  *     Row-store search from a cursor.
- */ //查找cbt->iface.key在btree中是否存在，确定该srch_key应该在跳跃表那个位置
+ */ 
+//__cursor_row_search和__wt_row_modify的关系:
+//  __cursor_row_search用于确定K在btree中的位置以及是否存在等
+//  __wt_row_modify负责在__cursor_row_search找到的位置把新KV添加到btree合适位置
+
+//查找cbt->iface.key在btree中是否存在，确定该srch_key应该在跳跃表那个位置
 static inline int
 __cursor_row_search(WT_CURSOR_BTREE *cbt, bool insert, WT_REF *leaf, bool *leaf_foundp)
 {

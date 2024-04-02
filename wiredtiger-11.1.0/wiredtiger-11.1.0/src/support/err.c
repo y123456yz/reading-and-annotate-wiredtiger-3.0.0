@@ -472,8 +472,8 @@ err:
  */
 void
 __wt_err_func(WT_SESSION_IMPL *session, int error, const char *func, int line,
-  WT_VERBOSE_CATEGORY category, const char *fmt, ...) WT_GCC_FUNC_ATTRIBUTE((cold))
-  WT_GCC_FUNC_ATTRIBUTE((format(printf, 6, 7))) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+  WT_VERBOSE_CATEGORY category, const char *fmt, ...)// WT_GCC_FUNC_ATTRIBUTE((cold))
+ // WT_GCC_FUNC_ATTRIBUTE((format(printf, 6, 7))) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     va_list ap;
 
@@ -513,6 +513,7 @@ __wt_errx_func(WT_SESSION_IMPL *session, const char *func, int line, WT_VERBOSE_
 /*
  * __wt_panic_func --
  *     A standard error message when we panic.
+ //WT_ERR_MSG只是打印异常，WT_RET_PANIC会崩
  */
 int
 __wt_panic_func(WT_SESSION_IMPL *session, int error, const char *func, int line,

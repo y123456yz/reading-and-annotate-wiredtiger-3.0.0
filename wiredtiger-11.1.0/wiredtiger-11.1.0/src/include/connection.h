@@ -262,6 +262,8 @@ struct __wt_connection_impl {
     const char *cfg; /* Connection configuration */
 
     WT_SPINLOCK api_lock;        /* Connection API spinlock */
+    //# Locking statistics相关统计参考WT_SPIN_INIT_TRACKED这里，例如lock_checkpoint_count lock_check point_wait_application lock_checkpoint_wait_internal等
+    //相关锁耗时统计见WT_WITH_LOCK_WAIT->__wt_spin_lock_track
     WT_SPINLOCK checkpoint_lock; /* Checkpoint spinlock */
     WT_SPINLOCK fh_lock;         /* File handle queue spinlock */
     WT_SPINLOCK flush_tier_lock; /* Flush tier spinlock */
@@ -375,8 +377,9 @@ struct __wt_connection_impl {
     //__wt_connection_open中提前分配内存
     WT_SESSION_IMPL *sessions; /* Session reference */
     //__conn_session_size中初始化，从配置文件解析后赋值 __conn_session_size
+    //节点最多用这么多session
     uint32_t session_size;     /* Session array size */
-    //session总数，包括active的也包括非active的
+    //__open_session赋值，代表实例中同时在使用的最大session数量
     uint32_t session_cnt;      /* Session count */
 
     size_t session_scratch_max; /* Max scratch memory per session */

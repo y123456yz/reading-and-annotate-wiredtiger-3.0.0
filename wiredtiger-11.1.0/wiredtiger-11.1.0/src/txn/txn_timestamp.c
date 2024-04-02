@@ -893,6 +893,7 @@ __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[], bool commit)
     if (commit && F_ISSET(txn, WT_TXN_HAS_TS_DURABLE))
         durable_ts = txn->durable_timestamp;
 
+  //  WT_RET(__wt_verbose_dump_txn_one(session, session, 0, NULL));//yang add change
     /*
      * If the API received no configuration string, or we just have the base configuration, there
      * are no strings to parse. Additionally, take a shortcut in parsing that works because we're
@@ -922,6 +923,7 @@ __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[], bool commit)
 
     /* Look for a commit timestamp. */
     if (commit_ts != WT_TS_NONE)
+        //ÉèÖÃtxn->commit_timestamp  first_commit_timestamp  durable_timestamp
         WT_RET(__wt_txn_set_commit_timestamp(session, commit_ts));
 
     /*
@@ -945,6 +947,7 @@ __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[], bool commit)
       FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED) && !F_ISSET(conn, WT_CONN_RECOVERING))
         WT_RET(__wt_txn_ts_log(session));
 
+    WT_RET(__wt_verbose_dump_txn_one(session, session, 0, NULL));//yang add change
     return (0);
 }
 

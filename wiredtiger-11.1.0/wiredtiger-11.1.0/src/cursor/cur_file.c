@@ -968,6 +968,7 @@ __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], 
     WT_DECL_RET;
     size_t csize;
     bool cacheable;
+    printf("yang test .......__curfile_create..........22222222222222222....\r\n");
 
     WT_STATIC_ASSERT(offsetof(WT_CURSOR_BTREE, iface) == 0);
 
@@ -1078,6 +1079,7 @@ err:
 /*
  * __wt_curfile_open --
  *     WT_SESSION->open_cursor method for the btree cursor type.
+ 从__wt_curtable_open的is_simple判断后最终走到这里
  */
 int
 __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, const char *cfg[],
@@ -1096,6 +1098,7 @@ __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, c
     flags = 0;
 
     WT_ASSERT(session, WT_BTREE_PREFIX(uri));
+    printf("yang test .......__wt_curfile_open..........22222222222222222....\r\n");
 
     /*
      * Decode the bulk configuration settings. In memory databases ignore bulk load.
