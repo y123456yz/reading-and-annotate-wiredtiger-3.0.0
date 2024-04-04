@@ -968,7 +968,6 @@ __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], 
     WT_DECL_RET;
     size_t csize;
     bool cacheable;
-    printf("yang test .......__curfile_create..........22222222222222222....\r\n");
 
     WT_STATIC_ASSERT(offsetof(WT_CURSOR_BTREE, iface) == 0);
 
@@ -981,12 +980,13 @@ __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], 
     WT_RET(__wt_calloc(session, 1, csize, &cbt));
     cursor = &cbt->iface;
     *cursor = iface;
+    
     cursor->session = (WT_SESSION *)session;
     cursor->internal_uri = btree->dhandle->name;
     cursor->key_format = btree->key_format;
     cursor->value_format = btree->value_format;
     cbt->dhandle = session->dhandle;
-
+    
     /*
      * Increment the data-source's in-use counter; done now because closing the cursor will
      * decrement it, and all failure paths from here close the cursor.
@@ -1055,6 +1055,8 @@ __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], 
 
      //cursor初始化，并添加到session->cursors链表中，也就是前面alloc的cbt添加到了session->cursors链表中
     WT_ERR(__wt_cursor_init(cursor, cursor->internal_uri, owner, cfg, cursorp));
+    //printf("yang test .......__curfile_create....session:%p  %p  %p, cursor->internal_uri:%s\r\n", 
+    //    session, cursor->session, (*cursorp)->session, cursor->internal_uri);
 
     WT_STAT_CONN_DATA_INCR(session, cursor_create);
 
@@ -1098,7 +1100,7 @@ __wt_curfile_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, c
     flags = 0;
 
     WT_ASSERT(session, WT_BTREE_PREFIX(uri));
-    printf("yang test .......__wt_curfile_open..........22222222222222222....\r\n");
+    //printf("yang test .......__wt_curfile_open..........22222222222222222....\r\n");
 
     /*
      * Decode the bulk configuration settings. In memory databases ignore bulk load.

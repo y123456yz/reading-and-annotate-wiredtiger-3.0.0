@@ -100,7 +100,7 @@ static TEST_OPTS *opts, _opts;
 //statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中
 #define ENV_CONFIG_DEF                                        \
     "cache_size=%" PRIu32                                     \
-    "M,create,verbose=[config_all_verbos:2,log:0, transaction:5],"                  \
+    "M,create,verbose=[config_all_verbos:0,log:0, transaction:5],"                  \
     "debug_mode=(table_logging=true,checkpoint_retention=5)," \
     "eviction_updates_target=20,eviction_updates_trigger=90," \
     "log=(enabled,file_max=10M,remove=true),session_max=%d,"  \
@@ -426,6 +426,7 @@ thread_run(void *arg)
      * transactions.
      */
     use_prep = (use_ts && td->info % PREPARE_PCT == 0) ? true : false;
+    use_prep = 0;//yang add todo xxxxxxxxx   注意这里的逻辑，如果是启用prep这里可能会涉及到2个session
     durable_ahead_commit = false;
 
     /*
@@ -439,6 +440,7 @@ thread_run(void *arg)
     if (use_prep)
         testutil_check(
           td->conn->open_session(td->conn, NULL, "isolation=snapshot", &prepared_session));
+    printf("yang test ..........thread_run.......... session:%p, pre_session:%p\r\n", session, prepared_session);
     /*
      * Open a cursor to each table.
      */
@@ -470,13 +472,14 @@ thread_run(void *arg)
     /*
      * Write our portion of the key space until we're killed.
      */
+    usleep(td->info * 100000);
     printf("Thread %" PRIu32 " starts at %" PRIu64 "\n\n\n\n\n\n\n\n", td->info, td->start);
     active_ts = 0;
     //for (i = td->start; i < td->start + 5000; ++i) { yang add change xxxxxxxxxxx
    // for (i = td->start;; ++i) {
-    use_prep = 0;//yang add todo xxxxxxxxx
+    
     {
-        printf("yang test ..............thread_run.........%p, %p, %p, %p  \r\n\r\n\r\n\r\n", 
+        printf("yang test ..............thread_run.........addr:%p, %p, %p, %p  \r\n\r\n\r\n\r\n", 
             session, CUR2S((WT_CURSOR_BTREE *)cur_coll), CUR2S((WT_CURSOR_BTREE *)cur_shadow),
             CUR2S((WT_CURSOR_BTREE *)cur_local));
     }
@@ -510,7 +513,7 @@ thread_run(void *arg)
              * collection session in that case would continue to use this timestamp.
              */
             //__session_timestamp_transaction
-            testutil_check(session->timestamp_transaction(session, tscfg));
+           // testutil_check(session->timestamp_transaction(session, tscfg));
         }
 
         //printf("yang test ......thread_run........1 global_ts:%lu, active_ts:%lu, start:%lu\r\n", global_ts,active_ts, i);
@@ -556,8 +559,9 @@ thread_run(void *arg)
             //__session_timestamp_transaction
             testutil_check(
               __wt_snprintf(tscfg, sizeof(tscfg), "commit_timestamp=%" PRIx64, active_ts));
-            testutil_check(session->timestamp_transaction(session, tscfg));
+            //testutil_check(session->timestamp_transaction(session, tscfg));
         }
+
         if ((ret = cur_shadow->insert(cur_shadow)) == WT_ROLLBACK)
             goto rollback;
 
@@ -601,6 +605,8 @@ thread_run(void *arg)
             conn = &S2C(session)->iface;
             (void)conn->debug_info(conn, "txn"); // __wt_verbose_dump_txn   yang add change todo 
         }
+        
+        usleep(1000000);//yang add change
 
         //
         testutil_check(session->commit_transaction(session, NULL));
@@ -619,7 +625,6 @@ thread_run(void *arg)
         testutil_check(cur_local->insert(cur_local));
 
         //usleep(1000 * td->info);//目的是避免多个线程输出信息相互影响
-        sleep(1);
         
         {
             conn = &S2C(session)->iface;

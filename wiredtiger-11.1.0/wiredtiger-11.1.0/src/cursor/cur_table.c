@@ -1099,6 +1099,7 @@ __wt_curtable_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *owner, 
     //确保表已经创建成功
     WT_RET(__curtable_complete(session, table)); /* completeness check */
 
+    //printf("yang test ..................__wt_curtable_open.....................is_simple:%d\r\n", table->is_simple);
     if (table->is_simple) {//走这里
         /* Just return a cursor on the underlying data source. */
         //yang test .......__wt_curtable_open..........22222222222222222...old uri:table:collection, new uri:file:collection.wt

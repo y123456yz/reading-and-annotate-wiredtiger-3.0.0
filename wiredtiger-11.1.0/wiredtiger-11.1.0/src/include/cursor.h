@@ -129,7 +129,7 @@ struct __wt_cursor_backup {
 struct __wt_cursor_btree {
     WT_CURSOR iface;
 
-    //CUR2BT可以通过这里获取WT_BTREE
+    //CUR2BT可以通过这里获取WT_BTREE //__curfile_create赋值
     WT_DATA_HANDLE *dhandle; /* Data handle for the btree */
 
     /*

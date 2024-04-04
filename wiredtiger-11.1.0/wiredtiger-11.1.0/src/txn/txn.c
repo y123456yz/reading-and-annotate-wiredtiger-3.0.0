@@ -291,7 +291,7 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
          *    this case, we ignore this transaction because it would
          *    not be visible to the current snapshot.
          */
-        printf("yang test ........................i=%u, txn_shared_list[%u].id=%lu\r\n", i, i, s->id);
+       // printf("yang test ........................i=%u, txn_shared_list[%u].id=%lu\r\n", i, i, s->id);
         //txn_global->txn_shared_list[]数组中不是当前session id，并且事务id不为0，
         while (s != txn_shared && (id = s->id) != WT_TXN_NONE && WT_TXNID_LE(prev_oldest_id, id) &&
           WT_TXNID_LT(id, current_id)) {
@@ -332,8 +332,8 @@ done:
     __wt_readunlock(session, &txn_global->rwlock);
     __txn_sort_snapshot(session, n, current_id);
     {
-        int ret = __wt_verbose_dump_txn_one(session, session, 0, NULL);//yang add change
-        (void)(ret);
+        //int ret = __wt_verbose_dump_txn_one(session, session, 0, NULL);//yang add change
+       // (void)(ret);
     }
 }
 
@@ -342,6 +342,9 @@ done:
  *     Common case, allocate a snapshot and update our shared ids.
   __wt_txn_begin->__wt_txn_get_snapshot
   curosr读写都会调用__wt_cursor_func_init->__wt_txn_cursor_op->__wt_txn_get_snapshot
+  //获取事务快照，实际上普通的写操作如果不显示指定transaction_begin  transaction_commit等操作，也会当普通事务流程处理
+  // 1. __wt_cursor_func_init->__wt_txn_cursor_op->__wt_txn_get_snapshot获取快照
+  // 2. TXN_API_END中调用__wt_txn_commit提交事务
  */
 void
 __wt_txn_get_snapshot(WT_SESSION_IMPL *session)
@@ -390,7 +393,11 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /* Update the last running transaction ID. */
+        //获取所有session对应事务id在[prev_oldest_id, last_running]区间的shared txn
+
+        //这里while也就是获取所有未提交事务中最小的事务id赋值给last_running
         while ((id = s->id) != WT_TXN_NONE && WT_TXNID_LE(prev_oldest_id, id) &&
+          //还有比last_running更小的事务id
           WT_TXNID_LT(id, last_running)) {
             /*
              * If the transaction is still allocating its ID, then we spin here until it gets its
@@ -414,6 +421,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
         }
 
         /* Update the metadata pinned ID. */
+        //也就是所有session对应事务中最小的事务metadata_pinned赋值给metadata_pinned
         if ((id = s->metadata_pinned) != WT_TXN_NONE && WT_TXNID_LT(id, metadata_pinned))
             metadata_pinned = id;
 
@@ -425,6 +433,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
          * table.  See the comment in __wt_txn_cursor_op for more
          * details.
          */
+        //也就是所有session对应事务中最小的事务pinned_id赋值给oldest_id，并记录下这个session
         if ((id = s->pinned_id) != WT_TXN_NONE && WT_TXNID_LT(id, oldest_id)) {
             oldest_id = id;
             oldest_session = &conn->sessions[i];
@@ -438,15 +447,23 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
     if (WT_TXNID_LT(oldest_id, metadata_pinned))
         metadata_pinned = oldest_id;
 
+    //到这里说明oldest_id是所有session中事务id、pinned_id中最小的
+    //metadata_pinned是所有session中metadata_pinned最小的，并且metadata_pinned不能大于oldest_id
+
+    //所有session中事务id中最小的
     *last_runningp = last_running;
+    //metadata_pinned是所有session中metadata_pinned最小的，并且metadata_pinned不能大于oldest_id
     *metadata_pinnedp = metadata_pinned;
+    //到这里说明oldest_id是所有session中事务id、pinned_id中最小的
     *oldest_idp = oldest_id;
+    //所有session中pinned_id最小的session
     *oldest_sessionp = oldest_session;
 }
 
 /*
  * __wt_txn_update_oldest --
  *     Sweep the running transactions to update the oldest ID required.
+ evict、reconcile、checkpoint等操作会调用__wt_txn_update_oldest
  */
 int
 __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
@@ -469,8 +486,13 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
     prev_metadata_pinned = txn_global->metadata_pinned;
     prev_oldest_id = txn_global->oldest_id;
 
+    printf("yang test...__wt_txn_update_oldest...flags:ox%32x, current:%lu, current:%lu, current:%lu, current:%lu\r\n", 
+        flags, txn_global->current, txn_global->last_running, 
+        txn_global->metadata_pinned, txn_global->oldest_id);
+
     /* Try to move the pinned timestamp forward. */
     if (strict)
+        //获取所有session事务中的最小read_timestamp及oldest_timestamp的最小值赋值给txn_global->pinned_timestamp
         __wt_txn_update_pinned_timestamp(session, false);
 
     /*
@@ -525,7 +547,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
         txn_global->metadata_pinned = metadata_pinned;
     if (WT_TXNID_LT(txn_global->oldest_id, oldest_id)) {
         txn_global->oldest_id = oldest_id;
-        printf("yang test ..........__wt_txn_update_oldest....oldest_id:%lu\r\n", oldest_id);
+        //printf("yang test ..........__wt_txn_update_oldest....oldest_id:%lu\r\n", oldest_id);
     }
     if (WT_TXNID_LT(txn_global->last_running, last_running)) {
         txn_global->last_running = last_running;
@@ -1550,6 +1572,9 @@ __txn_mod_compare(const void *a, const void *b)
 /*
  * __wt_txn_commit --
  *     Commit the current transaction.
+  //实际上普通的写操作如果不显示指定transaction_begin  transaction_commit等操作，也会当普通事务流程处理
+  // 1. __wt_cursor_func_init->__wt_txn_cursor_op->__wt_txn_get_snapshot获取快照
+  // 2. TXN_API_END中调用__wt_txn_commit提交事务
  */
 int
 __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
@@ -2394,8 +2419,8 @@ __wt_txn_global_init(WT_SESSION_IMPL *session, const char *cfg[])
 
     WT_RET(__wt_calloc_def(session, conn->session_size, &txn_global->txn_shared_list));
 
-    printf("yang test ..............__wt_txn_global_init...............session_size:%u\r\n",
-        conn->session_size);
+    //printf("yang test ..............__wt_txn_global_init...............session_size:%u\r\n",
+     //   conn->session_size);
     for (i = 0, s = txn_global->txn_shared_list; i < conn->session_size; i++, s++)
         s->id = s->metadata_pinned = s->pinned_id = WT_TXN_NONE;
 
@@ -2693,9 +2718,10 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session)
         /* Skip sessions with no active transaction */
         if ((id = s->id) == WT_TXN_NONE && s->pinned_id == WT_TXN_NONE)
             continue;
+            
         sess = &conn->sessions[i];
         WT_RET(__wt_msg(session,
-          "ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", id,
+          "shared session: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", i, id,
           s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
         WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL));
     }

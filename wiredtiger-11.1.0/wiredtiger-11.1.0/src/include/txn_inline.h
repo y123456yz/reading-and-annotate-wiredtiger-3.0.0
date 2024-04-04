@@ -1320,8 +1320,8 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
     } else
         id = __wt_atomic_addv64(&txn_global->current, 1) - 1;
         
-    printf("yang test ......__wt_txn_id_alloc......., sessionid:%u, session_name:%s, publish:%d, txn_global->current:%lu, session->txn->id:%lu, txn_shared->id:%lu\r\n", 
-        session->id, session->name, publish, txn_global->current, session->txn->id, txn_shared->id);
+    //printf("yang test ......__wt_txn_id_alloc......., sessionid:%u, session_name:%s, publish:%d, txn_global->current:%lu, session->txn->id:%lu, txn_shared->id:%lu\r\n", 
+    //    session->id, session->name, publish, txn_global->current, session->txn->id, txn_shared->id);
 
     return (id);
 }

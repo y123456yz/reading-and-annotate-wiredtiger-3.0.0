@@ -319,6 +319,8 @@
     API_END_STAT(s, ret, api);                               \
     TXN_API_END(s, ret, retry)
 
+//注意CURSOR_UPDATE_API_END和CURSOR_UPDATE_API_END_STAT的区别
+//最终会走TXN_API_END事务结束__wt_txn_commit接口  普通的写操作通过这里
 #define CURSOR_UPDATE_API_END_STAT(s, ret, api) CURSOR_UPDATE_API_END_RETRY_STAT(s, ret, true, api)
 
 /*

@@ -80,6 +80,7 @@ __txn_get_read_timestamp(WT_TXN_SHARED *txn_shared, wt_timestamp_t *read_timesta
 /*
  * __wt_txn_get_pinned_timestamp --
  *     Calculate the current pinned timestamp.
+ //获取所有session事务中的最小read_timestamp及oldest_timestamp的最小值，如果没用has_oldest_timestamp直接返回0
  */
 void
 __wt_txn_get_pinned_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t *tsp, uint32_t flags)
@@ -114,6 +115,7 @@ __wt_txn_get_pinned_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t *tsp, uin
 
     /* Walk the array of concurrent transactions. */
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
+    //获取所有session事务中read_timestamp的最小值
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
         __txn_get_read_timestamp(s, &tmp_read_ts);
         /*
@@ -257,6 +259,7 @@ __wt_txn_query_timestamp(
  * __wt_txn_update_pinned_timestamp --
  *     Update the pinned timestamp (the oldest timestamp that has to be maintained for current or
  *     future readers).
+ //获取所有session事务中的最小read_timestamp及oldest_timestamp的最小值赋值给txn_global->pinned_timestamp
  */
 void
 __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
@@ -271,10 +274,12 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
         return;
 
     /* Scan to find the global pinned timestamp. */
+    //获取所有session事务中的最小read_timestamp及oldest_timestamp的最小值，如果没用has_oldest_timestamp直接返回0
     __wt_txn_get_pinned_timestamp(session, &pinned_timestamp, WT_TXN_TS_INCLUDE_OLDEST);
     if (pinned_timestamp == 0)
         return;
 
+    //如果不强制，并且已有的pinned_timestamp比上面获取的小，则直接返回
     if (txn_global->has_pinned_timestamp && !force) {
         last_pinned_timestamp = txn_global->pinned_timestamp;
 
@@ -282,11 +287,13 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
             return;
     }
 
+    //不满足上面的条件，例如上面第一次获取的pinned_timestamp比txn_global->pinned_timestamp大，则需要加锁重新获取一次
     __wt_writelock(session, &txn_global->rwlock);
     /*
      * Scan the global pinned timestamp again, it's possible that it got changed after the previous
      * scan.
      */
+    //加锁从新获取一次，这里区别是函数体中会加锁从新获取
     __wt_txn_get_pinned_timestamp(
       session, &pinned_timestamp, WT_TXN_TS_ALREADY_LOCKED | WT_TXN_TS_INCLUDE_OLDEST);
 
@@ -947,7 +954,8 @@ __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[], bool commit)
       FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED) && !F_ISSET(conn, WT_CONN_RECOVERING))
         WT_RET(__wt_txn_ts_log(session));
 
-    WT_RET(__wt_verbose_dump_txn_one(session, session, 0, NULL));//yang add change
+    if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_TRANSACTION, WT_VERBOSE_DEBUG_2))
+        WT_RET(__wt_verbose_dump_txn_one(session, session, 0, NULL));//yang add change
     return (0);
 }
 

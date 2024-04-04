@@ -141,6 +141,7 @@ struct __wt_txn_global {
     volatile uint64_t current; /* Current transaction ID. */
 
     /* The oldest running transaction ID (may race). */
+    //__wt_txn_update_oldest中赋值
     volatile uint64_t last_running;
 
     /*
@@ -153,12 +154,14 @@ struct __wt_txn_global {
     wt_timestamp_t last_ckpt_timestamp;
     wt_timestamp_t meta_ckpt_timestamp;
     wt_timestamp_t oldest_timestamp;
+    //__wt_txn_update_pinned_timestamp中赋值
     wt_timestamp_t pinned_timestamp;
     wt_timestamp_t recovery_timestamp;
     wt_timestamp_t stable_timestamp;
     wt_timestamp_t version_cursor_pinned_timestamp;
     bool has_durable_timestamp;
     bool has_oldest_timestamp;
+    //__wt_txn_update_pinned_timestamp中置为true
     bool has_pinned_timestamp;
     bool has_stable_timestamp;
     bool oldest_is_pinned;
@@ -188,6 +191,7 @@ struct __wt_txn_global {
 
     volatile uint64_t debug_ops;       /* Debug mode op counter */
     uint64_t debug_rollback;           /* Debug mode rollback */
+    //__wt_txn_update_oldest中赋值
     volatile uint64_t metadata_pinned; /* Oldest ID for metadata */
 
     //链表上的成员数为conn->session_cnt，参考__txn_get_snapshot_int
