@@ -120,7 +120,7 @@ __wt_rwlock_destroy(WT_SESSION_IMPL *session, WT_RWLOCK *l)
 /*
  * __wt_try_readlock --
  *     Try to get a shared lock, fail immediately if unavailable.
- */
+ */ 
 int
 __wt_try_readlock(WT_SESSION_IMPL *session, WT_RWLOCK *l)
 {
@@ -164,7 +164,7 @@ __read_blocked(WT_SESSION_IMPL *session)
 /*
  * __wt_readlock --
  *     Get a shared lock.
- */
+ */ 
 void
 __wt_readlock(WT_SESSION_IMPL *session, WT_RWLOCK *l)
 {
@@ -295,7 +295,7 @@ __wt_readunlock(WT_SESSION_IMPL *session, WT_RWLOCK *l)
 /*
  * __wt_try_writelock --
  *     Try to get an exclusive lock, fail immediately if unavailable.
- */
+ */  
 int
 __wt_try_writelock(WT_SESSION_IMPL *session, WT_RWLOCK *l)
 {
@@ -349,7 +349,7 @@ __write_blocked(WT_SESSION_IMPL *session)
 /*
  * __wt_writelock --
  *     Wait to get an exclusive lock.
- */
+ */ 
 void
 __wt_writelock(WT_SESSION_IMPL *session, WT_RWLOCK *l)
 {

@@ -299,6 +299,7 @@ err:
 /*
  * __curhs_close --
  *     WT_CURSOR->close method for the history store cursor type.
+ //__wt_curhs_cache
  */
 static int
 __curhs_close(WT_CURSOR *cursor)
@@ -1227,6 +1228,7 @@ __wt_curhs_range_truncate(WT_CURSOR *start, WT_CURSOR *stop)
 /*
  * __wt_curhs_open --
  *     Initialize a history store cursor.
+ //АэИз__wt_curhs_cache
  */
 int
 __wt_curhs_open(WT_SESSION_IMPL *session, WT_CURSOR *owner, WT_CURSOR **cursorp)

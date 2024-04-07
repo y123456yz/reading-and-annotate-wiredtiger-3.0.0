@@ -1282,7 +1282,7 @@ __conn_debug_info(WT_CONNECTION *wt_conn, const char *config)
 
     WT_ERR(__wt_config_gets(session, cfg, "txn", &cval));
     if (cval.val != 0)
-        WT_ERR(__wt_verbose_dump_txn(session));
+        WT_ERR(__wt_verbose_dump_txn(session, "__conn_debug_info"));
 err:
     API_END_RET(session, ret);
 }
@@ -1363,6 +1363,7 @@ err:
 /*
  * __conn_set_timestamp --
  *     WT_CONNECTION->set_timestamp method.
+ //可以参考timestamp_abort中的 thread_ts_run，对durable_timestamp  oldest_timestamp  stable_timestamp  pinned_timestamp等进行设置
  */
 static int
 __conn_set_timestamp(WT_CONNECTION *wt_conn, const char *config)

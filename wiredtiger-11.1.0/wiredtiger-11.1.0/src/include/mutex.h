@@ -67,6 +67,9 @@ struct __wt_rwlock { /* Read/write lock */
  * Implemented as a macro so we can pass in a statistics field and convert
  * it into a statistics structure array offset.
  */
+//spin lock初始化相关统计: WT_SPIN_INIT_SESSION_TRACKED或者WT_SPIN_INIT_TRACKED初始化，__wt_spin_lock_track或者__wt_spin_trylock_track进行统计计数
+//rw lock初始化相关统计: WT_RWLOCK_INIT_TRACKED或者WT_RWLOCK_INIT_SESSION_TRACKED初始化，统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
+
 #define WT_RWLOCK_INIT_TRACKED(session, l, name)                                                  \
     do {                                                                                          \
         WT_RET(__wt_rwlock_init(session, l));                                                     \
@@ -80,6 +83,8 @@ struct __wt_rwlock { /* Read/write lock */
           (int16_t)WT_STATS_FIELD_TO_OFFSET(S2C(session)->stats, lock_##name##_wait_internal);    \
     } while (0)
 
+//spin lock初始化相关统计: WT_SPIN_INIT_SESSION_TRACKED或者WT_SPIN_INIT_TRACKED初始化，__wt_spin_lock_track或者__wt_spin_trylock_track进行统计计数
+//rw lock初始化相关统计: WT_RWLOCK_INIT_TRACKED或者WT_RWLOCK_INIT_SESSION_TRACKED初始化，统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
 #define WT_RWLOCK_INIT_SESSION_TRACKED(session, l, name)                                    \
     do {                                                                                    \
         WT_RWLOCK_INIT_TRACKED(session, l, name);                                           \

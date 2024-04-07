@@ -275,6 +275,11 @@ __wt_spin_unlock(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
  */
 //# Locking statistics相关统计参考WT_SPIN_INIT_TRACKED这里，例如lock_checkpoint_count lock_check point_wait_application lock_checkpoint_wait_internal等
 //相关值统计增加见__wt_spin_lock_track
+//spin lock初始化相关统计: WT_SPIN_INIT_SESSION_TRACKED或者WT_SPIN_INIT_TRACKED初始化，__wt_spin_lock_track或者__wt_spin_trylock_track进行统计计数
+//rw lock初始化相关统计: WT_RWLOCK_INIT_TRACKED或者WT_RWLOCK_INIT_SESSION_TRACKED初始化，统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
+
+
+//lock_##name##_count  lock_##name##_wait_application  lock_##name##_wait_internal为全局相关的统计
 #define WT_SPIN_INIT_TRACKED(session, t, name)                                                    \
     do {                                                                                          \
         WT_RET(__wt_spin_init(session, t, #name));                                                \
@@ -286,6 +291,10 @@ __wt_spin_unlock(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
           (int16_t)WT_STATS_FIELD_TO_OFFSET(S2C(session)->stats, lock_##name##_wait_internal);    \
     } while (0)
 
+//spin lock初始化相关统计: WT_SPIN_INIT_SESSION_TRACKED或者WT_SPIN_INIT_TRACKED初始化，__wt_spin_lock_track或者__wt_spin_trylock_track进行统计计数
+//rw lock初始化相关统计: WT_RWLOCK_INIT_TRACKED或者WT_RWLOCK_INIT_SESSION_TRACKED初始化，统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
+
+//lock_##name##_wait 是session级别的统计
 #define WT_SPIN_INIT_SESSION_TRACKED(session, t, name)                                      \
     do {                                                                                    \
         WT_SPIN_INIT_TRACKED(session, t, name);                                             \
@@ -299,6 +308,8 @@ __wt_spin_unlock(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
  //相关值统计增加见__wt_spin_lock_track
  //# Locking statistics相关统计参考WT_SPIN_INIT_TRACKED这里，例如lock_checkpoint_count lock_check point_wait_application lock_checkpoint_wait_internal等
  */
+//spin lock相关全局及session统计: WT_SPIN_INIT_SESSION_TRACKED或者WT_SPIN_INIT_TRACKED初始化，__wt_spin_lock_track或者__wt_spin_trylock_track进行统计计数
+//WT_RWLOCK相关的session耗时统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
 static inline void
 __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
 {
@@ -313,6 +324,8 @@ __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
         stats = (int64_t **)S2C(session)->stats;
         session_stats = (int64_t *)&(session->stats);
         stats[session->stat_bucket][t->stat_count_off]++;
+
+        //等待锁时间统计
         if (F_ISSET(session, WT_SESSION_INTERNAL))
             stats[session->stat_bucket][t->stat_int_usecs_off] += (int64_t)time_diff;
         else {
@@ -327,6 +340,10 @@ __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
  * __wt_spin_trylock_track --
  *     Try to lock a spinlock or fail immediately if it is busy. Track if successful.
  */
+
+ 
+//spin lock初始化相关统计: WT_SPIN_INIT_SESSION_TRACKED或者WT_SPIN_INIT_TRACKED初始化，__wt_spin_lock_track或者__wt_spin_trylock_track进行统计计数
+//rw lock初始化相关统计: WT_RWLOCK_INIT_TRACKED或者WT_RWLOCK_INIT_SESSION_TRACKED初始化，统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
 static inline int
 __wt_spin_trylock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
 {

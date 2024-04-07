@@ -249,7 +249,7 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
             txn_shared->metadata_pinned = id;
     }
     
-    {
+   /* {
         char buf[512];
 
         //注意: 如果一个事务中对多个表操作，每个表访问cursor不一样，session也会不一样
@@ -257,7 +257,7 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
             session, session->id, txn->id, current_id, prev_oldest_id, txn_global->checkpoint_txn_shared.id);
         __wt_verbose_debug1(
                   session, WT_VERB_TRANSACTION, "%s", buf);
-    }
+    }*/
     
     /* For pure read-only workloads, avoid scanning. */
     if (prev_oldest_id == current_id) {
@@ -464,6 +464,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
  * __wt_txn_update_oldest --
  *     Sweep the running transactions to update the oldest ID required.
  evict、reconcile、checkpoint等操作会调用__wt_txn_update_oldest
+ 例如evict worker线程每一轮遍历获取需要淘汰的page前会通过__evict_server->__wt_txn_update_oldest来更新事务相关成员
  */
 int
 __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
@@ -486,9 +487,9 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
     prev_metadata_pinned = txn_global->metadata_pinned;
     prev_oldest_id = txn_global->oldest_id;
 
-    printf("yang test...__wt_txn_update_oldest...flags:ox%32x, current:%lu, current:%lu, current:%lu, current:%lu\r\n", 
-        flags, txn_global->current, txn_global->last_running, 
-        txn_global->metadata_pinned, txn_global->oldest_id);
+   // printf("yang test...__wt_txn_update_oldest...flags:ox%32x, current:%lu, prev_last_running:%lu, prev_metadata_pinned:%lu, prev_oldest_id:%lu\r\n", 
+   //     flags, txn_global->current, prev_last_running, prev_metadata_pinned, prev_oldest_id);
+   // WT_RET(__wt_verbose_dump_txn(session, "__wt_txn_update_oldest begin"));//yang add change
 
     /* Try to move the pinned timestamp forward. */
     if (strict)
@@ -508,6 +509,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
         __wt_readlock(session, &txn_global->rwlock);
     else if ((ret = __wt_try_readlock(session, &txn_global->rwlock)) != 0)
         return (ret == EBUSY ? 0 : ret);
+    //根据txn_shared_list从新计算出oldest_id等
     __txn_oldest_scan(session, &oldest_id, &last_running, &metadata_pinned, &oldest_session);
     __wt_readunlock(session, &txn_global->rwlock);
 
@@ -543,15 +545,18 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
     __txn_oldest_scan(session, &oldest_id, &last_running, &metadata_pinned, &oldest_session);
 
     /* Update the public IDs. */
-    if (WT_TXNID_LT(txn_global->metadata_pinned, metadata_pinned))
+    if (WT_TXNID_LT(txn_global->metadata_pinned, metadata_pinned)) {
         txn_global->metadata_pinned = metadata_pinned;
+        __wt_verbose_debug2(session, WT_VERB_TRANSACTION, "update metadata_pinned %" PRIu64, metadata_pinned);
+    }
     if (WT_TXNID_LT(txn_global->oldest_id, oldest_id)) {
         txn_global->oldest_id = oldest_id;
+        __wt_verbose_debug2(session, WT_VERB_TRANSACTION, "update oldest_id %" PRIu64, oldest_id);
         //printf("yang test ..........__wt_txn_update_oldest....oldest_id:%lu\r\n", oldest_id);
     }
     if (WT_TXNID_LT(txn_global->last_running, last_running)) {
         txn_global->last_running = last_running;
-
+        __wt_verbose_debug2(session, WT_VERB_TRANSACTION, "update last_running %" PRIu64, last_running);
         /* Output a verbose message about long-running transactions,
          * but only when some progress is being made. */
         if (WT_VERBOSE_ISSET(session, WT_VERB_TRANSACTION) && current_id - oldest_id > 10000 &&
@@ -561,6 +566,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
               oldest_id, oldest_session->id, oldest_session->lastop, oldest_session->txn->snap_min);
         }
     }
+    WT_RET(__wt_verbose_dump_txn(session, "__wt_txn_update_oldest end"));//yang add change
 
 done:
     __wt_writeunlock(session, &txn_global->rwlock);
@@ -1255,7 +1261,6 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
           __wt_timestamp_to_string(txn->commit_timestamp, ts_string[1]),
           __wt_timestamp_to_string(txn->durable_timestamp, ts_string[2]));
     else
-        //yang add todo xxxxxxxxx  "and timestamp"这里少了一个空格，应该为" and timestamp"
         __wt_verbose_debug2(session, WT_VERB_TRANSACTION,
           "rollback resolving prepared transaction with txnid: %" PRIu64 "and timestamp:%s",
           txn->id, __wt_timestamp_to_string(txn->prepare_timestamp, ts_string[0]));
@@ -1595,7 +1600,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
     u_int i;
     bool cannot_fail, locked, prepare, readonly, update_durable_ts;
 
-    printf("yang test .....__wt_txn_commit..........session id:%u\r\n", session->id);
+    //printf("yang test .....__wt_txn_commit..........session id:%u\r\n", session->id);
     conn = S2C(session);
     cursor = NULL;
     txn = session->txn;
@@ -2591,8 +2596,10 @@ __wt_verbose_dump_txn_one(
     WT_TXN *txn;
     WT_TXN_SHARED *txn_shared;
     char buf[512];
+    char snap_buf[512], snap_buf_tmp[512];
     char ts_string[6][WT_TS_INT_STRING_SIZE];
     const char *iso_tag;
+    uint32_t i;
 
     txn = txn_session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(txn_session);
@@ -2614,10 +2621,21 @@ __wt_verbose_dump_txn_one(
      * Dump the information of the passed transaction into a buffer, to be logged with an optional
      * error message.
      */
-    WT_RET(
-      __wt_snprintf(buf, sizeof(buf),
+      memset(snap_buf, 0, sizeof(snap_buf));
+      strcat(snap_buf, "["); 
+      for (i = 0; i < txn->snapshot_count; i++) {
+          if (i == 0)
+               WT_RET(__wt_snprintf(snap_buf_tmp, sizeof(snap_buf_tmp), "%lu", txn->snapshot[i]));
+          else 
+               WT_RET(__wt_snprintf(snap_buf_tmp, sizeof(snap_buf_tmp), ", %lu", txn->snapshot[i]));
+          strcat(snap_buf, snap_buf_tmp); 
+      }
+      strcat(snap_buf, "]"); 
+      
+      WT_RET(__wt_snprintf(buf, sizeof(buf),
         "session id:%" PRIu32 ", transaction id: %" PRIu64 ", mod count: %u"
         ", snap min: %" PRIu64 ", snap max: %" PRIu64 ", snapshot count: %u"
+        ", snapshot: %s"
         ", commit_timestamp: %s"
         ", durable_timestamp: %s"
         ", first_commit_timestamp: %s"
@@ -2629,6 +2647,7 @@ __wt_verbose_dump_txn_one(
         ", rollback reason: %s"
         ", flags: 0x%08" PRIx32 ", isolation: %s",
         txn_session->id,txn->id, txn->mod_count, txn->snap_min, txn->snap_max, txn->snapshot_count,
+        snap_buf,
         __wt_timestamp_to_string(txn->commit_timestamp, ts_string[0]),
         __wt_timestamp_to_string(txn->durable_timestamp, ts_string[1]),
         __wt_timestamp_to_string(txn->first_commit_timestamp, ts_string[2]),
@@ -2655,7 +2674,7 @@ __wt_verbose_dump_txn_one(
  *     Output diagnostic information about the global transaction state.
  */
 int
-__wt_verbose_dump_txn(WT_SESSION_IMPL *session)
+__wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
 {
     WT_CONNECTION_IMPL *conn;
     WT_SESSION_IMPL *sess;
@@ -2667,9 +2686,17 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session)
 
     conn = S2C(session);
     txn_global = &conn->txn_global;
+    
 
-    WT_RET(__wt_msg(session, "%s", WT_DIVIDER));
+    if (func_name)
+        //WT_RET(__wt_msg(session, "\r\n\r\n%s:", func_name));
+        __wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", func_name);
+    else 
+        //WT_RET(__wt_msg(session, "\r\n\r\n%s:", WT_DIVIDER));
+        __wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", WT_DIVIDER);
+        
     WT_RET(__wt_msg(session, "transaction state dump"));
+    WT_RET(__wt_msg(session, "now print session ID: %" PRIu32, session->id));
 
     WT_RET(__wt_msg(session, "current ID: %" PRIu64, txn_global->current));
     WT_RET(__wt_msg(session, "last running ID: %" PRIu64, txn_global->last_running));
@@ -2721,7 +2748,7 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session)
             
         sess = &conn->sessions[i];
         WT_RET(__wt_msg(session,
-          "shared session: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", i, id,
+          "session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", i, id,
           s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
         WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL));
     }

@@ -382,6 +382,7 @@ union __wt_lsn;
 union __wt_rand_state;
     typedef union __wt_rand_state WT_RAND_STATE;
 
+//参考__wt_verbose_dump_txn，采用__wt_timestamp_to_string打印wt_timestamp_t
 typedef uint64_t wt_timestamp_t;
 
 /*

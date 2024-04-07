@@ -48,20 +48,27 @@ __wt_connection_init(WT_CONNECTION_IMPL *conn)
 
     /* Spinlocks. */
     WT_RET(__wt_spin_init(session, &conn->api_lock, "api"));
+    //在WT_WITH_CHECKPOINT_LOCK获取锁
     WT_SPIN_INIT_TRACKED(session, &conn->checkpoint_lock, checkpoint);
     WT_RET(__wt_spin_init(session, &conn->encryptor_lock, "encryptor"));
     WT_RET(__wt_spin_init(session, &conn->fh_lock, "file list"));
     WT_RET(__wt_spin_init(session, &conn->flush_tier_lock, "flush tier"));
+    //在WT_WITH_METADATA_LOCK获取锁，执行op，然后释放锁
     WT_SPIN_INIT_TRACKED(session, &conn->metadata_lock, metadata);
     WT_RET(__wt_spin_init(session, &conn->reconfig_lock, "reconfigure"));
+    //SessionStat('lock_schema_wait', 'schema lock wait time (usecs)'),   mongo server在这里 {WT_STAT_SESSION_LOCK_SCHEMA_WAIT, std::make_pair("schemaLock"_sd, Section::WAIT)},
+    //在WT_WITH_SCHEMA_LOCK获取锁，执行op，然后释放锁
     WT_SPIN_INIT_SESSION_TRACKED(session, &conn->schema_lock, schema);
     WT_RET(__wt_spin_init(session, &conn->storage_lock, "tiered storage"));
     WT_RET(__wt_spin_init(session, &conn->tiered_lock, "tiered work unit list"));
     WT_RET(__wt_spin_init(session, &conn->turtle_lock, "turtle file"));
 
     /* Read-write locks */
+    //{WT_STAT_SESSION_LOCK_DHANDLE_WAIT, std::make_pair("handleLock"_sd, Section::WAIT)},统计从这里计数  SessionStat('lock_dhandle_wait', 'dhandle lock wait time (usecs)'),
+    //WT_RWLOCK相关的耗时统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
     WT_RWLOCK_INIT_SESSION_TRACKED(session, &conn->dhandle_lock, dhandle);
     WT_RET(__wt_rwlock_init(session, &conn->hot_backup_lock));
+    //WT_RWLOCK相关的耗时统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
     WT_RWLOCK_INIT_TRACKED(session, &conn->table_lock, table);
 
     /* Setup serialization for the LSM manager queues. */

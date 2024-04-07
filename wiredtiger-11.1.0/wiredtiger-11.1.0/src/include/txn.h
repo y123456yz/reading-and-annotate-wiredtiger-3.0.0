@@ -109,12 +109,12 @@ struct __wt_txn_shared {
     //赋值参考__wt_txn_id_alloc，也就是txn_global->current-1
     //代表事务id
     volatile uint64_t id;
-    //__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]赋值, 代表该session所能看到的最小事务id
+    //__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]赋值, 代表该session所能看到的最小事务id,如果获取快照时候还没有其他事务，则为txn_global->current
     //__checkpoint_prepare中对checkpoint_txn_shared.pinned_id赋值
-    //__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
+    //WT_ISO_READ_UNCOMMITTED方式__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
     volatile uint64_t pinned_id;
-    //赋值见__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]
-    //__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
+    //赋值见__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]，记录的是checkpoint的id
+    //WT_ISO_READ_UNCOMMITTED方式__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
     volatile uint64_t metadata_pinned;
 
     /*

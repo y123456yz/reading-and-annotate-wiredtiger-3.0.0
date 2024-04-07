@@ -73,8 +73,9 @@
  *
  * Translate a statistic's value name to an offset in the array.
  */
+//全局级别的统计
 #define WT_STATS_FIELD_TO_OFFSET(stats, fld) (int)(&(stats)[0]->fld - (int64_t *)(stats)[0])
-
+//session级别的统计
 #define WT_SESSION_STATS_FIELD_TO_OFFSET(stats, fld) (int)(&(stats)->fld - (int64_t *)(stats))
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */

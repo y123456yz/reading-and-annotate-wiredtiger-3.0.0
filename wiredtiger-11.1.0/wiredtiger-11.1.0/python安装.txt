@@ -29,4 +29,15 @@ DENABLE_SNAPPY启用snappy编译不过问题解决办法如下:
 4. cd build && cmake ../ && make
 
 
+mongo server层慢日志获取存储引擎的耗时
+std::map<int, std::pair<StringData, Section>> WiredTigerOperationStats::_statNameMap = {
+    {WT_STAT_SESSION_BYTES_READ, std::make_pair("bytesRead"_sd, Section::DATA)},
+    {WT_STAT_SESSION_BYTES_WRITE, std::make_pair("bytesWritten"_sd, Section::DATA)},
+    {WT_STAT_SESSION_LOCK_DHANDLE_WAIT, std::make_pair("handleLock"_sd, Section::WAIT)},
+    {WT_STAT_SESSION_READ_TIME, std::make_pair("timeReadingMicros"_sd, Section::DATA)},
+    {WT_STAT_SESSION_WRITE_TIME, std::make_pair("timeWritingMicros"_sd, Section::DATA)},
+    {WT_STAT_SESSION_LOCK_SCHEMA_WAIT, std::make_pair("schemaLock"_sd, Section::WAIT)},
+    {WT_STAT_SESSION_CACHE_TIME, std::make_pair("cache"_sd, Section::WAIT)}};
+
+
  ctest -C Debug -j 15 进行test_wt2323_join_visibility等c模块的单元测试，假设第一次运行结束有几个模块失败，下次直接在build中再次运行该 ctest -C Debug -j 15命令可以从失败的模块进行重新测试，如果想单独运行这个模块，在build中find找该模块，如果找不到，可以清理build路径，然后 cmake -DENABLE_SNAPPY=0 -DHAVE_DIAGNOSTIC=1 ../. 后，make -j 3重新编译就会有该模块了，可以find找到

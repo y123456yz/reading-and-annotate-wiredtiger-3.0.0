@@ -119,7 +119,7 @@ access_example(void)
     recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\
     version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/
 
-    error_check(wiredtiger_open(home, NULL, "create,cache_size=25M, statistics=(all),create,verbose=[write:5,reconcile:5, metadata:0, api:0]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=100KB),create,cache_size=25M, statistics=(all),create,verbose=[write:0,reconcile:0, metadata:0, api:0]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
     /* Open a session handle for the database. */
@@ -128,7 +128,7 @@ access_example(void)
 
     /*! [access example table create] */
     //error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u")); memory_page_image_max=128KB,
-    error_check(session->create(session, "table:access", "block_compressor=snappy,leaf_page_max=32KB,key_format=q,value_format=u"));
+    error_check(session->create(session, "table:access", "leaf_page_max=32KB,key_format=q,value_format=u"));
     /*! [access example table create] */
 
     /*! [access example cursor open] */
@@ -209,6 +209,8 @@ access_example(void)
     cursor->set_value(cursor, &value_item);
     error_check(cursor->insert(cursor));
 
+    sleep(100);
+    exit(0);
     //error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
 #ifdef HAVE_DIAGNOSTIC
     cbt = (WT_CURSOR_BTREE *)cursor; //yang add xxxxxxxxx todo example¨¬¨ª?¨®btree dump

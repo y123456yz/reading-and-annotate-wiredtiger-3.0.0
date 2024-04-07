@@ -100,7 +100,7 @@ static TEST_OPTS *opts, _opts;
 //statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中
 #define ENV_CONFIG_DEF                                        \
     "cache_size=%" PRIu32                                     \
-    "M,create,verbose=[config_all_verbos:0,log:0, transaction:5],"                  \
+    "M,create,verbose=[timestamp:5, config_all_verbos:0,api:2, transaction:5,history_store=5,history_store_activity=5],"                  \
     "debug_mode=(table_logging=true,checkpoint_retention=5)," \
     "eviction_updates_target=20,eviction_updates_trigger=90," \
     "log=(enabled,file_max=10M,remove=true),session_max=%d,"  \
@@ -301,6 +301,8 @@ thread_ts_run(void *arg)
         else
             testutil_check(__wt_snprintf(tscfg, sizeof(tscfg),
               "oldest_timestamp=%" PRIx64 ",stable_timestamp=%" PRIx64, ts, ts));
+              
+        //__conn_set_timestamp
         testutil_check(conn->set_timestamp(conn, tscfg));
 
         /*
@@ -398,7 +400,7 @@ thread_run(void *arg)
     char cbuf[MAX_VAL], lbuf[MAX_VAL], obuf[MAX_VAL];
     char kname[64], tscfg[64], uri[128];
     bool durable_ahead_commit, use_prep;
-    WT_CONNECTION* conn;
+   // WT_CONNECTION* conn;
 
     __wt_random_init(&rnd);
     memset(cbuf, 0, sizeof(cbuf));
@@ -472,7 +474,7 @@ thread_run(void *arg)
     /*
      * Write our portion of the key space until we're killed.
      */
-    usleep(td->info * 100000);
+    usleep(td->info * 50000);
     printf("Thread %" PRIu32 " starts at %" PRIu64 "\n\n\n\n\n\n\n\n", td->info, td->start);
     active_ts = 0;
     //for (i = td->start; i < td->start + 5000; ++i) { yang add change xxxxxxxxxxx
@@ -602,15 +604,20 @@ thread_run(void *arg)
         }
 
         {
-            conn = &S2C(session)->iface;
-            (void)conn->debug_info(conn, "txn"); // __wt_verbose_dump_txn   yang add change todo 
+            WT_CONNECTION_IMPL *conn_tmp;
+            char buf[100];
+            //WT_CONNECTION *conn_tmp2;
+            conn_tmp = S2C(session);
+            snprintf(buf, sizeof(buf), "timestamp thread_run thread: %u", td->info);
+            ret = __wt_verbose_dump_txn(conn_tmp->default_session, buf);//yang add change
+            WT_UNUSED(ret);
         }
         
-        usleep(1000000);//yang add change
+        usleep(100000);//yang add change
 
         //
         testutil_check(session->commit_transaction(session, NULL));
-
+        
         
         /*
          * Insert into the local table outside the timestamp txn. This must occur after the
@@ -623,13 +630,9 @@ thread_run(void *arg)
         data.data = lbuf;
         cur_local->set_value(cur_local, &data);
         testutil_check(cur_local->insert(cur_local));
-
+        
         //usleep(1000 * td->info);//目的是避免多个线程输出信息相互影响
         
-        {
-            conn = &S2C(session)->iface;
-            (void)conn->debug_info(conn, "txn"); // __wt_verbose_dump_txn   yang add change todo 
-        }
         /* Save the timestamps and key separately for checking later. */
         //写入records-线程号文件
         if (fprintf(fp, "%" PRIu64 " %" PRIu64 " %" PRIu64 "\n", active_ts,

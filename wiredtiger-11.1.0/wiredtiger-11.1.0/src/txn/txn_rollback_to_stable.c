@@ -1490,7 +1490,7 @@ __rollback_to_stable_check(WT_SESSION_IMPL *session)
         WT_RET_MSG(session, EBUSY, "rollback_to_stable illegal with active file cursors");
     if (txn_active) {
         ret = EBUSY;
-        WT_TRET(__wt_verbose_dump_txn(session));
+        WT_TRET(__wt_verbose_dump_txn(session, "__rollback_to_stable_check"));
         WT_RET_MSG(session, ret, "rollback_to_stable illegal with active transactions");
     }
     return (0);

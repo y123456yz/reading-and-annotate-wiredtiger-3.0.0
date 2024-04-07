@@ -505,12 +505,12 @@ __evict_server(WT_SESSION_IMPL *session, bool *did_work)
     if (time_diff_ms > WT_CACHE_STUCK_TIMEOUT_MS) {
 #ifdef HAVE_DIAGNOSTIC
         __wt_err(session, ETIMEDOUT, "Cache stuck for too long, giving up");
-        WT_RET(__wt_verbose_dump_txn(session));
+        WT_RET(__wt_verbose_dump_txn(session, "__evict_server"));
         WT_RET(__wt_verbose_dump_cache(session));
         return (__wt_set_return(session, ETIMEDOUT));
 #else
         if (WT_VERBOSE_ISSET(session, WT_VERB_EVICT_STUCK)) {
-            WT_RET(__wt_verbose_dump_txn(session));
+            WT_RET(__wt_verbose_dump_txn(session, "__evict_server"));
             WT_RET(__wt_verbose_dump_cache(session));
 
             /* Reset the timer. */
@@ -2724,7 +2724,7 @@ err:
         elapsed = WT_CLOCKDIFF_US(time_stop, time_start);
         //这里需要一个用户线程进行evict的次数统计 application_cache_ops
         WT_STAT_CONN_INCRV(session, application_cache_time, elapsed);
-        //参考mongo server的WiredTigerOperationStats::_statNameMap
+        //参考mongo server的WiredTigerOperationStats::_statNameMap  {WT_STAT_SESSION_CACHE_TIME, std::make_pair("cache"_sd, Section::WAIT)}};
         WT_STAT_SESSION_INCRV(session, cache_time, elapsed);
         session->cache_wait_us += elapsed;
         if (cache_max_wait_us != 0 && session->cache_wait_us > cache_max_wait_us) {

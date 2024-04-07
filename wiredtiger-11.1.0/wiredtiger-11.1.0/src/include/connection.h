@@ -263,16 +263,20 @@ struct __wt_connection_impl {
 
     WT_SPINLOCK api_lock;        /* Connection API spinlock */
     //# Locking statistics相关统计参考WT_SPIN_INIT_TRACKED这里，例如lock_checkpoint_count lock_check point_wait_application lock_checkpoint_wait_internal等
-    //相关锁耗时统计见WT_WITH_LOCK_WAIT->__wt_spin_lock_track
+    //相关锁耗时统计见WT_WITH_LOCK_WAIT->__wt_spin_lock_track 
+    //在WT_WITH_CHECKPOINT_LOCK获取锁，执行op，然后释放锁
     WT_SPINLOCK checkpoint_lock; /* Checkpoint spinlock */
     WT_SPINLOCK fh_lock;         /* File handle queue spinlock */
     WT_SPINLOCK flush_tier_lock; /* Flush tier spinlock */
+    //在WT_WITH_METADATA_LOCK获取锁，执行op，然后释放锁
     WT_SPINLOCK metadata_lock;   /* Metadata update spinlock */
     WT_SPINLOCK reconfig_lock;   /* Single thread reconfigure */
     WT_SPINLOCK schema_lock;     /* Schema operation spinlock */
+    //WT_RWLOCK相关的耗时统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
     WT_RWLOCK table_lock;        /* Table list lock */
     WT_SPINLOCK tiered_lock;     /* Tiered work queue spinlock */
     WT_SPINLOCK turtle_lock;     /* Turtle file spinlock */
+    //WT_RWLOCK相关的耗时统计见__wt_try_readlock  __wt_readlock  __wt_try_writelock  __wt_writelock
     WT_RWLOCK dhandle_lock;      /* Data handle list lock */
 
     /* Connection queue */

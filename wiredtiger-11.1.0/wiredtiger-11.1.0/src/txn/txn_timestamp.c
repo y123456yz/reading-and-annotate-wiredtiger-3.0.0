@@ -274,7 +274,7 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
         return;
 
     /* Scan to find the global pinned timestamp. */
-    //获取所有session事务中的最小read_timestamp及oldest_timestamp的最小值，如果没用has_oldest_timestamp直接返回0
+    //获取所有session事务最小read_timestamp和txn_global->checkpoint_timestamp中的最小值，如果没用has_oldest_timestamp直接返回0
     __wt_txn_get_pinned_timestamp(session, &pinned_timestamp, WT_TXN_TS_INCLUDE_OLDEST);
     if (pinned_timestamp == 0)
         return;
@@ -298,7 +298,7 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
       session, &pinned_timestamp, WT_TXN_TS_ALREADY_LOCKED | WT_TXN_TS_INCLUDE_OLDEST);
 
     if (pinned_timestamp != 0 &&
-      (!txn_global->has_pinned_timestamp || force ||
+      (!txn_global->has_pinned_timestamp || force || 
         txn_global->pinned_timestamp < pinned_timestamp)) {
         txn_global->pinned_timestamp = pinned_timestamp;
         txn_global->has_pinned_timestamp = true;
@@ -326,7 +326,7 @@ __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
 
     txn_global = &S2C(session)->txn_global;
 
-    WT_STAT_CONN_INCR(session, txn_set_ts);
+    WT_STAT_CONN_INCR(session, txn_set_ts); 
 
     WT_RET(__wt_config_gets_def(session, cfg, "durable_timestamp", 0, &durable_cval));
     has_durable = durable_cval.len != 0;
@@ -437,6 +437,7 @@ set:
     __wt_writeunlock(session, &txn_global->rwlock);
 
     if (has_oldest || has_stable)
+        //这里面进行"Updated pinned timestamp"
         __wt_txn_update_pinned_timestamp(session, force);
 
     return (0);
@@ -954,8 +955,8 @@ __wt_txn_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[], bool commit)
       FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED) && !F_ISSET(conn, WT_CONN_RECOVERING))
         WT_RET(__wt_txn_ts_log(session));
 
-    if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_TRANSACTION, WT_VERBOSE_DEBUG_2))
-        WT_RET(__wt_verbose_dump_txn_one(session, session, 0, NULL));//yang add change
+   // if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_TRANSACTION, WT_VERBOSE_DEBUG_2))
+    //    WT_RET(__wt_verbose_dump_txn_one(session, session, 0, NULL));//yang add change
     return (0);
 }
 
