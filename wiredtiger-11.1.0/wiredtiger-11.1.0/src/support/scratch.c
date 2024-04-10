@@ -108,7 +108,7 @@ err:
  */
 int
 __wt_buf_catfmt(WT_SESSION_IMPL *session, WT_ITEM *buf, const char *fmt, ...)
-  WT_GCC_FUNC_ATTRIBUTE((format(printf, 3, 4))) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+//  WT_GCC_FUNC_ATTRIBUTE((format(printf, 3, 4))) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     WT_DECL_RET;
 
@@ -273,7 +273,7 @@ __wt_scr_alloc_func(WT_SESSION_IMPL *session, size_t size, WT_ITEM **scratchp
   ,
   const char *func, int line
 #endif
-  ) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+  ) //WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     WT_DECL_RET;
     WT_ITEM *buf, **p, **best, **slot;

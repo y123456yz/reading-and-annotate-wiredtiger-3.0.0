@@ -348,6 +348,7 @@ testutil_timestamp_parse(const char *str)
  * maximum_stable_ts --
  *     Return the largest usable stable timestamp from a list of n committed timestamps.
  */
+//返回commit_timestamps[]数组中最小的值-1
 static inline wt_timestamp_t
 maximum_stable_ts(wt_timestamp_t *commit_timestamps, uint32_t n)
 {

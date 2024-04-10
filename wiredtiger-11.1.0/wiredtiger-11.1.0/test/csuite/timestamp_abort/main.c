@@ -139,6 +139,7 @@ typedef struct {
 
 //线程数
 static uint32_t nth;                      /* Number of threads. */
+//run_workload中创建数组空间，每个线程一个wt_timestamp_t成员，thread_run工作线程中赋值
 static wt_timestamp_t *active_timestamps; /* Oldest timestamps still in use. */
 
 static void handler(int) WT_GCC_FUNC_DECL_ATTRIBUTE((noreturn));
@@ -289,19 +290,22 @@ thread_ts_run(void *arg)
     for (last_ts = 0;; __wt_sleep(0, 1000)) {
         /* Get the last committed timestamp periodically in order to update the oldest
          * timestamp. */
+        //返回commit_timestamps[]数组中最小的值-1
         ts = maximum_stable_ts(active_timestamps, nth);
         if (ts == last_ts)
             continue;
         last_ts = ts;
 
         /* Let the oldest timestamp lag 25% of the time. */
+        //5秒时间范围中，有一秒是更新stable_timestamp，其他4秒更新oldest_timestamp和stable_timestamp
         rand_op = __wt_random(&rnd) % 4;
         if (rand_op == 1)
             testutil_check(__wt_snprintf(tscfg, sizeof(tscfg), "stable_timestamp=%" PRIx64, ts));
         else
             testutil_check(__wt_snprintf(tscfg, sizeof(tscfg),
               "oldest_timestamp=%" PRIx64 ",stable_timestamp=%" PRIx64, ts, ts));
-              
+
+        __wt_verbose_debug2((WT_SESSION_IMPL *)session, WT_VERB_TRANSACTION, "timestamp_abort thread_ts_run: %s", tscfg);
         //__conn_set_timestamp
         testutil_check(conn->set_timestamp(conn, tscfg));
 

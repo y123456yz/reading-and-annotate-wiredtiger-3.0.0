@@ -28,6 +28,21 @@ DENABLE_SNAPPY启用snappy编译不过问题解决办法如下:
 3. mkdir build
 4. cd build && cmake ../ && make
 
+/root/mongodb-linux-x86_64-rhel70-7.0.7-rc0/bin/mongod -f /data/mongodb-data/mongodb-7.0.0/conf/mongod.conf  --wiredTigerStatisticsLogDelaySecs=5
+python2.7  wtstats.py WiredTigerStat.09.11 
+
+     $ echo "First get and build a working WiredTiger install"
+     $ cd work
+     $ wget http://source.wiredtiger.com/releases/wiredtiger-2.0.1.tar.bz2
+     $ tar jxf wiredtiger-2.0.1.tar.bz2 && cd wiredtiger-2.0.1
+     $ ./configure && make -j 12
+     $ echo "Run an application that will generate statistics"
+     $ mkdir WT_TEST && ./bench/wtperf/wtperf \
+	-O bench/wtperf/runners/update-lsm.wtperf \
+	-o "conn_config=\"cache_size=1G,statistics=[fast,clear],statistics_log=(wait=30)\""
+     $ echo "Now generate a graph from the statistics"
+     $ python ./tools/wtstats.py WT_TEST/WiredTigerStat.*
+
 
 mongo server层慢日志获取存储引擎的耗时
 std::map<int, std::pair<StringData, Section>> WiredTigerOperationStats::_statNameMap = {

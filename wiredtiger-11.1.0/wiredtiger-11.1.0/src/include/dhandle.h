@@ -166,11 +166,14 @@ struct __wt_data_handle {
     uint32_t flags;
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//默认配置assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off)
+//  所有标识都不会置位
 #define WT_DHANDLE_TS_ASSERT_READ_ALWAYS 0x1u /* Assert read always checking. */
 #define WT_DHANDLE_TS_ASSERT_READ_NEVER 0x2u  /* Assert read never checking. */
 #define WT_DHANDLE_TS_NEVER 0x4u              /* Handle never using timestamps checking. */
 #define WT_DHANDLE_TS_ORDERED 0x8u            /* Handle using ordered timestamps checking. */
                                               /* AUTOMATIC FLAG VALUE GENERATION STOP 16 */
+    //从默认配置看，这里状态会为0
     uint16_t ts_flags;
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */

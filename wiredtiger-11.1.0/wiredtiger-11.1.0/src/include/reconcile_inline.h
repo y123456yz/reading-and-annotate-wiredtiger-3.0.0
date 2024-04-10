@@ -426,7 +426,11 @@ __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *add
 //__wt_rec_cell_build_val: value数据封装到r->v中
 //__rec_cell_build_leaf_key: 对key进行编码后存入r->k中, 同时r->cur指向data数据
 
-//value数据封装到r->v中，配合__wt_rec_image_copy阅读
+//__wt_rec_cell_build_val:  生成KV中的V(含WT_TIME_WINDOW)，最终通过__wt_rec_image_copy及reconcile流程写入磁盘
+//__wt_row_leaf_value_cell: 从磁盘读取KV中的V(含WT_TIME_WINDOW)
+
+
+//value数据封装到r->v中，配合__wt_rec_image_copy阅读, tw赋值给V的地方参考__wt_rec_cell_build_val，最终通过reconcile写入磁盘
 static inline int
 __wt_rec_cell_build_val(WT_SESSION_IMPL *session, WT_RECONCILE *r, const void *data, size_t size,
   WT_TIME_WINDOW *tw, uint64_t rle)

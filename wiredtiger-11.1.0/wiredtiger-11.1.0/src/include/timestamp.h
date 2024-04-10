@@ -24,12 +24,20 @@
 #define WT_TIME_STRING_SIZE (WT_TS_INT_STRING_SIZE * 4 + 20 * 2 + 64)
 
 /* The time points that define a value's time window and associated prepare information. */
-//事务相关，例如可见性，可以参考__wt_txn_tw_start_visible_all
+//官方文档参考: https://source.wiredtiger.com/develop/arch-timestamp.html
+//事务相关，例如可见性，可以参考__wt_txn_tw_start_visible_all  __wt_txn_tw_stop_visible __wt_txn_tw_start_visible_all
+//tw赋值给V的地方参考__wt_rec_cell_build_val, 最终通过__wt_rec_image_copy拷贝给V的tw然后通过reconcile逻辑写入磁盘
+
+//__wt_rec_cell_build_val:  生成KV中的V(含WT_TIME_WINDOW)，最终通过__wt_rec_image_copy及reconcile流程写入磁盘
+//__wt_row_leaf_value_cell: 从磁盘读取KV中的V(含WT_TIME_WINDOW)
+
+//__wt_update_value.wt为该类型
 struct __wt_time_window {
     wt_timestamp_t durable_start_ts; /* default value: WT_TS_NONE */
     wt_timestamp_t start_ts;         /* default value: WT_TS_NONE */
     uint64_t start_txn;              /* default value: WT_TXN_NONE */
 
+    //stop窗口相关赋值见__wt_upd_value_assign  __wt_txn_read_upd_list_internal  
     wt_timestamp_t durable_stop_ts; /* default value: WT_TS_NONE */
     wt_timestamp_t stop_ts;         /* default value: WT_TS_MAX */
     uint64_t stop_txn;              /* default value: WT_TXN_MAX */
@@ -52,6 +60,7 @@ struct __wt_time_window {
  * - newest_stop_ts          - Newest stop commit timestamp include WT_TS_MAX
  * - newest_stop_txn         - Newest stop commit transaction include WT_TXN_MAX
  * - prepare                 - Prepared updates
+ 官方说明参考: https://source.wiredtiger.com/develop/arch-timestamp.html
  */
 struct __wt_time_aggregate {
     wt_timestamp_t newest_start_durable_ts; /* default value: WT_TS_NONE */

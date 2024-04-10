@@ -1475,8 +1475,9 @@ struct __wt_update {
     //改upd对应的事务id，赋值见__wt_txn_modify
     volatile uint64_t txnid; /* transaction ID */
 
-    //赋值见__wt_txn_op_set_timestamp
+    //__wt_txn_commit->__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点durable_timestamp记录到durable_ts中
     wt_timestamp_t durable_ts; /* timestamps */
+    //__wt_txn_commit->__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点commit_timestamp记录到start_ts中
     wt_timestamp_t start_ts;
 
     /*
@@ -1491,10 +1492,13 @@ struct __wt_update {
     uint32_t size; /* data length */
 
 #define WT_UPDATE_INVALID 0   /* diagnostic check */
+//__wt_hs_insert_updates中设置
 #define WT_UPDATE_MODIFY 1    /* partial-update modify value */
-//__wt_btcur_reserve中设置
+//__wt_btcur_reserve中设置，可以先不关注
 #define WT_UPDATE_RESERVE 2   /* reserved */
+//一般都是这个状态
 #define WT_UPDATE_STANDARD 3  /* complete value */
+//说明是删除操作
 #define WT_UPDATE_TOMBSTONE 4 /* deleted */
     uint8_t type;             /* type (one byte to conserve memory) */
 
@@ -1552,6 +1556,7 @@ struct __wt_update {
  */ //__wt_cursor_btree.modify_update为该类型
 struct __wt_update_value {
     WT_ITEM buf;
+    //赋值可以参考__wt_upd_value_assign
     WT_TIME_WINDOW tw;
     uint8_t type;
     bool skip_buf;

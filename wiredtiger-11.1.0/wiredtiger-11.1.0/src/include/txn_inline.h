@@ -188,6 +188,7 @@ __txn_next_op(WT_SESSION_IMPL *session, WT_TXN_OP **opp)
  *     If threads race making updates, they may discard the last referenced WT_UPDATE item while the
  *     transaction is still active. This function removes the last update item from the "log".
  */
+//把一个WT_TXN_OP从mod_count[]数组中删除
 static inline void
 __wt_txn_unmodify(WT_SESSION_IMPL *session)
 {
@@ -675,6 +676,7 @@ __wt_txn_upd_value_visible_all(WT_SESSION_IMPL *session, WT_UPDATE_VALUE *upd_va
 /*
  * __wt_txn_tw_stop_visible --
  *     Is the given stop time window visible?
+ session是否可以访问tw对应事务
  */
 static inline bool
 __wt_txn_tw_stop_visible(WT_SESSION_IMPL *session, WT_TIME_WINDOW *tw)
@@ -757,6 +759,7 @@ __wt_txn_visible_id_snapshot(
     if (snapshot_count == 0 || WT_TXNID_LT(id, snap_min))
         return (true);
 
+    //如果snapshot_count不等于0，并且介于snap_min, snap_max之间，如果在snapshot[]数组可以找到则不可访问
     WT_BINARY_SEARCH(id, snapshot, snapshot_count, found);
     return (!found);
 }
@@ -764,6 +767,7 @@ __wt_txn_visible_id_snapshot(
 /*
  * __txn_visible_id --
  *     Can the current transaction see the given ID?
+ //当前session是否可以访问id对应事务
  */
 static inline bool
 __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
@@ -807,15 +811,18 @@ __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp
 
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
-
+    
+    //当前session是否可以访问id对应事务
     if (!__txn_visible_id(session, id))
         return (false);
 
     /* Transactions read their writes, regardless of timestamps. */
+    //sesion可以访问本事务
     if (F_ISSET(session->txn, WT_TXN_HAS_ID) && id == session->txn->id)
         return (true);
 
     /* Timestamp check. */
+    //__wt_txn_set_read_timestamp中置位，设置了read_timestamp才会有效
     if (!F_ISSET(txn, WT_TXN_SHARED_TS_READ) || timestamp == WT_TS_NONE)
         return (true);
 
@@ -828,6 +835,7 @@ __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp
 /*
  * __wt_txn_upd_visible_type --
  *     Visible type of given update for the current transaction.
+ //当前session对应事务是否可以访问upd->start_ts时间点的upd数据
  */
 static inline WT_VISIBLE_TYPE
 __wt_txn_upd_visible_type(WT_SESSION_IMPL *session, WT_UPDATE *upd)
@@ -872,6 +880,7 @@ __wt_txn_upd_visible_type(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __wt_txn_upd_visible --
  *     Can the current transaction see the given update.
+ //当前事务是否可以访问upd这条更新数据
  */
 static inline bool
 __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
@@ -941,6 +950,7 @@ __wt_upd_alloc_tombstone(WT_SESSION_IMPL *session, WT_UPDATE **updp, size_t *siz
  *     Internal helper function to get the first visible update in a list (or NULL if none are
  *     visible).
  */
+//获取udp链表中的更新的数据，获取第一个可访问数据存入cbt->upd_value
 static inline int
 __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE *upd,
   WT_UPDATE **prepare_updp, WT_UPDATE **restored_updp)
@@ -968,8 +978,10 @@ __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, 
          * the time window already has a stop time set then we must have seen a tombstone prior to
          * ours in the update list, and therefore don't need to do this again.
          */
+        //udp对应key被删除了，并且不是hs表
         if (type == WT_UPDATE_TOMBSTONE && F_ISSET(&cbt->iface, WT_CURSTD_IGNORE_TOMBSTONE) &&
           !WT_TIME_WINDOW_HAS_STOP(&cbt->upd_value->tw)) {
+            //yang add todo xxxxxxxxxxxxxxxx 用__wt_upd_value_assign替换
             cbt->upd_value->tw.durable_stop_ts = upd->durable_ts;
             cbt->upd_value->tw.stop_ts = upd->start_ts;
             cbt->upd_value->tw.stop_txn = upd->txnid;
@@ -978,6 +990,7 @@ __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, 
             continue;
         }
 
+        //当前session可以访问udp对应数据
         upd_visible = __wt_txn_upd_visible_type(session, upd);
 
         if (upd_visible == WT_VISIBLE_TRUE)
@@ -1045,6 +1058,7 @@ __wt_txn_read_upd_list(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE
  *     supplied as a function argument. If there is no visible update, it will check the onpage
  *     value for the given key. Finally, if the onpage value is not visible to the reader, the
  *     function will search the history store for a visible update.
+ //获取udp链表上面可访问的最新V存入cbt->upd_value
  */
 static inline int
 __wt_txn_read(
@@ -1059,12 +1073,15 @@ __wt_txn_read(
     read_onpage = prepare_retry = true;
 
 retry:
+    //获取udp链表中的更新的数据，获取第一个可访问数据存入cbt->upd_value
     WT_RET(__wt_txn_read_upd_list_internal(session, cbt, upd, &prepare_upd, &restored_upd));
+    //这个key的update链表上面有可以访问的value数据
     if (WT_UPDATE_DATA_VALUE(cbt->upd_value) ||
       (cbt->upd_value->type == WT_UPDATE_MODIFY && cbt->upd_value->skip_buf))
         return (0);
     WT_ASSERT(session, cbt->upd_value->type == WT_UPDATE_INVALID);
 
+    //内存中没有可访问的value数据，并且该key也不在磁盘上，则直接返回
     /* If there is no ondisk value, there can't be anything in the history store either. */
     if (cbt->ref->page->dsk == NULL) {
         cbt->upd_value->type = WT_UPDATE_TOMBSTONE;
@@ -1096,6 +1113,7 @@ retry:
              * cell unpacking code will always return a correct time window even it returns a
              * WT_RESTART error.
              */
+            //从磁盘从磁盘的page->pg_row[cbt->slot]cbt->slot位置读取该KV
             ret = __wt_value_return_buf(cbt, cbt->ref, &cbt->upd_value->buf, &tw);
             if (ret == WT_RESTART) {
                 read_onpage = false;
@@ -1103,12 +1121,14 @@ retry:
             } else
                 WT_RET(ret);
 
+          
             /*
              * If the stop time point is set, that means that there is a tombstone at that time. If
              * it is not prepared and it is visible to our txn it means we've just spotted a
              * tombstone and should return "not found", except scanning the history store during
              * rollback to stable and when we are told to ignore non-globally visible tombstones.
              */
+            //磁盘上获取到了该K数据，并且该数据可见
             if (!have_stop_tw && __wt_txn_tw_stop_visible(session, &tw) &&
               !F_ISSET(&cbt->iface, WT_CURSTD_IGNORE_TOMBSTONE)) {
                 cbt->upd_value->buf.data = NULL;
@@ -1141,6 +1161,7 @@ retry:
     }
 
     /* If there's no visible update in the update chain or ondisk, check the history store file. */
+    //内存和磁盘中都找到，则从hs表中查找
     if (F_ISSET(S2C(session), WT_CONN_HS_OPEN) && !F_ISSET(session->dhandle, WT_DHANDLE_HS)) {
         __wt_timing_stress(session, WT_TIMING_STRESS_HS_SEARCH, NULL);
         WT_RET(__wt_hs_find_upd(session, S2BT(session)->id, key, cbt->iface.value_format, recno,
@@ -1184,6 +1205,8 @@ retry:
 /*
  * __wt_txn_begin --
  *     Begin a transaction.
+ //如果一个写入操作__curfile_insert没有显示调用__wt_txn_begin，则会调用CURSOR_UPDATE_API_CALL_BTREE->TXN_API_CALL_NOCONF设置为WT_TXN_AUTOCOMMIT,
+//  __wt_txn_autocommit_check中就会自动加上__wt_txn_begin
  */
 static inline int
 __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
@@ -1206,6 +1229,7 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
      * snapshot of autocommit transactions because they are committed at the end of the operation.
      */
     if (txn->isolation == WT_ISO_SNAPSHOT &&
+       //注意这里有个!，一般都不会满足这个条件，从而进入下面流程
       !(F_ISSET(txn, WT_TXN_AUTOCOMMIT) && F_ISSET(txn, WT_TXN_HAS_SNAPSHOT))) {
         if (session->ncursors > 0)
             WT_RET(__wt_session_copy_values(session));
@@ -1214,7 +1238,7 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
          * Stall here if the cache is completely full. Eviction check can return rollback, but the
          * WT_SESSION.begin_transaction API can't, continue on.
          */
-        //printf("yang test ..................__wt_txn_idle_cache_check...................................\r\n");
+        //printf("yang test ..................__wt_txn_begin...................................\r\n");
         //检查节点已使用内存、脏数据、update数据百分比，判断是否需要用户线程、evict线程进行evict处理
         WT_RET_ERROR_OK(__wt_cache_eviction_check(session, false, true, NULL), WT_ROLLBACK);
 
@@ -1231,6 +1255,8 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
 /*
  * __wt_txn_autocommit_check --
  *     If an auto-commit transaction is required, start one.
+ //如果一个写入操作__curfile_insert没有显示调用__wt_txn_begin，则会调用CURSOR_UPDATE_API_CALL_BTREE->TXN_API_CALL_NOCONF设置为WT_TXN_AUTOCOMMIT,
+//  __wt_txn_autocommit_check中就会自动加上__wt_txn_begin
  */
 static inline int
 __wt_txn_autocommit_check(WT_SESSION_IMPL *session)
@@ -1240,6 +1266,7 @@ __wt_txn_autocommit_check(WT_SESSION_IMPL *session)
 
     txn = session->txn;
     if (F_ISSET(txn, WT_TXN_AUTOCOMMIT)) {
+        //printf("yang test ............__wt_txn_autocommit_check..............\r\n");
         ret = __wt_txn_begin(session, NULL);
         F_CLR(txn, WT_TXN_AUTOCOMMIT);
     }
@@ -1389,6 +1416,7 @@ __wt_txn_search_check(WT_SESSION_IMPL *session)
     name = session->dhandle->name;
 
     /* Timestamps are ignored on logged files. */
+    //
     if (F_ISSET(S2BT(session), WT_BTREE_LOGGED))
         return (0);
 
@@ -1424,6 +1452,7 @@ __wt_txn_search_check(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_modify_block --
  *     Check if the current transaction can modify an item.
+ //判断多线程环境中是否有事务冲突
  */
 static inline int
 __wt_txn_modify_block(
@@ -1446,6 +1475,7 @@ __wt_txn_modify_block(
      */
     ignore_prepare_set = F_ISSET(txn, WT_TXN_IGNORE_PREPARE);
     F_CLR(txn, WT_TXN_IGNORE_PREPARE);
+    //如果session对应事务对udp所有变更数据都不可见，说明冲突了，因为不能修改该K，这时候需要回滚
     for (; upd != NULL && !__wt_txn_upd_visible(session, upd); upd = upd->next) {
         if (upd->txnid != WT_TXN_ABORTED) {
             //ret = __log_slot_close(session, slot, &release, forced);后增加一个延迟 __wt_sleep(0, 30000);//yang add change  即可模拟出来
@@ -1470,8 +1500,10 @@ __wt_txn_modify_block(
      * set on the cursor b-tree.
      */
     if (!rollback && upd == NULL && (CUR2BT(cbt)->type != BTREE_ROW || cbt->ins == NULL)) {
+        // 从磁盘读取&page->pg_row[cbt->slot]位置的数据并获取对应tw
         tw_found = __wt_read_cell_time_window(cbt, &tw);
         if (tw_found) {
+            //磁盘上读取的数据中带有tw信息，则判断该session是否可以访问tw对应事务数据
             if (WT_TIME_WINDOW_HAS_STOP(&tw)) {
                 rollback = !__wt_txn_tw_stop_visible(session, &tw);
                 if (rollback)
@@ -1488,12 +1520,12 @@ __wt_txn_modify_block(
         }
     }
 
-    if (rollback) {
+    if (rollback) {//回滚操作
         /* Dump information about the txn snapshot. */
         if (WT_VERBOSE_LEVEL_ISSET(session, WT_VERB_TRANSACTION, WT_VERBOSE_DEBUG_1)) {
             WT_ERR(__wt_scr_alloc(session, 1024, &buf));
             WT_ERR(__wt_buf_fmt(session, buf,
-              "snapshot_min=%" PRIu64 ", snapshot_max=%" PRIu64 ", snapshot_count=%" PRIu32,
+              "__wt_txn_modify_block rolback snapshot_min=%" PRIu64 ", snapshot_max=%" PRIu64 ", snapshot_count=%" PRIu32,
               txn->snap_min, txn->snap_max, txn->snapshot_count));
             if (txn->snapshot_count > 0) {
                 WT_ERR(__wt_buf_catfmt(session, buf, ", snapshots=["));
@@ -1505,7 +1537,9 @@ __wt_txn_modify_block(
             __wt_verbose_debug1(session, WT_VERB_TRANSACTION, "%s", (const char *)buf->data);
         }
 
+        //回滚统计
         WT_STAT_CONN_DATA_INCR(session, txn_update_conflict);
+        //设置回滚原因
         ret = __wt_txn_rollback_required(session, WT_TXN_ROLLBACK_REASON_CONFLICT);
     }
 
@@ -1551,6 +1585,7 @@ __wt_txn_modify_check(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE 
      * Check if this operation is permitted, skipping if transaction isolation is not snapshot or
      * operating on the metadata table.
      */
+    //判断本session对udp是否有可见性，如果不可见则代表冲突了
     if (txn->isolation == WT_ISO_SNAPSHOT && !WT_IS_METADATA(cbt->dhandle))
         WT_RET(__wt_txn_modify_block(session, cbt, upd, prev_tsp));
 
@@ -1558,6 +1593,7 @@ __wt_txn_modify_check(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE 
      * Prepending a tombstone to another tombstone indicates remove of a non-existent key and that
      * isn't permitted, return a WT_NOTFOUND error.
      */
+    //udp多版本链表中找出第一个不为WT_TXN_ABORTED或者WT_UPDATE_TOMBSTONE的V
     if (modify_type == WT_UPDATE_TOMBSTONE) {
         /* Loop until a valid update is found. */
         while (upd != NULL && upd->txnid == WT_TXN_ABORTED)
@@ -1570,6 +1606,7 @@ __wt_txn_modify_check(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE 
     /* Everything is OK, optionally rollback for testing (skipping metadata operations). */
     if (!WT_IS_METADATA(cbt->dhandle)) {
         txn_global = &S2C(session)->txn_global;
+         //debug_mode.rollback_error配置来模拟回滚，该配置标识没debug_rollback次operation有一次需要回滚
         if (txn_global->debug_rollback != 0 &&
           ++txn_global->debug_ops % txn_global->debug_rollback == 0)
             return (__wt_txn_rollback_required(session, "debug mode simulated conflict"));
@@ -1637,13 +1674,17 @@ __wt_txn_cursor_op(WT_SESSION_IMPL *session)
             txn_shared->pinned_id = txn_global->last_running;
         if (txn_shared->metadata_pinned == WT_TXN_NONE)
             txn_shared->metadata_pinned = txn_shared->pinned_id;
-    } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT))
+    } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) {
+        //printf("yang test ..............__wt_txn_cursor_op...........\r\n");
+        //如果没有显示的定义txn begain，直接写入，则会进入这里
         __wt_txn_get_snapshot(session);
+    }
 }
 
 /*
  * __wt_txn_activity_check --
  *     Check whether there are any running transactions.
+ //判断当前是否有在running的事务
  */
 static inline int
 __wt_txn_activity_check(WT_SESSION_IMPL *session, bool *txn_active)

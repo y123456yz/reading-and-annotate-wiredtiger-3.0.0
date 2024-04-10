@@ -39,13 +39,15 @@
     __wt_set_return_func(session, __PRETTY_FUNCTION__, __LINE__, error)
 
 /* Set "ret" and branch-to-err-label tests. */
+//注意WT_RET和WT_ERR的区别
 #define WT_ERR(a)             \
     do {                      \
         if ((ret = (a)) != 0) \
             goto err;         \
     } while (0)
 
-//WT_ERR_MSG只是打印异常，WT_RET_PANIC会崩
+//WT_ERR_MSG只是打印异常，WT_RET_PANIC会崩 
+//注意WT_ERR_MSG和WT_RET_MSG的差异
 #define WT_ERR_MSG(session, v, ...)          \
     do {                                     \
         ret = (v);                           \
@@ -67,7 +69,7 @@
 #define WT_ERR_PANIC(session, v, ...) WT_ERR(__wt_panic(session, v, __VA_ARGS__))
 
 //判断a是否=0,如果不等于0，则调用WT_RET的函数直接返回，否则继续执行后面的流程
-/* Return tests. */
+/* Return tests. */  //注意WT_RET和WT_ERR的区别
 #define WT_RET(a)               \
     do {                        \
         int __ret;              \
@@ -82,6 +84,7 @@
             return (__ret);           \
         }                             \
     } while (0)
+//注意WT_ERR_MSG和WT_RET_MSG的差异
 #define WT_RET_MSG(session, v, ...)            \
     do {                                       \
         int __ret = (v);                       \

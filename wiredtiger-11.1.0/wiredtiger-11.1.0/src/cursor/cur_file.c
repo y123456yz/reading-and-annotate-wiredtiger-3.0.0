@@ -379,6 +379,8 @@ __curfile_insert(WT_CURSOR *cursor)
 
     //printf("yang test ....................... __curfile_insert insert\r\n");
     cbt = (WT_CURSOR_BTREE *)cursor;
+    //如果一个写入操作__curfile_insert没有显示调用__wt_txn_begin，则会调用CURSOR_UPDATE_API_CALL_BTREE->TXN_API_CALL_NOCONF设置为WT_TXN_AUTOCOMMIT,
+    //  __wt_txn_autocommit_check中就会自动加上__wt_txn_begin
     CURSOR_UPDATE_API_CALL_BTREE(cursor, session, __curfile_insert);
     WT_ERR(__cursor_copy_release(cursor));
 

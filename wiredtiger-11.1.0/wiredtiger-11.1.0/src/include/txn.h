@@ -9,7 +9,8 @@
 #define WT_TXN_NONE 0                /* Beginning of time */
 #define WT_TXN_FIRST 1               /* First transaction to run */
 #define WT_TXN_MAX (UINT64_MAX - 10) /* End of time */
-//__wt_txn_rollback事务回滚时候置位
+//__wt_txn_rollback事务回滚时候置位，一个事务中任何一个操作异常，其他写操作op都需要回滚，直接置位为WT_TXN_ABORTED
+// 这样当reconcile evict等遇到该标识，都会直接跳过，例如__rec_upd_select
 #define WT_TXN_ABORTED UINT64_MAX    /* Update rolled back */
 
 #define WT_TS_NONE 0         /* Beginning of time */
@@ -128,6 +129,7 @@ struct __wt_txn_shared {
      * The read timestamp used for this transaction. Determines what updates can be read and
      * prevents the oldest timestamp moving past this point.
      */
+    //__wt_txn_set_read_timestamp
     wt_timestamp_t read_timestamp;
 
     volatile uint8_t is_allocating;
@@ -160,11 +162,15 @@ struct __wt_txn_global {
     wt_timestamp_t stable_timestamp;
     wt_timestamp_t version_cursor_pinned_timestamp;
     bool has_durable_timestamp;
+    //__wt_txn_global_set_timestamp中置为true, has_oldest_timestamp与oldest_is_pinned状态相反
     bool has_oldest_timestamp;
     //__wt_txn_update_pinned_timestamp中置为true
     bool has_pinned_timestamp;
+    //__wt_txn_global_set_timestamp中置为true, has_stable_timestamp与stable_is_pinned状态相反
     bool has_stable_timestamp;
+    //__wt_txn_global_set_timestamp中置为false，has_oldest_timestamp与oldest_is_pinned状态相反
     bool oldest_is_pinned;
+    //__wt_txn_global_set_timestamp中置为false，has_stable_timestamp与stable_is_pinned状态相反
     bool stable_is_pinned;
 
     /* Protects the active transaction states. */
@@ -190,6 +196,7 @@ struct __wt_txn_global {
     wt_timestamp_t checkpoint_timestamp; /* Checkpoint's timestamp */
 
     volatile uint64_t debug_ops;       /* Debug mode op counter */
+    //debug_mode.rollback_error配置来模拟回滚，该配置标识没debug_rollback次operation有一次需要回滚
     uint64_t debug_rollback;           /* Debug mode rollback */
     //__wt_txn_update_oldest中赋值
     volatile uint64_t metadata_pinned; /* Oldest ID for metadata */
@@ -365,6 +372,7 @@ struct __wt_txn {
 #endif
 
     /* Scratch buffer for in-memory log records. */
+    //log=(enabled),默认一般enabled，因此事务会写日志
     WT_ITEM *logrec;
 
     /* Checkpoint status. */
@@ -392,6 +400,8 @@ struct __wt_txn {
  *	clearing.
  */
 
+//如果一个写入操作__curfile_insert没有显示调用__wt_txn_begin，则会调用CURSOR_UPDATE_API_CALL_BTREE->TXN_API_CALL_NOCONF设置为WT_TXN_AUTOCOMMIT,
+//  __wt_txn_autocommit_check中就会自动加上__wt_txn_begin
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_TXN_AUTOCOMMIT 0x00001u
 //__wt_txn_err_set中设置,一个事务中任何一个写操作失败，都会把该次事务的session->txn的状态置位该状态
@@ -406,6 +416,7 @@ struct __wt_txn {
 #define WT_TXN_HAS_TS_DURABLE 0x00020u
 //__wt_txn_set_prepare_timestamp中置位
 #define WT_TXN_HAS_TS_PREPARE 0x00040u
+//ignore_prepare配置，默认不启用不会置位
 #define WT_TXN_IGNORE_PREPARE 0x00080u
 #define WT_TXN_IS_CHECKPOINT 0x00100u
 //__wt_txn_prepare中置位

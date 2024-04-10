@@ -123,6 +123,8 @@
             F_SET((s)->txn, WT_TXN_UPDATE);
 
 /* An API call wrapped in a transaction if necessary. */
+//如果一个写入操作__curfile_insert没有显示调用__wt_txn_begin，则会调用CURSOR_UPDATE_API_CALL_BTREE->TXN_API_CALL_NOCONF设置为WT_TXN_AUTOCOMMIT,
+//  __wt_txn_autocommit_check中就会自动加上__wt_txn_begin
 #define TXN_API_CALL_NOCONF(s, h, n, dh)                                    \
     do {                                                                    \
         bool __autotxn = false, __update = false;                           \
@@ -289,6 +291,8 @@
     CURSOR_REMOVE_API_CALL(cur, s, bt);             \
     JOINABLE_CURSOR_CALL_CHECK(cur)
 
+//如果一个写入操作__curfile_insert没有显示调用__wt_txn_begin，则会调用CURSOR_UPDATE_API_CALL_BTREE->TXN_API_CALL_NOCONF设置为WT_TXN_AUTOCOMMIT,
+//  __wt_txn_autocommit_check中就会自动加上__wt_txn_begin
 #define CURSOR_UPDATE_API_CALL_BTREE(cur, s, n)                                               \
     (s) = CUR2S(cur);                                                                         \
     SESSION_API_PREPARE_CHECK(s, WT_CURSOR, n);                                               \

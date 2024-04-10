@@ -147,6 +147,7 @@ __txn_get_durable_timestamp(WT_TXN_SHARED *txn_shared, wt_timestamp_t *durable_t
 /*
  * __txn_global_query_timestamp --
  *     Query a timestamp on the global transaction.
+ //参考https://source.wiredtiger.com/develop/timestamp_global_api.html#:~:text=Setting%20oldest_timestamp%20indicates%20future%20read%20timestamps%20will%20be,timestamps%3A%20this%20setting%20only%20indicates%20future%20application%20needs.
  */
 static int
 __txn_global_query_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t *tsp, const char *cfg[])
@@ -312,6 +313,7 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
 /*
  * __wt_txn_global_set_timestamp --
  *     Set a global transaction timestamp.
+ //参考官网说明https://source.wiredtiger.com/develop/timestamp_global_api.html#:~:text=Setting%20oldest_timestamp%20indicates%20future%20read%20timestamps%20will%20be,timestamps%3A%20this%20setting%20only%20indicates%20future%20application%20needs.
  */
 int
 __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
@@ -357,7 +359,7 @@ __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
     WT_RET(__wt_config_gets_def(session, cfg, "force", 0, &cval));
     force = cval.val != 0;
 
-    if (force)
+    if (force) //不做下面的oldest <= stable检查，直接返回
         goto set;
 
     __wt_readlock(session, &txn_global->rwlock);

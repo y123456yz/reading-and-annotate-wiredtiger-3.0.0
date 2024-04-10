@@ -331,6 +331,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
 #define WT_BTREE_CLOSED 0x0004000u         /* Handle closed */
 #define WT_BTREE_IGNORE_CACHE 0x0008000u   /* Cache-resident object */
 #define WT_BTREE_IN_MEMORY 0x0010000u      /* Cache-resident object */
+//log.enabled配置,默认为true  生效见__wt_log_op不会记录日志，同时影响__txn_timestamp_usage_check和__wt_txn_prepare
 #define WT_BTREE_LOGGED 0x0020000u         /* Commit-level durability without timestamps */
 #define WT_BTREE_NO_CHECKPOINT 0x0040000u  /* Disable checkpoints */
 #define WT_BTREE_OBSOLETE_PAGES 0x0080000u /* Handle has obsolete pages */

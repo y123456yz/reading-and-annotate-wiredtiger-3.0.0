@@ -494,6 +494,9 @@ __conn_dhandle_config_parse_ts(WT_SESSION_IMPL *session)
     flags = 0;
     cfg = dhandle->cfg;
 
+   // printf("yang test...__conn_dhandle_config_parse_ts.................dhandle->cfg[0]:%s, dhandle->cfg[1]:%s\r\n", 
+    //    dhandle->cfg[0], dhandle->cfg[1]);
+    //打印后的assert配置为assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),
     /* Timestamp usage asserts. */
     WT_RET(__wt_config_gets(session, cfg, "assert.read_timestamp", &cval));
     if (WT_STRING_MATCH("always", cval.str, cval.len))
@@ -513,6 +516,7 @@ __conn_dhandle_config_parse_ts(WT_SESSION_IMPL *session)
         LF_SET(WT_DHANDLE_TS_ORDERED);
 
     /* Reset the flags. */
+    //默认为0
     dhandle->ts_flags = flags;
 
     return (0);

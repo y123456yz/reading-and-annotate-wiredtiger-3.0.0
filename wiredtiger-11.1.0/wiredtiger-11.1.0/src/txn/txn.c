@@ -156,7 +156,7 @@ __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
  *     active before the start of the call is eventually reported as resolved.
  */
 //判断txnid对应事务是否已经提交或者回滚或者prepared, 也就是该事务id小于全局oldest_id 或者 事务id大于全局oldest_id并且在txn_shared_list中可以找到
-//
+//txid对应事务是否在txn_shared_list全局共享数组中可以找到
 bool
 __wt_txn_active(WT_SESSION_IMPL *session, uint64_t txnid)
 {
@@ -184,7 +184,6 @@ __wt_txn_active(WT_SESSION_IMPL *session, uint64_t txnid)
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
     WT_STAT_CONN_INCR(session, txn_walk_sessions);
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
-        //yang add todo xxxxxxxxxxxxxx 这里可以放到外层，可以搜索这里，这里有多个地方这样用
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /* If the transaction is in the list, it is uncommitted. */
         if (s->id == txnid)
@@ -219,11 +218,14 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
     n = 0;
 
     /* Fast path if we already have the current snapshot. */
+    //同一个事务可能多次调用该接口，如果两次间隔期间session gen还是和全局conn gen一样，
+    //  说明没有新增其他新事务，快照snapshot没有变化，无需重复走下面的流程了
     if ((commit_gen = __wt_session_gen(session, WT_GEN_COMMIT)) != 0) {
         if (F_ISSET(txn, WT_TXN_HAS_SNAPSHOT) && commit_gen == __wt_gen(session, WT_GEN_COMMIT))
             return;
         __wt_session_gen_leave(session, WT_GEN_COMMIT);
     }
+    //把当前的全局conn gen记录到session gen中
     __wt_session_gen_enter(session, WT_GEN_COMMIT);
 
     /* We're going to scan the table: wait for the lock. */
@@ -395,7 +397,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
         /* Update the last running transaction ID. */
         //获取所有session对应事务id在[prev_oldest_id, last_running]区间的shared txn
 
-        //这里while也就是获取所有未提交事务中最小的事务id赋值给last_running
+        //这里while也就是获取所有未提交事务中大于txn_global->oldest_id的最小事务id赋值给last_running
         while ((id = s->id) != WT_TXN_NONE && WT_TXNID_LE(prev_oldest_id, id) &&
           //还有比last_running更小的事务id
           WT_TXNID_LT(id, last_running)) {
@@ -421,7 +423,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
         }
 
         /* Update the metadata pinned ID. */
-        //也就是所有session对应事务中最小的事务metadata_pinned赋值给metadata_pinned
+        //也就是所有session对应事务中大于txn_global->current的最小事务metadata_pinned赋值 
         if ((id = s->metadata_pinned) != WT_TXN_NONE && WT_TXNID_LT(id, metadata_pinned))
             metadata_pinned = id;
 
@@ -433,7 +435,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
          * table.  See the comment in __wt_txn_cursor_op for more
          * details.
          */
-        //也就是所有session对应事务中最小的事务pinned_id赋值给oldest_id，并记录下这个session
+        //也就是所有session对应事务中大于txn_global->current的最小事务pinned_id赋值给oldest_id，并记录下这个session
         if ((id = s->pinned_id) != WT_TXN_NONE && WT_TXNID_LT(id, oldest_id)) {
             oldest_id = id;
             oldest_session = &conn->sessions[i];
@@ -504,6 +506,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
       (!strict && WT_TXNID_LT(current_id, prev_oldest_id + 100)))
         return (0);
 
+    //先加读锁计算一次
     /* First do a read-only scan. */
     if (wait)
         __wt_readlock(session, &txn_global->rwlock);
@@ -516,6 +519,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
     /*
      * If the state hasn't changed (or hasn't moved far enough for non-forced updates), give up.
      */
+    //比较txn_shared_list重新计算的oldest_id last_running metadata_pinned和重新计算前的差异，如果差异不大，直接返回，不做跟新
     if ((oldest_id == prev_oldest_id ||
           (!strict && WT_TXNID_LT(oldest_id, prev_oldest_id + 100))) &&
       ((last_running == prev_last_running) ||
@@ -523,6 +527,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
       metadata_pinned == prev_metadata_pinned)
         return (0);
 
+    //如果读锁期间判断出有必要更新oldest_id last_running metadata_pinned，则从新加写锁在计算一次
     /* It looks like an update is necessary, wait for exclusive access. */
     if (wait)
         __wt_writelock(session, &txn_global->rwlock);
@@ -531,6 +536,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
 
     /*
      * If the oldest ID has been updated while we waited, don't bother scanning.
+     前面加写锁__wt_writelock期间有可能其他线程已经做了更新
      */
     if (WT_TXNID_LE(oldest_id, txn_global->oldest_id) &&
       WT_TXNID_LE(last_running, txn_global->last_running) &&
@@ -542,6 +548,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
      * snapshots with read locks, and we have to be sure that there isn't a thread that has got a
      * snapshot locally but not yet published its snap_min.
      */
+    //加写锁再次从新计算oldest_id last_running metadata_pinned
     __txn_oldest_scan(session, &oldest_id, &last_running, &metadata_pinned, &oldest_session);
 
     /* Update the public IDs. */
@@ -624,6 +631,7 @@ __wt_txn_config(WT_SESSION_IMPL *session, const char *cfg[])
 
     if (cfg == NULL)
         return (0);
+   // printf("yang test ................ __wt_txn_config, cfg[0]:%s, cfg[1]:%s\r\n", cfg[0], cfg[1]);
 
     WT_ERR(__wt_config_gets_def(session, cfg, "isolation", 0, &cval));
     if (cval.len != 0)
@@ -1667,6 +1675,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
         __wt_qsort(txn->mod, txn->mod_count, sizeof(WT_TXN_OP), __txn_mod_compare);
 
     /* If we are logging, write a commit log record. */
+    //log=(enabled),默认一般enabled，因此事务会写日志，也就是这里可以完成日志持久化
     if (txn->logrec != NULL) {
         /* Assert environment and tree are logging compatible, the fast-check is short-hand. */
         WT_ASSERT(session,
@@ -2178,6 +2187,7 @@ __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])
  * __wt_txn_rollback_required --
  *     Prepare to log a reason if the user attempts to use the transaction to do anything other than
  *     rollback.
+ //设置回滚原因
  */
 int
 __wt_txn_rollback_required(WT_SESSION_IMPL *session, const char *reason)
@@ -2595,11 +2605,14 @@ __wt_verbose_dump_txn_one(
 {
     WT_TXN *txn;
     WT_TXN_SHARED *txn_shared;
-    char buf[512];
-    char snap_buf[512], snap_buf_tmp[512];
+    uint32_t i, buf_len;
+    //char buf[512 + 2560], snapshot_buf[2560], snapshot_buf_tmp[32];
+    char snapshot_buf_tmp[32];
     char ts_string[6][WT_TS_INT_STRING_SIZE];
     const char *iso_tag;
-    uint32_t i;
+    WT_DECL_ITEM(snapshot_buf);
+    WT_DECL_ITEM(buf);
+    WT_DECL_RET;
 
     txn = txn_session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(txn_session);
@@ -2617,23 +2630,29 @@ __wt_verbose_dump_txn_one(
         break;
     }
 
+    WT_ERR(__wt_scr_alloc(session, 2048, &snapshot_buf));
+    WT_ERR(__wt_buf_fmt(session, snapshot_buf, "%s", "["));
+    for (i = 0; i < txn->snapshot_count; i++) {
+        if (i == 0)
+            WT_ERR(__wt_snprintf(
+              snapshot_buf_tmp, sizeof(snapshot_buf_tmp), "%lu", txn->snapshot[i]));
+        else
+            WT_ERR(__wt_snprintf(
+              snapshot_buf_tmp, sizeof(snapshot_buf_tmp), ", %lu", txn->snapshot[i]));
+        WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "%s", snapshot_buf_tmp));
+    }
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "%s", "]\0"));
+
+    buf_len = snapshot_buf->size + 512;
+    WT_ERR(__wt_scr_alloc(session, buf_len, &buf));
+    
     /*
      * Dump the information of the passed transaction into a buffer, to be logged with an optional
      * error message.
      */
-      memset(snap_buf, 0, sizeof(snap_buf));
-      strcat(snap_buf, "["); 
-      for (i = 0; i < txn->snapshot_count; i++) {
-          if (i == 0)
-               WT_RET(__wt_snprintf(snap_buf_tmp, sizeof(snap_buf_tmp), "%lu", txn->snapshot[i]));
-          else 
-               WT_RET(__wt_snprintf(snap_buf_tmp, sizeof(snap_buf_tmp), ", %lu", txn->snapshot[i]));
-          strcat(snap_buf, snap_buf_tmp); 
-      }
-      strcat(snap_buf, "]"); 
-      
-      WT_RET(__wt_snprintf(buf, sizeof(buf),
-        "session id:%" PRIu32 ", transaction id: %" PRIu64 ", mod count: %u"
+    WT_ERR(
+      __wt_snprintf((char*)buf->data, buf_len,
+        "transaction id: %" PRIu64 ", mod count: %u"
         ", snap min: %" PRIu64 ", snap max: %" PRIu64 ", snapshot count: %u"
         ", snapshot: %s"
         ", commit_timestamp: %s"
@@ -2646,8 +2665,8 @@ __wt_verbose_dump_txn_one(
         ", full checkpoint: %s"
         ", rollback reason: %s"
         ", flags: 0x%08" PRIx32 ", isolation: %s",
-        txn_session->id,txn->id, txn->mod_count, txn->snap_min, txn->snap_max, txn->snapshot_count,
-        snap_buf,
+        txn->id, txn->mod_count, txn->snap_min, txn->snap_max,
+        txn->snapshot_count, (char*)snapshot_buf->data,
         __wt_timestamp_to_string(txn->commit_timestamp, ts_string[0]),
         __wt_timestamp_to_string(txn->durable_timestamp, ts_string[1]),
         __wt_timestamp_to_string(txn->first_commit_timestamp, ts_string[2]),
@@ -2661,13 +2680,18 @@ __wt_verbose_dump_txn_one(
      * Log a message and return an error if error code and an optional error string has been passed.
      */
     if (0 != error_code) {
-        WT_RET_MSG(session, error_code, "%s, %s", buf, error_string != NULL ? error_string : "");
+        WT_ERR_MSG(session, error_code, "%s, %s", (char*)buf->data, error_string != NULL ? error_string : "");
     } else {
-        WT_RET(__wt_msg(session, "%s", buf));
+        WT_ERR(__wt_msg(session, "%s", (char*)buf->data));
     }
 
-    return (0);
+err:
+    __wt_scr_free(session, &snapshot_buf);
+    __wt_scr_free(session, &buf);
+
+    return (ret);
 }
+
 
 /*
  * __wt_verbose_dump_txn --

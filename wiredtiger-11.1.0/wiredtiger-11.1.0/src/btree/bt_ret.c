@@ -78,6 +78,7 @@ __read_col_time_window(WT_SESSION_IMPL *session, WT_PAGE *page, WT_CELL *cell, W
 /*
  * __wt_read_row_time_window --
  *     Retrieve the time window from a row.
+ //从磁盘中读取V及其携带的tw
  */
 void
 __wt_read_row_time_window(WT_SESSION_IMPL *session, WT_PAGE *page, WT_ROW *rip, WT_TIME_WINDOW *tw)
@@ -155,6 +156,7 @@ __wt_col_fix_get_time_window(
 /*
  * __wt_read_cell_time_window --
  *     Read the time window from the cell.
+ 从磁盘读取&page->pg_row[cbt->slot]位置的数据并获取对应tw
  */
 bool
 __wt_read_cell_time_window(WT_CURSOR_BTREE *cbt, WT_TIME_WINDOW *tw)
@@ -210,6 +212,7 @@ __read_page_cell_data_ref_kv(WT_SESSION_IMPL *session, WT_PAGE *page, WT_CELL_UN
  *     Change a buffer to reference an internal original-page return value. If we see an overflow
  *     removed cell, we have raced with checkpoint freeing the overflow cell. Return restart for the
  *     caller to retry the read.
+ 从磁盘的page->pg_row[cbt->slot]cbt->slot位置读取该KV
  */
 int
 __wt_value_return_buf(WT_CURSOR_BTREE *cbt, WT_REF *ref, WT_ITEM *buf, WT_TIME_WINDOW *tw)
@@ -238,12 +241,14 @@ __wt_value_return_buf(WT_CURSOR_BTREE *cbt, WT_REF *ref, WT_ITEM *buf, WT_TIME_W
          * If a value is simple and is globally visible at the time of reading a page into cache, we
          * encode its location into the WT_ROW.
          */
+        //可以直接获取V，该KV不带wt信息
         if (__wt_row_leaf_value(page, rip, buf)) {
             if (tw != NULL)
                 WT_TIME_WINDOW_INIT(tw);
             return (0);
         }
 
+        //如果KV带有tw，走这里分支
         /* Take the value from the original page cell. */
         __wt_row_leaf_value_cell(session, page, rip, &unpack);
         return (__read_page_cell_data_ref_kv(session, page, &unpack, buf, tw));
