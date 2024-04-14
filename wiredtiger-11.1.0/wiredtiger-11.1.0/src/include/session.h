@@ -105,6 +105,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 
     //用户线程因为总内存消耗、脏数据、update消耗过多，等等evict page的耗时，
     //调用session接口的时候API_SESSION_INIT中初始化为0，__wt_cache_eviction_worker做耗时统计
+    //API_SESSION_INIT中初始化为0
     uint64_t cache_wait_us;        /* Wait time for cache for current operation */
 
     ////wiredtiger_open conn维度operation_timeout_ms获取，如果operation_timeout_ms有配置，
@@ -261,7 +262,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     //该session在统计hash桶中的位置，可以参考WT_STAT_CONN_INCRV
     u_int stat_bucket;          /* Statistics bucket offset */
     //优先看session维度的cache_max_wait_ms配置，如果session维度没有配置，则以conn维度的cache_max_wait_ms配置为准
-    //cache_max_wait_ms配置，默认为0
+    //cache_max_wait_ms配置，默认为0   也就是用户线程进行evict操作的最长时间，如果不到时间可以多做几次evict_page操作
     uint64_t cache_max_wait_us; /* Maximum time an operation waits for space in cache */
 
 #ifdef HAVE_DIAGNOSTIC

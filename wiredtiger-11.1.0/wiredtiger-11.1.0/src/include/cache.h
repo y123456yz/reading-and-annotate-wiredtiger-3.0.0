@@ -180,7 +180,7 @@ struct __wt_cache {
     u_int overhead_pct;         /* Cache percent adjustment */
     //cache_max_wait_ms配置，默认为0
     //__wt_cache_eviction_worker优先看session维度的cache_max_wait_ms配置，如果session维度没有配置，则以conn维度的cache_max_wait_ms配置为准
-    //cache_max_wait_ms配置，默认为0
+    //cache_max_wait_ms配置，默认为0， 也就是用户线程进行evict操作的最长时间，如果不到时间可以多做几次evict_page操作
     uint64_t cache_max_wait_us; /* Maximum time an operation waits for
                                  * space in cache */
 

@@ -383,7 +383,7 @@ restart_read:
 
 /*
  * __cursor_row_next --
- *     Move to the next row-store item.
+ *     Move to the next row-store item.  
  */
 static inline int
 __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage, bool restart, size_t *skippedp,
@@ -449,6 +449,7 @@ __cursor_row_next(WT_CURSOR_BTREE *cbt, bool newpage, bool restart, size_t *skip
 new_insert:
         cbt->iter_retry = WT_CBT_RETRY_INSERT;
 restart_read_insert:
+        //先判断内存中这个K的所有V版本是否有可见的V, WT_INSERT->upd链表代表该K的多个V历史版本
         if ((ins = cbt->ins) != NULL) {
             key->data = WT_INSERT_KEY(ins);
             key->size = WT_INSERT_KEY_SIZE(ins);
@@ -470,12 +471,14 @@ restart_read_insert:
               WT_NOTFOUND)
                 WT_STAT_CONN_DATA_INCR(session, cursor_bounds_next_early_exit);
             WT_RET(ret);
-
+             //确定udp上面的那个V对当前session可见
             WT_RET(__wt_txn_read_upd_list(session, cbt, ins->upd));
             if (cbt->upd_value->type == WT_UPDATE_INVALID) {
                 ++*skippedp;
                 continue;
             }
+
+            //有权限访问upd_value但是该V是删除操作
             if (cbt->upd_value->type == WT_UPDATE_TOMBSTONE) {
                 if (cbt->upd_value->tw.stop_txn != WT_TXN_NONE &&
                   __wt_txn_upd_value_visible_all(session, cbt->upd_value))
@@ -483,10 +486,14 @@ restart_read_insert:
                 ++*skippedp;
                 continue;
             }
+
+            //返回最新的可访问V
             __wt_value_return(cbt, cbt->upd_value);
             return (0);
         }
-
+        
+        //如果数据在磁盘中，下面是从磁盘中获取        
+        
         /* Check for the end of the page. */
         if (cbt->row_iteration_slot >= page->entries * 2 + 1)
             return (WT_NOTFOUND);
@@ -729,7 +736,9 @@ __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
      * If we don't have a search page, then we're done, we're starting at the beginning or end of
      * the tree, not as a result of a search.
      */
+    //例如第一次开始使用next, 这时候就还不知道ref位置
     if (cbt->ref == NULL) {
+        printf("yang test __wt_btcur_iterate_setup ..................%p\r\n", cbt->ref);
 #ifdef HAVE_DIAGNOSTIC
         __wt_cursor_key_order_reset(cbt);
 #endif
@@ -800,6 +809,7 @@ __wt_btcur_next_prefix(WT_CURSOR_BTREE *cbt, WT_ITEM *prefix, bool truncating)
 
     F_CLR(cursor, WT_CURSTD_KEY_SET | WT_CURSTD_VALUE_SET);
 
+    //这里面获取当前session能看到的其他事务快照信息
     WT_ERR(__wt_cursor_func_init(cbt, false));
 
     /*
@@ -829,9 +839,10 @@ __wt_btcur_next_prefix(WT_CURSOR_BTREE *cbt, WT_ITEM *prefix, bool truncating)
      */
     restart = F_ISSET(cbt, WT_CBT_ITERATE_RETRY_NEXT);
     F_CLR(cbt, WT_CBT_ITERATE_RETRY_NEXT);
+    //遍历page获取数据
     for (newpage = false;; newpage = true, restart = false) {
         page = cbt->ref == NULL ? NULL : cbt->ref->page;
-
+        //列存储相关/* Col-store: iterating append list */
         if (F_ISSET(cbt, WT_CBT_ITERATE_APPEND)) {
             /* The page cannot be NULL if the above flag is set. */
             WT_ASSERT(session, page != NULL);
@@ -861,6 +872,7 @@ __wt_btcur_next_prefix(WT_CURSOR_BTREE *cbt, WT_ITEM *prefix, bool truncating)
             if (key_out_of_bounds)
                 break;
         } else if (page != NULL) {
+            
             switch (page->type) {
             case WT_PAGE_COL_FIX:
                 ret = __cursor_fix_next(cbt, newpage, restart);
@@ -869,6 +881,8 @@ __wt_btcur_next_prefix(WT_CURSOR_BTREE *cbt, WT_ITEM *prefix, bool truncating)
                 ret = __cursor_var_next(cbt, newpage, restart, &skipped, &key_out_of_bounds);
                 total_skipped += skipped;
                 break;
+
+            //行存储上面指定page遍历
             case WT_PAGE_ROW_LEAF:
                 ret =
                   __cursor_row_next(cbt, newpage, restart, &skipped, prefix, &key_out_of_bounds);
@@ -921,6 +935,7 @@ __wt_btcur_next_prefix(WT_CURSOR_BTREE *cbt, WT_ITEM *prefix, bool truncating)
         if (F_ISSET(cbt, WT_CBT_READ_ONCE))
             LF_SET(WT_READ_WONT_NEED);
 
+        //没有快照标识，例如READ_UNCOMMITTED方式，则可以访问所有数据
         if (!F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT))
             LF_SET(WT_READ_VISIBLE_ALL);
 

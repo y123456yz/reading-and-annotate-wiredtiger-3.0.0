@@ -811,7 +811,8 @@ __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp
 
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
-    
+
+    printf("yang test ...........__wt_txn_visible...session id:%u, id:%lu\r\n", session->id, id);
     //当前session是否可以访问id对应事务
     if (!__txn_visible_id(session, id))
         return (false);
@@ -964,6 +965,7 @@ __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, 
         *restored_updp = NULL;
     __wt_upd_value_clear(cbt->upd_value);
 
+    //循环遍历udp链表中的V，获取第一个最新的可访问V
     for (; upd != NULL; upd = upd->next) {
         WT_ORDERED_READ(type, upd->type);
         /* Skip reserved place-holders, they're never visible. */
@@ -992,7 +994,7 @@ __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, 
 
         //当前session可以访问udp对应数据
         upd_visible = __wt_txn_upd_visible_type(session, upd);
-
+        //找到了第一个可访问的V，直接返回
         if (upd_visible == WT_VISIBLE_TRUE)
             break;
 
@@ -1045,6 +1047,8 @@ __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, 
 /*
  * __wt_txn_read_upd_list --
  *     Get the first visible update in a list (or NULL if none are visible).
+ //__cursor_row_prev  __cursor_row_next遍历获取udp这条数据， 
+ //确定udp上面的那个V对当前session可见
  */
 static inline int
 __wt_txn_read_upd_list(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE *upd)
@@ -1059,6 +1063,7 @@ __wt_txn_read_upd_list(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE
  *     value for the given key. Finally, if the onpage value is not visible to the reader, the
  *     function will search the history store for a visible update.
  //获取udp链表上面可访问的最新V存入cbt->upd_value
+ //__cursor_row_prev  __cursor_row_next遍历获取udp这条数据， 
  */
 static inline int
 __wt_txn_read(
@@ -1669,7 +1674,7 @@ __wt_txn_cursor_op(WT_SESSION_IMPL *session)
      * further forward, so that once a read-uncommitted cursor is
      * positioned on a value, it can't be freed.
      */
-    if (txn->isolation == WT_ISO_READ_UNCOMMITTED) {
+    if (txn->isolation == WT_ISO_READ_UNCOMMITTED) {//如果是WT_ISO_READ_UNCOMMITTED，不会获取当前其他事务快照信息
         if (txn_shared->pinned_id == WT_TXN_NONE)
             txn_shared->pinned_id = txn_global->last_running;
         if (txn_shared->metadata_pinned == WT_TXN_NONE)

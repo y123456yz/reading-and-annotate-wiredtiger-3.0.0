@@ -334,8 +334,8 @@ done:
     __wt_readunlock(session, &txn_global->rwlock);
     __txn_sort_snapshot(session, n, current_id);
     {
-        //int ret = __wt_verbose_dump_txn_one(session, session, 0, NULL);//yang add change
-       // (void)(ret);
+        int ret = __wt_verbose_dump_txn(session, "__txn_get_snapshot_int");
+        (void)(ret);
     }
 }
 
@@ -1264,13 +1264,13 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
     if (commit)
         __wt_verbose_debug2(session, WT_VERB_TRANSACTION,
           "commit resolving prepared transaction with txnid: %" PRIu64
-          "and timestamp: %s to commit and durable timestamps: %s,%s",
+          " and timestamp: %s to commit and durable timestamps: %s, %s",
           txn->id, __wt_timestamp_to_string(txn->prepare_timestamp, ts_string[0]),
           __wt_timestamp_to_string(txn->commit_timestamp, ts_string[1]),
           __wt_timestamp_to_string(txn->durable_timestamp, ts_string[2]));
     else
         __wt_verbose_debug2(session, WT_VERB_TRANSACTION,
-          "rollback resolving prepared transaction with txnid: %" PRIu64 "and timestamp:%s",
+          "rollback resolving prepared transaction with txnid: %" PRIu64 " and timestamp: %s",
           txn->id, __wt_timestamp_to_string(txn->prepare_timestamp, ts_string[0]));
 
     /*
@@ -2127,6 +2127,7 @@ __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])
                   op->btree->id == S2C(session)->cache->hs_fileid)
                     break;
                 WT_ASSERT(session, upd->txnid == txn->id || upd->txnid == WT_TXN_ABORTED);
+                //回滚的时候很简单，主要就是标识该udp事务为abort, 这样该udp就不可见，在其他逻辑读取该udp的时候会直接跳过
                 upd->txnid = WT_TXN_ABORTED;
             } else {
                 /*
@@ -2176,7 +2177,7 @@ __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])
      * Ignore error returns, the return must reflect the fate of the transaction.
      */
     if (!readonly) {
-        printf("yang test ..................__wt_txn_rollback...................................\r\n");
+       // printf("yang test ..................__wt_txn_rollback...................................\r\n");
         WT_IGNORE_RET(__wt_cache_eviction_check(session, false, false, NULL));
     }
 

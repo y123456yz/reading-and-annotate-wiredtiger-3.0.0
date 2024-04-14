@@ -1640,6 +1640,7 @@ struct __wt_update_vector {
 //__wt_row_insert_alloc  WT_INSERT头部+level空间+真实数据key
 //mod_row_insert为该类型，一个insertKV对应的__wt_insert都在mod_row_insert对应跳跃表中
 struct __wt_insert {
+    //是一个链表结构，存储插入进来的这个K的多个V版本
     WT_UPDATE *upd; /* value */ //value在这里  __wt_insert.upd为该类型
 
     union {

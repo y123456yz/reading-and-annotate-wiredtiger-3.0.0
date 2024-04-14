@@ -2612,7 +2612,7 @@ __wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly,
     bool app_thread;
 
     WT_TRACK_OP_INIT(session);
-    printf("yang test ..................__wt_cache_eviction_worker...................................\r\n");
+   // printf("yang test ..................__wt_cache_eviction_worker...................................\r\n");
 
     conn = S2C(session);
     cache = conn->cache;
@@ -2660,7 +2660,7 @@ __wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly,
                 --cache->evict_aggressive_score;
                 WT_STAT_CONN_INCR(session, txn_fail_cache);
                 __wt_verbose_debug1(
-                  session, WT_VERB_TRANSACTION, "%s", session->txn->rollback_reason);
+                  session, WT_VERB_TRANSACTION, "__wt_cache_eviction_worker rollback: %s", session->txn->rollback_reason);
             }
             WT_ERR(ret);
         }
@@ -2672,6 +2672,8 @@ __wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly,
          *
          * Additionally we don't return rollback which could confuse the caller.
          */
+        //例如做回滚或者事务提交的时候开始计时，进行evict page的时间不能超过operation_timeout_us
+        //yang add todo xxxxxxxxxxxxxxxxxxxxx   operation_timeout_us和cache_max_wait_us配置的区别是啥呢? 不是一样的吗
         if (__wt_op_timer_fired(session))
             break;
 
@@ -2694,7 +2696,7 @@ __wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly,
             break;
 
         //用户线程通过这里进行evict page操作，这里面有具体是用户线程还是evict线程进行evict的统计
-        /* Evict a page. */
+        /* Evict a page. */  //yang add todo xxxxxxxxxxxxxxxxxxxxx   如果读线程触发__evict_page，并返回错误，这里是不是不应该进入err逻辑，进入err逻辑读会直接报错
         switch (ret = __evict_page(session, false)) {
         case 0:
             if (busy)
@@ -2711,6 +2713,7 @@ __wt_cache_eviction_worker(WT_SESSION_IMPL *session, bool busy, bool readonly,
             goto err;
         }
         /* Stop if we've exceeded the time out. */
+        //配置了cache_max_wait_us，但是这个用户请求因为做evict page操作最终超时了，这时候
         if (time_start != 0 && cache_max_wait_us != 0) {
             time_stop = __wt_clock(session);
             if (session->cache_wait_us + WT_CLOCKDIFF_US(time_stop, time_start) > cache_max_wait_us)

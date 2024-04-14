@@ -418,6 +418,7 @@ struct __wt_txn {
 #define WT_TXN_HAS_TS_PREPARE 0x00040u
 //ignore_prepare配置，默认不启用不会置位
 #define WT_TXN_IGNORE_PREPARE 0x00080u
+//__wt_txn_init_checkpoint_cursor配置，代表checkpoint游标，参考__curfile_check_cbt_txn
 #define WT_TXN_IS_CHECKPOINT 0x00100u
 //__wt_txn_prepare中置位
 #define WT_TXN_PREPARE 0x00200u

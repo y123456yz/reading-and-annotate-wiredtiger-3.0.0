@@ -138,6 +138,7 @@ struct __wt_cursor_btree {
      * stack (the stack of skiplist entries leading to the insert point). The search functions also
      * return the relationship of the search key to the found key.
      */
+    //__wt_row_search中赋值
     WT_REF *ref;   /* Current page */
     //也就是标识rip对应KV在page内存pg_row中的游标
     uint32_t slot; /* WT_COL/WT_ROW 0-based slot */
@@ -152,7 +153,7 @@ struct __wt_cursor_btree {
 
     /* Next item(s) found during search */
     WT_INSERT *next_stack[WT_SKIP_MAXDEPTH];
-
+    //该page上面有多少次删除操作
     uint32_t page_deleted_count; /* Deleted items on the page */
 
     uint64_t recno; /* Record number */
@@ -196,6 +197,7 @@ struct __wt_cursor_btree {
      * WT_ROW and WT_INSERT_HEAD insert array slots into a single name space: slot 1 is the
      * "smallest key insert list", slot 2 is WT_ROW[0], slot 3 is WT_INSERT_HEAD[0], and so on. This
      * means WT_INSERT lists are odd-numbered slots, and WT_ROW array slots are even-numbered slots.
+     //可以参考__wt_btcur_iterate_setup __cursor_row_next __cursor_row_prev
      */
     uint32_t row_iteration_slot; /* Row-store iteration slot */
 
@@ -256,6 +258,7 @@ struct __wt_cursor_btree {
      * undocumented interface to allow them to open cursors on multiple files and check if they got
      * the same checkpoint in all of them.
      */
+    //应该是用于读checkpoint的数据，参考__curfile_check_cbt_txn
     WT_TXN *checkpoint_txn;
     WT_DATA_HANDLE *checkpoint_hs_dhandle;
     uint64_t checkpoint_write_gen;
@@ -286,7 +289,9 @@ struct __wt_cursor_btree {
 #define WT_CBT_ACTIVE 0x001u             /* Active in the tree */
 #define WT_CBT_CACHEABLE_RLE_CELL 0x002u /* Col-store: value in RLE cell valid for its keys */
 #define WT_CBT_ITERATE_APPEND 0x004u     /* Col-store: iterating append list */
+//__wt_btcur_iterate_setup中配置
 #define WT_CBT_ITERATE_NEXT 0x008u       /* Next iteration configuration */
+//__wt_btcur_iterate_setup中配置
 #define WT_CBT_ITERATE_PREV 0x010u       /* Prev iteration configuration */
 #define WT_CBT_ITERATE_RETRY_NEXT 0x020u /* Prepare conflict by next. */
 #define WT_CBT_ITERATE_RETRY_PREV 0x040u /* Prepare conflict by prev. */
@@ -294,7 +299,7 @@ struct __wt_cursor_btree {
 #define WT_CBT_SEARCH_SMALLEST 0x100u    /* Row-store: small-key insert list */
 #define WT_CBT_VAR_ONPAGE_MATCH 0x200u   /* Var-store: on-page recno match */
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
-
+//__cursor_pos_clear中使用
 #define WT_CBT_POSITION_MASK /* Flags associated with position */                      \
     (WT_CBT_ITERATE_APPEND | WT_CBT_ITERATE_NEXT | WT_CBT_ITERATE_PREV |               \
       WT_CBT_ITERATE_RETRY_NEXT | WT_CBT_ITERATE_RETRY_PREV | WT_CBT_SEARCH_SMALLEST | \

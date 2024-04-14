@@ -82,6 +82,84 @@ print_session_stats_for_access(WT_SESSION *session)
     /*! [statistics session function] */
 }
 
+static void
+cursor_count_items(WT_CURSOR *cursor, uint64_t *countp)
+{
+    WT_DECL_RET;
+
+    *countp = 0;
+
+    testutil_check(cursor->reset(cursor));
+    while ((ret = cursor->next(cursor)) == 0)
+        (*countp)++;
+    testutil_assert(ret == WT_NOTFOUND);
+}
+
+static void
+print_cursor(WT_CURSOR *cursor)
+{
+    const char *key, *value;
+
+    int ret = 0;
+    printf("yang befor ...print_cursor..............\r\n");
+    //while ((ret = cursor->next(cursor)) == 0) {
+    while (1) {
+        ret = (int)cursor->next(cursor);
+        if (ret == 0) {
+            error_check(cursor->get_key(cursor, &key));
+            error_check(cursor->get_value(cursor, &value));
+            printf("Got record: %s : %s\n", key, value);
+        } else {
+            printf("yang test ...print_cursor..............ret:%d\r\n", ret);
+            break;
+        }
+    }
+
+    scan_end_check(ret == WT_NOTFOUND);
+}
+
+static void
+access_txn_test(void)
+{
+    WT_CONNECTION *conn;
+    WT_CURSOR *cursor;
+    WT_SESSION *session;
+    uint64_t count;
+
+    error_check(wiredtiger_open(home, NULL, "create, verbose=[transaction=5, timestamp=5, api:5]", &conn));
+
+    //test_txn01
+    error_check(conn->open_session(conn, NULL, NULL, &session));
+    error_check(session->create(session, "table:access_txn", "key_format=S,value_format=S"));
+    error_check(session->open_cursor(session, "table:access_txn", NULL, NULL, &cursor));
+    error_check(session->begin_transaction(session, NULL));
+    cursor->set_key(cursor, "key: aaa"); /* Insert a record. */
+    cursor->set_value(cursor, "value: aaa");
+    error_check(cursor->insert(cursor));
+    error_check(session->commit_transaction(session, NULL));
+    error_check(session->begin_transaction(session, NULL));
+    cursor->set_key(cursor, "key: bbb"); /* Insert a record. */
+    cursor->set_value(cursor, "value: bbb");
+    error_check(cursor->insert(cursor));
+
+    error_check(conn->open_session(conn, NULL, NULL, &session));
+    error_check(session->open_cursor(session, "table:access_txn", NULL, NULL, &cursor));
+    error_check(session->begin_transaction(session, "isolation=read-committed"));
+    {
+        WT_CURSOR_BTREE *cbt;
+        WT_SESSION_IMPL *session_impl;
+        cbt = (WT_CURSOR_BTREE *)cursor; //yang add xxxxxxxxx todo example¨¬¨ª?¨®btree dump
+        session_impl = CUR2S(cbt);
+        error_check(__wt_verbose_dump_txn(session_impl, "ex access .................test_txn01"));
+    }
+    cursor_count_items(cursor, &count);
+    print_cursor(cursor);
+    printf("yang test...test_txn01.......can noly see bbb, not see aaa, aaa not commit\r\n");
+
+
+    error_check(cursor->reset(cursor)); /* Restart the scan. */
+    error_check(conn->close(conn, NULL)); 
+}
 
 static void
 access_example(void)
@@ -108,6 +186,10 @@ access_example(void)
     uint64_t max_i = 0;
     uint64_t start, stop, time_ms;
 
+
+    access_txn_test();
+   // exit(0);
+
     /* Open a connection to the database, creating it if necessary. */
     //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
     //error_check(wiredtiger_open(home, NULL, "create,cache_size=1M, statistics=(all),create,verbose=[split=5, overflow=5, generation=5, block=5, write=5, evictserver=5, evict_stuck=5, block_cache=5, checkpoint_progress=5,  checkpoint=5, checkpoint_cleanup=5, block=5,overflow=5,reconcile=5,evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
@@ -118,7 +200,7 @@ access_example(void)
     hs=5, history_store_activity=5,lsm=5,lsm_manager=5,metadata=5,mutex=5,out_of_order=5,overflow=5,read=5,reconcile=5,recovery=5, \
     recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\
     version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/
-
+    
     error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=100KB),create,cache_size=25M, statistics=(all),create,verbose=[write:0,reconcile:0, metadata:0, api:0]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
@@ -128,7 +210,7 @@ access_example(void)
 
     /*! [access example table create] */
     //error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u")); memory_page_image_max=128KB,
-    error_check(session->create(session, "table:access", "leaf_page_max=32KB,key_format=q,value_format=u"));
+    error_check(session->create(session, "table:access", "memory_page_image_max=77KB, leaf_page_max=32KB,key_format=q,value_format=u"));
     /*! [access example table create] */
 
     /*! [access example cursor open] */
@@ -147,10 +229,11 @@ access_example(void)
     value_item.size = sizeof(value_item.data);
     printf("yang test ..............size:%d\r\n", (int)sizeof("123456\0\0\0"));
     __wt_random_init_seed(NULL, &rnd);
-
+    
     cbt = (WT_CURSOR_BTREE *)cursor; 
     session_impl = CUR2S(cbt);
     start = __wt_clock(session_impl);
+    error_check(session->reconfigure(session, "memory_page_image_max=177KB"));
 
     value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
     value_item2.size = strlen(value_item2.data);
