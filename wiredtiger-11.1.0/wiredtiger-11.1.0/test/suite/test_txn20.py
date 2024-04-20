@@ -54,6 +54,8 @@ class test_txn20(wttest.WiredTigerTestCase):
     new_value = 'value: new'
 
     def test_isolation_level(self):
+        #self.conn.reconfigure("verbose=[]") #yang add change
+        # 没有显示定义begin_transaction， 则在cursor[self.key] = self.old_value写数据的时候会自动隐式的begin和commit
         config = 'key_format={},value_format={}'.format(self.key_format, self.value_format)
         self.session.create(self.uri, config)
         cursor = self.session.open_cursor(self.uri, None)
@@ -61,10 +63,13 @@ class test_txn20(wttest.WiredTigerTestCase):
 
         # Make an update and don't commit it just yet. We should see the update
         # from the 'read-uncommitted' isolation level.
+        # session显示的创建事务，并写入数据，但没有提交事务
         self.session.begin_transaction()
         cursor[self.key] = self.new_value
-
+        
+        # 新session s在这里创建新的session，然后begin事务读取数据
         s = self.conn.open_session()
+        # 新session s对应的cursor
         cursor = s.open_cursor(self.uri, None)
         s.begin_transaction('isolation=' + self.isolation)
 
@@ -72,6 +77,7 @@ class test_txn20(wttest.WiredTigerTestCase):
             # Unlike the 'read-committed' and 'snapshot' isolation levels, we're
             # not protected from dirty reads so we'll see the update above even
             # though its respective transaction has not been committed.
+            # cursor[self.key]实际上就是通过cursor从新获取self.key的值
             self.assertEqual(cursor[self.key], self.new_value)
         else:
             self.assertEqual(cursor[self.key], self.old_value)
@@ -79,7 +85,11 @@ class test_txn20(wttest.WiredTigerTestCase):
         # Commit the update now. We should see the update from the
         # 'read-committed' and 'read-uncommitted' isolation levels.
         self.session.commit_transaction()
-
+        
+        # 由于s在读取之前进行了begin_transaction，这个时候s已经获取到了前面session new_value的事务快照存到snapshot[]数组中，由于在sesison new_value在snapshot[]中，因此__txn_visible_id返回无法读取
+        
+        # 因此snapshot和read-committed区别是，snapshot以begin_transaction事务开始时当时的快照snapshot[]为准，而read-committed以读取数据时候的快照snapshot[]为准，
+        #   中间的gap是这期间如果有事务已提交,则snapshot[]中就不会有已提交的事务，最终影响__txn_visible_id的访问性
         if self.isolation == 'snapshot':
             # We should never see the updates above since it wasn't committed at
             # the time of the snapshot.

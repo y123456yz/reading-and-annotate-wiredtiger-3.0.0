@@ -119,14 +119,14 @@ print_cursor(WT_CURSOR *cursor)
 }
 
 static void
-access_txn_test(void)
+access_txn01_test(void)
 {
     WT_CONNECTION *conn;
     WT_CURSOR *cursor;
     WT_SESSION *session;
     uint64_t count;
 
-    error_check(wiredtiger_open(home, NULL, "create, verbose=[transaction=5, timestamp=5, api:5]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=100KB), create, verbose=[transaction=0, timestamp=0, api:0]", &conn));
 
     //test_txn01
     error_check(conn->open_session(conn, NULL, NULL, &session));
@@ -137,6 +137,7 @@ access_txn_test(void)
     cursor->set_value(cursor, "value: aaa");
     error_check(cursor->insert(cursor));
     error_check(session->commit_transaction(session, NULL));
+    
     error_check(session->begin_transaction(session, NULL));
     cursor->set_key(cursor, "key: bbb"); /* Insert a record. */
     cursor->set_value(cursor, "value: bbb");
@@ -160,6 +161,113 @@ access_txn_test(void)
     error_check(cursor->reset(cursor)); /* Restart the scan. */
     error_check(conn->close(conn, NULL)); 
 }
+
+//这里可以判断除snapshot和read-committed事务级别的区别，对应test_txn20
+static void
+access_txn20_test(void)
+{
+    WT_CONNECTION *conn;
+    WT_CURSOR *cursor;
+    WT_CURSOR *cursor2;
+    WT_CURSOR *cursor3;
+    WT_SESSION *session;
+    WT_SESSION *session2;
+    WT_SESSION *session3;
+   // uint64_t count;
+    char *value;
+
+    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=100KB), create, verbose=[transaction=0, timestamp=0, api:2]", &conn));
+
+    //test_txn20
+    error_check(conn->open_session(conn, NULL, NULL, &session));
+    error_check(session->create(session, "table:access_txn", "key_format=S,value_format=S"));
+    error_check(session->open_cursor(session, "table:access_txn", NULL, NULL, &cursor));
+    error_check(session->begin_transaction(session, NULL));
+    cursor->set_key(cursor, "key"); /* Insert a record. */
+    cursor->set_value(cursor, "value_old");
+    error_check(cursor->insert(cursor));
+    error_check(session->commit_transaction(session, NULL));
+
+    //老session显示写一条数据，但是不提交
+    error_check(session->begin_transaction(session, NULL));
+    cursor->set_key(cursor, "key"); /* Insert a record. */
+    cursor->set_value(cursor, "value_new");
+    error_check(cursor->update(cursor));
+    {//这里
+        WT_CURSOR_BTREE *cbt;
+        WT_SESSION_IMPL *session_impl;
+        cbt = (WT_CURSOR_BTREE *)cursor; //yang add xxxxxxxxx todo  
+        session_impl = CUR2S(cbt);
+        error_check(__wt_verbose_dump_txn(session_impl, "ex access ............0.....test_txn20"));
+    }
+
+    //新session2 "isolation=snapshot"读这条数据
+    error_check(conn->open_session(conn, NULL, NULL, &session2));
+    error_check(session2->open_cursor(session2, "table:access_txn", NULL, NULL, &cursor2));
+    error_check(session2->begin_transaction(session2, "isolation=snapshot"));
+    {//这里
+        WT_CURSOR_BTREE *cbt;
+        WT_SESSION_IMPL *session_impl;
+        cbt = (WT_CURSOR_BTREE *)cursor2; //yang add xxxxxxxxx todo  
+        session_impl = CUR2S(cbt);
+        error_check(__wt_verbose_dump_txn(session_impl, "ex access ............1.....test_txn20"));
+    }
+
+    //WT_ISO_READ_COMMITTED和WT_ISO_SNAPSHOT的区别是，在都显示begin_transaction的方式开始事务的时候，WT_ISO_READ_COMMITTED的__wt_txn_get_snapshot快照
+    // 生成在接口操作(例如__curfile_search->__wt_txn_cursor_op->__wt_txn_get_snapshot)的时候完成，而WT_ISO_SNAPSHOT在begin_transaction(__wt_txn_begin->__wt_txn_get_snapshot)
+    // 的时候生成，所以test_txn20测试时候，WT_ISO_READ_COMMITTED方式由于之前的update已提交，提交完成后update对应事务会清理掉，所以在update事务提交后WT_ISO_READ_COMMITTED
+    // 方式无法获取update的快照。
+
+    //新session3 "isolation=read-committed"读这条数据
+    error_check(conn->open_session(conn, NULL, NULL, &session3));
+    error_check(session3->open_cursor(session3, "table:access_txn", NULL, NULL, &cursor3));
+    error_check(session3->begin_transaction(session3, "isolation=read-committed"));
+    {
+        WT_CURSOR_BTREE *cbt;
+        WT_SESSION_IMPL *session_impl;
+        cbt = (WT_CURSOR_BTREE *)cursor3; //yang add xxxxxxxxx todo  
+        session_impl = CUR2S(cbt);
+        error_check(__wt_verbose_dump_txn(session_impl, "ex access ..............2...test_txn20"));
+    }
+    
+    //session2  session3读数据前commit事务
+    error_check(session->commit_transaction(session, NULL));
+
+    {
+        WT_CURSOR_BTREE *cbt;
+        WT_SESSION_IMPL *session_impl;
+        cbt = (WT_CURSOR_BTREE *)cursor2; //yang add xxxxxxxxx todo exampleìí?óbtree dump
+        session_impl = CUR2S(cbt);
+        error_check(__wt_verbose_dump_txn(session_impl, "ex access ..........3.......test_txn20"));
+    }
+    cursor2->set_key(cursor2, "key");
+    error_check(cursor2->search(cursor2));
+    error_check(cursor2->get_value(cursor2, &value));
+    printf("Load snapshot search value: %s\n", value);
+
+    printf("yang test...test_txn20......只能看到value_old, 不能看到value_new, 因为begain txn的时候snpshot[]中已经保持了老session的事务\r\n");
+
+
+
+
+    {
+        WT_CURSOR_BTREE *cbt;
+        WT_SESSION_IMPL *session_impl;
+        cbt = (WT_CURSOR_BTREE *)cursor3; //yang add xxxxxxxxx todo exampleìí?óbtree dump
+        session_impl = CUR2S(cbt);
+        error_check(__wt_verbose_dump_txn(session_impl, "ex access .........4........test_txn20"));
+    }
+    cursor3->set_key(cursor3, "key");
+    error_check(cursor3->search(cursor3));
+    error_check(cursor3->get_value(cursor3, &value));
+    printf("Load read-committed search value: %s\n", value);
+
+
+
+    error_check(cursor->reset(cursor)); /* Restart the scan. */
+    error_check(conn->close(conn, NULL)); 
+}
+
 
 static void
 access_example(void)
@@ -186,9 +294,10 @@ access_example(void)
     uint64_t max_i = 0;
     uint64_t start, stop, time_ms;
 
+    access_txn20_test();
+    exit(0);
 
-    access_txn_test();
-   // exit(0);
+    access_txn01_test();
 
     /* Open a connection to the database, creating it if necessary. */
     //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
@@ -233,7 +342,7 @@ access_example(void)
     cbt = (WT_CURSOR_BTREE *)cursor; 
     session_impl = CUR2S(cbt);
     start = __wt_clock(session_impl);
-    error_check(session->reconfigure(session, "memory_page_image_max=177KB"));
+    //error_check(session->reconfigure(session, "memory_page_image_max=177KB"));
 
     value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
     value_item2.size = strlen(value_item2.data);

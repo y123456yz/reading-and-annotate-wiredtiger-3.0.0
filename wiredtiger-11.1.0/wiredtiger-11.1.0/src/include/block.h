@@ -272,6 +272,7 @@ struct __wt_bm {
     int (*salvage_start)(WT_BM *, WT_SESSION_IMPL *);
     int (*salvage_valid)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t, bool);
     int (*size)(WT_BM *, WT_SESSION_IMPL *, wt_off_t *);
+    //__bm_stat
     int (*stat)(WT_BM *, WT_SESSION_IMPL *, WT_DSRC_STATS *stats);
     int (*switch_object)(WT_BM *, WT_SESSION_IMPL *, uint32_t);
     //__bm_sync,  __wt_sync_file __wt_checkpoint_syncµ÷ÓÃ

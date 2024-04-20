@@ -210,8 +210,26 @@ struct __wt_txn_global {
 
 //事务隔离级别
 typedef enum __wt_txn_isolation {
+    //真正生效见__cursor_page_pinned
+    //__wt_txn_begin->__wt_txn_get_snapshot( 注意这里只有WT_ISO_SNAPSHOT会获取快照，WT_ISO_READ_COMMITTED和WT_ISO_READ_UNCOMMITTED不会获取快照)
+    //__wt_txn_cursor_op->__wt_txn_get_snapshot(这个流程WT_ISO_READ_COMMITTED和WT_ISO_SNAPSHOT会获取快照)
+
+    //WT_ISO_READ_COMMITTED和WT_ISO_SNAPSHOT的区别是，在都显示begin_transaction的方式开始事务的时候，WT_ISO_READ_COMMITTED的__wt_txn_get_snapshot快照
+    // 生成在接口操作(例如__curfile_search->__wt_txn_cursor_op->__wt_txn_get_snapshot)的时候完成，而WT_ISO_SNAPSHOT在begin_transaction(__wt_txn_begin->__wt_txn_get_snapshot)
+    // 的时候生成，所以test_txn20测试时候，WT_ISO_READ_COMMITTED方式由于之前的update已提交，提交完成后update对应事务会清理掉，所以在update事务提交后WT_ISO_READ_COMMITTED
+    // 方式无法获取update的快照。
     WT_ISO_READ_COMMITTED,
+    //WT_ISO_READ_COMMITTED: 只有__wt_txn_cursor_op->__wt_txn_get_snapshot流程获取快照
+    //WT_ISO_SNAPSHOT: __wt_txn_begin->__wt_txn_get_snapshot和__wt_txn_cursor_op->__wt_txn_get_snapshot都会获取快照
+    //WT_ISO_READ_UNCOMMITTED: __wt_txn_begin->__wt_txn_get_snapshot和__wt_txn_cursor_op->__wt_txn_get_snapshot都不会获取快照
+    //__txn_visible_id中也会直接返回true
     WT_ISO_READ_UNCOMMITTED,
+     //真正生效见__wt_txn_begin(显示begin txn)和__wt_txn_cursor_op(隐式begin txn)，__wt_txn_get_snapshot
+     // 这样在__wt_txn_visible_id_snapshot需要判断当前事务所有数据是否可见
+
+     //WT_ISO_READ_COMMITTED: 只有__wt_txn_cursor_op->__wt_txn_get_snapshot流程获取快照
+    //WT_ISO_SNAPSHOT: __wt_txn_begin->__wt_txn_get_snapshot和__wt_txn_cursor_op->__wt_txn_get_snapshot都会获取快照
+    //WT_ISO_READ_UNCOMMITTED: __wt_txn_begin->__wt_txn_get_snapshot和__wt_txn_cursor_op->__wt_txn_get_snapshot都不会获取快照
     WT_ISO_SNAPSHOT
 } WT_TXN_ISOLATION;
 

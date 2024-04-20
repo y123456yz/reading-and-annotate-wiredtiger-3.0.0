@@ -777,9 +777,10 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
     txn = session->txn;
 
     /* Changes with no associated transaction are always visible. */
-    if (id == WT_TXN_NONE)
+    if (id == WT_TXN_NONE) {
+       // printf("yang test xxxxxxxxxxxxxxxx __txn_visible_id\r\n");
         return (true);
-
+    }
     /* Nobody sees the results of aborted transactions. */
     if (id == WT_TXN_ABORTED)
         return (false);
@@ -812,11 +813,13 @@ __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
 
-    printf("yang test ...........__wt_txn_visible...session id:%u, id:%lu\r\n", session->id, id);
+    printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu\r\n", 
+        session->id, session->txn->id, session->flags, id);
     //当前session是否可以访问id对应事务
-    if (!__txn_visible_id(session, id))
+    if (!__txn_visible_id(session, id)) {
+        printf("yang test ...........__wt_txn_visible...false\r\n");
         return (false);
-
+    }
     /* Transactions read their writes, regardless of timestamps. */
     //sesion可以访问本事务
     if (F_ISSET(session->txn, WT_TXN_HAS_ID) && id == session->txn->id)
@@ -1233,6 +1236,7 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
      * Allocate a snapshot if required or update the existing snapshot. Do not update the existing
      * snapshot of autocommit transactions because they are committed at the end of the operation.
      */
+    //注意这里只有WT_ISO_SNAPSHOT会获取快照，WT_ISO_READ_COMMITTED和WT_ISO_READ_UNCOMMITTED不会获取快照
     if (txn->isolation == WT_ISO_SNAPSHOT &&
        //注意这里有个!，一般都不会满足这个条件，从而进入下面流程
       !(F_ISSET(txn, WT_TXN_AUTOCOMMIT) && F_ISSET(txn, WT_TXN_HAS_SNAPSHOT))) {
@@ -1680,7 +1684,7 @@ __wt_txn_cursor_op(WT_SESSION_IMPL *session)
         if (txn_shared->metadata_pinned == WT_TXN_NONE)
             txn_shared->metadata_pinned = txn_shared->pinned_id;
     } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) {
-        //printf("yang test ..............__wt_txn_cursor_op...........\r\n");
+        printf("yang test ..............__wt_txn_cursor_op...........\r\n");
         //如果没有显示的定义txn begain，直接写入，则会进入这里
         __wt_txn_get_snapshot(session);
     }

@@ -1130,7 +1130,6 @@ __log_alloc_prealloc(WT_SESSION_IMPL *session, uint32_t to_num)
     //只获取一个WiredTigerPreplog前缀的文件, 也就是确定有没有WiredTigerPreplog.xxxx文件存在
     WT_RET(__log_get_files_single(session, WT_LOG_PREPNAME, &logfiles, &logcount));
     if (logcount == 0) //说明目录中没有提前prealloc创建好的WiredTigerPreplog.xxxxx文件
-    //一如既往的相互欣赏和珍惜  两个人成为更优秀的大人，做彼此肩膀  包容和爱护
         return (WT_NOTFOUND);
 
     //目录中有已经创建好的WiredTigerPreplog.xxx文件，把上面__log_get_files_single获取到的文件重命名为WiredTigerLog.xxxx文件
@@ -1261,7 +1260,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
          * Increment the missed pre-allocated file counter only if a hot backup is not in progress.
          * We are deliberately not using pre-allocated log files during backup (see comment above).
          */
-        if (conn->hot_backup_start == 0)
+        if (conn->hot_backup_start == 0 &&  conn_open == false) 
             log->prep_missed++;
         //新建一个WiredTigerlog.lognum文件，并写入log WT_LOG_RECORD信息
         WT_RET(__wt_log_allocfile(session, log->fileid, WT_LOG_FILENAME));

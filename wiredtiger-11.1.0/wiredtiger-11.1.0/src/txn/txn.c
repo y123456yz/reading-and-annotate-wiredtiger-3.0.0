@@ -334,15 +334,15 @@ done:
     __wt_readunlock(session, &txn_global->rwlock);
     __txn_sort_snapshot(session, n, current_id);
     {
-        int ret = __wt_verbose_dump_txn(session, "__txn_get_snapshot_int");
-        (void)(ret);
+       // int ret = __wt_verbose_dump_txn(session, "__txn_get_snapshot_int");
+      //  (void)(ret);
     }
 }
 
 /*
  * __wt_txn_get_snapshot --
  *     Common case, allocate a snapshot and update our shared ids.
-  __wt_txn_begin->__wt_txn_get_snapshot
+  __wt_txn_begin->__wt_txn_get_snapshot( 注意这里只有WT_ISO_SNAPSHOT会获取快照，WT_ISO_READ_COMMITTED和WT_ISO_READ_UNCOMMITTED不会获取快照)
   curosr读写都会调用__wt_cursor_func_init->__wt_txn_cursor_op->__wt_txn_get_snapshot
   //获取事务快照，实际上普通的写操作如果不显示指定transaction_begin  transaction_commit等操作，也会当普通事务流程处理
   // 1. __wt_cursor_func_init->__wt_txn_cursor_op->__wt_txn_get_snapshot获取快照
@@ -2714,11 +2714,11 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
     
 
     if (func_name)
-        //WT_RET(__wt_msg(session, "\r\n\r\n%s:", func_name));
-        __wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", func_name);
+        WT_RET(__wt_msg(session, "\r\n\r\n%s:", func_name));
+        //__wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", func_name);
     else 
-        //WT_RET(__wt_msg(session, "\r\n\r\n%s:", WT_DIVIDER));
-        __wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", WT_DIVIDER);
+        WT_RET(__wt_msg(session, "\r\n\r\n%s:", WT_DIVIDER));
+        //__wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", WT_DIVIDER);
         
     WT_RET(__wt_msg(session, "transaction state dump"));
     WT_RET(__wt_msg(session, "now print session ID: %" PRIu32, session->id));
@@ -2768,6 +2768,7 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /* Skip sessions with no active transaction */
+        //下面的内容只有在对应session事务调用__wt_txn_id_alloc获取到事务id或者s->pinned_id部位0后才会输出
         if ((id = s->id) == WT_TXN_NONE && s->pinned_id == WT_TXN_NONE)
             continue;
             

@@ -30,6 +30,7 @@ __wt_btree_stat_init(WT_SESSION_IMPL *session, WT_CURSOR_STAT *cst)
     bm = btree->bm;
     stats = btree->dhandle->stats;
 
+    //__bm_stat
     WT_RET(bm->stat(bm, session, stats[0]));
 
     WT_STAT_SET(session, stats, btree_fixed_len, btree->bitcnt);

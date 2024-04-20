@@ -47,10 +47,11 @@ class test_txn01(wttest.WiredTigerTestCase):
     ])
 
     # Return the number of records visible to the cursor.
+    # cursor遍历获取数据v等于0xab的总行数
     def cursor_count(self, cursor):
         count = 0
         # Column-store appends result in phantoms, ignore records unless they
-        # have our flag value.
+        # have our flag value.  下面的test_visibility中设置value为0xab
         for r in cursor:
             if self.value_format == 'S' or cursor.get_value() == 0xab:
                 count += 1
@@ -60,13 +61,15 @@ class test_txn01(wttest.WiredTigerTestCase):
     # checkpoint matches the expected value.
     def check_checkpoint(self, expected):
         s = self.conn.open_session()
+        # 做一次checkpoint，命名为test
         s.checkpoint("name=test")
+        # cursor访问本次checkpoint对应数据
         cursor = s.open_cursor(self.uri, None, "checkpoint=test")
         self.assertEqual(self.cursor_count(cursor), expected)
         s.close()
 
     # Open a cursor with snapshot isolation, and assert the number of records
-    # visible to the cursor matches the expected value.
+    # visible to the cursor matches the expected value. cursor访问uri表对应数据行数是否和期望的expected相等
     def check_txn_cursor(self, level, expected):
         s = self.conn.open_session()
         cursor = s.open_cursor(self.uri, None)
