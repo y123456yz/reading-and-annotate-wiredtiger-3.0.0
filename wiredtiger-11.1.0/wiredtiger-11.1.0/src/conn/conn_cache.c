@@ -287,7 +287,9 @@ __wt_cache_create(WT_SESSION_IMPL *session, const char *cfg[])
     cache->evict_current_queue = cache->evict_fill_queue = &cache->evict_queues[0];
     cache->evict_other_queue = &cache->evict_queues[1];
     cache->evict_urgent_queue = &cache->evict_queues[WT_EVICT_URGENT_QUEUE];
-
+    printf("yang test .................current_queue:%p, other_queue:%p, urgent_queue:%p\r\n",
+        cache->evict_current_queue, cache->evict_other_queue, cache->evict_urgent_queue);
+    
     /*
      * We get/set some values in the cache statistics (rather than have two copies), configure them.
      */

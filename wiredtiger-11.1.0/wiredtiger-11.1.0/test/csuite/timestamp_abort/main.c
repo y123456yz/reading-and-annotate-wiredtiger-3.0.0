@@ -100,7 +100,7 @@ static TEST_OPTS *opts, _opts;
 //statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中
 #define ENV_CONFIG_DEF                                        \
     "cache_size=%" PRIu32                                     \
-    "M,create,verbose=[timestamp:5, config_all_verbos:0,api:2, transaction:5,history_store=5,history_store_activity=5],"                  \
+    "M,create,verbose=[checkpoint=5,timestamp:5, config_all_verbos:0,api:2, transaction:5,history_store=5,history_store_activity=5],"                  \
     "debug_mode=(table_logging=true,checkpoint_retention=5)," \
     "eviction_updates_target=20,eviction_updates_trigger=90," \
     "log=(enabled,file_max=10M,remove=true),session_max=%d,"  \
@@ -285,20 +285,24 @@ thread_ts_run(void *arg)
     testutil_check(conn->open_session(conn, NULL, NULL, &session));
     __wt_random_init_seed((WT_SESSION_IMPL *)session, &rnd);
 
+   // __wt_sleep(10, 100000000); //yang add change todo xxxxxxxxxxxx
+    
     __wt_seconds((WT_SESSION_IMPL *)session, &last_reconfig);
     /* Update the oldest/stable timestamps every 1 millisecond. */
     for (last_ts = 0;; __wt_sleep(0, 1000)) {
+   // for (last_ts = 0;; __wt_sleep(0, 1000000)) {//yang add change
         /* Get the last committed timestamp periodically in order to update the oldest
          * timestamp. */
-        //返回commit_timestamps[]数组中最小的值-1
+        //active_timestamps[线程号]的值在thread_run线程中会做更新
         ts = maximum_stable_ts(active_timestamps, nth);
+        //printf("yang test ................thread_ts_run..................%lu\r\n", ts);
         if (ts == last_ts)
             continue;
         last_ts = ts;
 
         /* Let the oldest timestamp lag 25% of the time. */
         //5秒时间范围中，有一秒是更新stable_timestamp，其他4秒更新oldest_timestamp和stable_timestamp
-        rand_op = __wt_random(&rnd) % 4;
+        rand_op = __wt_random(&rnd) % 3;
         if (rand_op == 1)
             testutil_check(__wt_snprintf(tscfg, sizeof(tscfg), "stable_timestamp=%" PRIx64, ts));
         else
@@ -362,6 +366,7 @@ thread_ckpt_run(void *arg)
     first_ckpt = true;
     for (i = 1;; ++i) {
         sleep_time = __wt_random(&rnd) % MAX_CKPT_INVL;
+        sleep_time = 1;//yang add change
         sleep(sleep_time);
         /*
          * Since this is the default, send in this string even if running without timestamps.
@@ -389,6 +394,7 @@ thread_ckpt_run(void *arg)
 /*
  * thread_run --
  *     Runner function for the worker threads.
+ ./test_timestamp_abort -T 5 -t 11   -T线程数   -t运行时间
  */
 static WT_THREAD_RET
 thread_run(void *arg)
@@ -485,17 +491,19 @@ thread_run(void *arg)
    // for (i = td->start;; ++i) {
     
     {
-        printf("yang test ..............thread_run.........addr:%p, %p, %p, %p  \r\n\r\n\r\n\r\n", 
+        printf("yang test ..............thread_run.........addr:%p, %p, %p, %p  session id:%u \r\n\r\n\r\n\r\n", 
             session, CUR2S((WT_CURSOR_BTREE *)cur_coll), CUR2S((WT_CURSOR_BTREE *)cur_shadow),
-            CUR2S((WT_CURSOR_BTREE *)cur_local));
+            CUR2S((WT_CURSOR_BTREE *)cur_local), ((WT_SESSION_IMPL *)session)->id);
     }
     
     //注意: 同一个事务，下面的session和prepared_session是两个不同的session id, 
     // 同一个session打开的多个表cursor，这些cursor对应的session  CUR2S会是同一个session ,
     // 此外每个__curfile_insert(coll->insert)都会__txn_get_snapshot_int获取快照，并通过__wt_txn_id_alloc获取事务id,
     //    但是每个insert结尾都会通过TXN_API_END->__wt_txn_commit来提交事务
-    for (i = td->start;i < td->start + 10; ++i) {
-        printf("yang test ..............thread_run...................use_ts:%d, start:%lu\r\n",use_ts, i);
+    //for (i = td->start;i < td->start + 10; ++i) {  //yang add change
+    for (i = td->start;i < td->start + 110; ++i) {
+        printf("yang test ..thread_run...................use_ts:%d, use_prep:%d, start:%lu\r\n",
+            use_ts, use_prep, i);
         
         //第一轮循环结果如下: 
         //  coll表普通session的commit_timestamp: 1
@@ -506,8 +514,8 @@ thread_run(void *arg)
         if (use_prep)
             testutil_check(prepared_session->begin_transaction(prepared_session, NULL));
     
-        //if (use_ts) {
-        if (1) {
+        if (use_ts) {
+        //if (1) {//yang add change
             /* Allocate two timestamps. */
             //获取原来的值赋值给active_ts，然后global_ts+2
             active_ts = __wt_atomic_fetch_addv64(&global_ts, 2);
@@ -518,8 +526,8 @@ thread_run(void *arg)
              * prepared transactions, set the timestamp for the session used for oplog. The
              * collection session in that case would continue to use this timestamp.
              */
-            //__session_timestamp_transaction
-           // testutil_check(session->timestamp_transaction(session, tscfg));
+            //__session_timestamp_transaction  2
+            testutil_check(session->timestamp_transaction(session, tscfg));
         }
 
         //printf("yang test ......thread_run........1 global_ts:%lu, active_ts:%lu, start:%lu\r\n", global_ts,active_ts, i);
@@ -556,7 +564,7 @@ thread_run(void *arg)
 
         //写入shadow表  shadow和collection用相同的data
         cur_shadow->set_value(cur_shadow, &data);
-        if (1) {
+        if (use_ts) {
             /*
              * Change the timestamp in the middle of the transaction so that we simulate a
              * secondary.
@@ -565,7 +573,7 @@ thread_run(void *arg)
             //__session_timestamp_transaction
             testutil_check(
               __wt_snprintf(tscfg, sizeof(tscfg), "commit_timestamp=%" PRIx64, active_ts));
-            //testutil_check(session->timestamp_transaction(session, tscfg));
+            testutil_check(session->timestamp_transaction(session, tscfg));
         }
 
         if ((ret = cur_shadow->insert(cur_shadow)) == WT_ROLLBACK)
@@ -608,20 +616,24 @@ thread_run(void *arg)
         }
 
         {
-            WT_CONNECTION_IMPL *conn_tmp;
             char buf[100];
-            //WT_CONNECTION *conn_tmp2;
-            conn_tmp = S2C(session);
-            snprintf(buf, sizeof(buf), "timestamp thread_run thread: %u", td->info);
-            ret = __wt_verbose_dump_txn(conn_tmp->default_session, buf);//yang add change
+            snprintf(buf, sizeof(buf), "timestamp thread_run thread 1: %u", td->info);
+            
+            ret = __wt_verbose_dump_txn((WT_SESSION_IMPL *)session, buf);//yang add change
             WT_UNUSED(ret);
         }
         
-        usleep(100000);//yang add change
+        usleep(500000);//yang add change
 
         //
         testutil_check(session->commit_transaction(session, NULL));
-        
+        {
+            char buf[100];
+            snprintf(buf, sizeof(buf), "timestamp thread_run thread 2: %u", td->info);
+            
+            ret = __wt_verbose_dump_txn((WT_SESSION_IMPL *)session, buf);//yang add change
+            WT_UNUSED(ret);
+        }
         
         /*
          * Insert into the local table outside the timestamp txn. This must occur after the
@@ -634,7 +646,14 @@ thread_run(void *arg)
         data.data = lbuf;
         cur_local->set_value(cur_local, &data);
         testutil_check(cur_local->insert(cur_local));
-        
+
+        {
+            char buf[100];
+            snprintf(buf, sizeof(buf), "timestamp thread_run thread 3: %u", td->info);
+            
+            ret = __wt_verbose_dump_txn((WT_SESSION_IMPL *)session, buf);//yang add change
+            WT_UNUSED(ret);
+        }        
         //usleep(1000 * td->info);//目的是避免多个线程输出信息相互影响
         
         /* Save the timestamps and key separately for checking later. */

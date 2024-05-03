@@ -44,7 +44,8 @@ class test_txn23(wttest.WiredTigerTestCase):
                     extraconfig='allocation_size=512,leaf_page_max=512')),
     ]
     scenarios = make_scenarios(format_values)
-
+    
+    # 在一个事务中写数据，提交数据时候带上commit_timestamp，写nrows条数据到uri表中，带commit_ts提交事务写
     def large_updates(self, uri, value, ds, nrows, commit_ts):
         # Update a large number of records.
         cursor = self.session.open_cursor(uri)
@@ -53,7 +54,8 @@ class test_txn23(wttest.WiredTigerTestCase):
             cursor[ds.key(i)] = value
             self.session.commit_transaction('commit_timestamp=' + self.timestamp_str(commit_ts))
         cursor.close()
-
+    
+    # 在事务中以read_timestamp方式读取数据，检查读的数据是否为期望的结果
     def check(self, check_value, uri, ds, nrows, read_ts):
         for i in range(1, nrows + 1):
             self.session.begin_transaction('read_timestamp=' + self.timestamp_str(read_ts))
@@ -63,8 +65,7 @@ class test_txn23(wttest.WiredTigerTestCase):
             self.session.commit_transaction()
 
     def test_txn(self):
-
-        # Create a table.
+        # Create a table.  ds_1对应txn23_1表，ds_2对应txn23_2表
         uri_1 = "table:txn23_1"
         ds_1 = SimpleDataSet(
             self, uri_1, 0, key_format=self.key_format, value_format=self.value_format,
@@ -79,6 +80,7 @@ class test_txn23(wttest.WiredTigerTestCase):
         ds_2.populate()
 
         # Pin oldest and stable to timestamp 10.
+        # 设置全局oldest_timestamp stable_timestamp为10
         self.conn.set_timestamp('oldest_timestamp=' + self.timestamp_str(10) +
             ',stable_timestamp=' + self.timestamp_str(10))
 
@@ -95,6 +97,7 @@ class test_txn23(wttest.WiredTigerTestCase):
             value_d = 100
         else:
             nrows = 2000
+            # 结果就是100个aaaaa
             value_a = "aaaaa" * 100
             value_b = "bbbbb" * 100
             value_c = "ccccc" * 100

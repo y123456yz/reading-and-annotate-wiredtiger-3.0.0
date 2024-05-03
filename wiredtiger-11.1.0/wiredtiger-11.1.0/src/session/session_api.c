@@ -1870,10 +1870,11 @@ __session_begin_transaction(WT_SESSION *wt_session, const char *config)
     session = (WT_SESSION_IMPL *)wt_session;
     SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, begin_transaction, __session_begin_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_begin);
+    //dirty bytes in this txn
     WT_STAT_SESSION_SET(session, txn_bytes_dirty, 0);
 
+    
     WT_ERR(__wt_txn_context_check(session, false));
-
     ret = __wt_txn_begin(session, cfg);
 
 err:
@@ -2093,7 +2094,9 @@ __session_timestamp_transaction(WT_SESSION *wt_session, const char *config)
 
     ret = __wt_txn_set_timestamp(session, cfg, false);
 err:
+    printf("yang test .......__session_timestamp_transaction..............1....\r\n");
     API_END_RET(session, ret);
+    printf("yang test .......__session_timestamp_transaction..............2....\r\n");
 }
 
 /*

@@ -347,6 +347,7 @@ __tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp,
     WT_ENTER_PAGE_INDEX(session);
 
     /* If no page is active, begin a walk from the start/end of the tree. */
+    //没有明确指定ref在B+树中的位置，则从root开始遍历
     if ((ref = ref_orig) == NULL) {
         if (0) {
 restart:

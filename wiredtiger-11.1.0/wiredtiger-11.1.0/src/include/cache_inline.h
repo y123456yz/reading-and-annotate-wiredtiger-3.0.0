@@ -43,8 +43,8 @@ __wt_cache_read_gen_incr(WT_SESSION_IMPL *session)
 /*
  * __wt_cache_read_gen_bump --
  *     Update the page's read generation.
-  //__wt_cache_read_gen_new: 如果read_gen没有设置，则evict server线程在__evict_walk_tree中选出需要evict的page后通过该函数生成page read_gen
- //__wt_cache_read_gen_bump: evict worker或者app用户线程在__wt_cache_read_gen_bump中从队列消费这个page reconcile的时候赋值
+//__wt_cache_read_gen_new: 第一次访问该page的时候获取
+//__wt_cache_read_gen_bump: 非第一次访问该page的时候获取
 
  //evict worker线程如果挑选了该page进行reconcile，则调用__wt_cache_read_gen_bump获取一个新的read_gen
  */
@@ -66,14 +66,20 @@ __wt_cache_read_gen_bump(WT_SESSION_IMPL *session, WT_PAGE *page)
      * current global generation, we don't bother updating the page. In other words, the goal is to
      * avoid some number of updates immediately after each update we have to make.
      */
+
+    //__wt_cache_read_gen(session)也就是cache->read_gen
+    //server线程每次在逻辑__evict_pass->__wt_cache_read_gen_incr对cache->read_gen自增，最近调用__wt_cache_read_gen_new的时候cache->read_gen
+    //  相对越大，最终该page的page->read_gen也会越大，这样间接反应了page近期是否有被用户线程访问
     page->read_gen = __wt_cache_read_gen(session) + WT_READGEN_STEP;
 }
 
 /*
  * __wt_cache_read_gen_new --
  *     Get the read generation for a new page in memory.
-  //__wt_cache_read_gen_new: 如果read_gen没有设置，则evict server线程在__evict_walk_tree中选出需要evict的page后通过该函数生成page read_gen
- //__wt_cache_read_gen_bump: evict worker或者app用户线程在__wt_cache_read_gen_bump中从队列消费这个page reconcile的时候赋值
+  //__wt_cache_read_gen_new: 第一次访问该page的时候获取
+ //__wt_cache_read_gen_bump: 非第一次访问该page的时候获取
+
+第一次访问该page，则调用__wt_cache_read_gen_new获取read_gen, 每次修改该page或者访问该page的时候都会获取__wt_cache_read_gen_new，这样如果最近一次访问的page就
  */
 static inline void
 __wt_cache_read_gen_new(WT_SESSION_IMPL *session, WT_PAGE *page)
@@ -81,6 +87,10 @@ __wt_cache_read_gen_new(WT_SESSION_IMPL *session, WT_PAGE *page)
     WT_CACHE *cache;
 
     cache = S2C(session)->cache;
+    //__wt_cache_read_gen(session)也就是cache->read_gen
+
+    //server线程每次在逻辑__evict_pass->__wt_cache_read_gen_incr对cache->read_gen自增，最近调用__wt_cache_read_gen_new的时候cache->read_gen
+    //  相对越大，最终该page的page->read_gen也会越大，这样间接反应了page近期是否有被用户线程访问
     page->read_gen = (__wt_cache_read_gen(session) + cache->read_gen_oldest) / 2;
 }
 

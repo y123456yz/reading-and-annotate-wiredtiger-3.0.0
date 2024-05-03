@@ -176,7 +176,7 @@ access_txn20_test(void)
    // uint64_t count;
     char *value;
 
-    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=100KB), create, verbose=[transaction=0, timestamp=0, api:2]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=10110KB), create, verbose=[checkpoint=5, transaction=0, timestamp=0, api:2]", &conn));
 
     //test_txn20
     error_check(conn->open_session(conn, NULL, NULL, &session));
@@ -268,6 +268,66 @@ access_txn20_test(void)
     error_check(conn->close(conn, NULL)); 
 }
 
+static void
+access_txn23_test(void)
+{
+    WT_CONNECTION *conn;
+    WT_CURSOR *cursor;
+    WT_SESSION *session;
+   // uint64_t count;
+   // char tscfg[512];
+    int i;
+    char *value;
+    const int kv_num = 1;
+    
+    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=100KB), create, "
+        "verbose=[config_all_verbos:5,transaction=5, timestamp=5, api:5]", &conn));
+
+    //test_txn23
+    error_check(conn->open_session(conn, NULL, NULL, &session));
+    error_check(session->create(session, "table:access_txn23", "key_format=i,value_format=S"));
+    error_check(session->open_cursor(session, "table:access_txn23", NULL, NULL, &cursor));
+    error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23....1"));
+    //__conn_set_timestamp
+    testutil_check(conn->set_timestamp(conn, "oldest_timestamp=10, stable_timestamp=10"));
+    error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23....2"));
+    for (i = 0; i < kv_num; i++) {
+        error_check(session->begin_transaction(session, NULL));
+        cursor->set_key(cursor, i); /* Insert a record. */
+        cursor->set_value(cursor, "value: aaa");
+        error_check(cursor->insert(cursor));
+        testutil_check(session->timestamp_transaction(session, "commit_timestamp=20"));
+        error_check(session->commit_transaction(session, NULL));
+    }
+    error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23...3"));
+
+    for (i = 0; i < kv_num; i++) {
+        error_check(session->begin_transaction(session, NULL));
+        cursor->set_key(cursor, i); /* Insert a record. */
+        cursor->set_value(cursor, "value: bbb");
+        error_check(cursor->insert(cursor));
+        testutil_check(session->timestamp_transaction(session, "commit_timestamp=30"));
+        error_check(session->commit_transaction(session, NULL));
+    }
+    error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23...4"));
+
+    for (i = 0; i < kv_num; i++) {
+        //__session_begin_transaction
+        error_check(session->begin_transaction(session, "read_timestamp=15"));
+        error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23...5"));
+        error_check(session->open_cursor(session, "table:access_txn23", NULL, NULL, &cursor));
+        cursor->set_key(cursor, i);
+        error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23"));
+        error_check(cursor->search(cursor));
+        error_check(cursor->get_value(cursor, &value));
+        printf("yang test ............. test_txn23, value:%s\r\n", value);
+        error_check(session->commit_transaction(session, NULL));
+    }
+
+    error_check(cursor->reset(cursor)); /* Restart the scan. */
+    error_check(conn->close(conn, NULL)); 
+}
+
 
 static void
 access_example(void)
@@ -294,10 +354,6 @@ access_example(void)
     uint64_t max_i = 0;
     uint64_t start, stop, time_ms;
 
-    access_txn20_test();
-    exit(0);
-
-    access_txn01_test();
 
     /* Open a connection to the database, creating it if necessary. */
     //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),create,verbose=[evictserver=5,evict=5,split=5,evict_stuck=5]", &conn));
@@ -310,7 +366,7 @@ access_example(void)
     recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\
     version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/
     
-    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=100KB),create,cache_size=25M, statistics=(all),create,verbose=[write:0,reconcile:0, metadata:0, api:0]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=100KB),create,cache_size=1M, statistics=(all),create,verbose=[config_all_verbos:0, write:0,reconcile:0, metadata:0, api:0,log:0]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
     /* Open a session handle for the database. */
@@ -346,7 +402,7 @@ access_example(void)
 
     value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
     value_item2.size = strlen(value_item2.data);
-    for (i=500000;i > 0; i--) {
+    for (i=50010000;i > 0; i--) {
    // for (i=0;i < 9011 ; i++) {
         rval = __wt_random(&rnd);
 
@@ -360,6 +416,7 @@ access_example(void)
 
         //printf("yang test insert ......... i:%lu, max_i:%lu\r\n", rval % 23519, max_i);
         error_check(cursor->insert(cursor));
+        usleep(1000);
     }
     stop = __wt_clock(session_impl);
     time_ms = WT_CLOCKDIFF_MS(stop, start);
@@ -463,6 +520,14 @@ main(int argc, char *argv[])
     home = example_setup(argc, argv);
 
     access_example();
+
+    access_txn23_test();
+
+    exit(0);
+
+    access_txn20_test();
+
+    access_txn01_test();
 
     return (EXIT_SUCCESS);
 }

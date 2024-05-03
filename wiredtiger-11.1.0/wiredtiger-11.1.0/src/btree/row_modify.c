@@ -122,11 +122,13 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
         if (upd_arg == NULL) {
             /* Make sure the modify can proceed. */
             WT_ERR(
+              //获取该K的链表上的第一个V对应udp，并做一些检查，同时获取这个V的ts
               __wt_txn_modify_check(session, cbt, old_upd = *upd_entry, &prev_upd_ts, modify_type));
 
             /* Allocate a WT_UPDATE structure and transaction ID. */
             //如果value为NULL，也就是WT_CURSOR->remove操作删除一个key的时候，实际上是生成一个新的udp,udp的value长度为0
             WT_ERR(__wt_upd_alloc(session, value, modify_type, &upd, &upd_size));
+            //把生成新的udp之前的上一个V的更新时间戳保存起来
             upd->prev_durable_ts = prev_upd_ts;
             WT_ERR(__wt_txn_modify(session, upd));
             added_to_txn = true;

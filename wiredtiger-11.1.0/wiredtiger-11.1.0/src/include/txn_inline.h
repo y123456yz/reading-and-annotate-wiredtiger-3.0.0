@@ -809,12 +809,13 @@ __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp
 {
     WT_TXN *txn;
     WT_TXN_SHARED *txn_shared;
+    char ts_string[WT_TS_INT_STRING_SIZE];
 
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
 
-    printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu\r\n", 
-        session->id, session->txn->id, session->flags, id);
+    printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu, timestamp:%s\r\n", 
+        session->id, session->txn->id, session->flags, id, __wt_timestamp_to_string(timestamp, ts_string));
     //当前session是否可以访问id对应事务
     if (!__txn_visible_id(session, id)) {
         printf("yang test ...........__wt_txn_visible...false\r\n");
@@ -986,7 +987,6 @@ __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, 
         //udp对应key被删除了，并且不是hs表
         if (type == WT_UPDATE_TOMBSTONE && F_ISSET(&cbt->iface, WT_CURSTD_IGNORE_TOMBSTONE) &&
           !WT_TIME_WINDOW_HAS_STOP(&cbt->upd_value->tw)) {
-            //yang add todo xxxxxxxxxxxxxxxx 用__wt_upd_value_assign替换
             cbt->upd_value->tw.durable_stop_ts = upd->durable_ts;
             cbt->upd_value->tw.stop_ts = upd->start_ts;
             cbt->upd_value->tw.stop_txn = upd->txnid;
@@ -1224,6 +1224,7 @@ __wt_txn_begin(WT_SESSION_IMPL *session, const char *cfg[])
     txn = session->txn;
     txn->isolation = session->isolation;
     txn->txn_logsync = S2C(session)->txn_logsync;
+    //yang add todo xxxxxxxxxxxxxxx durable_timestamp和prepare_timestamp这里要不要设置为WT_TS_NONE   ????????????
     txn->commit_timestamp = WT_TS_NONE;
     txn->first_commit_timestamp = WT_TS_NONE;
 
@@ -1367,6 +1368,7 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
  *     A transaction is going to do an update, allocate a transaction ID.
 //__wt_txn_log_op  __wt_txn_ts_log->__txn_logrec_init->__wt_txn_id_check
 //__wt_txn_modify->__txn_next_op->__wt_txn_id_check
+//checkpoint事务生成事务id: __checkpoint_prepare->__wt_txn_id_check
  */
 static inline int
 __wt_txn_id_check(WT_SESSION_IMPL *session)
@@ -1485,6 +1487,7 @@ __wt_txn_modify_block(
     ignore_prepare_set = F_ISSET(txn, WT_TXN_IGNORE_PREPARE);
     F_CLR(txn, WT_TXN_IGNORE_PREPARE);
     //如果session对应事务对udp所有变更数据都不可见，说明冲突了，因为不能修改该K，这时候需要回滚
+    //yang add todo xxxxxxxxxxxxxxxx 这里是否可以增加重试机制????
     for (; upd != NULL && !__wt_txn_upd_visible(session, upd); upd = upd->next) {
         if (upd->txnid != WT_TXN_ABORTED) {
             //ret = __log_slot_close(session, slot, &release, forced);后增加一个延迟 __wt_sleep(0, 30000);//yang add change  即可模拟出来
@@ -1684,7 +1687,7 @@ __wt_txn_cursor_op(WT_SESSION_IMPL *session)
         if (txn_shared->metadata_pinned == WT_TXN_NONE)
             txn_shared->metadata_pinned = txn_shared->pinned_id;
     } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) {
-        printf("yang test ..............__wt_txn_cursor_op...........\r\n");
+        //printf("yang test ..............__wt_txn_cursor_op...........\r\n");
         //如果没有显示的定义txn begain，直接写入，则会进入这里
         __wt_txn_get_snapshot(session);
     }

@@ -753,8 +753,11 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
      */
     __wt_writelock(session, &txn_global->rwlock);
     txn_global->checkpoint_txn_shared = *txn_shared;
+    //也就是checkpoint事务能看到的所有snapshot快照的最小事务id
     txn_global->checkpoint_txn_shared.pinned_id = txn->snap_min;
-
+    //yang add todo xxxxxxxxxxxxxxxxx 增加checkpoint pinned_id更新日志
+    __wt_verbose_debug2(session, WT_VERB_TRANSACTION, "update checkpoint_txn_shared  pinned_id%" PRIu64, txn->snap_min);
+            
     /*
      * Sanity check that the oldest ID hasn't moved on before we have cleared our entry.
      */
@@ -838,6 +841,11 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
     //__checkpoint_prepare结束时间
     __wt_epoch(session, &conn->ckpt_prep_end);
     WT_STAT_CONN_SET(session, txn_checkpoint_prep_running, 0);
+
+    {
+        ret = __wt_verbose_dump_txn(session, "__checkpoint_prepare");//yang add change
+        WT_UNUSED(ret);
+    }
 
     return (ret);
 }
@@ -1125,7 +1133,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     __wt_gen_next(session, WT_GEN_CHECKPOINT, &generation);
 
     WT_STAT_CONN_SET(session, txn_checkpoint_generation, generation);
-
+    //printf("yang test ............__txn_checkpoint.....1.............\r\n");//yang add change
     /*
      * We want to skip checkpointing clean handles whenever possible. That is, when the checkpoint
      * is not named or forced. However, we need to take care about ordering with respect to the
@@ -1237,6 +1245,8 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     if (full || name != NULL)
         WT_ERR(__wt_meta_sysinfo_set(session, full, name, namelen));
 
+   // sleep(2);//yang add todo xxxxxxxxxxxxxx
+   // printf("yang test ............__txn_checkpoint.....2.............\r\n");//yang add change
     /* Release the snapshot so we aren't pinning updates in cache. */
     __wt_txn_release_snapshot(session);
 

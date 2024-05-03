@@ -56,8 +56,12 @@ struct __wt_evict_queue {
     //urgent队列就是队列中所有的page，见__wt_page_evict_urgent。
     //非urgent队列更具队列评分决定需要evict的page，参考__evict_lru_walk
     //队列中总的候选page，赋值见__evict_lru_walk，真正生效实际上在__evict_get_ref中，实际上worker线程reconcile的时候只会选择这部分候选page
+
+    //evict_candidates另外一个深层次的作用就是evict worker线程消费前面[0, evict_candidates]的page进行evict，
+    //  evict server线程线程从evict_entries位置入队[evict_entries, cache->evict_slots]，evict_candidates<evict_entries，这样
+    //  就可以避免evict server线程和evict worker线程访问同一个elem，就可以不用加锁
     uint32_t evict_candidates;     /* LRU list pages to evict */
-    //也就是当前队列的末尾位置，赋值见__evict_walk
+    //也就是当前队列的最后一个入队的elem位置，赋值见__evict_walk，参考evict_candidates说明
     uint32_t evict_entries;        /* LRU entries in the queue */
     //记录队列中历史最大elem个数
     volatile uint32_t evict_max;   /* LRU maximum eviction slot used */
@@ -136,7 +140,9 @@ struct __wt_cache {
      * Read information.
      */
     //初始值WT_READGEN_START_VALUE，自增赋值见__wt_cache_read_gen_incr，是一个一直自增的遍历，表示做了多少轮__evict_pass扫描
-    //__wt_cache_read_gen获取该值   //__wt_cache.read_gen代表全局的read_gen，page.read_gen代表指定表的
+    //__wt_cache_read_gen获取该值   //__wt_cache.read_gen代表全局的read_gen，page.read_gen代表指定page的
+    //__wt_cache_read_gen_incr中自增，__wt_cache_read_gen中获取read_gen，
+    //server线程每次在逻辑__evict_pass->__wt_cache_read_gen_incr对cache->read_gen自增
     uint64_t read_gen;        /* Current page read generation */
     //初始值WT_READGEN_START_VALUE，赋值见__evict_lru_walk, 真正生效见__wt_cache_read_gen_new
     uint64_t read_gen_oldest; /* Oldest read generation the eviction
@@ -218,16 +224,24 @@ struct __wt_cache {
     //，evict_queues[1]代表当前evict_other_queue，evict_queues[2]代表evict_urgent_queue
     //赋值见__wt_cache_create
     WT_EVICT_QUEUE evict_queues[WT_EVICT_QUEUE_MAX];
+    //evict_current_queue和evict_other_queue可能在__evict_get_ref交换，evict_current_queue代表evict worker线程最近一次evict是
+    // 从那个queue消费获取需要evict的page
     WT_EVICT_QUEUE *evict_current_queue; /* LRU current queue in use */
-    //__evict_lru_walk挑选的需要evict的page(不包括urgent)添加到fill队列
+    //evict_current_queue和evict_other_queue可能在__evict_get_ref交换，evict_current_queue代表evict worker线程最近一次evict是
+    // 从那个queue消费获取需要evict的page
+    WT_EVICT_QUEUE *evict_other_queue;   /* LRU queue not in use */
+    WT_EVICT_QUEUE *evict_urgent_queue;  /* LRU urgent queue */
+
+    //__evict_lru_walk挑选的需要evict的page(不包括urgent)添加到fill队列，__evict_get_ref从队列获取page进行真正的淘汰
+    //evict_fill_queue的作用其实就一个，记录本轮evict server用的是queue还是other_queue，这样下一轮的时候就用另一个queue
+    // 例如如果上一轮用的是evict_queues[1]用来存放遍历获取的需要evict的page，那这一轮就用evict_queues[0]来存
     WT_EVICT_QUEUE *evict_fill_queue;    /* LRU next queue to fill.
                                             This is usually the same as the
                                             "other" queue but under heavy
                                             load the eviction server will
                                             start filling the current queue
                                             before it switches. */
-    WT_EVICT_QUEUE *evict_other_queue;   /* LRU queue not in use */
-    WT_EVICT_QUEUE *evict_urgent_queue;  /* LRU urgent queue */
+    
     //__wt_cache_create中初始化赋值为WT_EVICT_WALK_BASE + WT_EVICT_WALK_INCR;
     //队列数组大小为evict_slots，队列中没有evict reconcile的page数不能超过该值
     uint32_t evict_slots;                /* LRU list eviction slots */
@@ -252,7 +266,7 @@ struct __wt_cache {
      */
     //赋值见__evict_lru_walk，这个值代表队列中是否为空的占比，是经常为空(100)还是经常不位空(0)
     //评分越高说明消费速度比入队速度更快
-    //__evict_lru_walk中赋值
+    //__evict_lru_walk中赋值，evict_empty_score和evict_aggressive_score对应
     uint32_t evict_empty_score;
 
     uint32_t hs_fileid; /* History store table file ID */

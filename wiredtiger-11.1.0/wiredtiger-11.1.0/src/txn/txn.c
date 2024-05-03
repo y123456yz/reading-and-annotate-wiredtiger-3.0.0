@@ -242,11 +242,12 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
      * We can assume that if a function calls without intention to publish then it is the special
      * case of checkpoint calling it twice. In which case do not include the checkpoint id.
      */
+    //普通事务获取快照时候，如果当前有正在做checkpoint的事务
     if ((id = txn_global->checkpoint_txn_shared.id) != WT_TXN_NONE) {
         if (txn->id != id)
             //也就是记录对应得checkpoint id信息
             txn->snapshot[n++] = id;
-            
+        printf("yang test .........__txn_get_snapshot_int......%d, %lu\r\n", publish, id);    
         if (publish)
             txn_shared->metadata_pinned = id;
     }
@@ -277,7 +278,6 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
     //获取txn_shared_list[]数组中，获取所有大于prev_oldest_id的session事务
     //也就是获取当前session可以看到的所有其他事务(大于prev_oldest_id的session事务)
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
-        //yang add todo xxxxxxxxxx 这里可以添加到外层，用WT_STAT_CONN_SET(session, txn_sessions_walked,session_cnt);
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /*
          * Build our snapshot of any concurrent transaction IDs.
@@ -463,6 +463,46 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
 }
 
 /*
+
+ __wt_txn_update_oldest end:
+ transaction state dump
+ now print session ID: 6
+ current ID: 40
+ //当前所有txn ID:中的最小值
+ last running ID: 31
+ //当前所有pinned ID:中的最小值
+ metadata_pinned ID: 22
+ //也就是当前所有txn ID:和pinned ID:中的最小值
+ oldest ID: 22
+ durable timestamp: (0, 20)
+ oldest timestamp: (0, 0)
+ pinned timestamp: (0, 0)
+ stable timestamp: (0, 0)
+ has_durable_timestamp: yes
+ has_oldest_timestamp: no
+ has_pinned_timestamp: no
+ has_stable_timestamp: no
+ oldest_is_pinned: no
+ stable_is_pinned: no
+ checkpoint running: yes
+ checkpoint generation: 2
+ checkpoint pinned ID: 22
+ checkpoint txn ID: 29
+ session count: 22
+ Transaction state of active sessions:
+ session ID: 16, txn ID: 31, pinned ID: 22, metadata pinned ID: 29, name: connection-open-session
+ transaction id: 31, mod count: 3, snap min: 22, snap max: 31, snapshot count: 5, snapshot: [22, 24, 26, 28, 29], commit_timestamp: (0, 22), durable_timestamp: (0, 22), first_commit_timestamp: (0, 21), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 21), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 18, txn ID: 33, pinned ID: 24, metadata pinned ID: 29, name: connection-open-session
+ transaction id: 33, mod count: 3, snap min: 24, snap max: 33, snapshot count: 5, snapshot: [24, 26, 28, 29, 31], commit_timestamp: (0, 24), durable_timestamp: (0, 24), first_commit_timestamp: (0, 23), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 23), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 19, txn ID: 35, pinned ID: 26, metadata pinned ID: 29, name: connection-open-session
+ transaction id: 35, mod count: 3, snap min: 26, snap max: 35, snapshot count: 5, snapshot: [26, 28, 29, 31, 33], commit_timestamp: (0, 26), durable_timestamp: (0, 26), first_commit_timestamp: (0, 25), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 25), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 20, txn ID: 37, pinned ID: 28, metadata pinned ID: 29, name: connection-open-session
+ transaction id: 37, mod count: 3, snap min: 28, snap max: 37, snapshot count: 5, snapshot: [28, 29, 31, 33, 35], commit_timestamp: (0, 28), durable_timestamp: (0, 28), first_commit_timestamp: (0, 27), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 27), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 21, txn ID: 39, pinned ID: 31, metadata pinned ID: 29, name: connection-open-session
+ transaction id: 39, mod count: 3, snap min: 29, snap max: 39, snapshot count: 5, snapshot: [29, 31, 33, 35, 37], commit_timestamp: (0, 30), durable_timestamp: (0, 30), first_commit_timestamp: (0, 29), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 29), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ checkpoint session ID: 22, txn ID: 29, pinned ID: 22, metadata pinned ID: 0, name: eviction-server
+ transaction id: 0, mod count: 0, snap min: 0, snap max: 0, snapshot count: 0, snapshot: [], commit_timestamp: (0, 0), durable_timestamp: (0, 0), first_commit_timestamp: (0, 0), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 0), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x00000000, isolation: WT_ISO_SNAPSHOT
+
  * __wt_txn_update_oldest --
  *     Sweep the running transactions to update the oldest ID required.
  evict、reconcile、checkpoint等操作会调用__wt_txn_update_oldest
@@ -1866,8 +1906,11 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
      */
     if (update_durable_ts)
         while (candidate_durable_timestamp > prev_durable_timestamp) {
+            //txn_global->durable_timestamp赋值为最新的durable_timestamp
             if (__wt_atomic_cas64(&txn_global->durable_timestamp, prev_durable_timestamp,
                   candidate_durable_timestamp)) {
+                //yang add todo xxxxxxxxxxxxxxxxxxxxxxxx 增加durable_timestamp理解日志
+                __wt_verbose_debug2(session, WT_VERB_TRANSACTION, "update durable_timestamp %" PRIu64, txn_global->durable_timestamp);
                 txn_global->has_durable_timestamp = true;
                 break;
             }
@@ -2639,7 +2682,7 @@ __wt_verbose_dump_txn_one(
               snapshot_buf_tmp, sizeof(snapshot_buf_tmp), "%lu", txn->snapshot[i]));
         else
             WT_ERR(__wt_snprintf(
-              snapshot_buf_tmp, sizeof(snapshot_buf_tmp), ", %lu", txn->snapshot[i]));
+              snapshot_buf_tmp, sizeof(snapshot_buf_tmp), ", %" PRIu64, txn->snapshot[i]));
         WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "%s", snapshot_buf_tmp));
     }
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "%s", "]\0"));
@@ -2696,7 +2739,124 @@ err:
 
 /*
  * __wt_verbose_dump_txn --
- *     Output diagnostic information about the global transaction state.
+当前有多个线程，多个事务，并且正在做checkpoint，并且其他事务的快照中有该事务id,其日志类似如下:
+ checkpoint running: yes
+ checkpoint generation: 2
+ checkpoint pinned ID: 335
+ checkpoint txn ID: 352 //事务ID
+ session count: 36
+ Transaction state of active sessions:
+ //pinned ID表示快照数组snapshot[]中除checkpoint事务id外最小的事务;  metadata pinned ID表示获取快照的时候正在做checkpoint的事务id，checkpoiont事务id的snapshot快照中
+ session ID: 22, txn ID: 383, pinned ID: 374, metadata pinned ID: 352, name: connection-open-session
+ transaction id: 383, mod count: 3, snap min: 352, snap max: 383, snapshot count: 5, snapshot: [352, 374, 377, 379, 381], commit_timestamp: (0, 374), durable_timestamp: (0, 374), first_commit_timestamp: (0, 373), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 373), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 23, txn ID: 388, pinned ID: 381, metadata pinned ID: 352, name: connection-open-session
+ transaction id: 388, mod count: 3, snap min: 352, snap max: 388, snapshot count: 4, snapshot: [352, 381, 383, 385], commit_timestamp: (0, 378), durable_timestamp: (0, 378), first_commit_timestamp: (0, 377), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 377), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 31, txn ID: 385, pinned ID: 377, metadata pinned ID: 352, name: connection-open-session
+ transaction id: 385, mod count: 3, snap min: 352, snap max: 385, snapshot count: 5, snapshot: [352, 377, 379, 381, 383], commit_timestamp: (0, 376), durable_timestamp: (0, 376), first_commit_timestamp: (0, 375), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 375), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 34, txn ID: 381, pinned ID: 373, metadata pinned ID: 352, name: connection-open-session
+ transaction id: 381, mod count: 3, snap min: 352, snap max: 381, snapshot count: 5, snapshot: [352, 373, 374, 377, 379], commit_timestamp: (0, 372), durable_timestamp: (0, 372), first_commit_timestamp: (0, 371), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 371), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+
+ //当前有多个线程，多个事务，并且正在做checkpoint，并且其他事务的快照中有该事务id,其日志类似如下:
+ checkpoint running: yes
+ checkpoint generation: 2
+ checkpoint pinned ID: 23
+ checkpoint txn ID: 32
+ session count: 23
+ Transaction state of active sessions:
+ //metadata pinned ID表示当前正在做checkpoint的事务id 32在本事务的snapshot快照中,则本事务的metadata pinned ID为checkpoint对应事务id
+ session ID: 17, txn ID: 36, pinned ID: 25, metadata pinned ID: 32, name: connection-open-session
+ transaction id: 36, mod count: 3, snap min: 25, snap max: 36, snapshot count: 6, snapshot: [25, 27, 29, 31, 32, 34], commit_timestamp: (0, 28), durable_timestamp: (0, 28), first_commit_timestamp: (0, 27), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 27), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ //metadata pinned ID表示当前正在做checkpoint的事务id 32不在本事务的snapshot快照中,则本事务的metadata pinned ID为0
+ session ID: 18, txn ID: 25, pinned ID: 17, metadata pinned ID: 0, name: connection-open-session
+ transaction id: 25, mod count: 3, snap min: 17, snap max: 25, snapshot count: 5, snapshot: [17, 18, 19, 21, 23], commit_timestamp: (0, 18), durable_timestamp: (0, 18), first_commit_timestamp: (0, 17), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 17), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 19, txn ID: 27, pinned ID: 18, metadata pinned ID: 0, name: connection-open-session
+ transaction id: 27, mod count: 3, snap min: 18, snap max: 27, snapshot count: 5, snapshot: [18, 19, 21, 23, 25], commit_timestamp: (0, 20), durable_timestamp: (0, 20), first_commit_timestamp: (0, 19), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 19), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+ session ID: 20, txn ID: 34, pinned ID: 23, metadata pinned ID: 32, name: connection-open-session
+ transaction id: 34, mod count: 3, snap min: 23, snap max: 34, snapshot count: 6, snapshot: [23, 25, 27, 29, 31, 32], commit_timestamp: (0, 26), durable_timestamp: (0, 26), first_commit_timestamp: (0, 25), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 25), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+
+
+//checkpoint执行完成后，如果其他事务的snapshot[]中没有该checkpoint的事务id，则对应事务的metadata pinned ID:恢复为0
+checkpoint running: no
+checkpoint generation: 2
+checkpoint pinned ID: 0
+checkpoint txn ID: 0
+session count: 23
+Transaction state of active sessions:
+session ID: 17, txn ID: 84, pinned ID: 74, metadata pinned ID: 0, name: connection-open-session
+transaction id: 84, mod count: 3, snap min: 74, snap max: 84, snapshot count: 5, snapshot: [74, 76, 78, 80, 82], commit_timestamp: (0, 76), durable_timestamp: (0, 76), first_commit_timestamp: (0, 75), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 75), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 18, txn ID: 86, pinned ID: 76, metadata pinned ID: 0, name: connection-open-session
+transaction id: 86, mod count: 3, snap min: 76, snap max: 86, snapshot count: 5, snapshot: [76, 78, 80, 82, 84], commit_timestamp: (0, 78), durable_timestamp: (0, 78), first_commit_timestamp: (0, 77), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 77), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 19, txn ID: 76, pinned ID: 66, metadata pinned ID: 32, name: connection-open-session
+transaction id: 76, mod count: 3, snap min: 32, snap max: 76, snapshot count: 6, snapshot: [32, 66, 68, 70, 72, 74], commit_timestamp: (0, 68), durable_timestamp: (0, 68), first_commit_timestamp: (0, 67), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 67), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 20, txn ID: 82, pinned ID: 72, metadata pinned ID: 32, name: connection-open-session
+transaction id: 82, mod count: 3, snap min: 32, snap max: 82, snapshot count: 6, snapshot: [32, 72, 74, 76, 78, 80], commit_timestamp: (0, 74), durable_timestamp: (0, 74), first_commit_timestamp: (0, 73), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 73), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 21, txn ID: 78, pinned ID: 68, metadata pinned ID: 32, name: connection-open-session
+transaction id: 78, mod count: 3, snap min: 32, snap max: 78, snapshot count: 6, snapshot: [32, 68, 70, 72, 74, 76], commit_timestamp: (0, 70), durable_timestamp: (0, 70), first_commit_timestamp: (0, 69), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 69), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 22, txn ID: 80, pinned ID: 70, metadata pinned ID: 32, name: connection-open-session
+transaction id: 80, mod count: 3, snap min: 32, snap max: 80, snapshot count: 6, snapshot: [32, 70, 72, 74, 76, 78], commit_timestamp: (0, 72), durable_timestamp: (0, 72), first_commit_timestamp: (0, 71), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 71), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+
+
+checkpoint running: yes
+checkpoint generation: 2
+//checkpoint pinned ID也就是checkpoint session ID所能看到的snapshot事务快照的最小事务
+checkpoint pinned ID: 22
+checkpoint txn ID: 29
+session count: 22
+Transaction state of active sessions:
+session ID: 16, txn ID: 31, pinned ID: 22, metadata pinned ID: 29, name: connection-open-session
+transaction id: 31, mod count: 3, snap min: 22, snap max: 31, snapshot count: 5, snapshot: [22, 24, 26, 28, 29], commit_timestamp: (0, 22), durable_timestamp: (0, 22), first_commit_timestamp: (0, 21), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 21), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 18, txn ID: 22, pinned ID: 16, metadata pinned ID: 0, name: connection-open-session
+transaction id: 22, mod count: 3, snap min: 16, snap max: 22, snapshot count: 4, snapshot: [16, 17, 18, 20], commit_timestamp: (0, 14), durable_timestamp: (0, 14), first_commit_timestamp: (0, 13), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 13), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 19, txn ID: 24, pinned ID: 17, metadata pinned ID: 0, name: connection-open-session
+transaction id: 24, mod count: 3, snap min: 17, snap max: 24, snapshot count: 4, snapshot: [17, 18, 20, 22], commit_timestamp: (0, 16), durable_timestamp: (0, 16), first_commit_timestamp: (0, 15), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 15), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 20, txn ID: 26, pinned ID: 18, metadata pinned ID: 0, name: connection-open-session
+transaction id: 26, mod count: 3, snap min: 18, snap max: 26, snapshot count: 4, snapshot: [18, 20, 22, 24], commit_timestamp: (0, 18), durable_timestamp: (0, 18), first_commit_timestamp: (0, 17), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 17), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 21, txn ID: 28, pinned ID: 20, metadata pinned ID: 0, name: connection-open-session
+transaction id: 28, mod count: 3, snap min: 20, snap max: 28, snapshot count: 4, snapshot: [20, 22, 24, 26], commit_timestamp: (0, 20), durable_timestamp: (0, 20), first_commit_timestamp: (0, 19), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 19), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+checkpoint session ID: 22, txn ID: 29, pinned ID: 22, metadata pinned ID: 0, name: WT_SESSION.__session_checkpoint
+transaction id: 29, mod count: 0, snap min: 22, snap max: 31, snapshot count: 5, snapshot: [22, 24, 26, 28, 30], commit_timestamp: (0, 0), durable_timestamp: (0, 0), first_commit_timestamp: (0, 0), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 0), read_timestamp: (0, 0), checkpoint LSN: [1][20992], full checkpoint: true, rollback reason: , flags: 0x0000100c, isolation: WT_ISO_SNAPSHOT
+
+
+__wt_txn_update_oldest end:
+transaction state dump
+now print session ID: 6
+current ID: 40
+//当前所有txn ID:中的最小值
+last running ID: 31
+//当前所有pinned ID:中的最小值
+metadata_pinned ID: 22
+//也就是当前所有txn ID:和pinned ID:中的最小值
+oldest ID: 22
+durable timestamp: (0, 20)
+oldest timestamp: (0, 0)
+pinned timestamp: (0, 0)
+stable timestamp: (0, 0)
+has_durable_timestamp: yes
+has_oldest_timestamp: no
+has_pinned_timestamp: no
+has_stable_timestamp: no
+oldest_is_pinned: no
+stable_is_pinned: no
+checkpoint running: yes
+checkpoint generation: 2
+checkpoint pinned ID: 22
+checkpoint txn ID: 29
+session count: 22
+Transaction state of active sessions:
+session ID: 16, txn ID: 31, pinned ID: 22, metadata pinned ID: 29, name: connection-open-session
+transaction id: 31, mod count: 3, snap min: 22, snap max: 31, snapshot count: 5, snapshot: [22, 24, 26, 28, 29], commit_timestamp: (0, 22), durable_timestamp: (0, 22), first_commit_timestamp: (0, 21), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 21), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 18, txn ID: 33, pinned ID: 24, metadata pinned ID: 29, name: connection-open-session
+transaction id: 33, mod count: 3, snap min: 24, snap max: 33, snapshot count: 5, snapshot: [24, 26, 28, 29, 31], commit_timestamp: (0, 24), durable_timestamp: (0, 24), first_commit_timestamp: (0, 23), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 23), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 19, txn ID: 35, pinned ID: 26, metadata pinned ID: 29, name: connection-open-session
+transaction id: 35, mod count: 3, snap min: 26, snap max: 35, snapshot count: 5, snapshot: [26, 28, 29, 31, 33], commit_timestamp: (0, 26), durable_timestamp: (0, 26), first_commit_timestamp: (0, 25), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 25), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 20, txn ID: 37, pinned ID: 28, metadata pinned ID: 29, name: connection-open-session
+transaction id: 37, mod count: 3, snap min: 28, snap max: 37, snapshot count: 5, snapshot: [28, 29, 31, 33, 35], commit_timestamp: (0, 28), durable_timestamp: (0, 28), first_commit_timestamp: (0, 27), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 27), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 21, txn ID: 39, pinned ID: 31, metadata pinned ID: 29, name: connection-open-session
+transaction id: 39, mod count: 3, snap min: 29, snap max: 39, snapshot count: 5, snapshot: [29, 31, 33, 35, 37], commit_timestamp: (0, 30), durable_timestamp: (0, 30), first_commit_timestamp: (0, 29), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 29), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+checkpoint session ID: 22, txn ID: 29, pinned ID: 22, metadata pinned ID: 0, name: eviction-server
+transaction id: 0, mod count: 0, snap min: 0, snap max: 0, snapshot count: 0, snapshot: [], commit_timestamp: (0, 0), durable_timestamp: (0, 0), first_commit_timestamp: (0, 0), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 0), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x00000000, isolation: WT_ISO_SNAPSHOT
+
+*     Output diagnostic information about the global transaction state.
  */
 int
 __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
@@ -2728,6 +2888,8 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
     WT_RET(__wt_msg(session, "metadata_pinned ID: %" PRIu64, txn_global->metadata_pinned));
     WT_RET(__wt_msg(session, "oldest ID: %" PRIu64, txn_global->oldest_id));
 
+    //durable_timestamp、oldest_timestamp、 stable_timestamp这三个时间戳可以通过__wt_txn_global_set_timestamp设置
+    //  pinned_timestamp不可配置，是通过动态计算出来的
     WT_RET(__wt_msg(session, "durable timestamp: %s",
       __wt_timestamp_to_string(txn_global->durable_timestamp, ts_string)));
     WT_RET(__wt_msg(session, "oldest timestamp: %s",
@@ -2753,6 +2915,10 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
       __wt_msg(session, "checkpoint generation: %" PRIu64, __wt_gen(session, WT_GEN_CHECKPOINT)));
     WT_RET(__wt_msg(
       session, "checkpoint pinned ID: %" PRIu64, txn_global->checkpoint_txn_shared.pinned_id));
+    
+    WT_RET(__wt_msg(session, "checkpoint timestamp: %s",
+      __wt_timestamp_to_string(txn_global->checkpoint_timestamp, ts_string)));
+
     WT_RET(__wt_msg(session, "checkpoint txn ID: %" PRIu64, txn_global->checkpoint_txn_shared.id));
 
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
@@ -2778,6 +2944,17 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
           s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
         WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL));
     }
+
+    s = &txn_global->checkpoint_txn_shared;
+    if ((id = s->id) == WT_TXN_NONE && s->pinned_id == WT_TXN_NONE)
+        return (0);
+
+    //yang add todo xxxxxxxxxxxxxxxxxxxxxx下一期PR加上
+    sess = session;
+    WT_RET(__wt_msg(session,
+      "checkpoint session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", i, id,
+      s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
+    WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL));
 
     return (0);
 }

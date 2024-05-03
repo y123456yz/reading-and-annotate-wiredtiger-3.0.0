@@ -294,7 +294,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
      * Eviction information is maintained in the btree handle, but owned by eviction, not the btree
      * code.
      */
-    //__evict_walk_tree赋值
+    //__evict_walk_tree赋值, 记录evict server线程上一轮walk在B+树中的位置，下一轮继续从这个位置遍历选择
     WT_REF *evict_ref;            /* Eviction thread's location */
     //赋值见__wt_evict_priority_set  __wt_evict_priority_clear
     //只有__wt_metadata_cursor_open中会调用__wt_evict_priority_set置为100000，加这个的目的是确保wiredtiger.wt元数据表中

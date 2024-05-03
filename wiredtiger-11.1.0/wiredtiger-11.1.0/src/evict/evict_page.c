@@ -92,6 +92,15 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
         WT_ASSERT(session, !WT_READING_CHECKPOINT(session));
         WT_RET(__wt_curhs_cache(session));
     }
+
+   /* ref->state = WT_REF_MEM;  //yang add todo xxxxxxxxxxxxxxxxxxxxxxxxxxx     这里是不是可以当page超过page->memory_footprint >= btree->splitmempage是不是可以有evict线程来完成
+    printf("yang test ...............__wt_page_release_evict........................1..\r\n");
+    if (__wt_page_evict_urgent(session, ref)) //yang add todo xxxxxxxxxxxxxxxxxxxx
+        printf("yang test ...............__wt_page_release_evict........................2..\r\n");
+    return ret;
+    */
+    
+   // printf("yang test ...............__wt_page_release_evict........................2..\r\n");
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
     //WT_RET(__wt_msg(session, "yang test .............................__wt_page_release_evict...................."));
     ret = __wt_evict(session, ref, previous_state, evict_flags);

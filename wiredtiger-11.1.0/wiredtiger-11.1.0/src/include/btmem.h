@@ -887,7 +887,9 @@ struct __wt_page {
 #define WT_READGEN_OLDEST 1
 #define WT_READGEN_WONT_NEED 2
 //满足这个条件在__evict_entry_priority中直接评分为WT_READGEN_OLDEST
-//评分在这个范围的page需要立马reconcile
+//评分在这个范围的page需要立马reconcile，
+// 评分越低，说明近期该page越没有被访问，例如2点访问的page1比1点访问的page2的评分会高，参考__wt_cache_read_gen_bump __wt_cache_read_gen_new
+/* Any page set to the oldest generation should be discarded. */
 #define WT_READGEN_EVICT_SOON(readgen) \
     ((readgen) != WT_READGEN_NOTSET && (readgen) < WT_READGEN_START_VALUE)
 #define WT_READGEN_START_VALUE 100
@@ -897,6 +899,7 @@ struct __wt_page {
     //__wt_cache_read_gen_bump: evict worker或者app用户线程在__wt_cache_read_gen_bump中从队列消费这个page reconcile的时候赋值
 
     //__wt_page_alloc  __wt_page_evict_soon中初始值WT_READGEN_NOTSET，__wt_cache_read_gen_bump __wt_cache_read_gen_new中修改赋值
+    //代表近期是否用户线程有访问该page，如果值越大，说明近期该page被用户线程访问活跃，参考__wt_cache_read_gen_new
     uint64_t read_gen;//evict server线程通过该值对挑选的page进行评分，见__evict_entry_priority
 
     uint64_t cache_create_gen; /* Page create timestamp */
@@ -1472,7 +1475,7 @@ struct __wt_update {
      * from memory rather than using the local variable, mark the shared transaction IDs volatile to
      * prevent unexpected repeated/reordered reads.
      */
-    //改upd对应的事务id，赋值见__wt_txn_modify
+    //该upd对应的事务id，赋值见__wt_txn_modify
     volatile uint64_t txnid; /* transaction ID */
 
     //__wt_txn_commit->__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点durable_timestamp记录到durable_ts中
@@ -1485,6 +1488,7 @@ struct __wt_update {
      * diagnostic checks only, and could be removed to reduce the size of the structure should that
      * be necessary.
      */
+    //上一次更新该key的时间戳
     wt_timestamp_t prev_durable_ts;
 
     WT_UPDATE *next; /* forward-linked list */

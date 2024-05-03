@@ -106,6 +106,7 @@ __wt_txn_get_pinned_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t *tsp, uin
     if (!txn_has_write_lock)
         __wt_readlock(session, &txn_global->rwlock);
 
+    //默认值也就是oldest_timestamp
     tmp_ts = include_oldest ? txn_global->oldest_timestamp : WT_TS_NONE;
 
     /* Check for a running checkpoint */
@@ -334,7 +335,7 @@ __wt_txn_global_set_timestamp(WT_SESSION_IMPL *session, const char *cfg[])
     has_durable = durable_cval.len != 0;
     if (has_durable)
         WT_STAT_CONN_INCR(session, txn_set_ts_durable);
-
+    
     WT_RET(__wt_config_gets_def(session, cfg, "oldest_timestamp", 0, &oldest_cval));
     has_oldest = oldest_cval.len != 0;
     if (has_oldest)
@@ -600,6 +601,7 @@ __wt_txn_set_commit_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t commit_ts
     /*
      * First time copy the commit timestamp to the first commit timestamp.
      */
+    //一个事务里面多次设置commit_timestamp，则first_commit_timestamp代表第一次设置的时间
     if (!F_ISSET(txn, WT_TXN_HAS_TS_COMMIT))
         txn->first_commit_timestamp = commit_ts;
 
@@ -608,8 +610,10 @@ __wt_txn_set_commit_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t commit_ts
      * might happen if we set a commit timestamp, set a durable timestamp and then subsequently set
      * the commit timestamp again.
      */
+    //如果已经设置了durable_timestamp，则不会更新durable_timestamp
     if (!F_ISSET(txn, WT_TXN_HAS_TS_DURABLE))
         txn->durable_timestamp = commit_ts;
+    printf("yang test .......__wt_txn_set_commit_timestamp............\r\n");
 
     F_SET(txn, WT_TXN_HAS_TS_COMMIT);
     return (0);
@@ -687,7 +691,8 @@ __wt_txn_set_durable_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t durable_
     WT_RET(__wt_txn_validate_durable_timestamp(session, durable_ts));
     txn->durable_timestamp = durable_ts;
     F_SET(txn, WT_TXN_HAS_TS_DURABLE);
-
+    printf("yang test .......__wt_txn_set_durable_timestamp............\r\n");
+    
     return (0);
 }
 
@@ -806,7 +811,7 @@ __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t read_ts)
     else if (txn->isolation != WT_ISO_SNAPSHOT)
         WT_RET_MSG(session, EINVAL,
           "setting a read_timestamp requires a transaction running at snapshot isolation");
-
+          
     /* Read timestamps can't change once set. */
     if (F_ISSET(txn, WT_TXN_SHARED_TS_READ))
         WT_RET_MSG(session, EINVAL, "a read_timestamp may only be set once per transaction");
@@ -816,7 +821,7 @@ __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t read_ts)
      * setting transaction timestamp.
      */
     __wt_readlock(session, &txn_global->rwlock);
-
+  
     ts_oldest = txn_global->oldest_timestamp;
     did_roundup_to_oldest = false;
     if (read_ts < ts_oldest) {
@@ -829,8 +834,8 @@ __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t read_ts)
             did_roundup_to_oldest = true;
         } else {
             __wt_readunlock(session, &txn_global->rwlock);
-
-#if !defined(WT_STANDALONE_BUILD)
+//yang add todo xxxxxxxxxxxxxxx
+#if !defined(WT_STANDALONE_BUILD) || defined(HAVE_DIAGNOSTIC)
             /*
              * In some cases, MongoDB sets a read timestamp older than the oldest timestamp, relying
              * on WiredTiger's concurrency to detect and fail the set. In other cases it's a bug and
@@ -1034,6 +1039,8 @@ __wt_txn_publish_durable_timestamp(WT_SESSION_IMPL *session)
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
 
+    //如果已设置过了，则直接返回，说明pinned_durable_timestamp记录的是第一次设置的durable_timestamp
+    //也就是最早设置durable_timestamp或者commit_timestamp的时间
     if (F_ISSET(txn, WT_TXN_SHARED_TS_DURABLE))
         return;
 

@@ -110,9 +110,9 @@ struct __wt_txn_shared {
     //赋值参考__wt_txn_id_alloc，也就是txn_global->current-1
     //代表事务id
     volatile uint64_t id;
-    //__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]赋值, 代表该session所能看到的最小事务id,如果获取快照时候还没有其他事务，则为txn_global->current
-    //__checkpoint_prepare中对checkpoint_txn_shared.pinned_id赋值
-    //WT_ISO_READ_UNCOMMITTED方式__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
+    //普通事务: __txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]赋值, 代表该session所能看到的最小事务id,如果获取快照时候还没有其他事务，则为txn_global->current
+    //checkpoint事务: __checkpoint_prepare中对checkpoint_txn_shared.pinned_id赋值
+    //普通事务WT_ISO_READ_UNCOMMITTED方式: __wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
     volatile uint64_t pinned_id;
     //赋值见__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]，记录的是checkpoint的id
     //WT_ISO_READ_UNCOMMITTED方式__wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
@@ -123,6 +123,7 @@ struct __wt_txn_shared {
      * the durable queue and prevents the all_durable timestamp moving past this point.
      */
     //__wt_txn_publish_durable_timestamp中赋值
+    //也就是最早设置durable_timestamp或者commit_timestamp的时间
     wt_timestamp_t pinned_durable_timestamp;
 
     /*
@@ -152,13 +153,17 @@ struct __wt_txn_global {
     //初始值为1，参考__wt_txn_global_init，__wt_txn_update_oldest中赋值
     volatile uint64_t oldest_id;
 
+    //一般在事务提交的时候赋值，参考__wt_txn_commit，或者用户主动__wt_txn_global_set_timestamp设置  
+    //回滚__rollback_to_stable赋值
     wt_timestamp_t durable_timestamp;
     wt_timestamp_t last_ckpt_timestamp;
     wt_timestamp_t meta_ckpt_timestamp;
+    //__recovery_set_oldest_timestamp  __conn_set_timestamp->__wt_txn_global_set_timestamp
     wt_timestamp_t oldest_timestamp;
     //__wt_txn_update_pinned_timestamp中赋值
     wt_timestamp_t pinned_timestamp;
     wt_timestamp_t recovery_timestamp;
+    //__recovery_txn_setup_initial_state
     wt_timestamp_t stable_timestamp;
     wt_timestamp_t version_cursor_pinned_timestamp;
     bool has_durable_timestamp;
@@ -188,10 +193,13 @@ struct __wt_txn_global {
      * We rely on the fact that (a) the only table a checkpoint updates is the metadata; and (b)
      * once checkpoint has finished reading a table, it won't revisit it.
      */
+    //__txn_checkpoint_wrapper中赋值
     volatile bool checkpoint_running;    /* Checkpoint running */
     volatile bool checkpoint_running_hs; /* Checkpoint running and processing history store file */
+    //checkpoint事务id赋值见__checkpoint_prepare，
     volatile uint32_t checkpoint_id;     /* Checkpoint's session ID */
     //checkpoint_txn_shared整个结构体赋值见__checkpoint_prepare
+    //代表正在做checkpoint的事务信息
     WT_TXN_SHARED checkpoint_txn_shared; /* Checkpoint's txn shared state */
     wt_timestamp_t checkpoint_timestamp; /* Checkpoint's timestamp */
 
@@ -363,6 +371,7 @@ struct __wt_txn {
      * on the public list of committed timestamps.
      */
     //__wt_txn_set_commit_timestamp中赋值
+    //一个事务里面多次设置commit_timestamp，则first_commit_timestamp代表第一次设置的时间
     wt_timestamp_t first_commit_timestamp;
 
     /*
