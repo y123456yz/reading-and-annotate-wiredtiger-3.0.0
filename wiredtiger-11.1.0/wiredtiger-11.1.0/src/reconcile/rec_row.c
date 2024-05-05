@@ -1133,7 +1133,7 @@ slow:
                     WT_ERR(__rec_cell_build_leaf_key(session, r, NULL, 0, &ovfl_key));
             }
 
-            printf("yang test ......2222222222222222222222........__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
+            //printf("yang test ......2222222222222222222222........__wt_rec_row_leaf....__wt_rec_split_crossing_bnd........\r\n");
             WT_ERR(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
         }
 

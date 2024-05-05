@@ -1671,8 +1671,8 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
      * to include the header twice.
      */
     combined_size = prev_ptr->image.size + (cur_ptr->image.size - WT_PAGE_HEADER_BYTE_SIZE(btree));
-    printf("yang test ..........__rec_split_finish_process_prev......combined_size:%d,r->page_size:%d, prev_ptr->min_offset:%d, cur_ptr->image.size:%d\r\n",
-        (int)combined_size, (int)r->page_size, (int)prev_ptr->min_offset, (int)cur_ptr->image.size);
+    //printf("yang test ..........__rec_split_finish_process_prev......combined_size:%d,r->page_size:%d, prev_ptr->min_offset:%d, cur_ptr->image.size:%d\r\n",
+    //    (int)combined_size, (int)r->page_size, (int)prev_ptr->min_offset, (int)cur_ptr->image.size);
 
 
     //每个r的大小默认最大为split_size(90% * page_size),当当前r(也就是cur_ptr)已经是该page的最后一个的时候，就需要和prev做比较，看是否需要
@@ -1779,7 +1779,7 @@ __wt_rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
     if (r->entries == 0 && (r->supd_next == 0 || F_ISSET(r, WT_REC_CHECKPOINT)))
         return (0);
 
-    printf("yang test .................__wt_rec_split_finish................ \r\n");
+    //printf("yang test .................__wt_rec_split_finish................ \r\n");
     /* Set the number of entries and size for the just finished chunk. */
     r->cur_ptr->entries = r->entries;
     if (r->page->type == WT_PAGE_COL_FIX) {

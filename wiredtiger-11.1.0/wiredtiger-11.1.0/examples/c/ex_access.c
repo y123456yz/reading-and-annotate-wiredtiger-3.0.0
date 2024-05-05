@@ -268,6 +268,7 @@ access_txn20_test(void)
     error_check(conn->close(conn, NULL)); 
 }
 
+////只有设置了commit_timestamp并且没有启用WAL功能，timestamp功能才会有效, 所以该用例不能启用log enable功能，参考__wt_txn_op_set_timestamp
 static void
 access_txn23_test(void)
 {
@@ -279,8 +280,8 @@ access_txn23_test(void)
     int i;
     char *value;
     const int kv_num = 1;
-    
-    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=100KB), create, "
+    ////只有设置了commit_timestamp并且没有启用WAL功能，timestamp功能才会有效, 所以该用力不能启用log enable功能，参考__wt_txn_op_set_timestamp
+    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true,file_max=100KB), create, "
         "verbose=[config_all_verbos:5,transaction=5, timestamp=5, api:5]", &conn));
 
     //test_txn23
@@ -296,32 +297,39 @@ access_txn23_test(void)
         cursor->set_key(cursor, i); /* Insert a record. */
         cursor->set_value(cursor, "value: aaa");
         error_check(cursor->insert(cursor));
-        testutil_check(session->timestamp_transaction(session, "commit_timestamp=20"));
-        error_check(session->commit_transaction(session, NULL));
+        //testutil_check(session->timestamp_transaction(session, "commit_timestamp=20"));
+        error_check(session->commit_transaction(session, "commit_timestamp=20"));
+        error_check(cursor->close(cursor));
     }
     error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23...3"));
 
     for (i = 0; i < kv_num; i++) {
+        error_check(session->open_cursor(session, "table:access_txn23", NULL, NULL, &cursor));
         error_check(session->begin_transaction(session, NULL));
         cursor->set_key(cursor, i); /* Insert a record. */
         cursor->set_value(cursor, "value: bbb");
         error_check(cursor->insert(cursor));
-        testutil_check(session->timestamp_transaction(session, "commit_timestamp=30"));
-        error_check(session->commit_transaction(session, NULL));
+        //testutil_check(session->timestamp_transaction(session, "commit_timestamp=30"));
+        //__session_commit_transaction
+        error_check(session->commit_transaction(session, "commit_timestamp=30"));
+        error_check(cursor->close(cursor));
     }
     error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23...4"));
 
     for (i = 0; i < kv_num; i++) {
+        error_check(session->open_cursor(session, "table:access_txn23", NULL, NULL, &cursor));
         //__session_begin_transaction
-        error_check(session->begin_transaction(session, "read_timestamp=15"));
-        error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23...5"));
+        //重要，这里如果是15则返回的是WT_NOTFOUND，如果是20-30之间读到的是"value: aaa"，如果是大于等于30读到的是"value: bbb"
+        error_check(session->begin_transaction(session, "read_timestamp=31"));
+        //error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23...5"));
         error_check(session->open_cursor(session, "table:access_txn23", NULL, NULL, &cursor));
         cursor->set_key(cursor, i);
-        error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23"));
+        //error_check(__wt_verbose_dump_txn((WT_SESSION_IMPL *)session, "ex access ...access_txn23"));
         error_check(cursor->search(cursor));
         error_check(cursor->get_value(cursor, &value));
-        printf("yang test ............. test_txn23, value:%s\r\n", value);
+        printf("yang test ............. test_txn23, value:%s\r\n", value); //读取的结构是aaa
         error_check(session->commit_transaction(session, NULL));
+        error_check(cursor->close(cursor));
     }
 
     error_check(cursor->reset(cursor)); /* Restart the scan. */
@@ -519,11 +527,12 @@ main(int argc, char *argv[])
 {
     home = example_setup(argc, argv);
 
-    access_example();
+    
 
     access_txn23_test();
 
     exit(0);
+    access_example();
 
     access_txn20_test();
 

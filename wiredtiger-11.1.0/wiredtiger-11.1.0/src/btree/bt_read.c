@@ -453,13 +453,19 @@ skip_evict:
              */
             page = ref->page;
             if (page->read_gen == WT_READGEN_NOTSET) {
+                //第一次访问该page走这个逻辑
                 if (wont_need)
                     page->read_gen = WT_READGEN_WONT_NEED;
-                else
+                else {
+                    //printf("yang test ..........__wt_page_in_func...__wt_cache_read_gen_new........page:%p\r\n", page);
                     __wt_cache_read_gen_new(session, page);
-            } else if (!LF_ISSET(WT_READ_NO_GEN))
+                }
+            } else if (!LF_ISSET(WT_READ_NO_GEN)) {
+                //非第一次访问该page，走这个逻辑
+                //printf("yang test ..........__wt_page_in_func...__wt_cache_read_gen_bump........page:%p\r\n", page);
+            
                 __wt_cache_read_gen_bump(session, page);
-
+            }
             /*
              * Check if we need an autocommit transaction. Starting a transaction can trigger
              * eviction, so skip it if eviction isn't permitted.

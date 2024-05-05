@@ -70,7 +70,12 @@ __wt_cache_read_gen_bump(WT_SESSION_IMPL *session, WT_PAGE *page)
     //__wt_cache_read_gen(session)也就是cache->read_gen
     //server线程每次在逻辑__evict_pass->__wt_cache_read_gen_incr对cache->read_gen自增，最近调用__wt_cache_read_gen_new的时候cache->read_gen
     //  相对越大，最终该page的page->read_gen也会越大，这样间接反应了page近期是否有被用户线程访问
+
+    //这里一次加100，后面100次对该page的访问，不会走到这里，而是通过前面的>大于号比较返回
     page->read_gen = __wt_cache_read_gen(session) + WT_READGEN_STEP;
+
+    //printf("yang test __wt_cache_read_gen_bump..., page:%p, cache gen:%lu, read_gen:%lu\r\n", 
+    //   page, __wt_cache_read_gen(session), page->read_gen);
 }
 
 /*
@@ -92,6 +97,9 @@ __wt_cache_read_gen_new(WT_SESSION_IMPL *session, WT_PAGE *page)
     //server线程每次在逻辑__evict_pass->__wt_cache_read_gen_incr对cache->read_gen自增，最近调用__wt_cache_read_gen_new的时候cache->read_gen
     //  相对越大，最终该page的page->read_gen也会越大，这样间接反应了page近期是否有被用户线程访问
     page->read_gen = (__wt_cache_read_gen(session) + cache->read_gen_oldest) / 2;
+
+    //printf("yang test __wt_cache_read_gen_new..., page:%p, cache gen:%lu, cache->read_gen_oldest:%lu, read_gen:%lu\r\n", 
+    //   page, __wt_cache_read_gen(session), cache->read_gen_oldest, page->read_gen);
 }
 
 /*

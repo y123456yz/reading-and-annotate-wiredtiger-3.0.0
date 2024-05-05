@@ -881,7 +881,7 @@ struct __wt_page {
  * are places where we manipulate the value, use an initial value well
  * outside of the special range.
  */
-//初始值
+//初始值, 例如一个page进行evict的时候，从一个page拆分为多个page,多出来的page的初始值也就是WT_READGEN_NOTSET
 #define WT_READGEN_NOTSET 0
 //__wt_page_evict_soon  Set a page to be evicted as soon as possible.
 #define WT_READGEN_OLDEST 1
@@ -1478,6 +1478,8 @@ struct __wt_update {
     //该upd对应的事务id，赋值见__wt_txn_modify
     volatile uint64_t txnid; /* transaction ID */
 
+
+    //只有设置了commit_timestamp并且没有启用WAL功能，durable_ts和start_ts功能才会有效，参考__wt_txn_op_set_timestamp
     //__wt_txn_commit->__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点durable_timestamp记录到durable_ts中
     wt_timestamp_t durable_ts; /* timestamps */
     //__wt_txn_commit->__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点commit_timestamp记录到start_ts中

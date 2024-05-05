@@ -98,6 +98,7 @@ __evict_entry_priority(WT_SESSION_IMPL *session, WT_REF *ref)
     else
         read_gen = page->read_gen;
 
+    //普通数据表为0，meta元数据文件需要缓存到内存中该值为10000，最大化存入内存中
     read_gen += btree->evict_priority;
 
 #define WT_EVICT_INTL_SKEW 1000
@@ -1272,7 +1273,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
     other_queue = cache->evict_queues + (1 - (queue - cache->evict_queues));
     //evict_fill_queue的作用其实就一个，记录本轮evict server用的是queue还是other_queue，这样下一轮的时候就用另一个queue
     // 例如如果上一轮用的是evict_queues[1]用来存放遍历获取的需要evict的page，那这一轮就用evict_queues[0]来存
-    cache->evict_fill_queue = other_queue;
+    cache->evict_fill_queue = other_queue;  
 
     printf("yang test .......__evict_lru_walk..........queue:%p, other_queue:%p, evict_fill_queue:%p\r\n",
         queue, other_queue, cache->evict_fill_queue);
@@ -1280,9 +1281,9 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
 
     /* If this queue is full, try the other one. */
     //evict_queues[0]满了，但是evict_queues[1]还没满，则使用evict_queues[1]
-    if (__evict_queue_full(queue) && !__evict_queue_full(other_queue))
+    if (__evict_queue_full(queue) && !__evict_queue_full(other_queue)) {
         queue = other_queue;
-
+    }
     /*
      * If both queues are full and haven't been empty on recent refills, we're done.
      */
@@ -1390,6 +1391,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
         for (candidates = 0; candidates < entries; ++candidates) {
             read_gen_oldest = queue->evict_queue[candidates].score;
             //也就是评分为WT_READGEN_NOTSET，或者>=WT_READGEN_START_VALUE
+            //也就是这一批page中最久没有访问的page对应的read gen
             if (!WT_READGEN_EVICT_SOON(read_gen_oldest))
                 break;
         }
@@ -1408,6 +1410,7 @@ __evict_lru_walk(WT_SESSION_IMPL *session)
         if (WT_READGEN_EVICT_SOON(read_gen_oldest))
             queue->evict_candidates = entries;
         else if (candidates > entries / 2) //有一大半需要reconcile
+            //yang add todo xxxxxxxxxx  这里是不是应该更新cache->read_gen_oldest  read_gen_oldest是从一个queue中取的，另一个queue中也可能有数据，这样的read_gen_oldest会不会不准???
             queue->evict_candidates = candidates;
         else {//小于一半的page需要reconcile
             /*
@@ -1798,9 +1801,14 @@ __evict_push_candidate(
 
     evict->btree = S2BT(session);
     evict->ref = ref;
+    printf("yang test .........__evict_push_candidate...1...., btree->splitmempage:%lu, page read_gen:%lu\r\n", 
+        S2BT(session)->splitmempage, ref->page->read_gen);
     evict->score = __evict_entry_priority(session, ref);
-
+    printf("yang test .........__evict_push_candidate...2....,page:%p, page size:%lu, evict->score:%lu\r\n", 
+        ref->page, ref->page->memory_footprint, evict->score);
+    
     /* Adjust for size when doing dirty eviction. */
+    //如果脏数据过多，评分还要考虑当前的page内存占用，如果page占用内存越少，这里评分也就会越高，这样的目录是尽量让占用内存越高的page优先被evict worker淘汰
     if (F_ISSET(S2C(session)->cache, WT_CACHE_EVICT_DIRTY) && evict->score != WT_READGEN_OLDEST &&
       evict->score != UINT64_MAX && !__wt_page_is_modified(ref->page))
         evict->score += WT_MEGABYTE - WT_MIN(WT_MEGABYTE, ref->page->memory_footprint);
@@ -1935,7 +1943,7 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
     if (btree->evict_walk_progress >= btree->evict_walk_target) {
          //计算需要进行evict入队的page数量
         btree->evict_walk_target = __evict_walk_target(session);
-        printf("yang test ....................... btree->evict_walk_target:%u", btree->evict_walk_target);
+        printf("yang test ....................... btree->evict_walk_target:%u\r\n", btree->evict_walk_target);
         btree->evict_walk_progress = 0;
     }
 
@@ -2172,9 +2180,11 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
          * doesn't somehow leave a page without a read generation.
          */
         //如果read_gen没有设置，则给挑选出来的page read_gen赋值给page->read_gen，会在后面的__evict_push_candidate根据read_gen对page进行评分
-        if (page->read_gen == WT_READGEN_NOTSET)
+        if (page->read_gen == WT_READGEN_NOTSET) {
+            //printf("yang test ..........__evict_walk_tree...__wt_cache_read_gen_new........page:%p\r\n", page);
             __wt_cache_read_gen_new(session, page);
-
+        }
+        
         /* Pages being forcibly evicted go on the urgent queue. */
         //printf("yang test ................... %d, %d, %d\r\n", (int)modified, (int)page->read_gen, (int)page->memory_footprint);
         if (modified &&
@@ -2618,8 +2628,8 @@ __evict_page(WT_SESSION_IMPL *session,
      * that point, eviction has already unlocked the page and some other thread may have evicted it
      * by the time we look at it.
      */
+    //printf("yang test ........__evict_page.....__wt_cache_read_gen_bump.........page:%p\r\n", ref->page);
     __wt_cache_read_gen_bump(session, ref->page);
-    //printf("yang test ................................__evict_page...........................2..................\r\n");
     //挑选出来的ref page进行evict reconcile落盘操作
     WT_WITH_BTREE(session, btree, ret = __wt_evict(session, ref, previous_state, flags));
 

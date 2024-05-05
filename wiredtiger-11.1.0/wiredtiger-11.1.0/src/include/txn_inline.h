@@ -341,16 +341,22 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
 
     btree = op->btree;
     txn = session->txn;
+    printf("yang test .....__wt_txn_op_set_timestamp..1........");
 
     /*
      * Updates without a commit time and logged objects don't have timestamps, and only the most
      * recently committed data matches files on disk.
      */
+    //只有设置了commit_timestamp并且没有启用WAL功能，timestamp功能才会有效
+     
+    //一定要设置commit_timestamp timestamp功能才会有效
     if (!F_ISSET(txn, WT_TXN_HAS_TS_COMMIT))
         return;
+    //如果启用了WAL功能，则timestamp功能失效
     if (F_ISSET(btree, WT_BTREE_LOGGED))
         return;
 
+    printf("yang test .....__wt_txn_op_set_timestamp..2........");
     if (F_ISSET(txn, WT_TXN_PREPARE)) {
         /*
          * We have a commit timestamp for a prepare transaction, this is only possible as part of a
@@ -376,6 +382,8 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
             if (upd->start_ts == WT_TS_NONE) {
                 upd->start_ts = txn->commit_timestamp;
                 upd->durable_ts = txn->durable_timestamp;
+                printf("yang test ...............txn->commit_timestamp:%lu, %lu\r\n", upd->start_ts,
+                    upd->durable_ts);
             }
         }
     }
@@ -885,6 +893,9 @@ __wt_txn_upd_visible_type(WT_SESSION_IMPL *session, WT_UPDATE *upd)
 /*
  * __wt_txn_upd_visible --
  *     Can the current transaction see the given update.
+ __wt_txn_upd_visible: 该事务是否可以修改该udp，是否存在写冲突
+ __wt_txn_read_upd_list_internal: 该事务是否可以读该udp 
+ 
  //当前事务是否可以访问upd这条更新数据
  */
 static inline bool
@@ -954,6 +965,9 @@ __wt_upd_alloc_tombstone(WT_SESSION_IMPL *session, WT_UPDATE **updp, size_t *siz
  * __wt_txn_read_upd_list_internal --
  *     Internal helper function to get the first visible update in a list (or NULL if none are
  *     visible).
+
+  __wt_txn_upd_visible: 该事务是否可以修改该udp，是否存在写冲突
+ __wt_txn_read_upd_list_internal: 该事务是否可以读该udp 
  */
 //获取udp链表中的更新的数据，获取第一个可访问数据存入cbt->upd_value
 static inline int

@@ -834,9 +834,11 @@ __wt_page_only_modify_set(WT_SESSION_IMPL *session, WT_PAGE *page)
          * In the event we dirty a page which is flagged for eviction soon, we update its read
          * generation to avoid evicting a dirty page prematurely.
          */
-        if (page->read_gen == WT_READGEN_WONT_NEED)
+        if (page->read_gen == WT_READGEN_WONT_NEED) {
+            //printf("yang test ..........__wt_page_only_modify_set...__wt_cache_read_gen_new........page:%p\r\n", page);
             __wt_cache_read_gen_new(session, page);
-
+        }
+        
         /*
          * We won the race to dirty the page, but another thread could have committed in the
          * meantime, and the last_running field been updated past it. That is all very unlikely, but
