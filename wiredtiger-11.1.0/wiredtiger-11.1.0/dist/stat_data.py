@@ -398,6 +398,7 @@ conn_stats = [
     LockStat('lock_table_wait_application', 'table lock application thread time waiting for the table lock (usecs)'),
     LockStat('lock_table_wait_internal', 'table lock internal thread time waiting for the table lock (usecs)'),
     LockStat('lock_table_write_count', 'table write lock acquisitions'),
+    #__wt_txn_global_init
     LockStat('lock_txn_global_read_count', 'txn global read lock acquisitions'),
     LockStat('lock_txn_global_wait_application', 'txn global lock application thread time waiting (usecs)'),
     LockStat('lock_txn_global_wait_internal', 'txn global lock internal thread time waiting (usecs)'),

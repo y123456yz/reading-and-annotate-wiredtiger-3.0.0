@@ -437,6 +437,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
     complete = WT_ERR_RETURN;
 
     /* Mark the root page dirty. */
+    //标识这个root page有修改
     WT_RET(__wt_page_modify_init(session, root));
     __wt_page_modify_set(session, root);
 
@@ -444,6 +445,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
      * Our caller is holding the root page locked to single-thread splits, which means we can safely
      * look at the page's index without setting a split generation.
      */
+    //获取root page下面所有的子page index
     pindex = WT_INTL_INDEX_GET_SAFE(root);
 
     /*
@@ -452,13 +454,16 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
      * deepen-per-child configuration might get it wrong.
      */
     //计算出有多少个child， 每个child包含多少个chunk，最后一个child的entries数要加上平均后遗留的entries
+    //例如当前pindex数组大小1000，也就是root下面有999个子page，则可以拆分为999/100=9组(每组100个page) + 1组(99个page)
     children = pindex->entries / btree->split_deepen_per_child;
     if (children < 10) {
         if (pindex->entries < WT_INTERNAL_SPLIT_MIN_KEYS)
             return (__wt_set_return(session, EBUSY));
         children = 10;
     }
+    //分组后每组包含的page，也就是前面距离中的100(每组100个page)
     chunk = pindex->entries / children;
+    //最后一组存储最后的那几个page，也就是前面举例中的99(99个page)
     remain = pindex->entries - chunk * (children - 1);
 
     //yang test .........__split_root.....................children:10, chunk:18, remain:23
@@ -911,7 +916,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
       "%p: split into parent, %" PRIu32 "->%" PRIu32 ", %" PRIu32 " deleted", (void *)ref,
       parent_entries, result_entries, deleted_entries);
 
-    //split gen自增，表示做了一次split操作
+    //split gen自增，表示做了一次split操作，表示对所有page总共做了多少次split
     __wt_gen_next(session, WT_GEN_SPLIT, NULL);
 err:
     /*
@@ -1302,7 +1307,7 @@ err:
  * __split_internal_lock --
  *     Lock an internal page.
  */
-//获取page对应的page_lock锁，也就是锁住ref->home这个internal page, 并返回parent page
+//获取page对应的page_lock锁，也就是锁住ref->home这个父internal page, 并返回parent page
 static int
 __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PAGE **parentp)
 {
@@ -1347,7 +1352,7 @@ __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PA
         else
             WT_PAGE_LOCK(session, parent);
         if (parent == ref->home)
-            break;//这里break，也就是
+            break;//这里break，也就是没有unlock，在外层unlock
 
         WT_PAGE_UNLOCK(session, parent);
     }
@@ -1472,7 +1477,7 @@ __split_parent_climb(WT_SESSION_IMPL *session, WT_PAGE *page)
      */
     for (;;) {
         parent = NULL;
-        //指向父节点的page ref
+        //ref指向该page自己所属的ref
         ref = page->pg_intl_parent_ref;
 
         /* If we don't need to split the page, we're done. */

@@ -848,7 +848,7 @@ __log_file_header(WT_SESSION_IMPL *session, WT_FH *fh, WT_LSN *end_lsn, bool pre
     /*
      * Make sure the header gets to disk.
      */
-    printf("yang test ........__log_file_header.........__wt_fsync..........\r\n");
+    //printf("yang test ........__log_file_header.........__wt_fsync..........\r\n");
     WT_ERR(__wt_fsync(session, tmp.slot_fh, true));
     if (end_lsn != NULL)
         WT_ASSIGN_LSN(end_lsn, &tmp.slot_end_lsn);

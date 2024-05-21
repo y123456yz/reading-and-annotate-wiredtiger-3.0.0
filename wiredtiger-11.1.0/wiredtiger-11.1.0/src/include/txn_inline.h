@@ -341,7 +341,7 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
 
     btree = op->btree;
     txn = session->txn;
-    printf("yang test .....__wt_txn_op_set_timestamp..1........");
+    //printf("yang test .....__wt_txn_op_set_timestamp..1........");
 
     /*
      * Updates without a commit time and logged objects don't have timestamps, and only the most
@@ -356,7 +356,7 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
     if (F_ISSET(btree, WT_BTREE_LOGGED))
         return;
 
-    printf("yang test .....__wt_txn_op_set_timestamp..2........");
+    //printf("yang test .....__wt_txn_op_set_timestamp..2........");
     if (F_ISSET(txn, WT_TXN_PREPARE)) {
         /*
          * We have a commit timestamp for a prepare transaction, this is only possible as part of a

@@ -424,8 +424,8 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
                 /*
                  * If forced eviction succeeded, don't retry. If it failed, stall.
                  */
-                if (ret == 0)
-                    evict_skip = true;
+                if (ret == 0 || __wt_btree_syncing_by_other_session(session)) //yang add change xxxxxxxxxxx
+                    evict_skip = true; //下一个循环得时候在下面得skip_evict退出循环
                 else if (ret == EBUSY) {
                     WT_NOT_READ(ret, 0);
                     WT_STAT_CONN_INCR(session, page_forcible_evict_blocked);
@@ -442,7 +442,7 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
                 continue;
             }
 
-skip_evict:
+skip_evict: //从这里退出循环
             /*
              * If we read the page and are configured to not trash the cache, and no other thread
              * has already used the page, set the read generation so the page is evicted soon.

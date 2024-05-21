@@ -324,7 +324,7 @@ __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
         stats = (int64_t **)S2C(session)->stats;
         session_stats = (int64_t *)&(session->stats);
         stats[session->stat_bucket][t->stat_count_off]++;
-
+    
         //等待锁时间统计
         if (F_ISSET(session, WT_SESSION_INTERNAL))
             stats[session->stat_bucket][t->stat_int_usecs_off] += (int64_t)time_diff;

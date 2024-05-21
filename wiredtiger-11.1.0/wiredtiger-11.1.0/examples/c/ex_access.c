@@ -374,7 +374,7 @@ access_example(void)
     recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\
     version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/
     
-    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=100KB),create,cache_size=1M, statistics=(all),create,verbose=[config_all_verbos:0, write:0,reconcile:0, metadata:0, api:0,log:0]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=100KB),create,cache_size=1M, statistics=(all),timing_stress_for_test:[split_7, split_5,split_6], create,verbose=[config_all_verbos:0, write:0,reconcile:0, metadata:0, api:0,log:0]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
     /* Open a session handle for the database. */
@@ -527,7 +527,7 @@ main(int argc, char *argv[])
 {
     home = example_setup(argc, argv);
 
-    
+    access_example();
 
     access_txn23_test();
 

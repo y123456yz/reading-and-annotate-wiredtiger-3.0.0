@@ -655,7 +655,7 @@ struct __wt_col_fix_tw {
             (ref) = *__refp++;
 
 #undef pg_intl_parent_ref
-//指向父节点的page
+//指向该page的ref，参考图形化https://github.com/wiredtiger/wiredtiger/wiki/In-Memory-Tree-Layout
 #define pg_intl_parent_ref u.intl.parent_ref
 #undef pg_intl_split_gen
 //记录该internal page分裂的次数  __split_parent中赋值

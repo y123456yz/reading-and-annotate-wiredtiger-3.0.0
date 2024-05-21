@@ -115,6 +115,7 @@ err:
 
     /* Track the longest reconciliation, ignoring races (it's just a statistic). */
     __wt_seconds(session, &now);
+    printf("yang test ............................__wt_reconcile time:%d\r\n", (int)(now-start));
     if (now - start > S2C(session)->rec_maximum_seconds)
         S2C(session)->rec_maximum_seconds = now - start;
 
@@ -1751,7 +1752,7 @@ __rec_split_finish_process_prev(WT_SESSION_IMPL *session, WT_RECONCILE *r)
        // (int)r->min_split_size, (int)prev_ptr->image.size, (int)cur_ptr->image.size);
     }
 
-    printf("yang test ....111111111111111111111......__rec_split_finish_process_prev\r\n");
+   // printf("yang test ....111111111111111111111......__rec_split_finish_process_prev\r\n");
     /* Write out the previous image */
     //走到这里说明prev和cur不能合并，因为合并会超限
     return (__rec_split_write(session, r, r->prev_ptr, NULL, false));

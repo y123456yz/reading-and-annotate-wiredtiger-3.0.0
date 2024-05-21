@@ -179,6 +179,7 @@ struct __wt_txn_global {
     bool stable_is_pinned;
 
     /* Protects the active transaction states. */
+    //__wt_txn_global_init÷–≥ı ºªØ
     WT_RWLOCK rwlock;
 
     /* Protects logging, checkpoints and transaction visibility. */

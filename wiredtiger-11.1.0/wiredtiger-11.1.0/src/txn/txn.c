@@ -613,7 +613,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
               oldest_id, oldest_session->id, oldest_session->lastop, oldest_session->txn->snap_min);
         }
     }
-    WT_RET(__wt_verbose_dump_txn(session, "__wt_txn_update_oldest end"));//yang add change
+    //WT_RET(__wt_verbose_dump_txn(session, "__wt_txn_update_oldest end"));//yang add change
 
 done:
     __wt_writeunlock(session, &txn_global->rwlock);
@@ -1648,7 +1648,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
     u_int i;
     bool cannot_fail, locked, prepare, readonly, update_durable_ts;
 
-    printf("yang test .....__wt_txn_commit..........session id:%u\r\n", session->id);
+    //printf("yang test .....__wt_txn_commit..........session id:%u\r\n", session->id);
     conn = S2C(session);
     cursor = NULL;
     txn = session->txn;
@@ -1766,7 +1766,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 
     /* Process updates. */
     for (i = 0, op = txn->mod; i < txn->mod_count; i++, op++) {
-        printf("yang test .....__wt_txn_commit......1....op->type:%u\r\n", op->type);
+        //printf("yang test .....__wt_txn_commit......1....op->type:%u\r\n", op->type);
         switch (op->type) {
         case WT_TXN_OP_NONE:
             break;
@@ -1785,7 +1785,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
                     upd->txnid = WT_TXN_ABORTED;
                     break;
                 }
-                printf("yang test .....__wt_txn_commit..2........op->type:%u\r\n", op->type);
+                //printf("yang test .....__wt_txn_commit..2........op->type:%u\r\n", op->type);
                 /*
                  * Don't reset the timestamp of the history store records with history store
                  * transaction timestamp. Those records should already have the original time window
