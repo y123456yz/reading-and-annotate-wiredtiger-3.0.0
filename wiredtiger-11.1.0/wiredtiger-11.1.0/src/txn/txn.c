@@ -507,6 +507,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
  *     Sweep the running transactions to update the oldest ID required.
  evict、reconcile、checkpoint等操作会调用__wt_txn_update_oldest
  例如evict worker线程每一轮遍历获取需要淘汰的page前会通过__evict_server->__wt_txn_update_oldest来更新事务相关成员
+ 该更新主要影响__wt_txn_upd_visible_all，也就是对事务全局可见影响
  */
 int
 __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
@@ -613,7 +614,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
               oldest_id, oldest_session->id, oldest_session->lastop, oldest_session->txn->snap_min);
         }
     }
-    //WT_RET(__wt_verbose_dump_txn(session, "__wt_txn_update_oldest end"));//yang add change
+    WT_RET(__wt_verbose_dump_txn(session, "__wt_txn_update_oldest end"));//yang add change
 
 done:
     __wt_writeunlock(session, &txn_global->rwlock);

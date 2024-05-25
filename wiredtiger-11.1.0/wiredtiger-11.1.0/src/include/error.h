@@ -168,6 +168,7 @@
         }                                         \
     } while (0)
 #else
+//注意这里非diagnose模式，这里实际上啥也没干，exp会直接忽略
 #define WT_ASSERT(session, exp) WT_UNUSED(session)
 #define WT_ERR_ASSERT(session, exp, v, ...)      \
     do {                                         \

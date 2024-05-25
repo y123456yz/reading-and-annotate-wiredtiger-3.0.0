@@ -563,6 +563,7 @@ __wt_txn_pinned_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t *pinned_tsp)
  * __txn_visible_all_id --
  *     Check if a given transaction ID is "globally visible". This is, if all sessions in the system
  *     will see the transaction ID including the ID that belongs to a running checkpoint.
+ 判断事务id是否对当前所有session可见
  */
 static inline bool
 __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
@@ -599,6 +600,7 @@ __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
     if (F_ISSET(session->txn, WT_TXN_IS_CHECKPOINT))
         return (__wt_txn_visible_id_snapshot(
           id, txn->snap_min, txn->snap_max, txn->snapshot, txn->snapshot_count));
+    //这里一定要__wt_txn_update_oldest更新后的事务id才会可见
     oldest_id = __wt_txn_oldest_id(session);
 
     return (WT_TXNID_LT(id, oldest_id));
@@ -627,7 +629,8 @@ __wt_txn_visible_all(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t times
      */
     if (F_ISSET(S2C(session), WT_CONN_CLOSING))
         return (true);
-
+        
+    // 判断事务id是否对当前所有session可见
     if (!__txn_visible_all_id(session, id))
         return (false);
 
@@ -654,6 +657,7 @@ __wt_txn_visible_all(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t times
 /*
  * __wt_txn_upd_visible_all --
  *     Is the given update visible to all (possible) readers?
+ // 判断upd是否对当前所有session可见，对update影响较大，可以参考__wt_update_obsolete_check
  */
 static inline bool
 __wt_txn_upd_visible_all(WT_SESSION_IMPL *session, WT_UPDATE *upd)
@@ -817,16 +821,16 @@ __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp
 {
     WT_TXN *txn;
     WT_TXN_SHARED *txn_shared;
-    char ts_string[WT_TS_INT_STRING_SIZE];
+    //char ts_string[WT_TS_INT_STRING_SIZE];
 
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
 
-    printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu, timestamp:%s\r\n", 
-        session->id, session->txn->id, session->flags, id, __wt_timestamp_to_string(timestamp, ts_string));
+   // printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu, timestamp:%s\r\n", 
+   //     session->id, session->txn->id, session->flags, id, __wt_timestamp_to_string(timestamp, ts_string));
     //当前session是否可以访问id对应事务
     if (!__txn_visible_id(session, id)) {
-        printf("yang test ...........__wt_txn_visible...false\r\n");
+        //printf("yang test ...........__wt_txn_visible...false\r\n");
         return (false);
     }
     /* Transactions read their writes, regardless of timestamps. */
@@ -908,6 +912,7 @@ __wt_txn_upd_visible(WT_SESSION_IMPL *session, WT_UPDATE *upd)
  * __wt_upd_alloc --
  *     Allocate a WT_UPDATE structure and associated value and fill it in.
  */
+// __wt_upd_alloc中插入，如果删除K了，则在__wt_txn_modify_check中返回不存在
 //__wt_upd_alloc分配WT_UPDATE空间
 static inline int
 __wt_upd_alloc(WT_SESSION_IMPL *session, const WT_ITEM *value, u_int modify_type, WT_UPDATE **updp,
@@ -1597,6 +1602,7 @@ err:
 /*
  * __wt_txn_modify_check --
  *     Check if the current transaction can modify an item.
+ __wt_upd_alloc中插入，如果删除K了，则在__wt_txn_modify_check中返回不存在
  */
 static inline int
 __wt_txn_modify_check(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE *upd,
@@ -1620,11 +1626,13 @@ __wt_txn_modify_check(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE 
      * isn't permitted, return a WT_NOTFOUND error.
      */
     //udp多版本链表中找出第一个不为WT_TXN_ABORTED或者WT_UPDATE_TOMBSTONE的V
+    //这里可以看出如果udp链表上面的第一个有效V已经标记为WT_UPDATE_TOMBSTONE，则直接返回WT_NOTFOUND
     if (modify_type == WT_UPDATE_TOMBSTONE) {
         /* Loop until a valid update is found. */
         while (upd != NULL && upd->txnid == WT_TXN_ABORTED)
             upd = upd->next;
 
+        //yang add ?????????????????? 这个最新的删除的K和空的V，什么适合从insert跳表摘除并释放空间呢
         if (upd != NULL && upd->type == WT_UPDATE_TOMBSTONE)
             return (WT_NOTFOUND);
     }

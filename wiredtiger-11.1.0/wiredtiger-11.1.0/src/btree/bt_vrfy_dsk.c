@@ -64,6 +64,8 @@ static int __verify_dsk_row_leaf(WT_VERIFY_INFO *);
 /*
  * __wt_verify_dsk_image --
  *     Verify a single block as read from disk.
+
+  // Verify any disk image we have. 
  */
 int
 __wt_verify_dsk_image(WT_SESSION_IMPL *session, const char *tag, const WT_PAGE_HEADER *dsk,

@@ -414,12 +414,15 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
             if (F_ISSET(session->txn, WT_TXN_IS_CHECKPOINT))
                 goto skip_evict;
 
+            if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)
+                WT_RET(__wt_msg(session, "yang test ..............__wt_page_in_func........page->memory_footprint:%lu\r\n", 
+                    ref->page->memory_footprint));
             /*
              * Forcibly evict pages that are too big.
              */
             if (force_attempts < 10 && __evict_force_check(session, ref)) {
                 ++force_attempts;
-                //WT_RET(__wt_msg(session, "yang test .............................__wt_page_in_func...................."));
+                
                 ret = __wt_page_release_evict(session, ref, 0);
                 /*
                  * If forced eviction succeeded, don't retry. If it failed, stall.

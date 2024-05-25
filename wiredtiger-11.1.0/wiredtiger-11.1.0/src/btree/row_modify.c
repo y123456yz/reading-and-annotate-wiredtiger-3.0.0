@@ -41,6 +41,8 @@ err:
  *     Row-store insert, update and delete.
  */
 
+// 普通更新和删除都会走到这里，modify_type标识更新的类型
+
 //__cursor_row_search和__wt_row_modify的关系:
 //  __cursor_row_search用于确定K在btree中的位置以及是否存在等
 //  __wt_row_modify负责在__cursor_row_search找到的位置把新KV添加到btree合适位置
@@ -50,7 +52,9 @@ err:
 //__wt_row_modify: 真正把KV添加到跳跃表中
 int
 __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, WT_UPDATE *upd_arg,
-  u_int modify_type, bool exclusive
+  //普通更新和删除都会走到这里，modify_type标识更新的类型
+  u_int modify_type, 
+  bool exclusive
 #ifdef HAVE_DIAGNOSTIC
   ,
   bool restore
@@ -123,10 +127,13 @@ __wt_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *key, const WT_ITEM *value, 
             /* Make sure the modify can proceed. */
             WT_ERR(
               //获取该K的链表上的第一个V对应udp，并做一些检查，同时获取这个V的ts
+              
+              //如果udp链表上面的第一个有效V已经标记为WT_UPDATE_TOMBSTONE，则直接返回WT_NOTFOUND，这个删除V的type WT_UPDATE_TOMBSTONE写入在下面实现
               __wt_txn_modify_check(session, cbt, old_upd = *upd_entry, &prev_upd_ts, modify_type));
 
             /* Allocate a WT_UPDATE structure and transaction ID. */
-            //如果value为NULL，也就是WT_CURSOR->remove操作删除一个key的时候，实际上是生成一个新的udp,udp的value长度为0
+            //如果value为NULL，也就是WT_CURSOR->remove操作删除一个key的时候，实际上是生成一个新的udp,udp的value长度为0,
+            //  下次在__wt_txn_modify_check检查的适合如果发现该udp type为WT_UPDATE_TOMBSTONE，则回直接在__wt_txn_modify_check返回WT_NOTFOUND
             WT_ERR(__wt_upd_alloc(session, value, modify_type, &upd, &upd_size));
             //把生成新的udp之前的上一个V的更新时间戳保存起来
             upd->prev_durable_ts = prev_upd_ts;
@@ -364,6 +371,7 @@ __wt_row_insert_alloc(WT_SESSION_IMPL *session, const WT_ITEM *key, u_int skipde
 /*
  * __wt_update_obsolete_check --
  *     Check for obsolete updates and force evict the page if the update list is too long.
+ //释放链表上已过时的udp，注意这里面只做了内存计数的减法，真正是在调用该函数的地方释放过时udp
  */
 WT_UPDATE *
 __wt_update_obsolete_check(
@@ -397,8 +405,11 @@ __wt_update_obsolete_check(
         if (upd->txnid == WT_TXN_ABORTED)
             continue;
 
+        printf("yang test ........................... data:%s\r\n", upd->data);
         ++upd_seen;
+        // 判断upd是否对当前所有session可见，这里一般是__wt_txn_update_oldest更新后，__wt_txn_update_oldest之前的事务才全局可见
         if (__wt_txn_upd_visible_all(session, upd)) {
+            //first指向K的udp链表上第一个全局可见的V
             if (first == NULL && WT_UPDATE_DATA_VALUE(upd))
                 first = upd;
         } else {
@@ -415,13 +426,24 @@ __wt_update_obsolete_check(
         if (F_ISSET(upd, WT_UPDATE_TO_DELETE_FROM_HS))
             first = NULL;
     }
+    if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)
+        WT_IGNORE_RET(__wt_msg(session, "yang test ...1...........__wt_update_obsolete_check...%p, %p page:%p..count:%d...page->memory_footprint:%lu\r\n", 
+            first, first->next, page, (int)count, page->memory_footprint));
 
     /*
      * We cannot discard this WT_UPDATE structure, we can only discard WT_UPDATE structures
      * subsequent to it, other threads of control will terminate their walk in this element. Save a
      * reference to the list we will discard, and terminate the list.
      */
+    if (first)
+        printf("yang test ........................... first data:%s\r\n", first->data);
+
+    if (first && first->next)
+        printf("yang test ........................... next data:%s\r\n", first->next->data);
+                
+    //udp链表上first之后的V都过时了，可以清理掉，这里只做了内存使用量减去这些过时的V内存，没用对这些过时的V真正释放内存
     if (first != NULL && (next = first->next) != NULL &&
+      //first->next指向Null, next也就指向需要释放的udp链表，这里用原子操作可以避免锁开销
       __wt_atomic_cas_ptr(&first->next, next, NULL)) {
         /*
          * Decrement the dirty byte count while holding the page lock, else we can race with
@@ -430,8 +452,12 @@ __wt_update_obsolete_check(
         if (update_accounting) {
             for (size = 0, upd = next; upd != NULL; upd = upd->next)
                 size += WT_UPDATE_MEMSIZE(upd);
-            if (size != 0)
+            if (size != 0) {
                 __wt_cache_page_inmem_decr(session, page, size);
+                if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)
+                    WT_IGNORE_RET(__wt_msg(session, "yang test ...2...........__wt_update_obsolete_check........page->memory_footprint:%lu\r\n", 
+                        page->memory_footprint));
+            }
         }
     }
 
@@ -441,11 +467,13 @@ __wt_update_obsolete_check(
      * average number of updates on a single item was approximately 1000 in write-heavy workloads.
      * This is why we use WT_THOUSAND here.
      */
+    //如果一个page上任何一个key的历史value超过1000个，也就是对一个key更新了1000次，则需要强制让evict线程淘汰掉该page
     if (count > WT_THOUSAND) {
         WT_STAT_CONN_INCR(session, cache_eviction_force_long_update_list);
         __wt_page_evict_soon(session, cbt->ref);
     }
 
+    //next链表在外层进行真正的内存释放
     if (next != NULL)
         return (next);
 

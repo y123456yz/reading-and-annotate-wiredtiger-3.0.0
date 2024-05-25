@@ -115,7 +115,7 @@ err:
 
     /* Track the longest reconciliation, ignoring races (it's just a statistic). */
     __wt_seconds(session, &now);
-    printf("yang test ............................__wt_reconcile time:%d\r\n", (int)(now-start));
+    //printf("yang test ............................__wt_reconcile time:%d\r\n", (int)(now-start));
     if (now - start > S2C(session)->rec_maximum_seconds)
         S2C(session)->rec_maximum_seconds = now - start;
 
@@ -2388,6 +2388,8 @@ copy_image:
     /*
      * If re-instantiating this page in memory (either because eviction wants to, or because we
      * skipped updates to build the disk image), save a copy of the disk image.
+    //__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+    //  说明reconcile的适合可以内存拷贝一份page数据存入image
      */
     //拷贝数据到multi->disk_image,  reconcile会满足WT_REC_SCRUB条件
     if (F_ISSET(r, WT_REC_SCRUB) || multi->supd_restore) {
@@ -2707,7 +2709,7 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
          */
         mod->rec_result = WT_PM_REC_EMPTY;
         break;
-    case 1: /* 1-for-1 page swap */
+    case 1: /* 1-for-1 page swap */ //例如一个page有修改，但是修了一点点，这时候一个page完全够了，一般update的适合这种很常见
         /*
          * Because WiredTiger's pages grow without splitting, we're replacing a single page with
          * another single page most of the time.

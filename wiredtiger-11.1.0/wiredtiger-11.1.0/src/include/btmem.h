@@ -34,7 +34,10 @@
 //__evict_reconcile中如果是leaf page设置该标识, __wt_sync_file也会设置
 #define WT_REC_HS 0x040u
 #define WT_REC_IN_MEMORY 0x080u
-//一般reconcile都会拥有该标识
+//__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+//  说明reconcile的适合可以内存拷贝一份page数据存入image
+
+//一般reconcile都会拥有该标识，见__evict_reconcile
 #define WT_REC_SCRUB 0x100u
 #define WT_REC_VISIBILITY_ERR 0x200u
 #define WT_REC_VISIBLE_ALL 0x400u
@@ -317,6 +320,11 @@ struct __wt_multi {
     //从上面的备注可以看出，reconcile一个multi对应数据写入磁盘后，会在拷贝一份到disk_image中，最终在__wt_page_inmem中赋值给page->dsk
     //然后在__inmem_row_leaf解析出磁盘上的K和V地址保存到page->pg_row[]中, 最后释放disk_image空间，也就是disk_image只是一个临时
     //变量保存写入磁盘的所有封包数据，最终目的是为了获取page磁盘上K或者V数据保存到page->pg_row[]数组中
+
+
+    //__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+    //  说明reconcile的时候可以内存拷贝一份page数据存入image, 一般代表内存比较充足，因此可以拷贝一份到image，最终被赋值给
+    //  内存中的split的page的page->dsk,参考__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem
     void *disk_image;
 
     /*
@@ -558,6 +566,7 @@ struct __wt_page_modify {
 
 #define WT_PM_REC_EMPTY 1      /* Reconciliation: no replacement */
 #define WT_PM_REC_MULTIBLOCK 2 /* Reconciliation: multiple blocks */
+//例如一个page有修改，但是修了一点点，这时候一个page完全够了，一般update的适合这种很常见
 #define WT_PM_REC_REPLACE 3    /* Reconciliation: single block */
     //复制参考__rec_write_wrapup
     uint8_t rec_result;        /* Reconciliation state */
@@ -1502,10 +1511,11 @@ struct __wt_update {
 #define WT_UPDATE_MODIFY 1    /* partial-update modify value */
 //__wt_btcur_reserve中设置，可以先不关注
 #define WT_UPDATE_RESERVE 2   /* reserved */
-//一般都是这个状态
+//一般都是这个状态,普通更新
 #define WT_UPDATE_STANDARD 3  /* complete value */
 //说明是删除操作
 #define WT_UPDATE_TOMBSTONE 4 /* deleted */
+    //代表是什么类型的更新，是普通更新还是删除操作，还是部分更新
     uint8_t type;             /* type (one byte to conserve memory) */
 
 /* If the update includes a complete value. */
@@ -1695,6 +1705,25 @@ struct __wt_insert {
 /*
  * WT_INSERT_HEAD --
  * 	The head of a skiplist of WT_INSERT items.
+
+ //场景1:
+ // 该page没有数据在磁盘上面
+ //   cbt->slot则直接用WT_ROW_INSERT_SLOT[0]这个跳表，
+ 
+ //场景2:
+ // 如果磁盘有数据则WT_ROW_INSERT_SMALLEST(mod_row_insert[(page)->entries])表示写入这个page并且K小于该page在
+ //   磁盘上面最小的K的所有数据通过这个跳表存储起来
+ 
+ //场景3:
+ // 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2...keyn，新插入keyx>page最大的keyn，则内存会维护一个
+ //   cbt->slot为磁盘KV总数-1，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[page->entries - 1]这个跳表上面
+ 
+ //场景4:
+ // 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2,key3...keyn，新插入keyx大于key2小于key3, key2<keyx>key3，则内存会维护一个
+ //   cbt->slot为磁盘key2在磁盘中的位置(也就是1，从0开始算)，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[1]这个跳表
+ 
+ //一个page在磁盘page->pg_row有多少数据(page->pg_row[]数组大小)，就会维护多少个跳表，因为要保证新写入内存的数据和磁盘的数据保持顺序
+ 
      配合WT_SKIP_FOREACH   WT_SKIP_LAST     WT_SKIP_FIRST阅读
  跳跃表图解参考https://www.jb51.net/article/199510.htm
  */ //WT_PAGE_ALLOC_AND_SWAP中会分配空间
@@ -1708,6 +1737,26 @@ struct __wt_insert_head {
  * following macros return an array entry if the array of pointers and the specific structure exist,
  * else NULL.
  */
+
+//场景1:
+// 该page没有数据在磁盘上面
+//   cbt->slot则直接用WT_ROW_INSERT_SLOT[0]这个跳表，
+
+//场景2:
+// 如果磁盘有数据则WT_ROW_INSERT_SMALLEST(mod_row_insert[(page)->entries])表示写入这个page并且K小于该page在
+//   磁盘上面最小的K的所有数据通过这个跳表存储起来
+
+//场景3:
+// 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2...keyn，新插入keyx>page最大的keyn，则内存会维护一个
+//   cbt->slot为磁盘KV总数-1，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[page->entries - 1]这个跳表上面
+
+//场景4:
+// 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2,key3...keyn，新插入keyx大于key2小于key3, key2<keyx>key3，则内存会维护一个
+//   cbt->slot为磁盘key2在磁盘中的位置(也就是1，从0开始算)，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[1]这个跳表
+
+//一个page在磁盘page->pg_row有多少数据(page->pg_row[]数组大小)，就会维护多少个跳表，因为要保证新写入内存的数据和磁盘的数据保持顺序
+
+
 //pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
 #define WT_ROW_INSERT_SLOT(page, slot)                                  \
     ((page)->modify == NULL || (page)->modify->mod_row_insert == NULL ? \
@@ -1724,6 +1773,9 @@ struct __wt_insert_head {
  * before any key found on the original page.
  */
 //pg_row指向磁盘KV相关数据，mod_row_insert指向内存相关KV数据，mod_row_update记录内存中同一个K的变更过程
+
+//说明没有数据在磁盘上面，则写入的数据直接添加到mod_row_insert[0]这个跳表，如果磁盘有数据则WT_ROW_INSERT_SMALLEST表示写入这个page
+// 并且K小于该page在磁盘上面最小的K的所有数据通过这个跳表存储起来
 #define WT_ROW_INSERT_SMALLEST(page)                                    \
     ((page)->modify == NULL || (page)->modify->mod_row_insert == NULL ? \
         NULL :                                                          \
@@ -1844,7 +1896,7 @@ struct __wt_col_fix_auxiliary_header {
 
 /*
  * WT_VERIFY_INFO -- A structure to hold all the information related to a verify operation.
- */
+ */ //__wt_verify_dsk_image
 struct __wt_verify_info {
     WT_SESSION_IMPL *session;
 

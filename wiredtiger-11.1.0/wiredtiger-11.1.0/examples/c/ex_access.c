@@ -350,6 +350,7 @@ access_example(void)
     WT_ITEM value_item;
     WT_ITEM value_item2;
     int i =0;
+    char buf[512];
 
 #ifdef HAVE_DIAGNOSTIC
     WT_BTREE *btree;
@@ -371,10 +372,10 @@ access_example(void)
     backup=5, block=5, block_cache=5, checkpoint=5, checkpoint_cleanup=5,checkpoint_progress=5,compact=5,\
     compact_progress=5,error_returns=5,evict=5,evict_stuck=5,evictserver=5,fileops=5,generation=5,handleops=5,log=5,\
     hs=5, history_store_activity=5,lsm=5,lsm_manager=5,metadata=5,mutex=5,out_of_order=5,overflow=5,read=5,reconcile=5,recovery=5, \
-    recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\
+    recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\  ,timing_stress_for_test:[split_7, split_5,split_6]
     version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/
     
-    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=100KB),create,cache_size=1M, statistics=(all),timing_stress_for_test:[split_7, split_5,split_6], create,verbose=[config_all_verbos:0, write:0,reconcile:0, metadata:0, api:0,log:0]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=1000KB),create,cache_size=1G, statistics=(all), create,verbose=[config_all_verbos:0, write:0,reconcile:2, split:2, metadata:0, api:0,log:0]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
     /* Open a session handle for the database. */
@@ -383,14 +384,14 @@ access_example(void)
 
     /*! [access example table create] */
     //error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u")); memory_page_image_max=128KB,
-    error_check(session->create(session, "table:access", "memory_page_image_max=77KB, leaf_page_max=32KB,key_format=q,value_format=u"));
+    error_check(session->create(session, "table:access", "memory_page_max=100K,memory_page_image_max=4M, leaf_page_max=32KB,key_format=q,value_format=S"));
     /*! [access example table create] */
 
     /*! [access example cursor open] */
     error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
     /*! [access example cursor open] */
 
-    value_item.data = "value old @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
+    value_item.data = "value old @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ \0";
     /*
       "abcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyz"
       "abcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzabcdefghijklmnopqrstabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzuvwxyzuvwxyz"
@@ -410,22 +411,50 @@ access_example(void)
 
     value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
     value_item2.size = strlen(value_item2.data);
-    for (i=50010000;i > 0; i--) {
+    for (i=0;i < 15000; i++) {
    // for (i=0;i < 9011 ; i++) {
         rval = __wt_random(&rnd);
 
+        snprintf(buf, sizeof(buf), "value xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx %d", i);
         cursor->set_key(cursor, i); /* Insert a record. */
-        cursor->set_value(cursor, &value_item2);
+        cursor->set_value(cursor, buf);
         if (max_i < rval % 12000)
             max_i =  (rval % 12000);
 
        // if (i % 5 == 0)
         //    continue;
 
-        //printf("yang test insert ......... i:%lu, max_i:%lu\r\n", rval % 23519, max_i);
+        //printf("yang test insert ......... i:%d\r\n", i);
         error_check(cursor->insert(cursor));
-        usleep(1000);
+        //usleep(1000);
     }
+    printf("yang test   ............................insert.............. end:\r\n");
+
+    for (i=15000; i < 1501110; i++) {
+    //for (i=0;i < 0; i++) {
+        rval = __wt_random(&rnd) % 10111;
+        snprintf(buf, sizeof(buf), "value xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx %d", i);
+        cursor->set_key(cursor, 0); /* Insert a record. */
+        cursor->set_value(cursor, buf);
+        printf("yang test   ............................update.............. i:%d\r\n", i);
+        error_check(cursor->update(cursor));
+        //usleep(1000);
+    }
+
+    printf("yang test   ............................update.............. end:\r\n");
+    for (i=0; i < 1200; i++) {
+    //for (i=0;i < 0; i++) {
+        rval = __wt_random(&rnd) % 10;
+        cursor->set_key(cursor, rval); /* Insert a record. */
+        error_check(cursor->remove(cursor));
+        //usleep(1000);
+    }
+
+    sleep(10);
+    
+    session->checkpoint(session, "force");
+    exit(0);
+    
     stop = __wt_clock(session_impl);
     time_ms = WT_CLOCKDIFF_MS(stop, start);
     printf("yang test insert ......... run time:%lu\r\n", time_ms);
@@ -526,12 +555,14 @@ int
 main(int argc, char *argv[])
 {
     home = example_setup(argc, argv);
+    printf("yang test insert ......... ex access\r\n");
 
     access_example();
 
-    access_txn23_test();
+    
 
     exit(0);
+    access_txn23_test();
     access_example();
 
     access_txn20_test();

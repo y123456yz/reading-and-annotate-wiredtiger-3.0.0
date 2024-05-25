@@ -312,7 +312,10 @@ struct __wt_cache {
 //leaf page脏数据内存超过了总内存eviction_dirty_trigger(默认20%)
 #define WT_CACHE_EVICT_DIRTY_HARD 0x010u   /* Dirty % blocking app threads */
 #define WT_CACHE_EVICT_NOKEEP 0x020u       /* Don't add read pages to cache */
-//__evict_update_work
+//__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+//  说明reconcile的适合可以内存拷贝一份page数据存入image
+
+//最终该标识影响reconcile持久化的时候释放需要拷贝一份持久化的page内容到内存中，见__evict_reconcile
 #define WT_CACHE_EVICT_SCRUB 0x040u        /* Scrub dirty pages */
 #define WT_CACHE_EVICT_UPDATES 0x080u      /* Evict pages with updates */
 #define WT_CACHE_EVICT_UPDATES_HARD 0x100u /* Update % blocking app threads */

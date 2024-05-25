@@ -519,12 +519,15 @@ leaf_only:
         cbt->append_tree = 1;
 
         //获取最右边的leaf page
-        if (page->entries == 0) {
+        if (page->entries == 0) { //该page没用数据在磁盘上面
             cbt->slot = WT_ROW_SLOT(page, page->pg_row);
 
+            //该page没有数据在磁盘上面，说明该page的数据暂时会全部写入内存，这记录到WT_ROW_INSERT_SLOT[0]这个跳表上面
             F_SET(cbt, WT_CBT_SEARCH_SMALLEST);
             ins_head = WT_ROW_INSERT_SMALLEST(page);
         } else {
+            //该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2...keyn，新插入keyx>page最大的keyn，则内存会维护一个
+            // cbt->slot为磁盘KV总数-1，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[page->entries - 1]这个跳表上面
             cbt->slot = WT_ROW_SLOT(page, page->pg_row + (page->entries - 1));
             ins_head = WT_ROW_INSERT_SLOT(page, cbt->slot);
         }
@@ -640,9 +643,13 @@ leaf_match:
         cbt->compare = 1;
         cbt->slot = 0;
 
+        //该page没有数据在磁盘上面，说明该page的数据暂时会全部写入内存，这记录到WT_ROW_INSERT_SLOT[0]这个跳表上面
         F_SET(cbt, WT_CBT_SEARCH_SMALLEST);
         ins_head = WT_ROW_INSERT_SMALLEST(page);
     } else {//说明该page有一部分数据在磁盘中，则紧接着磁盘中的数据对应跳表slot位置开始查找
+        //场景2:
+        // 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2,key3...keyn，新插入keyx大于key2小于key3, key2<keyx>key3，则内存会维护一个
+        //   cbt->slot为磁盘key2在磁盘中的位置(也就是1，从0开始算)，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[1]这个跳表上面
         cbt->compare = -1;
         cbt->slot = base - 1;
 

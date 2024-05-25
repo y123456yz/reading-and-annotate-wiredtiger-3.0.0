@@ -596,6 +596,7 @@ __cursor_col_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *value, u_int modify_typ
 /*
  * __cursor_row_modify --
  *     Row-store modify from a cursor.
+ 普通更新和删除都会走到这里，modify_type标识更新的类型
  */
 static inline int
 __cursor_row_modify(WT_CURSOR_BTREE *cbt, const WT_ITEM *value, u_int modify_type)

@@ -1863,6 +1863,7 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
     /* Verify any disk image we have. */
     WT_ASSERT(session,
       multi->disk_image == NULL ||
+        //disk_image不为NULL，则说明持久化的page内存中有一份一模一样的
         __wt_verify_dsk_image(session, "[page instantiate]", multi->disk_image, 0, &multi->addr,
           WT_VRFY_DISK_EMPTY_PAGE_OK) == 0);
 
@@ -1948,7 +1949,8 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
  * __split_insert --
  *     Split a page's last insert list entries into a separate page.
  官方split文档说明: https://github.com/wiredtiger/wiredtiger/wiki/In-memory-Page-Splits
- 把一个ref page拆分为多个page
+ 把一个ref page拆分为2个page，拆分点为page最大的key，假设这个page最大的为maxkey，则page拆分后
+ 的两个page分别为page1=[XXXX, maxkey的前一个K], page2=[maxkey]
  */
 //__split_insert_lock
 static int
@@ -1988,6 +1990,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     F_SET_ATOMIC_16(page, WT_PAGE_SPLIT_INSERT); /* Only split in-memory once. */
 
     /* Find the last item on the page. */
+    //也就是获取跳表中最上层的链表指针，这样可以快速获取该page的最后一个节点
     if (type == WT_PAGE_ROW_LEAF)
         ins_head = page->entries == 0 ? WT_ROW_INSERT_SMALLEST(page) :
                                         WT_ROW_INSERT_SLOT(page, page->entries - 1);
@@ -2356,6 +2359,9 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      */
     /* 一拆多后，构建新得ref[]及对应page，并和拆分前的page的父page关联 */
     //new_entries个新ref
+
+    //这里要注意: 一个大page拆分的过程是先拆分为多个page(mod->mod_multi_entries)通过reconcile持久化, 然后在进行内存page的拆分
+    // 所以这里每一个拆分后的内存page都会隐射一个磁盘page
     WT_RET(__wt_calloc_def(session, new_entries, &ref_new));
     for (i = 0; i < new_entries; ++i)
         WT_ERR( //为每一个page指向reconcile拆分后的磁盘元数据

@@ -996,7 +996,7 @@ __log_open_verify(WT_SESSION_IMPL *session, uint32_t id, WT_FH **fhp, WT_LSN *ls
      * about the LSN. Otherwise read that record in and set up the LSN. We already have a buffer
      * that is the correct size. Reuse it.
      */
-    printf("yang test ..............................desc->version:%d\r\n", desc->version);
+    //printf("yang test ..............................desc->version:%d\r\n", desc->version);
     if (lsnp == NULL || (desc->version < WT_LOG_VERSION_SYSTEM))
         goto err;
 
@@ -1230,7 +1230,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
         WT_WITH_HOTBACKUP_READ_LOCK(
           //从目录中获取一个WiredTigerPreplog前缀的文件, 然后重命名为WiredTigerLog.to_num文件，WiredTigerLog.to_num文件就可以用于日志写入了
           session, ret = __log_alloc_prealloc(session, log->fileid), &skipp);
-        printf("yang test ...............__log_newfile....1............ ret:%d, skip:%d\r\n", ret, skipp);
+        //printf("yang test ...............__log_newfile....1............ ret:%d, skip:%d\r\n", ret, skipp);
         if (!skipp) {
             /*
              * If ret is 0 it means we found a pre-allocated file. If ret is WT_NOTFOUND, create the
@@ -1253,7 +1253,7 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
     /*
      * If we need to create the log file, do so now.
      */
-    printf("yang test ...............__log_newfile....1............ create_log:%d\r\n", create_log);
+    //printf("yang test ...............__log_newfile....1............ create_log:%d\r\n", create_log);
     //如果没有现成的WiredTigerPreplog.xxxxx文件，则需要用户线程自己创建
     if (create_log) {
         /*

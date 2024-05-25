@@ -166,6 +166,8 @@ __wt_col_append_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *
 /*
  * __wt_insert_serial --
  *     Insert a row or column-store entry.
+ // __wt_update_serial为什么不用加page锁，而__wt_insert_serial需要加page锁，因为更新只是对K的v的udp链表操作，一个链表插入一个节点可以通过原子
+//   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作
  */
 static inline int
 __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_head,
@@ -186,9 +188,12 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
         if (new_ins->next[i] == NULL)
             simple = false;
 
-    if (simple)
+    if (simple) //这是page的第一个KV，因此不用加page锁
         ret = __insert_simple_func(session, ins_stack, new_ins, skipdepth);
     else {
+        //如果跳表不是空的，则说明insert跳表当前已经有KV数据，这时候必须加page锁，因为涉及跳表上多层指针的操作
+        // __wt_update_serial为什么不用加page锁，而__wt_insert_serial需要加page锁，因为更新只是对K的v的udp链表操作，一个链表插入一个节点可以通过原子
+        //   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作
         if (!exclusive)
             WT_PAGE_LOCK(session, page);
         //如果是第一个insert的KV到该page，则ins_head指向该insert, 同时ins_stack也指向该insert
@@ -219,6 +224,12 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
 /*
  * __wt_update_serial --
  *     Update a row or column-store entry.
+ 
+// __wt_update_serial为什么不用加page锁，而__wt_insert_serial需要加page锁，因为更新只是对K的v的udp链表操作，一个链表插入一个节点可以通过原子
+//   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作
+
+ 
+ 新增一个update到page对应K的链表中，同时在__wt_update_obsolete_check中检查
  */
 static inline int
 __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page,
@@ -244,6 +255,12 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
      * Swap the update into place. If that fails, a new update was added after our search, we raced.
      * Check if our update is still permitted.
      */
+     
+    // __wt_update_serial为什么不用加page锁，而__wt_insert_serial需要加page锁，因为更新只是对K的v的udp链表操作，一个链表插入一个节点可以通过原子
+    //   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作
+
+     
+    //这里可以看出对K做update操作，udp链表是没有加锁的，而是使用原子操作
     while (!__wt_atomic_cas_ptr(srch_upd, upd->next, upd)) {
         if ((ret = __wt_txn_modify_check(
                session, cbt, upd->next = *srch_upd, &prev_upd_ts, upd->type)) != 0) {
@@ -260,6 +277,9 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
      * running transaction, which means there can be no corresponding delete until we complete.
      */
     __wt_cache_page_inmem_incr(session, page, upd_size);
+    if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)
+        WT_RET(__wt_msg(session, "yang test .....1.........__wt_update_serial........page->memory_footprint:%lu\r\n", 
+            page->memory_footprint));
 
     /* Mark the page dirty after updating the footprint. */
     __wt_page_modify_set(session, page);
@@ -306,11 +326,16 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
     /* If we can't lock it, don't scan, that's okay. */
     if (WT_PAGE_TRYLOCK(session, page) != 0)
         return (0);
+    if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)
+        WT_RET(__wt_msg(session, "yang test .....3.........__wt_update_serial........page->memory_footprint:%lu\r\n", 
+            page->memory_footprint));
 
+    //释放链表上已过时的udp，需要释放的链表头通过obsolete返回
     obsolete = __wt_update_obsolete_check(session, cbt, upd->next, true);
 
     WT_PAGE_UNLOCK(session, page);
 
+    //真正的内存释放
     __wt_free_update_list(session, &obsolete);
 
     return (0);

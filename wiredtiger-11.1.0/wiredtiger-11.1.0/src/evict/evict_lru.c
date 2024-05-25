@@ -689,6 +689,8 @@ __evict_update_work(WT_SESSION_IMPL *session)
     /*
      * Scrub dirty pages and keep them in cache if we are less than half way to the clean, dirty or
      * updates triggers.
+     例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，说明reconcile的适合可以内存拷贝一份page数据存入image
+     //最终该标识影响reconcile持久化的时候释放需要拷贝一份持久化的page内容到内存中
      */
     if (bytes_inuse < (uint64_t)((target + trigger) * bytes_max) / 200) {
         if (bytes_dirty < (uint64_t)((dirty_target + dirty_trigger) * bytes_max) / 200 &&
@@ -1801,11 +1803,11 @@ __evict_push_candidate(
 
     evict->btree = S2BT(session);
     evict->ref = ref;
-    printf("yang test .........__evict_push_candidate...1...., btree->splitmempage:%lu, page read_gen:%lu\r\n", 
-        S2BT(session)->splitmempage, ref->page->read_gen);
+    //printf("yang test .........__evict_push_candidate...1...., btree->splitmempage:%lu, page read_gen:%lu\r\n", 
+    //    S2BT(session)->splitmempage, ref->page->read_gen);
     evict->score = __evict_entry_priority(session, ref);
-    printf("yang test .........__evict_push_candidate...2....,page:%p, page size:%lu, evict->score:%lu\r\n", 
-        ref->page, ref->page->memory_footprint, evict->score);
+    //printf("yang test .........__evict_push_candidate...2....,page:%p, page size:%lu, evict->score:%lu\r\n", 
+    //    ref->page, ref->page->memory_footprint, evict->score);
     
     /* Adjust for size when doing dirty eviction. */
     //如果脏数据过多，评分还要考虑当前的page内存占用，如果page占用内存越少，这里评分也就会越高，这样的目录是尽量让占用内存越高的page优先被evict worker淘汰
@@ -2451,13 +2453,13 @@ __evict_get_ref(WT_SESSION_IMPL *session,
          */
         queue = cache->evict_current_queue;
         other_queue = cache->evict_other_queue;
-        printf("yang test ....__evict_get_ref.........queue:%p, other_queue:%p\r\n", queue, other_queue);
+        //printf("yang test ....__evict_get_ref.........queue:%p, other_queue:%p\r\n", queue, other_queue);
         //如果evict_current_queue队列为空，但是evict_other_queue队列不为空，则交换这两个队列指向
         if (__evict_queue_empty(queue, server_only) &&
           !__evict_queue_empty(other_queue, server_only)) {
             cache->evict_current_queue = other_queue;
             cache->evict_other_queue = queue;
-            printf("yang test ....__evict_get_ref....switch.....queue:%p, other_queue:%p\r\n", queue, other_queue);
+            //printf("yang test ....__evict_get_ref....switch.....queue:%p, other_queue:%p\r\n", queue, other_queue);
         }
     }
 

@@ -102,7 +102,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
     
    // printf("yang test ...............__wt_page_release_evict........................2..\r\n");
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
-    //WT_RET(__wt_msg(session, "yang test .............................__wt_page_release_evict...................."));
+    WT_RET(__wt_msg(session, "yang test .............................__wt_page_release_evict...................."));
     ret = __wt_evict(session, ref, previous_state, evict_flags);
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
 
@@ -827,6 +827,8 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
          */
         //如果不是WT_CACHE_EVICT_SCRUB，一般都会进来
         if (!WT_SESSION_BTREE_SYNC(session) &&
+        //__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+        //  说明reconcile的适合可以内存拷贝一份page数据存入image
           (F_ISSET(cache, WT_CACHE_EVICT_SCRUB) ||
             (F_ISSET(cache, WT_CACHE_EVICT_DEBUG_MODE) && __wt_random(&session->rnd) % 3 == 0)))
             LF_SET(WT_REC_SCRUB);

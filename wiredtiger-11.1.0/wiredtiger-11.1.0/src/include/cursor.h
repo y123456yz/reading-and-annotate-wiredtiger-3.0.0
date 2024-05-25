@@ -141,6 +141,25 @@ struct __wt_cursor_btree {
     //__wt_row_search中赋值
     WT_REF *ref;   /* Current page */
     //也就是标识rip对应KV在page内存pg_row中的游标
+
+
+    //场景1:
+    // 该page没有数据在磁盘上面
+    //   cbt->slot则直接用WT_ROW_INSERT_SLOT[0]这个跳表，
+
+    //场景2:
+    // 如果磁盘有数据则WT_ROW_INSERT_SMALLEST(mod_row_insert[(page)->entries])表示写入这个page并且K小于该page在
+    //   磁盘上面最小的K的所有数据通过这个跳表存储起来
+
+    //场景3:
+    // 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2...keyn，新插入keyx>page最大的keyn，则内存会维护一个
+    //   cbt->slot为磁盘KV总数-1，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[page->entries - 1]这个跳表上面
+
+    //场景4:
+    // 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2,key3...keyn，新插入keyx大于key2小于key3, key2<keyx>key3，则内存会维护一个
+    //   cbt->slot为磁盘key2在磁盘中的位置(也就是1，从0开始算)，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[1]这个跳表
+
+    //一个page在磁盘page->pg_row有多少数据(page->pg_row[]数组大小)，就会维护多少个跳表，因为要保证新写入内存的数据和磁盘的数据保持顺序
     uint32_t slot; /* WT_COL/WT_ROW 0-based slot */
 
     //__cursor_pos_clear中会清理掉
