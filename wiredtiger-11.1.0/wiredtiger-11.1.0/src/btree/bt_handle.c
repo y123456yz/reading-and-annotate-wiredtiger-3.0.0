@@ -1035,7 +1035,7 @@ __btree_page_sizes(WT_SESSION_IMPL *session)
     WT_RET(__wt_config_gets(session, cfg, "memory_page_max", &cval));
     btree->maxmempage = (uint64_t)cval.val;
 
-    //确保cache_size内存至少可以存放10个page
+    //确保cache_size内存至少可以存放10个page   MONGODB高版本memory_page_max默认为10M, 见db.test_mgeneratejs.stats().wiredTiger.creationString
     //printf("yang test ........11................maxmempage:%d, eviction_dirty_trigger size:%d\r\n",
      //   (int)btree->maxmempage, (int)(conn->cache->eviction_dirty_trigger * conn->cache_size) / 1000);
     if (!F_ISSET(conn, WT_CONN_CACHE_POOL) && (cache_size = conn->cache_size) > 0)

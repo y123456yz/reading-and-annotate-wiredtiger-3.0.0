@@ -92,6 +92,7 @@ typedef struct {
     int64_t ops_per_txn;
     int64_t pause;           /* Time between scans */
     int64_t read_range;      /* Range of reads */
+    //表的索引个数???， table配置调整
     int32_t table_index;     /* Table to focus ops on */
     int64_t truncate;        /* Truncate ratio */
     uint64_t truncate_pct;   /* Truncate Percent */

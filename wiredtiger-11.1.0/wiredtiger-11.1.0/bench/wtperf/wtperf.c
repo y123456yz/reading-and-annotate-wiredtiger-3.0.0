@@ -50,7 +50,8 @@ static void start_threads(
 static void stop_threads(u_int, WTPERF_THREAD *);
 static WT_THREAD_RET thread_run_wtperf(void *);
 static void update_value_delta(WTPERF_THREAD *, int64_t);
-static WT_THREAD_RET worker(void *);
+//static WT_THREAD_RET worker_thread(void *);
+static WT_THREAD_RET worker_thread(void *);
 
 static uint64_t wtperf_rand(WTPERF_THREAD *);
 static uint64_t wtperf_value_range(WTPERF *);
@@ -332,8 +333,10 @@ pre_load_data(WTPERF *wtperf)
     testutil_check(session->close(session, NULL));
 }
 
+//真正进行压测//threads=((count=20,reads=95,updates=5))在这里
 static WT_THREAD_RET
-worker(void *arg)
+//worker(void *arg)
+worker_thread(void *arg)
 {
     CONFIG_OPTS *opts;
     TRACK *trk;
@@ -431,9 +434,12 @@ worker(void *arg)
         lprintf(wtperf, ret, 0, "First transaction begin failed");
         goto err;
     }
-
+/*
+threads=((count=2,reads=1)(count=8,reads=1,inserts=2,updates=1)) 意思是创建2个线程全部用于读，另外创建8个线程
+这8个线程25%是读，50%是写，25%是更新
+*/
     while (!wtperf->stop) {
-        if (workload->pause != 0)
+        if (workload->pause != 0) //yang add todo change， 这里用usleep会更好，pause代表每次请求后延迟多久
             (void)sleep((unsigned int)workload->pause);
         /*
          * Generate the next key and setup operation specific statistics tracking objects.
@@ -475,6 +481,7 @@ worker(void *arg)
             goto err; /* can't happen */
         }
 
+        //key_buf可以通过random_range配置为随机key
         generate_key(opts, key_buf, next_val);
 
         if (workload->table_index == INT32_MAX)
@@ -896,6 +903,7 @@ run_mix_schedule(WTPERF *wtperf, WORKLOAD *workp)
 }
 
 //execute_populate函数启用多个populate线程持续性的写数据，icount数据写完后才会返回，对应的写入监控数据记录到monitor  monitor.json中
+//populate_threads配置populate thread线程数，如果为0应该不会进来
 static WT_THREAD_RET
 populate_thread(void *arg)
 {
@@ -1852,7 +1860,8 @@ execute_workload(WTPERF *wtperf)
             goto err;
 
         /* Start the workload's threads. */
-        start_threads(wtperf, workp, threads, (u_int)workp->threads, worker);
+        //threads=((count=20,reads=95,updates=5))配置，真正写数据的线程
+        start_threads(wtperf, workp, threads, (u_int)workp->threads, worker_thread);
         threads += workp->threads;
     }
 

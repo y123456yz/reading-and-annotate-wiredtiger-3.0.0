@@ -849,6 +849,24 @@ __wt_rec_row_leaf(
    // printf("yang test __wt_rec_row_leaf......btree->maxmempage:%lu, page->memory_footprintmax:%lu, leafpage_precomp:%lu,  split_size:%u, min_split_size:%u\r\n", 
     //    btree->maxmempage, page->memory_footprint, btree->maxleafpage_precomp, r->split_size, r->min_split_size);
 
+   //场景1:
+   // 该page没有数据在磁盘上面
+   //   cbt->slot则直接用WT_ROW_INSERT_SLOT[0]这个跳表，
+   
+   //场景2:
+   // 如果磁盘有数据则WT_ROW_INSERT_SMALLEST(mod_row_insert[(page)->entries])表示写入这个page并且K小于该page在
+   //   磁盘上面最小的K的所有数据通过这个跳表存储起来
+   
+   //场景3:
+   // 该page有数据在磁盘上面，例如该page在磁盘上面有两条数据ke1,key2...keyn，新插入keyx>page最大的keyn，则内存会维护一个
+   //   cbt->slot为磁盘KV总数-1，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[page->entries - 1]这个跳表上面
+   
+   //场景4:
+   // 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2,key3...keyn，新插入keyx大于key2小于key3, key2<keyx>key3，则内存会维护一个
+   //   cbt->slot为磁盘key2在磁盘中的位置(也就是1，从0开始算)，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[1]这个跳表
+   
+   //一个page在磁盘page->pg_row有多少数据(page->pg_row[]数组大小)，就会维护多少个跳表，因为要保证新写入内存的数据和磁盘的数据保持顺序
+
     /*
      * Write any K/V pairs inserted into the page before the first from-disk key on the page.
      */

@@ -404,7 +404,9 @@ __sync_page_skip(
 /*
  * __wt_sync_file --
  *     Flush pages for a specific file.
- //__checkpoint_tree->__wt_sync_file
+ //__checkpoint_tree->__wt_evict_file  conn close流程, 是__wt_evict流程，既有持久化过程，也会有split的内存释放流程
+//__checkpoint_tree->__wt_sync_file  普通checkpoint流程，是reconcile流程，只有持久化过程，但是没用split相关的page内存释放流程
+
  */
 int
 __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
@@ -489,6 +491,7 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
              * have to visit them anyway.
              */
             page = walk->page;
+            
             if (__wt_page_is_modified(page) && WT_TXNID_LT(page->modify->update_txn, oldest_id)) {
                 if (txn->isolation == WT_ISO_READ_COMMITTED)
                     __wt_txn_get_snapshot(session);
@@ -532,12 +535,16 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
         WT_ASSERT(session, btree->syncing == WT_BTREE_SYNC_OFF && btree->sync_session == NULL);
 
         btree->sync_session = session;
+
         btree->syncing = WT_BTREE_SYNC_WAIT;
         //一直等到确保所有session的generation都大于等于最新为该session生成的WT_GEN_EVICT generation才返回
-        //主要是等待evict server线程__wt_evict中完成evict
-        __wt_gen_next_drain(session, WT_GEN_EVICT);
+        //主要是等待其他线程__wt_evict中完成evict     
+        __wt_gen_next_drain(session, WT_GEN_EVICT); 
         btree->syncing = WT_BTREE_SYNC_RUNNING;
         is_hs = WT_IS_HS(btree->dhandle);
+
+        printf("yang test ............................__wt_sync_file.......sleep... \r\n");
+        __wt_sleep(100,0);//yang add change 
 
         /* Add in history store reconciliation for standard files. */
         rec_flags = WT_REC_CHECKPOINT;
@@ -646,9 +653,11 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
               (page->read_gen == WT_READGEN_WONT_NEED ||
                 FLD_ISSET(conn->timing_stress_flags, WT_TIMING_STRESS_CHECKPOINT_EVICT_PAGE)) &&
               !tried_eviction && F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT)) {
-                printf("yang test ..............__wt_sync_file......read_gen:%d\r\n", (int)page->read_gen);
+                //printf("yang test ..............__wt_sync_file......read_gen:%d\r\n", (int)page->read_gen);
+                //相比下面只__wt_reconcile，__wt_page_release_evict走的是__wt_evict流程，会有reconcile持久化和split内存page释放流程
                 ret = __wt_page_release_evict(session, walk, 0);
                 walk = NULL;
+                //注意这里即使失败，也当成功处理
                 WT_ERR_ERROR_OK(ret, EBUSY, false);
 
                 walk = prev;
@@ -656,9 +665,13 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
                 tried_eviction = true;
                 continue;
             }
+            //page有修改一般走这个流程
+           
             tried_eviction = false;
+            //printf("yang test ...................__wt_page_type_string(page->type):%s\r\n", __wt_page_type_string(page->type));
 
             //checkpoint相关持久化
+            //走这里和前面__wt_page_release_evict区别是，__wt_page_release_evict会多内存page split的流程，该流程会释放原来page内存
             WT_ERR(__wt_reconcile(session, walk, NULL, rec_flags));
 
             /*

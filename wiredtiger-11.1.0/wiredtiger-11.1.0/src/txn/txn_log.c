@@ -246,6 +246,7 @@ err:
 /*
  * __wt_txn_log_op --
  *     Write the last logged operation into the in-memory buffer.
+ //事务日志__wt_txn_log_op封装事务日志到txn->logrec，__wt_txn_log_commit对事务日志txn->logrec写盘操作
  */
 int
 __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
@@ -304,6 +305,7 @@ __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 /*
  * __wt_txn_log_commit --
  *     Write the operations of a transaction to the log at commit time.
+ //事务日志__wt_txn_log_op封装事务日志到txn->logrec，__wt_txn_log_commit对事务日志txn->logrec写盘操作
  */
 int
 __wt_txn_log_commit(WT_SESSION_IMPL *session, const char *cfg[])

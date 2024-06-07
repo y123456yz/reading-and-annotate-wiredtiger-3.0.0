@@ -93,6 +93,7 @@ typedef struct {
  */
 typedef struct {
     TABLE *table;           /* set of potential tables */
+    //table_count配置，默认为1，代表表的个数
     uint32_t table_count;   /* size of table array */
     uint32_t tables_in_use; /* count of tables that exist */
     uint32_t full_backup_number;

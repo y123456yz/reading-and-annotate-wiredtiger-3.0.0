@@ -2307,7 +2307,8 @@ __session_get_rollback_reason(WT_SESSION *wt_session)
 
 /*
  * __session_checkpoint --
- *     WT_SESSION->checkpoint method.
+ *     WT_SESSION->checkpoint method.  yang add todo xxxxxxxxxxxxxxxx 如果有其他线程在做checkpoint，这里应该直接返回,同一时刻只允许一个线程做checkpoint
+ //__ckpt_server checkpoint线程定期执行
  */
 static int
 __session_checkpoint(WT_SESSION *wt_session, const char *config)

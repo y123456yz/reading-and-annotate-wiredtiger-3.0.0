@@ -87,6 +87,9 @@ __wt_gen_next(WT_SESSION_IMPL *session, int which, uint64_t *genp)
 /*
  * __wt_gen_next_drain --
  *     Switch the resource to its next generation, then wait for it to drain.
+ 
+//__wt_session_gen_enter代表开始进行which操作，__wt_session_gen_leave代表完成which操作，__wt_gen_next_drain代表等待所有which完成
+//例如一个线程不停随机写数据，在__wt_reconcile中__reconcile前延迟100s，另外一个线程延迟10s一会儿做checkpoint，则checkpoint线程就会在__wt_sync_file->__wt_gen_next_drain这里一直延迟等待
  */
 //一直等到确保所有session的generation都大于等于最新为该session生成的generation才返回
 //主要是等待evict server线程__wt_evict中完成evict
@@ -180,6 +183,8 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
                 __wt_epoch(session, &stop);
                 time_diff_ms = WT_TIMEDIFF_MS(stop, start);
 #define WT_GEN_DRAIN_TIMEOUT_MIN 4
+//例如一个线程不停随机写数据，在__wt_reconcile中__reconcile前延迟100s，另外一个线程延迟10s一会儿做checkpoint，
+// 则checkpoint线程就会在__wt_sync_file->__wt_gen_next_drain这里一直延迟等待, 并且就会进入这个逻辑打印
                 if (time_diff_ms > minutes * WT_MINUTE * WT_THOUSAND) {
                     __wt_verbose_notice(session, WT_VERB_GENERATION,
                       "%s generation drain waited %" PRIu64 " minutes", __gen_name(which), minutes);
@@ -190,7 +195,7 @@ __wt_gen_drain(WT_SESSION_IMPL *session, int which, uint64_t generation)
                 //yang add test todo xxxxxxxxxxxxxxxxxxx  这里要做判断
                 else if (!verbose_timeout_flags &&
                   time_diff_ms > (WT_GEN_DRAIN_TIMEOUT_MIN * WT_MINUTE * WT_THOUSAND - 20)) {
-                    printf("yang test ........__evict_server.............WT_VERB_EVICT:%d\r\n", S2C(session)->verbose[WT_VERB_EVICT]);
+                    //printf("yang test ........__evict_server.............WT_VERB_EVICT:%d\r\n", S2C(session)->verbose[WT_VERB_EVICT]);
                     if (which == WT_GEN_EVICT) {
                         if (S2C(session)->verbose[WT_VERB_EVICT] > WT_VERBOSE_DEBUG_1)
                             WT_VERBOSE_SET_AND_SAVE(session, verbose_tmp, WT_VERB_EVICT, WT_VERBOSE_DEBUG_1);
@@ -314,8 +319,11 @@ __wt_session_gen(WT_SESSION_IMPL *session, int which)
 
 /*
  * __wt_session_gen_enter --
- *     Publish a thread's resource generation.
- */ //把当前的全局conn gen记录到session gen中
+ *     Publish a thread's resource generation.  
+
+//__wt_session_gen_enter代表开始进行which操作，__wt_session_gen_leave代表完成which操作，__wt_gen_next_drain代表等待所有which完成
+//例如一个线程不停随机写数据，在__wt_reconcile中__reconcile前延迟100s，另外一个线程延迟10s一会儿做checkpoint，则checkpoint线程就会在__wt_sync_file->__wt_gen_next_drain这里一直延迟等待
+*/ //把当前的全局conn gen记录到session gen中
 void
 __wt_session_gen_enter(WT_SESSION_IMPL *session, int which)
 {
@@ -342,6 +350,11 @@ __wt_session_gen_enter(WT_SESSION_IMPL *session, int which)
 /*
  * __wt_session_gen_leave --
  *     Leave a thread's resource generation.
+
+//__wt_session_gen_enter代表开始进行which操作，__wt_session_gen_leave代表完成which操作，__wt_gen_next_drain代表等待所有which完成
+//例如一个线程不停随机写数据，在__wt_reconcile中__reconcile前延迟100s，另外一个线程延迟10s一会儿做checkpoint，则checkpoint线程就会在__wt_sync_file->__wt_gen_next_drain这里一直延迟等待
+
+ 
 //WT_GEN_SPLIT: WT_WITH_PAGE_INDEX=WT_ENTER_PAGE_INDEX+WT_LEAVE_PAGE_INDEX
 //WT_GEN_EVICT: __wt_evict
 //WT_GEN_HAZARD: __wt_hazard_check
@@ -413,7 +426,7 @@ __stash_discard(WT_SESSION_IMPL *session, int which)
  * __wt_stash_discard --
  *     Discard any memory from a session stash that we can.
  */
-//释放该session下所有的stash
+//释放该session下所有的stash， 一般有用户线程一次请求完成后指向，例如__wt_txn_commit->__wt_txn_release->__wt_stash_discard
 void
 __wt_stash_discard(WT_SESSION_IMPL *session)
 {
@@ -430,7 +443,8 @@ __wt_stash_discard(WT_SESSION_IMPL *session)
 /*
  * __wt_stash_add --
  *     Add a new entry into a session stash list.
- //添加一块内存P到session->stash[which]中，等待释放
+ //添加一块内存P到session->stash[which]中，等待释放，释放时间点一般是一个请求完成后
+ //何时释放该session下所有的stash， 一般有用户线程一次请求完成后指向，例如__wt_txn_commit->__wt_txn_release->__wt_stash_discard
  */
 int
 __wt_stash_add(WT_SESSION_IMPL *session, int which, uint64_t generation, void *p, size_t len)

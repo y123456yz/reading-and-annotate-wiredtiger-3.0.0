@@ -54,7 +54,7 @@ __evict_exclusive(WT_SESSION_IMPL *session, WT_REF *ref)
   //当一个page消耗内存较高，用户线程主动强制eviect:  __wt_page_in_func->__wt_page_release_evict->__wt_evict
  //当总内存或者脏数据或者update数据超过一定比例，用户线程或者后台线程的evict逻辑: __evict_page->__wt_evict
  //__wt_evict_file->__wt_evict : checkpoint逻辑
-int
+int 
 __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
 {
     WT_BTREE *btree;
@@ -291,6 +291,8 @@ __wt_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint8_t previous_state, uint32
     if (0) {
 err:
         if (!closing)
+            //如果split成功，则拆分前的ref状态会在__split_multi->__wt_multi_to_ref把原来的ref(也就是数组ref_new[i]的第一个ref_new[0]) stat置为新的状态
+            //如果split失败，则需要恢复为split前的状态
             __evict_exclusive_clear(session, ref, previous_state);
 
         if (time_start != 0) {
@@ -827,7 +829,7 @@ __evict_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t evict_flags)
          */
         //如果不是WT_CACHE_EVICT_SCRUB，一般都会进来
         if (!WT_SESSION_BTREE_SYNC(session) &&
-        //__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+        //__evict_update_work 例如如果已使用内存占比总内存不超过(target 80% + trigger 95%)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
         //  说明reconcile的适合可以内存拷贝一份page数据存入image
           (F_ISSET(cache, WT_CACHE_EVICT_SCRUB) ||
             (F_ISSET(cache, WT_CACHE_EVICT_DEBUG_MODE) && __wt_random(&session->rnd) % 3 == 0)))

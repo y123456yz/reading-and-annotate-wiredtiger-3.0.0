@@ -210,10 +210,11 @@ struct __wt_txn_global {
     //__wt_txn_update_oldest中赋值
     volatile uint64_t metadata_pinned; /* Oldest ID for metadata */
 
+    //成员赋值参考WT_WITH_TXN_ISOLATION
+
     //链表上的成员数为conn->session_cnt，参考__txn_get_snapshot_int
     //数组空间分配及数组大小赋值参考__wt_txn_global_init，数组每个成员id对应所有session->id
 
-    //成员赋值参考WT_WITH_TXN_ISOLATION
     WT_TXN_SHARED *txn_shared_list; /* Per-session shared transaction states */
 };
 
@@ -325,8 +326,9 @@ struct __wt_txn {
 
     //同一个session一个完整事务有一个id,该sesson下一个事务的时候，回通过__wt_txn_id_alloc从新获取一个id
     //也就是每个session->txn->id都是唯一的，并且是递增的，等于获取id时候的txn_global->current-1, 
+    //注意如果事务中全是查询，则整个事务过程中id一直为0
 
-    //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置为0 WT_TXN_NONE
+    //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置为WT_TXN_NONE 
     uint64_t id;
 
     //事务隔离级别 __wt_txn_begin配置，默认WT_ISO_SNAPSHOT，赋值见__wt_txn_begin

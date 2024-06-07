@@ -72,6 +72,8 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
     //分支一: page内存消耗在80% * maxmempage级别的判断走这里
     if (footprint < btree->maxmempage) { //这里面可能会决定是否需要进行page splite
          //之前该page在__split_insert中已经拆分过一次了直接返回, 在外层进入__evict_reconcile流程
+
+        //如果是到了80% * maxmempage级别，需要split-insert, 这时候是不受其他线程checkpoint __wt_btree_syncing_by_other_session限制的
         if (__wt_leaf_page_can_split(session, page)) //
             return (true);
         return (false);
@@ -97,6 +99,7 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
     /* Trigger eviction on the next page release. */
     __wt_page_evict_soon(session, ref);
 
+    printf("yang test ..........__evict_force_check................\r\n");
     /* If eviction cannot succeed, don't try. */
     return (__wt_page_can_evict(session, ref, NULL));
 }
@@ -104,6 +107,8 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __page_read --
  *     Read a page from the file.
+//如果内存很紧张，则reconcile的时候会持久化到磁盘，这时候disk_image为NULL，split拆分后的ref->page为NULL，这时候page生成依靠用户线程
+//  在__page_read中读取磁盘数据到page中完成ref->page内存空间生成
  */
 //加载磁盘中的数据或者创建新的leaf page
 static int
@@ -296,6 +301,7 @@ __wt_page_in_func(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags
     btree = S2BT(session);
     txn = session->txn;
 
+    //printf("yang test ............__wt_page_in_func.................\r\n");  //从打印看读写都会进来
     if (F_ISSET(session, WT_SESSION_IGNORE_CACHE_SIZE))
         LF_SET(WT_READ_IGNORE_CACHE_SIZE);
 
@@ -347,10 +353,20 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
               F_ISSET(session, WT_SESSION_READ_WONT_NEED) ||
               F_ISSET(S2C(session)->cache, WT_CACHE_EVICT_NOKEEP);
             continue;
-        case WT_REF_LOCKED:
+
+
+        //__wt_page_release_evict进行split的时候会进入该状态，如果__wt_page_release_evict split成功，则拆分前的ref状态会在
+        //  __split_multi->__wt_multi_to_ref生成新的ref_new[]，原来的ref会通过__split_safe_free->__wt_stash_add加入等待释放队列并置为WT_REF_SPLIT
+        //  下一轮while会判断WT_REF_SPLIT然后返回WT_REF_SPLIT，最终在外层__wt_txn_commit->__wt_txn_release->__wt_stash_discard真正释放
+
+        //  可能不是我们想要的ref,但是不影响，在外层函数外层__wt_row_search会继续查找需要的ref
+
+        //配合__split_multi_lock阅读
+        case WT_REF_LOCKED: //如果该page为WT_REF_LOCKED，则会在该循环一直sleep, 直到该page不为WT_REF_LOCKED，对__split_multi做长时间延迟就会复现 
             if (LF_ISSET(WT_READ_NO_WAIT))
                 return (WT_NOTFOUND);
-
+            //当其他线程因为wt_reconcile设置ref状态为WT_REF_LOCKED的时候，如果其他线程读写该page，需要在这里等待
+            
             if (F_ISSET(ref, WT_REF_FLAG_READING)) {
                 if (LF_ISSET(WT_READ_CACHE))
                     return (WT_NOTFOUND);
@@ -360,11 +376,14 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
             } else
                 /* Waiting on eviction, stall. */
                 WT_STAT_CONN_INCR(session, page_locked_blocked);
-
+            //printf("yang test ................__wt_page_in_func...........page:%p, ref->state:%d\r\n", ref->page, ref->state);
+        
             stalled = true;
             break;
-        case WT_REF_SPLIT:
-            return (WT_RESTART);
+        case WT_REF_SPLIT://split实际上通过这里返回
+            __wt_verbose(session, WT_VERB_SPLIT,
+              "yang test ......__wt_page_in_func.....WT_REF_SPLIT...ref:%p....ref->state:%d\r\n", ref, ref->state);
+            return (WT_RESTART);//这里直接返回，标识外层__wt_row_search会继续查找需要的ref
         case WT_REF_MEM:
             /*
              * The page is in memory.
@@ -422,14 +441,19 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
              */
             if (force_attempts < 10 && __evict_force_check(session, ref)) {
                 ++force_attempts;
-                
+       
+                if (strcmp(session->name, "WT_CURSOR.__curfile_insert") == 0)
+                    __wt_verbose(session, WT_VERB_SPLIT,
+                       "yang test ......__wt_page_in_func...start..ref:%p.......ref->state:%d\r\n", ref, ref->state);
+
                 ret = __wt_page_release_evict(session, ref, 0);
                 /*
                  * If forced eviction succeeded, don't retry. If it failed, stall.
                  */
-                if (ret == 0 || __wt_btree_syncing_by_other_session(session)) //yang add change xxxxxxxxxxx
+                if (ret == 0) { //yang add change xxxxxxxxxxx
                     evict_skip = true; //下一个循环得时候在下面得skip_evict退出循环
-                else if (ret == EBUSY) {
+                    WT_NOT_READ(ret, 0);
+                } else if (ret == EBUSY) {
                     WT_NOT_READ(ret, 0);
                     WT_STAT_CONN_INCR(session, page_forcible_evict_blocked);
                     stalled = true;
@@ -511,6 +535,15 @@ skip_evict: //从这里退出循环
                 continue;
         }
         __wt_spin_backoff(&yield_cnt, &sleep_usecs);
+        
+        __wt_verbose(session, WT_VERB_SPLIT,
+          "yang test ......__wt_page_in_func.....ref:%p.......ref->state:%d, \r\n", ref, ref->state);
+        //__wt_sleep(1, 0);//yang add change todo 
+        //printf("yang test ................__wt_page_in_func...........ref->state:%d\r\n", ref->state);
         WT_STAT_CONN_INCRV(session, page_sleep, sleep_usecs);
     }
+
+    if (strcmp(session->name, "WT_CURSOR.__curfile_insert") == 0)
+        __wt_verbose(session, WT_VERB_SPLIT,
+           "yang test ......__wt_page_in_func...end..ref:%p.......ref->state:%d\r\n", ref, ref->state);
 }

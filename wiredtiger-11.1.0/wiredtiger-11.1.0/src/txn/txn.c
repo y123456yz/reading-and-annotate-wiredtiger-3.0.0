@@ -242,12 +242,12 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
      * We can assume that if a function calls without intention to publish then it is the special
      * case of checkpoint calling it twice. In which case do not include the checkpoint id.
      */
-    //普通事务获取快照时候，如果当前有正在做checkpoint的事务
+    //普通事务获取快照时候，如果当前有正在做checkpoint的事务,checkpoint线程会进入这里面获取checkpoint对应session的事务ID
     if ((id = txn_global->checkpoint_txn_shared.id) != WT_TXN_NONE) {
         if (txn->id != id)
             //也就是记录对应得checkpoint id信息
             txn->snapshot[n++] = id;
-        printf("yang test .........__txn_get_snapshot_int......%d, %lu\r\n", publish, id);    
+        //printf("yang test .........__txn_get_snapshot_int......%d, %lu\r\n", publish, id);    
         if (publish)
             txn_shared->metadata_pinned = id;
     }
@@ -2938,6 +2938,9 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /* Skip sessions with no active transaction */
         //下面的内容只有在对应session事务调用__wt_txn_id_alloc获取到事务id或者s->pinned_id部位0后才会输出
+
+        //只打印有事务id的session信息，也就是这个session当前还在事务进行中，当一个session commit提交事务后，
+        //  这个session的事务id会置为WT_TXN_NONE，所以就不会有后面的打印
         if ((id = s->id) == WT_TXN_NONE && s->pinned_id == WT_TXN_NONE)
             continue;
             

@@ -35,6 +35,7 @@ typedef enum {
  *     otherwise.
  */
 //添加需要释放的p先添加到stash中存起来
+//何时释放该session下所有的stash， 一般有用户线程一次请求完成后指向，例如__wt_txn_commit->__wt_txn_release->__wt_stash_discard
 static int
 __split_safe_free(WT_SESSION_IMPL *session, uint64_t split_gen, bool exclusive, void *p, size_t s)
 {
@@ -325,7 +326,10 @@ __split_ref_final(WT_SESSION_IMPL *session, uint64_t split_gen, WT_PAGE ***locke
  */
 static int
 __split_ref_prepare(
-  WT_SESSION_IMPL *session, WT_PAGE_INDEX *pindex, WT_PAGE ***lockedp, bool skip_first)
+  WT_SESSION_IMPL *session, 
+  //pindex为新增这一层的的index[]
+  WT_PAGE_INDEX *pindex, 
+  WT_PAGE ***lockedp, bool skip_first)
 {
     WT_DECL_RET;
     WT_PAGE *child, **locked;
@@ -354,13 +358,17 @@ __split_ref_prepare(
      */
     alloc = cnt = 0;
     for (i = skip_first ? 1 : 0; i < pindex->entries; ++i) {
+        //指向下一层
         ref = pindex->index[i];
         child = ref->page;
 
+        //printf("yang test ............__split_ref_prepare...............page type:%u, pindex->entries:%u\r\n", 
+         //   child->type, pindex->entries);
         /* Track the locked pages for cleanup. */
         WT_ERR(__wt_realloc_def(session, &alloc, cnt + 2, &locked));
         locked[cnt++] = child;
 
+        printf("yang test .........__split_ref_prepare...........WT_PAGE_LOCK.....page:%p, %s\r\n", child, __wt_page_type_string(child->type));
         WT_PAGE_LOCK(session, child);
 
         /* Switch the WT_REF's to their new page. */
@@ -389,11 +397,11 @@ err:
 
 root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存超过btree->maxmempage大小
 这时候__split_internal_should_split满足条件，root page开始拆分，拆分过程是增加一层internal page, meig
-                       root page                               第一层:1个root page
+                       root page                                第一层:1个root page
                       /     |     \
                     /       |       \
                   /         |         \
-       leaf-1 page      .........   leaf-185 page              第二层:185个root page
+       leaf-1 page      .........   leaf-10002 page              第二层:10002个leaf page
 
                             |
                             |
@@ -401,15 +409,15 @@ root page最开始随着数据写入root index[]下面leaf page增加到185后，root page总内存
                             |
                             |
                            \|/
-                         root page                              第一层:1个root page,index[]大小10
+                         root page                                 第一层:1个root page,index[]大小101
                          /   |      \
                        /     |       \
                      /       |         \
-         internal-1 page   .......    internal-10 page          第二层:10个internal page，前面9个internal page的index[]大小18，最后一个internal page的index[]大小23
+         internal-1 page   .......    internal-101 page             第二层:101个internal page，前面99个internal page的index[]大小100，最后一个internal page的index[]大小102
           /      \           |           /    \
          /        \          |          /       \
         /          \      .......      /          \
- leaf-1 page    leaf-18 page   leaf-162 page   leaf-185 page    第三层:185个leaf page
+ leaf-1 page    leaf-100 page   leaf-9900 page   leaf-10002 page    第三层:10001个leaf page (每组100个，最后一组102个)
 
  */
 static int
@@ -470,6 +478,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
     //printf("yang test .........__split_root.....................children:%d, chunk:%d, remain:%d\r\n",
     //    (int)children, (int)chunk, (int)remain);
 
+    //10011 root page elements, splitting into 100 children
     __wt_verbose(session, WT_VERB_SPLIT,
       "%p: %" PRIu32 " root page elements, splitting into %" PRIu32 " children", (void *)root,
       pindex->entries, children);
@@ -478,6 +487,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
      * Allocate a new WT_PAGE_INDEX and set of WT_REF objects to be inserted into the root page,
      * replacing the root's page-index.
      */
+    //注释中新增层的internal ref数组空间分配，总计100组个第二层children
     size = sizeof(WT_PAGE_INDEX) + children * sizeof(WT_REF *);
     WT_ERR(__wt_calloc(session, 1, size, &alloc_index));
     root_incr += size;
@@ -489,18 +499,22 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
     root_incr += children * sizeof(WT_REF);
 
     /* Allocate child pages, and connect them into the new page index. */
+    //新增这一层的page空间创建及从ref空间赋值
     for (root_refp = pindex->index, alloc_refp = alloc_index->index, i = 0; i < children; ++i) {
         slots = i == children - 1 ? remain : chunk;
-        //printf("yang test.......................................__split_root....................\r\n");
+        //printf("yang test................__split_root....................type:%u\r\n", root->type); //打印出来的值为6，也就是WT_PAGE_ROW_INT
+        //child为internal page
         WT_ERR(__wt_page_alloc(session, root->type, slots, false, &child));
 
         /*
          * Initialize the page's child reference; we need a copy of the page's key.
          */
+        //说明是新增的第二层
         ref = *alloc_refp++;
-        ref->home = root;
+        ref->home = root;//指向root
         ref->page = child;
         ref->addr = NULL;
+        //该internal page的key拷贝到该internal ref
         if (root->type == WT_PAGE_ROW_INT) {
             __wt_ref_key(root, *root_refp, &p, &size);
             WT_ERR(__wt_row_ikey(session, 0, p, size, ref));
@@ -524,8 +538,11 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
          * have to fix that, because the disk image for the page that has a page index entry for the
          * WT_REF is about to change.
          */
+        //指向新增层的下一层
         child_pindex = WT_INTL_INDEX_GET_SAFE(child);
         child_incr = 0;
+        //以注释的图形化为例，slot也就是每个组的leaf page个数，前面的99组slot=100，第100组slots为102
+        // 也就是实现注释图形化中的第2层和第3层的映射，实现ref内存拷贝
         for (child_refp = child_pindex->index, j = 0; j < slots; ++child_refp, ++root_refp, ++j)
             WT_ERR(__split_ref_move(session, root, root_refp, &root_decr, child_refp, &child_incr));
 
@@ -540,6 +557,7 @@ __split_root(WT_SESSION_IMPL *session, WT_PAGE *root)
     WT_PUBLISH(complete, WT_ERR_PANIC);
 
     /* Prepare the WT_REFs for the move. */
+    //也就是锁住新增层的所有page
     WT_ERR(__split_ref_prepare(session, alloc_index, &locked, false));
 
     /* Encourage a race */
@@ -620,6 +638,7 @@ err:
 /*
  * __split_parent_discard_ref --
  *     Worker routine to discard WT_REFs for the split-parent function.
+ //老ref在__split_parent->__split_parent_discard_ref释放，老page在__split_multi->__wt_page_out释放
  */ //ref及对page资源释放
 static int
 __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *parent, size_t *decrp,
@@ -672,7 +691,10 @@ __split_parent_discard_ref(WT_SESSION_IMPL *session, WT_REF *ref, WT_PAGE *paren
  //ref记录split之前的page,ref_new为split后的page, ref_new是一个数组，代表从一个ref拆分到了new_entries个ref
  */
 static int
-__split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t new_entries,
+__split_parent(WT_SESSION_IMPL *session, 
+    //ref对应需要split的leaf page
+    WT_REF *ref, 
+    WT_REF **ref_new, uint32_t new_entries,
   size_t parent_incr,
   bool exclusive,
   //除了internal leaf为false，其他都为true
@@ -695,7 +717,9 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
 
     for (uint32_t ii = 0; ii < new_entries; ii++) {
         page = ref_new[ii]->page;
-        if (page)
+        //if (page == NULL)
+        //    printf("yang test .....__split_parent.................page:%p\r\n", page);
+        if (page && false)
             __wt_verbose(
                 session, WT_VERB_EVICT, "__split_parent,page%u: %p (%s) memory_footprint:%d, page->dsk->mem_size:%d, entries:%d", ii, (void *)page, 
                 __wt_page_type_string(page->type), (int)page->memory_footprint, page->dsk ? (int)page->dsk->mem_size : 0, (int)page->entries);
@@ -731,7 +755,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      * sync.
      */
     deleted_entries = 0;
-    //删除该parent下面带有WT_REF_DELETED标记的page
+    //删除该parent下面因为本session做checkpoint标识为WT_REF_DELETED的page
     if (!WT_BTREE_SYNCING(btree) || WT_SESSION_BTREE_SYNC(session))
         for (i = 0; i < parent_entries; ++i) {
             next_ref = pindex->index[i];
@@ -775,7 +799,7 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
         empty_parent = true;
 
         if (!__wt_ref_is_root(parent->pg_intl_parent_ref))
-            //不受root节点
+            //不是root节点
             __wt_page_evict_soon(session, parent->pg_intl_parent_ref);
 
         //如果ref对应父节点ref是root节点
@@ -806,6 +830,8 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
                 ref_new[j]->home = parent;
                 ref_new[j]->pindex_hint = hint++;
                 *alloc_refp++ = ref_new[j];
+                if (ref_new[j]->page == NULL)
+                    printf("yang test .....__split_parent........2.........page:%p\r\n", ref_new[j]->page);
             }
             continue;
         }
@@ -870,10 +896,15 @@ __split_parent(WT_SESSION_IMPL *session, WT_REF *ref, WT_REF **ref_new, uint32_t
      * splitting and any deleted WT_REFs we found, modulo the usual safe free semantics, then reset
      * the WT_REF state.
      */
+    //老的ref需要释放资源，因为已经被新的ref_new给替代了，当一个线程evict的时候ref处于WT_REF_LOCKED，其他线程都需要
+    //  在__wt_page_in_func因为WT_REF_LOCKED状态延迟等待，所以这里ref可以直接释放，因为被新的ref替代掉了
     if (discard) {
+        //要么conn close，或者ref状态为WT_REF_LOCKED
         WT_ASSERT(session, exclusive || ref->state == WT_REF_LOCKED);
         WT_TRET(
           //老的ref需要释放资源，因为已经被新的ref_new给替代了
+
+          //老ref在__split_parent->__split_parent_discard_ref释放，老page在__split_multi->__wt_page_out释放
           __split_parent_discard_ref(session, ref, parent, &parent_decr, split_gen, exclusive));
     }
 
@@ -1197,7 +1228,7 @@ __split_internal(WT_SESSION_IMPL *session, WT_PAGE *parent, WT_PAGE *page)
      */
     WT_ASSERT(session, WT_INTL_INDEX_GET_SAFE(page) == pindex);
     WT_INTL_INDEX_SET(page, replace_index);
-
+   
     /* Encourage a race */
     __wt_timing_stress(session, WT_TIMING_STRESS_SPLIT_6, NULL);
 
@@ -1349,8 +1380,11 @@ __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PA
 
         if (trylock) //获取page对应的page_lock锁
             WT_RET(WT_PAGE_TRYLOCK(session, parent));
-        else
+        else {
+            printf("yang test ...__split_internal_lock...........WT_PAGE_LOCK.....page:%p %s\r\n", parent, __wt_page_type_string(parent->type));
+        
             WT_PAGE_LOCK(session, parent);
+        }
         if (parent == ref->home)
             break;//这里break，也就是没有unlock，在外层unlock
 
@@ -1433,7 +1467,9 @@ __split_internal_should_split(WT_SESSION_IMPL *session, WT_REF *ref)
  *     Check if we should split up the tree.
  */
 static int
-__split_parent_climb(WT_SESSION_IMPL *session, WT_PAGE *page)
+__split_parent_climb(WT_SESSION_IMPL *session, 
+    //对应的是需要split的leaf page的parent
+    WT_PAGE *page)
 {
     WT_DECL_RET;
     WT_PAGE *parent;
@@ -1480,6 +1516,15 @@ __split_parent_climb(WT_SESSION_IMPL *session, WT_PAGE *page)
         //ref指向该page自己所属的ref
         ref = page->pg_intl_parent_ref;
 
+        {
+            WT_PAGE_INDEX *pindex;
+
+            pindex = WT_INTL_INDEX_GET_SAFE(page);
+
+      __wt_verbose(session, WT_VERB_SPLIT,
+          "yang test ......__split_parent_climb............ref:%p, entrys:%d, is root:%d\r\n",
+                ref, (int)pindex->entries, __wt_ref_is_root(ref));
+        }
         /* If we don't need to split the page, we're done. */
         /*
             internal page(包括root)的split条件，以下满足任何一个即可
@@ -1908,6 +1953,7 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
      * confusion.
      */
     //创建新ref，新ref->addr指向磁盘上的chunk数据
+    //reconcile后page数据已经持久化，这时候page不在内存中，记录已持久化的page元数据addr信息，这时候ref->page都为NULL
     if (multi->addr.addr != NULL) {
         WT_RET(__wt_calloc_one(session, &addr));
         ref->addr = addr;
@@ -1919,7 +1965,9 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
 
         //表示该page对应数据在磁盘中，注意在下面的__split_multi_inmem后会置为WT_REF_MEM
         WT_REF_SET_STATE(ref, WT_REF_DISK);
-       // printf("yang test ......111...........__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n",
+
+        //这里打印出的page为NULL
+        //printf("yang test ......111...........__wt_multi_to_ref..................ref:%p, page:%p stat:%u\r\n",
         //    ref, ref->page, ref->state);
     }
 
@@ -1927,7 +1975,11 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
      * If we have a disk image and we're not closing the file, re-instantiate the page.
      *
      * Discard any page image we don't use.
+     如果内存比较充足，创建page空间，这时候也会拷贝一份磁盘数据到内存page->pg_row[]中
      */
+
+    //如果内存很紧张，则reconcile的时候会持久化到磁盘，这时候disk_image为NULL，split拆分后的ref->page为NULL，这时候page生成依靠用户线程
+    //  在__page_read中读取磁盘数据到page中完成ref->page内存空间生成
     if (multi->disk_image != NULL && !closing) {//yang add todo xxxx   如果是closin __rec_split_write中是否有必要分配内存拷贝chunk数据到disk_image
          //新建一个page， 实现一个multi与这个page的映射，主要是实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
         WT_RET(__split_multi_inmem(session, page, multi, ref));
@@ -2365,13 +2417,13 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
     WT_RET(__wt_calloc_def(session, new_entries, &ref_new));
     for (i = 0; i < new_entries; ++i)
         WT_ERR( //为每一个page指向reconcile拆分后的磁盘元数据
-        //新建一个ref， 实现一个multi与这个ref page的映射，主要是实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
+        //新建一个ref， 实现一个multi与这个ref的映射，如果内存充足，还实现磁盘KV数据和page->pg_row的隐射，以及page相关赋值
           __wt_multi_to_ref(session, page, &mod->mod_multi[i], &ref_new[i], &parent_incr, closing));
 
     /*
      * Split into the parent; if we're closing the file, we hold it exclusively.
      */
-    //该page拆分为multi_next个page后，重新构建父parent的index索引数组
+    //该page拆分为multi_next个ref后，重新构建父parent的index索引数组
     WT_ERR(__split_parent(session, ref, ref_new, new_entries, parent_incr, closing, true));
 
     /* 下面逻辑主要是释放老page(也就是拆分前的page)的内存回收 */
@@ -2389,6 +2441,9 @@ __split_multi(WT_SESSION_IMPL *session, WT_REF *ref, bool closing)
      */
     __wt_page_modify_clear(session, page);
     //page空间释，包括WT_PAGE_MODIFY page->modify相关空间释放，包括mod_row_insert mod_row_update mod_multi等，以及page->dsk等
+    //老的page在这里释放，前面已经生成了新page挂找到ref_new[]上，因此这里需要把老的ref释放掉
+
+    //老ref在__split_parent->__split_parent_discard_ref释放，老page在__split_multi->__wt_page_out释放
     __wt_page_out(session, &page);
 
     if (0) {
@@ -2418,8 +2473,12 @@ __split_multi_lock(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
     WT_PAGE *parent;
 
     /* Lock the parent page, then proceed with the split. */
+    //这里为什么对需要split的parent加锁，而需要拆分的page没用加锁，原因是如果该page正在进行split,则其他线程通过__wt_page_in_func
+    //  的WT_REF_LOCKED来延迟阻塞等待该split完成，等待的ref也就变为拆分后的ref数组的ref_new[0]，原来的ref是保留的，只是ref对应page发生了变化
+    
     //获取page对应的page_lock锁，也就是锁住ref->home这个internal page, 并返回parent page
     WT_RET(__split_internal_lock(session, ref, false, &parent));
+    //注意这里是对需要拆分的ref的父index[]元数据更新，父page index[]生成新的元数据
     if ((ret = __split_multi(session, ref, closing)) != 0 || closing) {
         __split_internal_unlock(session, parent);
         return (ret);
@@ -2429,6 +2488,7 @@ __split_multi_lock(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
      * Split up through the tree as necessary; we're holding the original parent page locked, note
      * the functions we call are responsible for releasing that lock.
      */
+    //这里是对parent处理
     return (__split_parent_climb(session, parent));
 }
 
@@ -2446,7 +2506,9 @@ int
 __wt_split_multi(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
 {
     WT_DECL_RET;
+    uint64_t time_start, time_stop;
 
+    time_start = __wt_clock(session);
     __wt_verbose(session, WT_VERB_SPLIT, "%p: split-multi", (void *)ref);
 
     /*
@@ -2454,6 +2516,11 @@ __wt_split_multi(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
      * eviction, then proceed with the split.
      */
     WT_WITH_PAGE_INDEX(session, ret = __split_multi_lock(session, ref, closing));
+
+    time_stop = __wt_clock(session);
+    
+    printf("yang test ..........__wt_split_multi...............time:%d us\r\n", (int)WT_CLOCKDIFF_US(time_stop, time_start));
+
     return (ret);
 }
 

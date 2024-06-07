@@ -205,7 +205,7 @@ access_txn20_test(void)
     error_check(conn->open_session(conn, NULL, NULL, &session2));
     error_check(session2->open_cursor(session2, "table:access_txn", NULL, NULL, &cursor2));
     error_check(session2->begin_transaction(session2, "isolation=snapshot"));
-    {//这里
+    {//这里snapshot方式begin_transaction的时候，会通过__wt_txn_begin->__wt_txn_get_snapshot获取快照
         WT_CURSOR_BTREE *cbt;
         WT_SESSION_IMPL *session_impl;
         cbt = (WT_CURSOR_BTREE *)cursor2; //yang add xxxxxxxxx todo  
@@ -218,11 +218,15 @@ access_txn20_test(void)
     // 的时候生成，所以test_txn20测试时候，WT_ISO_READ_COMMITTED方式由于之前的update已提交，提交完成后update对应事务会清理掉，所以在update事务提交后WT_ISO_READ_COMMITTED
     // 方式无法获取update的快照。
 
+    //从这个例子中可以看出:
+    // snapshot隔离级别的事务: 读取操作只会读取begin_transaction这个时刻已经提交的数据
+    // read-committed隔离级别的事务: 实际上是读取__curfile_search执行时候已经提交的数据
+
     //新session3 "isolation=read-committed"读这条数据
     error_check(conn->open_session(conn, NULL, NULL, &session3));
     error_check(session3->open_cursor(session3, "table:access_txn", NULL, NULL, &cursor3));
     error_check(session3->begin_transaction(session3, "isolation=read-committed"));
-    {
+    {//这里read-committed方式begin_transaction的时候，不会通过__wt_txn_get_snapshot获取快照，也就是当前没有update的快照
         WT_CURSOR_BTREE *cbt;
         WT_SESSION_IMPL *session_impl;
         cbt = (WT_CURSOR_BTREE *)cursor3; //yang add xxxxxxxxx todo  
@@ -230,7 +234,7 @@ access_txn20_test(void)
         error_check(__wt_verbose_dump_txn(session_impl, "ex access ..............2...test_txn20"));
     }
     
-    //session2  session3读数据前commit事务
+    //session2  session3读数据前commit事务，update事务id会被清理掉，后续通过__wt_txn_get_snapshot获取快照无法获取update的事务id
     error_check(session->commit_transaction(session, NULL));
 
     {
@@ -245,7 +249,7 @@ access_txn20_test(void)
     error_check(cursor2->get_value(cursor2, &value));
     printf("Load snapshot search value: %s\n", value);
 
-    printf("yang test...test_txn20......只能看到value_old, 不能看到value_new, 因为begain txn的时候snpshot[]中已经保持了老session的事务\r\n");
+    printf("yang test...test_txn20......only see value_old, not see value_new, 因为begain txn的时候snpshot[]中已经保持了老session的事务\r\n");
 
 
 
@@ -373,9 +377,11 @@ access_example(void)
     compact_progress=5,error_returns=5,evict=5,evict_stuck=5,evictserver=5,fileops=5,generation=5,handleops=5,log=5,\
     hs=5, history_store_activity=5,lsm=5,lsm_manager=5,metadata=5,mutex=5,out_of_order=5,overflow=5,read=5,reconcile=5,recovery=5, \
     recovery_progress=5,rts=5, salvage=5, shared_cache=5,split=5,temporary=5,thread_group=5,timestamp=5,tiered=5,transaction=5,verify=5,\  ,timing_stress_for_test:[split_7, split_5,split_6]
-    version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/
+    version=5,write=5, config_all_verbos=1, api=-3, metadata=-3]  ", &conn));*/  //eviction_dirty_target=90,eviction_dirty_trigger=95,eviction_target=95,eviction_trigger=96,
     
-    error_check(wiredtiger_open(home, NULL, "log=(enabled,file_max=1000KB),create,cache_size=1G, statistics=(all), create,verbose=[config_all_verbos:0, write:0,reconcile:2, split:2, metadata:0, api:0,log:0]", &conn));
+    error_check(wiredtiger_open(home, NULL, ""
+    "log=(enabled,file_max=2000KB), checkpoint=[wait=60],create,cache_size=1G, statistics=(all), create,verbose=[config_all_verbos:0, "
+    "checkpoint:2,write:0,reconcile:2, split:2, evict:2,metadata:0, api:0,log:0]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
     /* Open a session handle for the database. */
@@ -383,8 +389,8 @@ access_example(void)
     /*! [access example connection] */
 
     /*! [access example table create] */
-    //error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u")); memory_page_image_max=128KB,
-    error_check(session->create(session, "table:access", "memory_page_max=100K,memory_page_image_max=4M, leaf_page_max=32KB,key_format=q,value_format=S"));
+    //error_check(session->create(session, "table:access", "memory_page_max=1K,key_format=q,value_format=u")); memory_page_image_max=128KB, memory_page_max=100K,memory_page_image_max=4M, leaf_page_max=32KB,
+    error_check(session->create(session, "table:access", "key_format=q,value_format=S"));
     /*! [access example table create] */
 
     /*! [access example cursor open] */
@@ -411,11 +417,11 @@ access_example(void)
 
     value_item2.data = "value new @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\0";
     value_item2.size = strlen(value_item2.data);
-    for (i=0;i < 15000; i++) {
-   // for (i=0;i < 9011 ; i++) {
-        rval = __wt_random(&rnd);
+   // for (i=0;i < 1195100; i++) {
+    for (i=3529011;i > 0 ; i--) {
+        rval = __wt_random(&rnd)%3529011;
 
-        snprintf(buf, sizeof(buf), "value xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx %d", i);
+        snprintf(buf, sizeof(buf), "value @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d", i);
         cursor->set_key(cursor, i); /* Insert a record. */
         cursor->set_value(cursor, buf);
         if (max_i < rval % 12000)
@@ -429,8 +435,10 @@ access_example(void)
         //usleep(1000);
     }
     printf("yang test   ............................insert.............. end:\r\n");
-
-    for (i=15000; i < 1501110; i++) {
+    session->checkpoint(session, "force");
+    exit(0);
+    session->checkpoint(session, "force");
+    for (i=15000; i < 15001; i++) {
     //for (i=0;i < 0; i++) {
         rval = __wt_random(&rnd) % 10111;
         snprintf(buf, sizeof(buf), "value xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx %d", i);
@@ -557,7 +565,7 @@ main(int argc, char *argv[])
     home = example_setup(argc, argv);
     printf("yang test insert ......... ex access\r\n");
 
-    access_example();
+    access_txn20_test();
 
     
 

@@ -670,6 +670,18 @@ __checkpoint_fail_reset(WT_SESSION_IMPL *session)
 /*
  * __checkpoint_prepare --
  *     Start the transaction for a checkpoint and gather handles.
+
+ The prepare stage:
+ 
+ Checkpoint prepare sets up the checkpoint, it begins the checkpoint transaction, updates the global checkpoint 
+ state and gathers a list of handles to be checkpointed. A global schema lock wraps checkpoint prepare to avoid 
+ any tables being created or dropped during this phase, additionally the global transaction lock is taken during 
+ this process as it must modify the global transaction state, and to ensure the stable_timestamp doesn't move ahead 
+ of the snapshot taken by the checkpoint transaction. Each handle gathered refers to a specific b-tree. The set of 
+ b-trees gathered by the checkpoint varies based off configuration. Additionally clean b-trees, i.e. b-trees without 
+ any modifications are excluded from the list, with an exception for specific checkpoint configuration scenarios.
+
+ https://source.wiredtiger.com/develop/arch-checkpoint.html
  */
 static int
 __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[])
@@ -1014,6 +1026,10 @@ __txn_checkpoint_clear_time(WT_SESSION_IMPL *session)
 /*
  * __txn_checkpoint --
  *     Checkpoint a database or a list of objects in the database.
+
+ checkpoint主要包含5个阶段，参考 https://source.wiredtiger.com/develop/arch-checkpoint.html
+ 
+  https://source.wiredtiger.com/develop/arch-checkpoint.html
  //cfg[0]:drop=,flush_tier=(enabled=false,force=false,sync=true,timeout=0),force=false,name=,target=,use_timestamp=true, cfg[1]:use_timestamp=true
   //__wt_txn_checkpoint->__txn_checkpoint_wrapper->__txn_checkpoint
  */ 
@@ -1175,7 +1191,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     tsp.tv_nsec = 0;
     //默认不工作，除非__wt_timing_stress_config测试配置启用
     __checkpoint_timing_stress(session, WT_TIMING_STRESS_CHECKPOINT_SLOW, &tsp);
-    //__checkpoint_tree_helper中进行真正的checkpoint流程
+    //__checkpoint_tree_helper中进行真正的checkpoint流程   yang add todo xxxxxxxxx 最好这里加stress ,因为__checkpoint_tree->__wt_evict_file在这个流程中
     WT_ERR(__checkpoint_apply_to_dhandles(session, cfg, __checkpoint_tree_helper));
 
     /* Wait prior to checkpointing the history store to simulate checkpoint slowness. */
@@ -1245,7 +1261,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
     if (full || name != NULL)
         WT_ERR(__wt_meta_sysinfo_set(session, full, name, namelen));
 
-   // sleep(2);//yang add todo xxxxxxxxxxxxxx
+   // sleep(2);//yang add change xxxxxxxxxxxxxx
    // printf("yang test ............__txn_checkpoint.....2.............\r\n");//yang add change
     /* Release the snapshot so we aren't pinning updates in cache. */
     __wt_txn_release_snapshot(session);

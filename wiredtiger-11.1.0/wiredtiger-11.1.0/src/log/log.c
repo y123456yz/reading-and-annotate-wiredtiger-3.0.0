@@ -1294,8 +1294,8 @@ __log_newfile(WT_SESSION_IMPL *session, bool conn_open, bool *created)
         WT_RET(__wt_log_system_record(session, log_fh, &logrec_lsn));
         WT_SET_LSN(&log->alloc_lsn, log->fileid, log->first_record);
     }
-    printf("yang test ..........end lsn............__log_newfile......................%u, %u\r\n", 
-        log->fileid, log->first_record);
+   // printf("yang test ..........end lsn............__log_newfile......................%u, %u\r\n", 
+    //    log->fileid, log->first_record);
     WT_ASSIGN_LSN(&end_lsn, &log->alloc_lsn);
     WT_PUBLISH(log->log_fh, log_fh);
 

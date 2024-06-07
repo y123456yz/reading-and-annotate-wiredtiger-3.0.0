@@ -10,6 +10,10 @@
 
 /*
  * __wt_evict_file --
+
+ //__checkpoint_tree->__wt_evict_file  conn close流程, 是__wt_evict流程，既有持久化过程，也会有split的内存释放流程
+//__checkpoint_tree->__wt_sync_file  普通checkpoint流程，是reconcile流程，只有持久化过程，但是没用split相关的page内存释放流程
+
  *     Discard pages for a specific file.
  //当一个page消耗内存较高，用户线程主动强制eviect:  __wt_page_in_func->__wt_page_release_evict->__wt_evict
  //当总内存或者脏数据或者update数据超过一定比例，用户线程或者后台线程的evict逻辑: __evict_page->__wt_evict

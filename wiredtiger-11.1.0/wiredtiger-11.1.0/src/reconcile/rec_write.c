@@ -26,13 +26,15 @@ static int __reconcile(WT_SESSION_IMPL *, WT_REF *, WT_SALVAGE_COOKIE *, uint32_
  * __wt_reconcile --
  *     Reconcile an in-memory page into its on-disk format, and write it.
  */
-//checkpoint流程:
+//场景1，checkpoint流程(checkpoint线程):
 //    __checkpoint_tree->__wt_sync_file，注意这个流程只会把拆分后的元数据记录到multi_next个multi[multi_next]中，但是不会通过__evict_page_dirty_update和父page关联
 //    而是通过__wt_rec_row_int->__rec_row_merge中获取multi[multi_next]进行持久化
-//evict reconcile流程:
+//场景2，evict reconcile流程(用户线程触发big page或者evict线程触发evict流程):
 //    __evict_reconcile: 负责把一个page按照split_size拆分为多个chunk写入磁盘, 相关拆分后的元数据记录到multi_next个multi[multi_next]中
 //    __evict_page_dirty_update: 把__evict_reconcile拆分后的multi[multi_next]对应分配multi_next个page，重新和父page关联
 
+//场景1和场景2的区别，checkpoint只有reconcile流程没用page在内存的split流程，场景2的用户线程和evict线程同时有reconcile和split流程, 所以reconcile不会破坏原有的page结构，只是
+//  实现原有page的持久化，而内存split会破坏原有的
 int
 __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage, uint32_t flags)
 {
@@ -87,17 +89,24 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage
      *    In-memory splits: reconciliation of an internal page cannot handle
      * a child page splitting during the reconciliation.
      */
+    //__wt_reconcile与__wt_insert_serial、__wt_update_serial需要互斥
+    //if (page->type == WT_PAGE_ROW_LEAF)
+    printf("yang test .........__wt_reconcile...........WT_PAGE_LOCK.....page:%p   %s, flags:%u\r\n", 
+        page, __wt_page_type_string(page->type), flags);
     WT_PAGE_LOCK(session, page);
     page_locked = true;
-
+    
     /*
      * Now that the page is locked, if attempting to evict it, check again whether eviction is
      * permitted. The page's state could have changed while we were waiting to acquire the lock
      * (e.g., the page could have split).
      */
+    //checkpoint的线程一般不会置位WT_REC_EVICT, 一般只有大page的用户线程和evict worker线程才会置位为WT_REC_EVICT
     if (LF_ISSET(WT_REC_EVICT) && !__wt_page_can_evict(session, ref, NULL))
         WT_ERR(__wt_set_return(session, EBUSY));
 
+    //printf("yang test .........__wt_reconcile.........1....\r\n");
+    //__wt_sleep(110, 0);//yang add change
     /*
      * Reconcile the page. The reconciliation code unlocks the page as soon as possible, and returns
      * that information.
@@ -2388,13 +2397,15 @@ copy_image:
     /*
      * If re-instantiating this page in memory (either because eviction wants to, or because we
      * skipped updates to build the disk image), save a copy of the disk image.
-    //__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+    //__evict_update_work 例如如果已使用内存占比总内存不超过(target 80% + trigger 95%)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
     //  说明reconcile的适合可以内存拷贝一份page数据存入image
      */
     //拷贝数据到multi->disk_image,  reconcile会满足WT_REC_SCRUB条件
     if (F_ISSET(r, WT_REC_SCRUB) || multi->supd_restore) {
        // printf("yang test ......__rec_split_write.......__wt_memdup....supd_restore:%d..size:%d, r->min_split_size:%d,split_size:%d\r\n"
         //    , multi->supd_restore, (int)chunk->image.size, (int)r->min_split_size, (int)r->split_size);
+
+        //printf("yang test ........__rec_split_write.................scrub:%d, supd_restore:%d\r\n", F_ISSET(r, WT_REC_SCRUB), multi->supd_restore);
         //yang add todo xxxxxxxxxx  这里会不会有大量的内存拷贝?????
         //chunk->image.size就是一个chunk的数据大小，也就是split_size大小
         WT_RET(__wt_memdup(session, chunk->image.data, chunk->image.size, &multi->disk_image));

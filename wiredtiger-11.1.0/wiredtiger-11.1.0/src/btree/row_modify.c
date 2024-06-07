@@ -405,7 +405,7 @@ __wt_update_obsolete_check(
         if (upd->txnid == WT_TXN_ABORTED)
             continue;
 
-        printf("yang test ........................... data:%s\r\n", upd->data);
+        //printf("yang test ........................... data:%s\r\n", upd->data);
         ++upd_seen;
         // 判断upd是否对当前所有session可见，这里一般是__wt_txn_update_oldest更新后，__wt_txn_update_oldest之前的事务才全局可见
         if (__wt_txn_upd_visible_all(session, upd)) {
@@ -426,20 +426,20 @@ __wt_update_obsolete_check(
         if (F_ISSET(upd, WT_UPDATE_TO_DELETE_FROM_HS))
             first = NULL;
     }
-    if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)
-        WT_IGNORE_RET(__wt_msg(session, "yang test ...1...........__wt_update_obsolete_check...%p, %p page:%p..count:%d...page->memory_footprint:%lu\r\n", 
-            first, first->next, page, (int)count, page->memory_footprint));
+    //if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)
+    //    WT_IGNORE_RET(__wt_msg(session, "yang test ...1...........__wt_update_obsolete_check...%p, %p page:%p..count:%d...page->memory_footprint:%lu\r\n", 
+    //        first, first->next, page, (int)count, page->memory_footprint));
 
     /*
      * We cannot discard this WT_UPDATE structure, we can only discard WT_UPDATE structures
      * subsequent to it, other threads of control will terminate their walk in this element. Save a
      * reference to the list we will discard, and terminate the list.
      */
-    if (first)
-        printf("yang test ........................... first data:%s\r\n", first->data);
+    //if (first)
+    //    printf("yang test ........................... first data:%s\r\n", first->data);
 
-    if (first && first->next)
-        printf("yang test ........................... next data:%s\r\n", first->next->data);
+    //if (first && first->next)
+    //    printf("yang test ........................... next data:%s\r\n", first->next->data);
                 
     //udp链表上first之后的V都过时了，可以清理掉，这里只做了内存使用量减去这些过时的V内存，没用对这些过时的V真正释放内存
     if (first != NULL && (next = first->next) != NULL &&

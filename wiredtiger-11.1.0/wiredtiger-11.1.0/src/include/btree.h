@@ -70,7 +70,7 @@ typedef enum __wt_btree_type {
 
 //__wt_btree.syncing为该类型
 typedef enum __wt_btree_sync {
-    //默认为该值
+    //默认为该值, 或者checkpoint完成会置为该状态，见__wt_sync_file
     WT_BTREE_SYNC_OFF,
 
     //只有在__wt_sync_file中进入这两个状态

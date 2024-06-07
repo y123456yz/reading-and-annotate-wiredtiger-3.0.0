@@ -125,6 +125,7 @@ struct __wt_cache {
     uint64_t pages_inmem;
 
     //__wt_cache_page_evict中自增，代表evict的page总数
+    //This is used in various places to determine whether eviction is stuck.
     volatile uint64_t eviction_progress; /* Eviction progress count */
     ////如果evict server线程两轮运行期间的evict落盘的page数没有变化，说明evict阻塞了
     uint64_t last_eviction_progress;     /* Tracked eviction progress */
@@ -301,18 +302,19 @@ struct __wt_cache {
                                    /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
     uint32_t pool_flags;           /* Cache pool flags */
 
-/* AUTOMATIC FLAG VALUE GENERATION START 0 */
+/* AUTOMATIC FLAG VALUE GENERATION START 0 */ 
 //超过了eviction_target(默认80%)配置
 #define WT_CACHE_EVICT_CLEAN 0x001u        /* Evict clean pages */
 //超过了总内存的eviction_trigger(默认95%)
 #define WT_CACHE_EVICT_CLEAN_HARD 0x002u   /* Clean % blocking app threads */
+//"debug_mode.eviction"配置
 #define WT_CACHE_EVICT_DEBUG_MODE 0x004u   /* Aggressive debugging mode */
 //脏数据内存超过了总内存eviction_dirty_trigger(默认20%)
 #define WT_CACHE_EVICT_DIRTY 0x008u        /* Evict dirty pages */
 //leaf page脏数据内存超过了总内存eviction_dirty_trigger(默认20%)
 #define WT_CACHE_EVICT_DIRTY_HARD 0x010u   /* Dirty % blocking app threads */
 #define WT_CACHE_EVICT_NOKEEP 0x020u       /* Don't add read pages to cache */
-//__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+//__evict_update_work 例如如果已使用内存占比总内存不超过(target 80% + trigger 95%)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
 //  说明reconcile的适合可以内存拷贝一份page数据存入image
 
 //最终该标识影响reconcile持久化的时候释放需要拷贝一份持久化的page内容到内存中，见__evict_reconcile

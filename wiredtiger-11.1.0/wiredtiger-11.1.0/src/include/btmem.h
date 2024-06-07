@@ -30,11 +30,12 @@
 #define WT_REC_CHECKPOINT 0x004u
 #define WT_REC_CHECKPOINT_RUNNING 0x008u
 #define WT_REC_CLEAN_AFTER_REC 0x010u
+//__evict_reconcile  __wt_evict_file中置位
 #define WT_REC_EVICT 0x020u
 //__evict_reconcile中如果是leaf page设置该标识, __wt_sync_file也会设置
 #define WT_REC_HS 0x040u
 #define WT_REC_IN_MEMORY 0x080u
-//__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+//__evict_update_work 例如如果已使用内存占比总内存不超过(target 80% + trigger 95%)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
 //  说明reconcile的适合可以内存拷贝一份page数据存入image
 
 //一般reconcile都会拥有该标识，见__evict_reconcile
@@ -322,9 +323,12 @@ struct __wt_multi {
     //变量保存写入磁盘的所有封包数据，最终目的是为了获取page磁盘上K或者V数据保存到page->pg_row[]数组中
 
 
-    //__evict_update_work 例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
+    //__evict_update_work 例如如果已使用内存占比总内存不超过(target 80% + trigger 95%)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
     //  说明reconcile的时候可以内存拷贝一份page数据存入image, 一般代表内存比较充足，因此可以拷贝一份到image，最终被赋值给
     //  内存中的split的page的page->dsk,参考__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem
+
+    //如果内存很紧张，则reconcile的时候会持久化到磁盘，这时候disk_image为NULL，split拆分后的ref->page为NULL，这时候page生成依靠用户线程
+    //  在__page_read中读取磁盘数据到page中完成ref->page内存空间生成
     void *disk_image;
 
     /*
@@ -604,7 +608,7 @@ struct __wt_col_rle {
 //可以参考__split_parent
 struct __wt_page_index {/* Sanity check for a reasonable number of on-page keys. */
 #define WT_INTERNAL_SPLIT_MIN_KEYS 100
-    //数组大小
+    //新增层分了多少组，例如10002个子page会默认分10002/100组
     uint32_t entries;
     uint32_t deleted_entries;
     //指向真实的index数组地址
@@ -762,6 +766,26 @@ struct __wt_page {
 //指向该page存储的真实数据，pg_row[]数组(数组大小page->entries)空间分配见__wt_page_alloc,保持K或者V的磁盘地址，每个KV赋值参考__inmem_row_leaf
 //磁盘上的数据最终有一份完全一样的内存数据存在page->dsk地址开始的内存空间，page->pg_row[]数组每个K或者V成员实际上指向离page->dsk起始位置的距离，参考__wt_cell_unpack_safe
 //page->dsk存储ext磁盘头部地址，page->pg_row[]存储实际的K或者V相对头部的距离，通过page->dsk和这个距离就可以确定在磁盘ext中的位置,参考__wt_page_inmem
+
+
+//场景1:
+// 该page没有数据在磁盘上面
+//   cbt->slot则直接用WT_ROW_INSERT_SLOT[0]这个跳表，
+
+//场景2:
+// 如果磁盘有数据则WT_ROW_INSERT_SMALLEST(mod_row_insert[(page)->entries])表示写入这个page并且K小于该page在
+//   磁盘上面最小的K的所有数据通过这个跳表存储起来
+
+//场景3:
+// 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2...keyn，新插入keyx>page最大的keyn，则内存会维护一个
+//   cbt->slot为磁盘KV总数-1，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[page->entries - 1]这个跳表上面
+
+//场景4:
+// 该page有数据在磁盘上面，例如该page在磁盘上面有两天数据ke1,key2,key3...keyn，新插入keyx大于key2小于key3, key2<keyx>key3，则内存会维护一个
+//   cbt->slot为磁盘key2在磁盘中的位置(也就是1，从0开始算)，这样大于该page的所有KV都会添加到WT_ROW_INSERT_SLOT[1]这个跳表
+
+//一个page在磁盘page->pg_row有多少数据(page->pg_row[]数组大小)，就会维护多少个跳表，因为要保证新写入内存的数据和磁盘的数据保持顺序
+
 #define pg_row u.row
 
         /* Fixed-length column-store leaf page. */
@@ -1118,11 +1142,19 @@ struct __wt_ref {
 #define WT_REF_DISK 0       /* Page is on disk */
 //__btree_tree_open_empty创建root page的时候初始化为该值
 #define WT_REF_DELETED 1    /* Page is on disk, but deleted */
+//evict worker线程在__evict_get_ref中设置page状态为WT_REF_LOCKED 
+//用户线程在__wt_page_release_evict中设置page状态为WT_REF_LOCKED 
+//在整个__wt_evict期间，所有访问该page的用户线程都会在__wt_page_in_func中因为处于WT_REF_LOCKED而一直等待，因为split会破坏原有的ref page结构，一拆多
 #define WT_REF_LOCKED 2     /* Page locked for exclusive access */
 //新创建的leaf page就会设置为该状态  __wt_btree_new_leaf_page创建leaf page后，该leaf page对应状态为WT_REF_MEM
 //当reconcile evict拆分page为多个，并且写入磁盘ext，这时候page状态进入WT_REF_DISK, 当unpack解包获取到该ext的所有K或者V在相比ext头部
 //偏移量后，重新置为WT_REF_MEM状态，表示我们已经获取到ext中包含的所有K和V磁盘元数据地址存储到了内存pg_row中，参考__wt_multi_to_ref
 #define WT_REF_MEM 3        /* Page is in cache and valid */
+
+//__split_parent_discard_ref置为该状态，说明该parent ref因为split需要被释放
+//__wt_page_release_evict进行split的时候会进入该状态，如果__wt_page_release_evict split成功，则拆分前的ref状态会在
+//  __split_multi->__wt_multi_to_ref生成新的ref_new[]，原来的ref会通过__split_safe_free->__wt_stash_add加入等待释放队列并置为WT_REF_SPLIT
+//  下一轮while会判断WT_REF_SPLIT然后返回WT_REF_SPLIT，最终在外层__wt_txn_commit->__wt_txn_release->__wt_stash_discard真正释放
 #define WT_REF_SPLIT 4      /* Parent page split (WT_REF dead) */
     //WT_REF_SET_STATE WT_REF_CAS_STATE赋值
     volatile uint8_t state; /* Page state */
@@ -1484,7 +1516,11 @@ struct __wt_update {
      * from memory rather than using the local variable, mark the shared transaction IDs volatile to
      * prevent unexpected repeated/reordered reads.
      */
-    //该upd对应的事务id，赋值见__wt_txn_modify
+
+    //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置session对应事务idWT_SESSION_IMPL->txn->id为WT_TXN_NONE 
+    //upd->txnid为修改该值对应的事务id(__wt_txn_modify)，该id值不会因为事务提交置为0
+     
+    //该upd对应的事务id，赋值见__wt_txn_modify,  
     volatile uint64_t txnid; /* transaction ID */
 
 

@@ -387,6 +387,7 @@ __curfile_insert(WT_CURSOR *cursor)
     if (!F_ISSET(cursor, WT_CURSTD_APPEND))
         WT_ERR(__cursor_checkkey(cursor));
     WT_ERR(__cursor_checkvalue(cursor));
+    
 
     time_start = __wt_clock(session);
     WT_ERR(__wt_btcur_insert(cbt));

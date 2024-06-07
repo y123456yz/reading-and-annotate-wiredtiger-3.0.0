@@ -659,6 +659,7 @@ __evict_update_work(WT_SESSION_IMPL *session)
      */
     bytes_max = conn->cache_size + 1;
     bytes_inuse = __wt_cache_bytes_inuse(cache);
+    
     //判断cache内存使用占比是否超过了总内存的eviction_trigger(默认95%)
     if (__wt_eviction_clean_needed(session, NULL))
         LF_SET(WT_CACHE_EVICT_CLEAN | WT_CACHE_EVICT_CLEAN_HARD);
@@ -686,13 +687,22 @@ __evict_update_work(WT_SESSION_IMPL *session)
     if (__wt_cache_aggressive(session) && LF_ISSET(WT_CACHE_EVICT_CLEAN_HARD))
         LF_SET(WT_CACHE_EVICT_DIRTY);
 
+ //   printf("yang test ..........__evict_update_work............target:%d, trigger:%d, %lu\r\n",
+  //      (int)dirty_target, (int)dirty_trigger, (uint64_t)((dirty_target + dirty_trigger) * bytes_max));
+
     /*
      * Scrub dirty pages and keep them in cache if we are less than half way to the clean, dirty or
      * updates triggers.
      例如如果已使用内存占比总内存不超过(target + trigger)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，说明reconcile的适合可以内存拷贝一份page数据存入image
      //最终该标识影响reconcile持久化的时候释放需要拷贝一份持久化的page内容到内存中
      */
+    //yang test ................... bytes_max:1048577, target:80.000000, trigger:95.000000
+    //printf("yang test ................... bytes_max:%lu, target:%f, trigger:%f\r\n",  bytes_max, target, trigger);
     if (bytes_inuse < (uint64_t)((target + trigger) * bytes_max) / 200) {
+       //__wt_verbose(
+       // session, WT_VERB_EVICT, "yang test ....2...__evict_update_work.........bytes_inuse:%lu, %lu", bytes_inuse,
+       //     (uint64_t)((target + trigger) * bytes_max) / 200);
+            
         if (bytes_dirty < (uint64_t)((dirty_target + dirty_trigger) * bytes_max) / 200 &&
           bytes_updates < (uint64_t)((updates_target + updates_trigger) * bytes_max) / 200)
             LF_SET(WT_CACHE_EVICT_SCRUB);

@@ -34,21 +34,61 @@
 
 static const char *home;
 
-#define NUM_THREADS 10
+#define NUM_THREADS 2
+
+struct thread_conn {
+    WT_CONNECTION *conn;
+    int thread_num;
+} g_thread_conn;
+
+int g_thread_num = 0;
+
 
 /*! [thread scan] */
 static WT_THREAD_RET
 scan_thread(void *conn_arg)
 {
     WT_CONNECTION *conn;
+    struct thread_conn* t_conn;
     WT_CURSOR *cursor;
     WT_SESSION *session;
     int ret;
     const char *key, *value;
+    int i;
+    char buf[1024];
+    WT_RAND_STATE rnd;
+    
+    
+    g_thread_num++;
+    __wt_random_init_seed(NULL, &rnd);
 
-    conn = conn_arg;
+    t_conn = conn_arg;
+    conn = t_conn->conn;
     error_check(conn->open_session(conn, NULL, NULL, &session));
     error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
+
+    printf("yang test ..........s..........thread_num:%d\r\n", g_thread_num);
+    if (g_thread_num == 3) {
+        //__wt_sleep(1, 0);
+        cursor->set_key(cursor, 1);
+        cursor->set_value(cursor, "aaaaaaaaaaaaaa");
+        error_check(cursor->insert(cursor));
+        printf("yang test ......s...checkpoint...........thread_num:%d\r\n", g_thread_num);
+        session->checkpoint(session, "force");
+        __wt_sleep(110, 0);
+    } else {
+        __wt_sleep(1, 0);
+        for (i=3529101;i > 0 ; i--) {
+            snprintf(buf, sizeof(buf), "value @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d", i);
+            cursor->set_key(cursor, i);//__wt_random(&rnd) % 352901); /* Insert a record. */
+            //cursor->set_key(cursor, __wt_random(&rnd) % 352901); /* Insert a record. */
+            cursor->set_value(cursor, buf);
+
+            //printf("yang test insert ......... i:%d\r\n", i);
+            error_check(cursor->insert(cursor));
+            //usleep(1000);
+        }
+    }
 
     /* Show all records. */
     while ((ret = cursor->next(cursor)) == 0) {
@@ -68,7 +108,7 @@ scan_thread(void *conn_arg)
 int
 main(int argc, char *argv[])
 {
-    WT_CONNECTION *conn;
+    //WT_CONNECTION *conn = g_thread_conn.conn;
     WT_SESSION *session;
     WT_CURSOR *cursor;
     wt_thread_t threads[NUM_THREADS];
@@ -76,9 +116,10 @@ main(int argc, char *argv[])
 
     home = example_setup(argc, argv);
 
-    error_check(wiredtiger_open(home, NULL, "create,verbose=[log:5,api:5,config_all_verbos:5,fileops:5], log=(enabled,file_max=100K),checkpoint=(log_size=0,wait=10)", &conn));
+    error_check(wiredtiger_open(home, NULL, "create, cache_size:5G,checkpoint=[wait=60],verbose=[reconcile:2, checkpoint:2, split:2, evict:2, log:0,api:0,config_all_verbos:0,fileops:0], "
+        "log=(enabled,file_max=100K),checkpoint=(log_size=0,wait=100)", &g_thread_conn.conn));
 
-    error_check(conn->open_session(conn, NULL, NULL, &session));
+    error_check(g_thread_conn.conn->open_session(g_thread_conn.conn, NULL, NULL, &session));
     error_check(session->create(session, "table:access", "key_format=q,value_format=S"));
     error_check(session->open_cursor(session, "table:access", NULL, "overwrite", &cursor));
     cursor->set_key(cursor, 11111);
@@ -86,13 +127,14 @@ main(int argc, char *argv[])
     error_check(cursor->insert(cursor));
     error_check(session->close(session, NULL));
 
-    for (i = 0; i < NUM_THREADS; i++)
-        error_check(__wt_thread_create(NULL, &threads[i], scan_thread, conn));
-
+    for (i = 0; i < NUM_THREADS; i++) {
+        error_check(__wt_thread_create(NULL, &threads[i], scan_thread, &g_thread_conn));
+        __wt_sleep(0, 500);
+    }
     for (i = 0; i < NUM_THREADS; i++)
         error_check(__wt_thread_join(NULL, &threads[i]));
 
-    error_check(conn->close(conn, NULL));
+    error_check(g_thread_conn.conn->close(g_thread_conn.conn, NULL));
 
     return (EXIT_SUCCESS);
 }

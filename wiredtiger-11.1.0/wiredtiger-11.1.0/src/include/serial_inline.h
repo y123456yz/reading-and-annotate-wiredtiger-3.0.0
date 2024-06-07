@@ -138,7 +138,7 @@ __wt_col_append_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *
      * Acquire the page's spinlock unless we already have exclusive access. Then call the worker
      * function.
      */
-    if (!exclusive)
+    if (!exclusive) 
         WT_PAGE_LOCK(session, page);
     ret = __col_append_serial_func(session, ins_head, ins_stack, new_ins, recnop, skipdepth);
     if (!exclusive)
@@ -185,17 +185,25 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
 
     simple = true;
     for (i = 0; i < skipdepth; i++)
+        //说明这个ins是跳表的最后一个成员,例如写入的key是递减写，则容易进入这里
         if (new_ins->next[i] == NULL)
             simple = false;
 
+    //printf("yang test .....................................simple:%d, key:%d\r\n", simple, (int)WT_INSERT_KEY(new_ins));
     if (simple) //这是page的第一个KV，因此不用加page锁
         ret = __insert_simple_func(session, ins_stack, new_ins, skipdepth);
     else {
         //如果跳表不是空的，则说明insert跳表当前已经有KV数据，这时候必须加page锁，因为涉及跳表上多层指针的操作
         // __wt_update_serial为什么不用加page锁，而__wt_insert_serial需要加page锁，因为更新只是对K的v的udp链表操作，一个链表插入一个节点可以通过原子
-        //   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作
-        if (!exclusive)
+        //   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作。另外一个原因是在__wt_reconcile中会对leaf page
+        //   进行reconclie处理，这时候如果写该page会有问题，因此__wt_reconcile与__wt_insert_serial需要互斥
+        if (!exclusive) {
+            //printf("yang test ...........__wt_insert_serial...........1..... \r\n");
+            printf("yang test .........__wt_insert_serial...........WT_PAGE_LOCK.....page:%p  %s, memory_footprint:%d\r\n", 
+                page, __wt_page_type_string(page->type), (int)page->memory_footprint);
             WT_PAGE_LOCK(session, page);
+            //printf("yang test ...........__wt_insert_serial...........2..... \r\n");
+        }
         //如果是第一个insert的KV到该page，则ins_head指向该insert, 同时ins_stack也指向该insert
         ret = __insert_serial_func(session, ins_head, ins_stack, new_ins, skipdepth);
         if (!exclusive)
@@ -324,6 +332,7 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
     }
 
     /* If we can't lock it, don't scan, that's okay. */
+    //这里和__wt_reconcile互斥，目的是这里暂时还不能删除过时的V，因为其他线程在做reconcile，需要遍历udp历史版本链表
     if (WT_PAGE_TRYLOCK(session, page) != 0)
         return (0);
     if (strcmp(session->name, "WT_CURSOR.__curfile_update") == 0)

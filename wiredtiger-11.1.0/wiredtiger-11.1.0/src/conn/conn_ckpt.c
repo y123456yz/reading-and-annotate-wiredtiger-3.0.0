@@ -88,6 +88,7 @@ __ckpt_server(void *arg)
          * Wait... NOTE: If the user only configured logsize, then usecs will be 0 and this wait
          * won't return until signalled.
          */
+        //printf("yang test ..............__ckpt_server.................ckpt_usecs:%lu\r\n",conn->ckpt_usecs);
         __wt_cond_wait(session, conn->ckpt_cond, conn->ckpt_usecs, __ckpt_server_run_chk);
 
         /* Check if we're quitting or being reconfigured. */
@@ -95,6 +96,11 @@ __ckpt_server(void *arg)
             break;
 
         checkpoint_gen = __wt_gen(session, WT_GEN_CHECKPOINT);
+
+
+        __wt_verbose(
+            session, WT_VERB_CHECKPOINT, "__ckpt_server run, begin checkpoint %s", "");
+
         WT_ERR(wt_session->checkpoint(wt_session, NULL));
 
         /*

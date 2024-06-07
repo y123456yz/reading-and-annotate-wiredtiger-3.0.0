@@ -189,6 +189,8 @@ config_threads(WTPERF *wtperf, const char *config, size_t len)
      * to handle configurations like:
      *  threads=((count=2,reads=1),(count=8,inserts=2,updates=1))
      *
+     threads=((count=2,reads=1)(count=8,reads=1,inserts=2,updates=1)) 意思是创建2个线程全部用于读，另外创建8个线程
+     这8个线程25%是读，50%是写，25%是更新
      * Start a scan on the original string, then do scans on each string
      * returned from the original string.
      */

@@ -36,7 +36,7 @@
     } while (0)
 
 #define WT_RETRY_MAX 10
-
+//WT_SYSCALL_RETRY 50000L需要和win WT_WINCALL_RETRY的__wt_sleep(0L, 50000L); 定义保持一致
 #define WT_SYSCALL_RETRY(call, ret)                            \
     do {                                                       \
         int __retry;                                           \

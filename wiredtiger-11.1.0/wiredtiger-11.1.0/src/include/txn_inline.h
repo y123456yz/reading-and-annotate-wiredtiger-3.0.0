@@ -747,6 +747,7 @@ __wt_txn_tw_stop_visible_all(WT_SESSION_IMPL *session, WT_TIME_WINDOW *tw)
 /*
  * __wt_txn_visible_id_snapshot --
  *     Is the id visible in terms of the given snapshot?
+ 判断id是否在本session所拥有的snap[]快照列表中
  */
 static inline bool
 __wt_txn_visible_id_snapshot(
@@ -779,7 +780,7 @@ __wt_txn_visible_id_snapshot(
 /*
  * __txn_visible_id --
  *     Can the current transaction see the given ID?
- //当前session是否可以访问id对应事务
+ //当前session是否可以访问id对应事务, 注意这里的id是udp->txnid，它不会因为事务提交而清0，事务提交后只有session->id清0
  */
 static inline bool
 __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
@@ -789,8 +790,9 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
     txn = session->txn;
 
     /* Changes with no associated transaction are always visible. */
+    //说明该事务已提交 
     if (id == WT_TXN_NONE) {
-       // printf("yang test xxxxxxxxxxxxxxxx __txn_visible_id\r\n");
+        printf("yang test xxxxxxxxxxxxxxxx __txn_visible_id\r\n");
         return (true);
     }
     /* Nobody sees the results of aborted transactions. */
@@ -808,6 +810,7 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
     /* Otherwise, we should be called with a snapshot. */
     WT_ASSERT(session, F_ISSET(txn, WT_TXN_HAS_SNAPSHOT));
 
+    //判断id是否在本session所拥有的snap[]快照列表中, 如果在则不可访问
     return (__wt_txn_visible_id_snapshot(
       id, txn->snap_min, txn->snap_max, txn->snapshot, txn->snapshot_count));
 }
@@ -815,22 +818,26 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 /*
  * __wt_txn_visible --
  *     Can the current transaction see the given ID / timestamp?
+ //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置session对应事务idWT_SESSION_IMPL->txn->id为WT_TXN_NONE 
+//upd->txnid为修改该值对应的事务id(__wt_txn_modify)，该id值不会因为事务提交置为0
+
+注意这里的id为upd->txnid
  */
 static inline bool
 __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp)
 {
     WT_TXN *txn;
     WT_TXN_SHARED *txn_shared;
-    //char ts_string[WT_TS_INT_STRING_SIZE];
+    char ts_string[WT_TS_INT_STRING_SIZE];
 
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
 
-   // printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu, timestamp:%s\r\n", 
-   //     session->id, session->txn->id, session->flags, id, __wt_timestamp_to_string(timestamp, ts_string));
+    printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu, timestamp:%s\r\n", 
+        session->id, session->txn->id, session->flags, id, __wt_timestamp_to_string(timestamp, ts_string));
     //当前session是否可以访问id对应事务
     if (!__txn_visible_id(session, id)) {
-        //printf("yang test ...........__wt_txn_visible...false\r\n");
+        printf("yang test ...........__wt_txn_visible...false\r\n");
         return (false);
     }
     /* Transactions read their writes, regardless of timestamps. */
@@ -1387,7 +1394,7 @@ __wt_txn_id_alloc(WT_SESSION_IMPL *session, bool publish)
  *     A transaction is going to do an update, allocate a transaction ID.
 //__wt_txn_log_op  __wt_txn_ts_log->__txn_logrec_init->__wt_txn_id_check
 //__wt_txn_modify->__txn_next_op->__wt_txn_id_check
-//checkpoint事务生成事务id: __checkpoint_prepare->__wt_txn_id_check
+//checkpoint事务生成事务id: __wt_txn_modify->__txn_next_op->__wt_txn_id_check   __checkpoint_prepare->__wt_txn_id_check
  */
 static inline int
 __wt_txn_id_check(WT_SESSION_IMPL *session)
@@ -1633,6 +1640,7 @@ __wt_txn_modify_check(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_UPDATE 
             upd = upd->next;
 
         //yang add ?????????????????? 这个最新的删除的K和空的V，什么适合从insert跳表摘除并释放空间呢
+        //reconcile的时候__split_multi_inmem_final  __wt_page_out中会释放
         if (upd != NULL && upd->type == WT_UPDATE_TOMBSTONE)
             return (WT_NOTFOUND);
     }

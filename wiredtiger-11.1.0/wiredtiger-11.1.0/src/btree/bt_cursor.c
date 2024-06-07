@@ -846,14 +846,17 @@ __wt_btcur_search(WT_CURSOR_BTREE *cbt)
         WT_ERR(__wt_cursor_func_init(cbt, true));
 
         if (btree->type == BTREE_ROW)
+            //没知道到，这里应该是返回not fund错误码WT_NOTFOUND
             WT_ERR(__cursor_row_search(cbt, false, NULL, NULL));
         else
             WT_ERR(__cursor_col_search(cbt, NULL, NULL));
 
+        //btree中有对应的K，做检查
         if (cbt->compare == 0)
             WT_ERR(__wt_cursor_valid(cbt, &valid, false));
     }
 
+    //cursor返回检查没问题，这里把key和V赋值给对应cursor
     if (valid)
         ret = F_ISSET(cursor, WT_CURSTD_KEY_ONLY) ? __wt_key_return(cbt) :
                                                     __cursor_kv_return(cbt, cbt->upd_value);

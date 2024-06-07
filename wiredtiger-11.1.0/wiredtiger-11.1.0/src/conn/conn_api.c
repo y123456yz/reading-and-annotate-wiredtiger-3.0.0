@@ -2555,7 +2555,7 @@ err:
 /*
  * __conn_set_file_system --
  *     Configure a custom file system implementation on database open.
-  *     WT_CONNECTION.set_file_system method.        yang add xxxxxxxxx todo 接口风格
+  *     WT_CONNECTION.set_file_system method.        yang add todo xxxxxxxxxxxx todo 接口风格
  */ //第三方扩展
 static int
 __conn_set_file_system(WT_CONNECTION *wt_conn, WT_FILE_SYSTEM *file_system, const char *config)
