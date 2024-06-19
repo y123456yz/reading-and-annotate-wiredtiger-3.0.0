@@ -1362,7 +1362,7 @@ __txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[])
          * allowed operation. For the same reason, don't set it to WT_TS_NONE when the checkpoint
          * timestamp is WT_TS_NONE, set it to 1 so we can tell the difference.
          */
-        if (use_timestamp) {
+        if (use_timestamp) {//Ä¬ÈÏÅäÖÃÎªtrue
             conn->txn_global.last_ckpt_timestamp = ckpt_tmp_ts;
             /*
              * MongoDB assumes the checkpoint timestamp will be initialized with WT_TS_NONE. In such

@@ -108,6 +108,7 @@ struct __wt_item {
 	 * (as it partially depends on the underlying file configuration), but
 	 * is always a small number of bytes less than 4GB.
 	 */
+	//每写入一条op，size会增加
 	size_t size;
 
 #ifndef DOXYGEN

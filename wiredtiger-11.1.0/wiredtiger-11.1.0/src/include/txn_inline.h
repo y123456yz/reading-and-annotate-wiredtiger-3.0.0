@@ -790,9 +790,9 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
     txn = session->txn;
 
     /* Changes with no associated transaction are always visible. */
-    //说明该事务已提交 
+    //例如page持久化到磁盘了，然后客户端访问这个数据，这时候会从磁盘加载到内存，该加载page的这些数据txn都为WT_TXN_NONE
     if (id == WT_TXN_NONE) {
-        printf("yang test xxxxxxxxxxxxxxxx __txn_visible_id\r\n");
+        //printf("yang test xxxxxxxxxxxxxxxx __txn_visible_id\r\n");
         return (true);
     }
     /* Nobody sees the results of aborted transactions. */
@@ -821,7 +821,7 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
  //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置session对应事务idWT_SESSION_IMPL->txn->id为WT_TXN_NONE 
 //upd->txnid为修改该值对应的事务id(__wt_txn_modify)，该id值不会因为事务提交置为0
 
-注意这里的id为upd->txnid
+注意这里的id为upd->txnid, 可能是其他session做的更新
  */
 static inline bool
 __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp)
@@ -1682,6 +1682,7 @@ __wt_txn_read_last(WT_SESSION_IMPL *session)
  * __wt_txn_cursor_op --
  *     Called for each cursor operation.
  curosr读写都会调用__wt_cursor_func_init->__wt_txn_cursor_op
+ 从这里可以看出，如果是WT_ISO_READ_COMMITTED每次读写都会重新获取快照
  */
 static inline void
 __wt_txn_cursor_op(WT_SESSION_IMPL *session)
@@ -1716,9 +1717,10 @@ __wt_txn_cursor_op(WT_SESSION_IMPL *session)
             txn_shared->pinned_id = txn_global->last_running;
         if (txn_shared->metadata_pinned == WT_TXN_NONE)
             txn_shared->metadata_pinned = txn_shared->pinned_id;
-    } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) {
+    } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) {//说明是WT_ISO_READ_COMMITTED
         //printf("yang test ..............__wt_txn_cursor_op...........\r\n");
         //如果没有显示的定义txn begain，直接写入，则会进入这里
+        // 从这里可以看出，如果是WT_ISO_READ_COMMITTED每次读写都会重新获取快照
         __wt_txn_get_snapshot(session);
     }
 }

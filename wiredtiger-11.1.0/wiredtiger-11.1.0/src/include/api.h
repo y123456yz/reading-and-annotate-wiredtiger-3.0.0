@@ -71,7 +71,9 @@
     API_SESSION_INIT(s, h, n, dh)
 
 //s:session  h+n:config_entries中的内容  dh:(s)->dhandle   config:配置字符串  cfg:为组装后的数组=config_entrie数组每一行的第二个指标+config+NULL
-
+//例如WT_CONFIG_ENTRY_WT_SESSION_checkpoint   WT_CONFIG_ENTRY_wiredtiger_open_basecfg
+//真实内容参考config_entries[WT_CONFIG_ENTRY_WT_SESSION_checkpoint]，
+//在config_def.c文件中搜索接口名即可获取，例如"WT_SESSION.checkpoint"
 #define API_CALL(s, h, n, dh, config, cfg)                                \
     do {                                                                  \
         const char *(cfg)[] = {WT_CONFIG_BASE(s, h##_##n), config, NULL}; \

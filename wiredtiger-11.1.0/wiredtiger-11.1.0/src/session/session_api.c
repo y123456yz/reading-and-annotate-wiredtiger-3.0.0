@@ -1866,8 +1866,13 @@ __session_begin_transaction(WT_SESSION *wt_session, const char *config)
 {
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
+   // __wt_verbose(session, WT_VERB_TRANSACTION,
+   //   "__session_begin_transaction config:%s", (char*)config);
 
     session = (WT_SESSION_IMPL *)wt_session;
+    WT_IGNORE_RET(__wt_msg(session,
+      "__session_begin_transaction config:%s", (char*)config));    
+
     SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, begin_transaction, __session_begin_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_begin);
     //dirty bytes in this txn
@@ -2033,8 +2038,12 @@ __session_rollback_transaction(WT_SESSION *wt_session, const char *config)
     WT_TXN *txn;
 
     session = (WT_SESSION_IMPL *)wt_session;
+
     SESSION_API_CALL_PREPARE_ALLOWED(session, rollback_transaction, __session_rollback_transaction, config, cfg);
     WT_STAT_CONN_INCR(session, txn_rollback);
+    
+    __wt_verbose(session, WT_VERB_TRANSACTION,
+      "__session_timestamp_transaction_uint config:%s", (char*)config);
 
     txn = session->txn;
     if (F_ISSET(txn, WT_TXN_PREPARE)) {
@@ -2084,7 +2093,10 @@ __session_timestamp_transaction(WT_SESSION *wt_session, const char *config)
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
 
+
     session = (WT_SESSION_IMPL *)wt_session;
+    __wt_verbose(session, WT_VERB_TRANSACTION,
+      "__session_timestamp_transaction config:%s", (char*)config);
 #ifdef HAVE_DIAGNOSTIC
     SESSION_API_CALL_PREPARE_ALLOWED(session, timestamp_transaction, __session_timestamp_transaction, config, cfg);
 #else
@@ -2121,6 +2133,7 @@ err:
 /*
  * __session_timestamp_transaction_uint --
  *     WT_SESSION->timestamp_transaction_uint method.
+ mongodb  7.0  WiredTigerRecoveryUnit::setTimestamp接口调用，设置
  */
 static int
 __session_timestamp_transaction_uint(WT_SESSION *wt_session, WT_TS_TXN_TYPE which, uint64_t ts)
@@ -2267,6 +2280,8 @@ __session_transaction_pinned_range(WT_SESSION *wt_session, uint64_t *prange)
         *prange = 0;
     else
         *prange = S2C(session)->txn_global.current - pinned;
+    WT_IGNORE_RET(__wt_msg(session,
+      "__session_transaction_pinned_range:%lu", *prange)); 
 
 err:
     API_END_RET(session, ret);
@@ -2318,6 +2333,9 @@ __session_checkpoint(WT_SESSION *wt_session, const char *config)
 
     session = (WT_SESSION_IMPL *)wt_session;
     WT_STAT_CONN_INCR(session, txn_checkpoint);
+    //获取基本配置，也就是config_entries[]
+    //默认配置也就是真实内容参考config_entries[WT_CONFIG_ENTRY_WT_SESSION_checkpoint]
+    //config_def.c文件中搜索"WT_SESSION.checkpoint"
     SESSION_API_CALL_PREPARE_NOT_ALLOWED(session, checkpoint, __session_checkpoint, config, cfg);
 
     WT_ERR(__wt_inmem_unsupported_op(session, NULL));

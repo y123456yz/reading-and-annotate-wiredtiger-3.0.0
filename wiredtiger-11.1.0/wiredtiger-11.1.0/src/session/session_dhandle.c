@@ -64,6 +64,7 @@ __session_find_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *ch
     WT_DATA_HANDLE_CACHE *dhandle_cache;
     uint64_t bucket;
 
+    //yang add todo xxxxxxxx  需要加查找标记找到那好对应阶段，找不到返回NULL，假设cache中没有要找的，则dhandle_cachep会被赋值为最后一个dhandle_cache
     dhandle = NULL;
 
     bucket = __wt_hash_city64(uri, strlen(uri)) & (S2C(session)->dh_hash_size - 1);

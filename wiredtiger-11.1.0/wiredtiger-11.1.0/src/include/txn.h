@@ -21,6 +21,7 @@
  * the session get rollback reason API call. Users of the API could have a dependency on the format
  * of these messages so changing them must be done with care.
  */
+//注意，实际上__wt_wiredtiger_error对外的错误码WT_ROLLBACK信息全部是统一的，__wt_txn_rollback_required 
 #define WT_TXN_ROLLBACK_REASON_CACHE_OVERFLOW "transaction rolled back because of cache overflow"
 #define WT_TXN_ROLLBACK_REASON_CONFLICT "conflict between concurrent operations"
 #define WT_TXN_ROLLBACK_REASON_OLDEST_FOR_EVICTION \
@@ -109,6 +110,7 @@ struct __wt_txn_shared {
     WT_CACHE_LINE_PAD_BEGIN
     //赋值参考__wt_txn_id_alloc，也就是txn_global->current-1
     //代表事务id
+    //在__txn_remove_from_global_table中置为WT_TXN_NONE
     volatile uint64_t id;
     //普通事务: __txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]赋值, 代表该session所能看到的最小事务id,如果获取快照时候还没有其他事务，则为txn_global->current
     //checkpoint事务: __checkpoint_prepare中对checkpoint_txn_shared.pinned_id赋值
@@ -156,6 +158,7 @@ struct __wt_txn_global {
     //一般在事务提交的时候赋值，参考__wt_txn_commit，或者用户主动__wt_txn_global_set_timestamp设置  
     //回滚__rollback_to_stable赋值
     wt_timestamp_t durable_timestamp;
+    //赋值参考__txn_checkpoint，也就是txn_global->checkpoint_timestamp
     wt_timestamp_t last_ckpt_timestamp;
     wt_timestamp_t meta_ckpt_timestamp;
     //__recovery_set_oldest_timestamp  __conn_set_timestamp->__wt_txn_global_set_timestamp
@@ -163,7 +166,7 @@ struct __wt_txn_global {
     //__wt_txn_update_pinned_timestamp中赋值
     wt_timestamp_t pinned_timestamp;
     wt_timestamp_t recovery_timestamp;
-    //__recovery_txn_setup_initial_state
+    //__wt_txn_global_set_timestamp中赋值
     wt_timestamp_t stable_timestamp;
     wt_timestamp_t version_cursor_pinned_timestamp;
     bool has_durable_timestamp;
@@ -202,6 +205,7 @@ struct __wt_txn_global {
     //checkpoint_txn_shared整个结构体赋值见__checkpoint_prepare
     //代表正在做checkpoint的事务信息
     WT_TXN_SHARED checkpoint_txn_shared; /* Checkpoint's txn shared state */
+    //赋值参考__checkpoint_prepare，也就是txn_global->stable_timestamp
     wt_timestamp_t checkpoint_timestamp; /* Checkpoint's timestamp */
 
     volatile uint64_t debug_ops;       /* Debug mode op counter */
@@ -217,6 +221,24 @@ struct __wt_txn_global {
 
     WT_TXN_SHARED *txn_shared_list; /* Per-session shared transaction states */
 };
+
+
+/*
+脏读：在事物还没有提交前，修改的数据可以被其他事物所看到。
+不可重复读：在一个事物中使用相同的条件查询一条数据，前后两次查询所得到的数据不同，这是因为同时其他事物对这条数据进行了修改（已提交事物），第二次查询返回了其他事物修改的数据。
+幻读：在一个事物A中使用相同的条件查询了多条数据，同时其他事物添加或删除了符合事物A中查询条件的数据，这时候当事物A再次查询时候会发现数据多了或者少了，与前一次查询的结果不相同。 
+
+不可重复读：是同一条记录（一条数据）的内容被其他事物修改了，关注的是update、delete操作一条数据的操作.
+幻读：是查询某个范围（多条数据）的数据行变多或变少了，在于insert、delete的操作。
+
+
+脏读: WT_ISO_READ_UNCOMMITTED
+不可重复读: WT_ISO_READ_UNCOMMITTED、WT_ISO_READ_COMMITTED都可能，WT_ISO_READ_COMMITTED是因为每次读都需要重新获取snapshot
+幻读: WT_ISO_READ_UNCOMMITTED、WT_ISO_READ_COMMITTED、WT_ISO_SNAPSHOT都可能，
+
+???? WT_ISO_SNAPSHOT为什么可能有幻读，官方说是可能的，但是这里从原理上讲，因为读的时候事务开始前时候的快照，这个读事务中连续多次读，结果不可能不一样
+  是不是官方的文档有误
+*/
 
 //事务隔离级别
 typedef enum __wt_txn_isolation {
@@ -466,6 +488,7 @@ struct __wt_txn {
 #define WT_TXN_TS_ROUND_READ 0x40000u
 #define WT_TXN_UPDATE 0x80000u
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
+    //事务提交后，__wt_txn_release中直接把这个事务的所有flags清零
     uint32_t flags;
 
     /*

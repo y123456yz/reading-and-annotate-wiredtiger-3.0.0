@@ -167,7 +167,7 @@ list_print(WT_SESSION *session, const char *uri, bool cflag, bool vflag)
         if (!vflag && WT_PREFIX_MATCH(key, WT_SYSTEM_PREFIX))
             continue;
         if (cflag || vflag || (strcmp(key, WT_METADATA_URI) != 0 && strcmp(key, WT_HS_URI) != 0))
-            printf("%s\n", key);
+            printf("key:  %s\n", key);
 
         if (!cflag && !vflag)
             continue;
@@ -177,7 +177,7 @@ list_print(WT_SESSION *session, const char *uri, bool cflag, bool vflag)
         if (vflag) {
             if ((ret = cursor->get_value(cursor, &value)) != 0)
                 return (util_cerr(cursor, "get_value", ret));
-            printf("%s\n", value);
+            printf("value:  %s\n", value);
         }
     }
     if (ret != WT_NOTFOUND)

@@ -61,6 +61,8 @@ static char home[1024]; /* Program working dir */
 #define MAX_TH 200      /* Maximum configurable threads */
 #define MAX_TIME 40
 #define MAX_VAL 1024
+#define MAX_VAL1 10 //1024  yang add change
+
 #define MIN_TH 5
 #define MIN_TIME 10
 #define PREPARE_DURABLE_AHEAD_COMMIT 10
@@ -97,10 +99,10 @@ static TEST_OPTS *opts, _opts;
 #define ENV_CONFIG_ADD_EVICT_DIRTY ",eviction_dirty_target=20,eviction_dirty_trigger=90"
 #define ENV_CONFIG_ADD_STRESS ",timing_stress_for_test=[prepare_checkpoint_delay]"
 
-//statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中
+//statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中   , config_all_verbos:0
 #define ENV_CONFIG_DEF                                        \
     "cache_size=%" PRIu32                                     \
-    "M,create,verbose=[checkpoint=5,timestamp:5, config_all_verbos:0,api:2, transaction:5,history_store=5,history_store_activity=5],"                  \
+    "M,create,verbose=[log:5,checkpoint=5,timestamp:5,api:2, transaction:5,history_store=5,history_store_activity=5],"                  \
     "debug_mode=(table_logging=true,checkpoint_retention=5)," \
     "eviction_updates_target=20,eviction_updates_trigger=90," \
     "log=(enabled,file_max=10M,remove=true),session_max=%d,"  \
@@ -117,7 +119,7 @@ static TEST_OPTS *opts, _opts;
  * values and that has the same effect.
  */
 //例如0会被转换为0000000000  1转换为0000000001  11转换为0000000011
-#define KEY_STRINGFORMAT ("%010" PRIu64)
+#define KEY_STRINGFORMAT ("yang test timestamp_abort %010" PRIu64)
 
 #define SHARED_PARSE_OPTIONS "b:CmP:h:p"
 
@@ -438,7 +440,7 @@ thread_run(void *arg)
      * transactions.
      */
     use_prep = (use_ts && td->info % PREPARE_PCT == 0) ? true : false;
-    use_prep = 0;//yang add todo xxxxxxxxx   注意这里的逻辑，如果是启用prep这里可能会涉及到2个session
+    use_prep = 0; use_ts = 0; columns = 0;//yang add todo xxxxxxxxx   注意这里的逻辑，如果是启用prep这里可能会涉及到2个session
     durable_ahead_commit = false;
 
     /*
@@ -495,14 +497,57 @@ thread_run(void *arg)
             session, CUR2S((WT_CURSOR_BTREE *)cur_coll), CUR2S((WT_CURSOR_BTREE *)cur_shadow),
             CUR2S((WT_CURSOR_BTREE *)cur_local), ((WT_SESSION_IMPL *)session)->id);
     }
-    
+
+/* 前面三条数据一个事务写入对应事务日志如下:
+{ "lsn" : [1,10112],
+  "hdr_flags" : "",
+  "rec_len" : 256,
+  "mem_len" : 256,
+  "type" : "commit",
+  "txnid" : 14,
+  "ops": [
+    { "optype": "row_put",
+      "fileid": 2147483650 0x80000002,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 2147483651 0x80000003,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 5 0x5,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "OPLOG: thread"
+    }
+  ]
+},
+第四条数据
+{ "lsn" : [1,10368],
+  "hdr_flags" : "",
+  "rec_len" : 128,
+  "mem_len" : 128,
+  "type" : "commit",
+  "txnid" : 15,
+  "ops": [
+    { "optype": "row_put",
+      "fileid": 4 0x4,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "LOCAL: thread"
+    }
+  ]
+},
+
+*/
+
     //注意: 同一个事务，下面的session和prepared_session是两个不同的session id, 
-    // 同一个session打开的多个表cursor，这些cursor对应的session  CUR2S会是同一个session ,
+    // 如果use_prep为false, 同一个session打开的多个表cursor，这些cursor对应的session  CUR2S会是同一个session ,
     // 此外每个__curfile_insert(coll->insert)都会__txn_get_snapshot_int获取快照，并通过__wt_txn_id_alloc获取事务id,
     //    但是每个insert结尾都会通过TXN_API_END->__wt_txn_commit来提交事务
     //for (i = td->start;i < td->start + 10; ++i) {  //yang add change
-    for (i = td->start;i < td->start + 110; ++i) {
-        printf("yang test ..thread_run...................use_ts:%d, use_prep:%d, start:%lu\r\n",
+    for (i = td->start;i < td->start + 1; ++i) {
+        printf("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nyang test ..thread_run...................use_ts:%d, use_prep:%d, start:%lu\r\n",
             use_ts, use_prep, i);
         
         //第一轮循环结果如下: 
@@ -552,7 +597,7 @@ thread_run(void *arg)
           "LOCAL: thread:%" PRIu32 " ts:%" PRIu64 " key: %" PRIu64, td->info, active_ts, i));
         testutil_check(__wt_snprintf(obuf, sizeof(obuf),
           "OPLOG: thread:%" PRIu32 " ts:%" PRIu64 " key: %" PRIu64, td->info, active_ts, i));
-        data.size = __wt_random(&rnd) % MAX_VAL;
+        data.size = __wt_random(&rnd) % MAX_VAL1;
         data.data = cbuf;
         //printf("yang test ..................size:%d, cbuf:%s\r\n", (int)data.size, cbuf);
         
@@ -581,7 +626,7 @@ thread_run(void *arg)
 
         //printf("yang test ..............thread_run........2...........active_ts:%lu, start:%lu\r\n",active_ts, i);
         //写入oplog表
-        data.size = __wt_random(&rnd) % MAX_VAL;
+        data.size = __wt_random(&rnd) % MAX_VAL1;
         data.data = obuf;
         cur_oplog->set_value(cur_oplog, &data);
         if ((ret = cur_oplog->insert(cur_oplog)) == WT_ROLLBACK)
@@ -623,7 +668,7 @@ thread_run(void *arg)
             WT_UNUSED(ret);
         }
         
-        usleep(500000);//yang add change
+        //usleep(500000);//yang add change
 
         //
         testutil_check(session->commit_transaction(session, NULL));
@@ -642,7 +687,7 @@ thread_run(void *arg)
          */
          
         //写入local表, 注意这里在事务外层
-        data.size = __wt_random(&rnd) % MAX_VAL;
+        data.size = __wt_random(&rnd) % MAX_VAL1;
         data.data = lbuf;
         cur_local->set_value(cur_local, &data);
         testutil_check(cur_local->insert(cur_local));
@@ -674,7 +719,7 @@ rollback:
             WT_PUBLISH(active_timestamps[td->info], active_ts);
     }
     /* NOTREACHED */
-    printf("yang test ..............thread_run.........222222222222222222222\r\n\r\n\r\n\r\n");
+    printf("yang test ..............thread_run.........222222222222222222222\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
     return 0;//yang add change xxxxxxxxxxxxxx
 }
 

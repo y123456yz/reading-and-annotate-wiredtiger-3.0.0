@@ -34,7 +34,7 @@
 
 static const char *home;
 
-#define NUM_THREADS 2
+#define NUM_THREADS 3
 
 struct thread_conn {
     WT_CONNECTION *conn;
@@ -68,7 +68,7 @@ scan_thread(void *conn_arg)
     error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
 
     printf("yang test ..........s..........thread_num:%d\r\n", g_thread_num);
-    if (g_thread_num == 3) {
+    if (g_thread_num <= 3) {
         //__wt_sleep(1, 0);
         cursor->set_key(cursor, 1);
         cursor->set_value(cursor, "aaaaaaaaaaaaaa");

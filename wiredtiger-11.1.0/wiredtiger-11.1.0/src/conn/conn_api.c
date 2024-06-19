@@ -1356,6 +1356,8 @@ __conn_query_timestamp(WT_CONNECTION *wt_conn, char *hex_timestamp, const char *
 
     CONNECTION_API_CALL(conn, session, query_timestamp, __conn_query_timestamp, config, cfg);
     ret = __wt_txn_query_timestamp(session, hex_timestamp, cfg, true);
+    __wt_verbose(session, WT_VERB_TRANSACTION,
+      "__conn_query_timestamp config:%s, hex_timestamp: %s", (char*)cfg, hex_timestamp);
 err:
     API_END_RET(session, ret);
 }
@@ -1363,6 +1365,13 @@ err:
 /*
  * __conn_set_timestamp --
  *     WT_CONNECTION->set_timestamp method.
+ commit_timestamp: 被大多数节点应用到的日志的timestamp,raft算法可以保证commit-timestamp 一定不会被回滚
+ stable_timestamp: mongo的每个节点确定一个oplog的ts成为commit-timestamp之后，会通过wt的api set_timestamp设置该ts为最新的stable_timestamp ，
+     mongodb主从切换后，首先通过wt的api rollback_to_stable恢复到最近的被（raft）提交的snapshot，rollback的动作就完成了。
+ oldest_timestamp: 对不需要的版本进行清理,小于oldest-timestamp的时间戳的数据会被wt清理, 清理逻辑见__wt_update_serial
+
+全局时间戳参考: https://source.wiredtiger.com/develop/timestamp_global_api.html
+
  //可以参考timestamp_abort中的 thread_ts_run，对durable_timestamp  oldest_timestamp  stable_timestamp  pinned_timestamp等进行设置
  */
 static int
@@ -1375,6 +1384,10 @@ __conn_set_timestamp(WT_CONNECTION *wt_conn, const char *config)
     conn = (WT_CONNECTION_IMPL *)wt_conn;
 
     CONNECTION_API_CALL(conn, session, set_timestamp, __conn_set_timestamp, config, cfg);
+
+    __wt_verbose(session, WT_VERB_TRANSACTION,
+      "__conn_set_timestamp config:%s", (char*)config);
+
     ret = __wt_txn_global_set_timestamp(session, cfg);
 err:
     API_END_RET(session, ret);
@@ -1383,6 +1396,9 @@ err:
 /*
  * __conn_rollback_to_stable --
  *     WT_CONNECTION->rollback_to_stable method.
+可以部分参考下https://mongoing.com/archives/6102
+ stable_timestamp: mongo的每个节点确定一个oplog的ts成为commit-timestamp之后，会通过wt的api set_timestamp设置该ts为最新的stable_timestamp ，
+     mongodb主从切换后，首先通过wt的api rollback_to_stable恢复到最近的被（raft）提交的snapshot，rollback的动作就完成了。
  */
 static int
 __conn_rollback_to_stable(WT_CONNECTION *wt_conn, const char *config)

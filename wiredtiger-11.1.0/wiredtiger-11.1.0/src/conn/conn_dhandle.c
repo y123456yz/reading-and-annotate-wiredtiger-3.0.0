@@ -51,14 +51,14 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
     /*
      * Read the object's entry from the metadata file, we're done if we don't find one.
      */
-   // printf("yang test ........__conn_dhandle_config_set........begin...............\r\n");
+    printf("yang test ........__conn_dhandle_config_set........begin...............\r\n");
     if ((ret = __wt_metadata_search(session, dhandle->name, &metaconf)) != 0) {
         if (ret == WT_NOTFOUND)
             ret = __wt_set_return(session, ENOENT);
         WT_RET(ret);
     }
-   // printf("yang test ........__conn_dhandle_config_set.........end......, name:%s, metaconf:%s\r\n",
-    //    dhandle->name, metaconf);
+    printf("yang test ........__conn_dhandle_config_set.........end......, name:%s, metaconf:%s\r\n",
+        dhandle->name, metaconf);
 
     /*
      * The defaults are included because persistent configuration information is stored in the

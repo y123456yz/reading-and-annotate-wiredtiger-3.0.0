@@ -339,6 +339,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt, bool is_ckpt)
     }
 
     /* Get the file ID. */
+    //来源在next_file_id，是一个递增值， __create_file中写入到元数据中
     WT_RET(__wt_config_gets(session, cfg, "id", &cval));
     btree->id = (uint32_t)cval.val;
 

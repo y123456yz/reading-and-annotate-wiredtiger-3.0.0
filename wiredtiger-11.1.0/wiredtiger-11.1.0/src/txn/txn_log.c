@@ -70,6 +70,7 @@ __txn_op_log(
     value.data = upd->data;
     value.size = upd->size;
 
+    //__wt_buf_extend logrec空间，向logrec追加op，这样可以保证同一个事务日志在一个logrec中
     /*
      * Log the row- or column-store insert, modify, remove or update. Our caller doesn't log reserve
      * operations, we shouldn't see them here.
@@ -192,6 +193,32 @@ __wt_txn_op_free(WT_SESSION_IMPL *session, WT_TXN_OP *op)
     op->flags = 0;
 }
 
+/* 以timestamp_abort为例，例如三条不同表数据一个事务写入对应事务日志如下:
+{ "lsn" : [1,10112],
+  "hdr_flags" : "",
+  "rec_len" : 256,
+  "mem_len" : 256,
+  "type" : "commit",
+  "txnid" : 14,
+  "ops": [
+    { "optype": "row_put",
+      "fileid": 2147483650 0x80000002,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 2147483651 0x80000003,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 5 0x5,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "OPLOG: thread"
+    }
+  ]
+},*/
+
 /*
  * __txn_logrec_init --
  *     Allocate and initialize a buffer for a transaction's log records.
@@ -201,6 +228,7 @@ __wt_txn_op_free(WT_SESSION_IMPL *session, WT_TXN_OP *op)
 static int
 __txn_logrec_init(WT_SESSION_IMPL *session)
 {
+    //logrec为WT_LOG_RECORD类型
     WT_DECL_ITEM(logrec);
     WT_DECL_RET;
     WT_TXN *txn;
@@ -212,6 +240,7 @@ __txn_logrec_init(WT_SESSION_IMPL *session)
     rectype = WT_LOGREC_COMMIT;
     fmt = WT_UNCHECKED_STRING(Iq);
 
+    //例如多个写放到一个事务，则只需要第一个op需要创建logrec空间，并对日志头部赋值
     if (txn->logrec != NULL) {
         WT_ASSERT(session, F_ISSET(txn, WT_TXN_HAS_ID));
         return (0);
@@ -230,7 +259,7 @@ __txn_logrec_init(WT_SESSION_IMPL *session)
     WT_RET(__wt_struct_size(session, &header_size, fmt, rectype, txn->id));
     WT_RET(__wt_logrec_alloc(session, header_size, &logrec));
 
-    //rectype txn->id封包存入data中
+    //header_size rectype txn->id封包存入data中
     WT_ERR(__wt_struct_pack(
       session, (uint8_t *)logrec->data + logrec->size, header_size, fmt, rectype, txn->id));
     logrec->size += (uint32_t)header_size;
@@ -243,11 +272,37 @@ err:
     return (ret);
 }
 
+/* 以timestamp_abort为例，例如三条不同表数据一个事务写入对应事务日志如下:
+{ "lsn" : [1,10112],
+  "hdr_flags" : "",
+  "rec_len" : 256,
+  "mem_len" : 256,
+  "type" : "commit",
+  "txnid" : 14,
+  "ops": [
+    { "optype": "row_put",
+      "fileid": 2147483650 0x80000002,   //fileid代表具体的一个表    
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 2147483651 0x80000003,  
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 5 0x5,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "OPLOG: thread"
+    }
+  ]
+},*/
+
 /*
  * __wt_txn_log_op --
  *     Write the last logged operation into the in-memory buffer.
  //事务日志__wt_txn_log_op封装事务日志到txn->logrec，__wt_txn_log_commit对事务日志txn->logrec写盘操作
- */
+ */ //也就是头部字段填充
 int
 __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 {
@@ -266,6 +321,7 @@ __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
 
     WT_ASSERT(session, txn->mod_count > 0);
     op = txn->mod + txn->mod_count - 1;
+    //代表对应的表
     fileid = op->btree->id;
 
     /*
@@ -276,6 +332,15 @@ __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
       FLD_ISSET(conn->log_flags, WT_CONN_LOG_DEBUG_MODE))
         FLD_SET(fileid, WT_LOGOP_IGNORE);
 
+/*
+{ "lsn" : [1,10112],
+  "hdr_flags" : "",
+  "rec_len" : 256,
+  "mem_len" : 256,
+  "type" : "commit",
+  "txnid" : 14,
+*/
+    //也就是头部相关字段填充，并创建txn->logrec空间
     WT_RET(__txn_logrec_init(session));
     logrec = txn->logrec;
 
@@ -301,6 +366,32 @@ __wt_txn_log_op(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt)
     }
     return (ret);
 }
+
+/* 以timestamp_abort为例，例如三条不同表数据一个事务写入对应事务日志如下:
+{ "lsn" : [1,10112],
+  "hdr_flags" : "",
+  "rec_len" : 256,
+  "mem_len" : 256,
+  "type" : "commit",
+  "txnid" : 14,
+  "ops": [
+    { "optype": "row_put",
+      "fileid": 2147483650 0x80000002,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 2147483651 0x80000003,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: thread"
+    },
+    { "optype": "row_put",
+      "fileid": 5 0x5,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "OPLOG: thread"
+    }
+  ]
+},*/
 
 /*
  * __wt_txn_log_commit --

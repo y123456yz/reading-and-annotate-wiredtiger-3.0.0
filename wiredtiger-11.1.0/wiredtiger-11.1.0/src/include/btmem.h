@@ -1520,7 +1520,7 @@ struct __wt_update {
     //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置session对应事务idWT_SESSION_IMPL->txn->id为WT_TXN_NONE 
     //upd->txnid为修改该值对应的事务id(__wt_txn_modify)，该id值不会因为事务提交置为0
      
-    //该upd对应的事务id，赋值见__wt_txn_modify,  
+    //该upd对应的事务id，赋值见__wt_txn_modify,同一个事务中的写操作txnid一样
     volatile uint64_t txnid; /* transaction ID */
 
 

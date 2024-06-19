@@ -142,6 +142,8 @@ __wt_txn_release_snapshot(WT_SESSION_IMPL *session)
     txn_shared->metadata_pinned = txn_shared->pinned_id = WT_TXN_NONE;
     F_CLR(txn, WT_TXN_HAS_SNAPSHOT);
 
+    //txn_shared->id=WT_TXN_NONE  ÔÚÍâ²ãµÄ__wt_txn_releaseÖÐµÄ__txn_remove_from_global_tableÖÃÎª0
+
     /* Clear a checkpoint's pinned ID and timestamp. */
     if (WT_SESSION_IS_CHECKPOINT(session)) {
         txn_global->checkpoint_txn_shared.pinned_id = WT_TXN_NONE;
@@ -220,6 +222,9 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
     /* Fast path if we already have the current snapshot. */
     //Í¬Ò»¸öÊÂÎñ¿ÉÄÜ¶à´Îµ÷ÓÃ¸Ã½Ó¿Ú£¬Èç¹ûÁ½´Î¼ä¸ôÆÚ¼äsession gen»¹ÊÇºÍÈ«¾Öconn genÒ»Ñù£¬
     //  ËµÃ÷Ã»ÓÐÐÂÔöÆäËûÐÂÊÂÎñ£¬¿ìÕÕsnapshotÃ»ÓÐ±ä»¯£¬ÎÞÐèÖØ¸´×ßÏÂÃæµÄÁ÷³ÌÁË
+
+    //ËµÃ÷¸ÃÊÂÎñµÄÇ°ºóÁ½¸ö¶ÁÐ´²Ù×÷ÆÚ¼äÃ»ÓÐÆäËûÊÂÎñÌá½»__wt_txn_commit£¬Òò´Ë¸ÃÊÂÎñµÄ¿ìÕÕÐÅÏ¢²»»áÓÐ±ä»¯£
+    //WT_ISO_READ_COMMITTEDÃ¿´Î¶ÁÐ´¶¼»áÖØÐÂ»ñÈ¡¿ìÕÕ£¬Òò´ËWT_ISO_READ_COMMITTED¸ôÀë¼¶±ðÒ»¸öÊÂÎñÖÐÓÐ¶à¸ö¶ÁÐ´²Ù×÷£¬¾Í»á½øÀ´¶à´Î
     if ((commit_gen = __wt_session_gen(session, WT_GEN_COMMIT)) != 0) {
         if (F_ISSET(txn, WT_TXN_HAS_SNAPSHOT) && commit_gen == __wt_gen(session, WT_GEN_COMMIT))
             return;
@@ -255,7 +260,7 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
    /* {
         char buf[512];
 
-        //×¢Òâ: Èç¹ûÒ»¸öÊÂÎñÖÐ¶Ô¶à¸ö±í²Ù×÷£¬Ã¿¸ö±í·ÃÎÊcursor²»Ò»Ñù£¬sessionÒ²»á²»Ò»Ñù
+        
         snprintf(buf, 512, "session:%p, yang test __txn_get_snapshot_int....session id:%u, session txn id:%lu, current_id:%lu, prev_oldest_id:%lu, txn_global->checkpoint_txn_shared.id:%lu\r\n\r\n",
             session, session->id, txn->id, current_id, prev_oldest_id, txn_global->checkpoint_txn_shared.id);
         __wt_verbose_debug1(
@@ -1716,8 +1721,33 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
         __wt_qsort(txn->mod, txn->mod_count, sizeof(WT_TXN_OP), __txn_mod_compare);
 
     /* If we are logging, write a commit log record. */
-    //log=(enabled),Ä¬ÈÏÒ»°ãenabled£¬Òò´ËÊÂÎñ»áÐ´ÈÕÖ¾£¬Ò²¾ÍÊÇÕâÀï¿ÉÒÔÍê³ÉÈÕÖ¾³Ö¾Ã»¯
-    if (txn->logrec != NULL) {
+    /* ÀýÈçÈýÌõ²»Í¬±íÊý¾ÝÒ»¸öÊÂÎñÐ´Èë¶ÔÓ¦ÊÂÎñÈÕÖ¾ÈçÏÂ:
+{ "lsn" : [1,10112],
+  "hdr_flags" : "",
+  "rec_len" : 256,
+  "mem_len" : 256,
+  "type" : "commit",
+  "txnid" : 14,
+  "ops": [
+    { "optype": "row_put",
+      "fileid": 2147483650 0x80000002,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: th"
+    },
+    { "optype": "row_put",
+      "fileid": 2147483651 0x80000003,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "COLL: th"
+    },
+    { "optype": "row_put",
+      "fileid": 5 0x5,
+      "key": "yang test timestamp_abort 0000000000\u0000",
+      "value": "OP"
+    }
+  ]
+},*/
+    //log=(enabled),Ä¬ÈÏÒ»°ãenabled£¬Òò´ËÊÂÎñ»áÐ´ÈÕÖ¾£¬Ò²¾ÍÊÇÕâÀï¿ÉÒÔÍê³ÉÈÕÖ¾³Ö¾Ã»¯£¬±£Ö¤È«²¿³É¹¦»òÕßÈ«²¿Ê§°Ü
+    if (txn->logrec != NULL) {//Ò»¸öÊÂÎñÉú³ÉÒ»ÌõWALÈÕÖ¾
         /* Assert environment and tree are logging compatible, the fast-check is short-hand. */
         WT_ASSERT(session,
           !F_ISSET(conn, WT_CONN_RECOVERING) && FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED));
@@ -1765,6 +1795,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
         WT_ERR(__wt_txn_log_commit(session, cfg));
     }
 
+    
     /* Process updates. */
     for (i = 0, op = txn->mod; i < txn->mod_count; i++, op++) {
         //printf("yang test .....__wt_txn_commit......1....op->type:%u\r\n", op->type);
@@ -2173,6 +2204,8 @@ __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])
                     break;
                 WT_ASSERT(session, upd->txnid == txn->id || upd->txnid == WT_TXN_ABORTED);
                 //»Ø¹öµÄÊ±ºòºÜ¼òµ¥£¬Ö÷Òª¾ÍÊÇ±êÊ¶¸ÃudpÊÂÎñÎªabort, ÕâÑù¸Ãudp¾Í²»¿É¼û£¬ÔÚÆäËûÂß¼­¶ÁÈ¡¸ÃudpµÄÊ±ºò»áÖ±½ÓÌø¹ý
+
+                //µ«ÊÇÍâ²ãÍ¨¹ý__wt_txn_log_commitÒÑ¾­°ÑWAL³Ö¾Ã»¯ÁË£¬ÄÚ´æ»Ø¹öÁË£¬ÄÚ´æÃ»ÓÐ»Ø¹ö ???????  yang add todo xxxxxxxxxx
                 upd->txnid = WT_TXN_ABORTED;
             } else {
                 /*
@@ -2233,7 +2266,7 @@ __wt_txn_rollback(WT_SESSION_IMPL *session, const char *cfg[])
  * __wt_txn_rollback_required --
  *     Prepare to log a reason if the user attempts to use the transaction to do anything other than
  *     rollback.
- //ÉèÖÃ»Ø¹öÔ­Òò
+ //±êÊ¶¸ÃsessionÐèÒª»Ø¹ö£¬ÉèÖÃ»Ø¹öÔ­Òò
  */
 int
 __wt_txn_rollback_required(WT_SESSION_IMPL *session, const char *reason)
@@ -2944,6 +2977,9 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
         if ((id = s->id) == WT_TXN_NONE && s->pinned_id == WT_TXN_NONE)
             continue;
             
+        //if (!F_ISSET(session->txn, WT_TXN_HAS_SNAPSHOT)) //yang add change   yang add todo xxxxxxxxxxxxxxxx
+        //    continue;
+
         sess = &conn->sessions[i];
         WT_RET(__wt_msg(session,
           "session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", i, id,

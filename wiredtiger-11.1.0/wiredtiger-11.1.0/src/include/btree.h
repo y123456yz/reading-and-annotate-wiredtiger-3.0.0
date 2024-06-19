@@ -98,6 +98,7 @@ typedef enum { /* Start position for eviction walk */
  //参考http://source.wiredtiger.com/mongodb-5.0/arch-btree.html
  */ //btree内存分配__wt_conn_dhandle_alloc  //存储在WT_DATA_HANDLE.handle成员
 struct __wt_btree {
+    //复制见__wt_conn_dhandle_alloc
     WT_DATA_HANDLE *dhandle;
 
     //记录进行checkpoint的信息，赋值见__checkpoint_lock_dirty_tree
