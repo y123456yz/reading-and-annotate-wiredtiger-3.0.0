@@ -176,7 +176,7 @@ access_txn20_test(void)
    // uint64_t count;
     char *value;
 
-    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=10110KB), create, verbose=[checkpoint=5, transaction=0, timestamp=0, api:2]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=2G), create, verbose=[checkpoint=5, transaction=3, timestamp=0, api:2]", &conn));
 
     //test_txn20
     error_check(conn->open_session(conn, NULL, NULL, &session));

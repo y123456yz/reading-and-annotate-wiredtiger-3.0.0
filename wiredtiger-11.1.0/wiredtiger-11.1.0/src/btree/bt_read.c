@@ -543,6 +543,10 @@ skip_evict: //从这里退出循环
         WT_STAT_CONN_INCRV(session, page_sleep, sleep_usecs);
     }
 
+    //yang add todo xxxxxxxxx  以下三个PR记得后续加上
+    //__wt_spin_backoff的时间不一定准确，如果是监控相关的统计耗时，需要通过__wt_clock获取重新计算
+    //session耗时诊断这个新增功能需要在wtperf中支持
+    //wtperf value生成随机value crush问题
     if (strcmp(session->name, "WT_CURSOR.__curfile_insert") == 0)
         __wt_verbose(session, WT_VERB_SPLIT,
            "yang test ......__wt_page_in_func...end..ref:%p.......ref->state:%d\r\n", ref, ref->state);

@@ -444,6 +444,7 @@ threads=((count=2,reads=1)(count=8,reads=1,inserts=2,updates=1)) 意思是创建2个线
         /*
          * Generate the next key and setup operation specific statistics tracking objects.
          */
+        //该switch是为了获取next_val，访问那个表是通过map_key_to_table对next_val求余来判断应该操作那个cursor，也就是那个表
         switch (*op) {
         case WORKER_INSERT:
         case WORKER_INSERT_RMW:
@@ -2410,7 +2411,7 @@ start_run(WTPERF *wtperf)
         if (close_reopen(wtperf) != 0)
             goto err;
 
-        /* Didn't create, set insert count. */
+        /* Didn't create, set insert count. */ //如果目录为空，并且create  random_range配置都为0，则会报错 open_cursor failed Error: No such file or directory
         if (opts->create == 0 && opts->random_range == 0 && find_table_count(wtperf) != 0)
             goto err;
         /* Start the backup thread. */

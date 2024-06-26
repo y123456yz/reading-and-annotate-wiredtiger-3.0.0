@@ -45,7 +45,7 @@ __wt_fsync(WT_SESSION_IMPL *session, WT_FH *fh, bool block)
 
 /*
  * __wt_fextend --
- *     Extend a file.
+ *     Extend a file.  如果offset过大，这里可能很慢，实测同时创建多个100M的WiredTigerPreplog.xx耗时秒级以上
  */
 static inline int
 __wt_fextend(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset)

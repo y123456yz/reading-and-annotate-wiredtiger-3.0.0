@@ -295,7 +295,7 @@ __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
      * See above: should never happen.
      */
     if (!reconfig) {
-        WT_RET(__wt_config_gets(session, cfg, "log.file_max", &cval));
+        WT_RET(__wt_config_gets(session, cfg, "log.file_max", &cval));//默认100M
         conn->log_file_max = (wt_off_t)cval.val;
         /*
          * With the default log file extend configuration or if the log file extension size is
@@ -519,7 +519,8 @@ __log_prealloc_once(WT_SESSION_IMPL *session)
      * Allocate up to the maximum number that we just computed and detected.
      */
     //一次性创建log_prealloc-reccount个WiredTigerPreplog.xxxxx文件，见__log_prealloc_once
-    for (i = reccount; i < (u_int)conn->log_prealloc; i++) {
+    //for (i = reccount; i < (u_int)conn->log_prealloc; i++) {
+    for (i = reccount; i < 10; i++) {
         WT_ERR(__wt_log_allocfile(session, ++log->prep_fileid, WT_LOG_PREPNAME));
         WT_STAT_CONN_INCR(session, log_prealloc_files);
     }
@@ -954,7 +955,10 @@ __log_server(void *arg)
                  * Log file pre-allocation is disabled when a hot backup cursor is open because we
                  * have agreed not to rename or remove any files in the database directory.
                  */
+                
+                __wt_verbose(session, WT_VERB_TRANSACTION, "__log_server xxx:%s", "1111111");
                 WT_WITH_HOTBACKUP_READ_LOCK(session, ret = __log_prealloc_once(session), NULL);
+                __wt_verbose(session, WT_VERB_TRANSACTION, "__log_server xxx:%s", "777777777777777");
                 WT_ERR(ret);
             }
 

@@ -331,6 +331,7 @@ __wt_spin_lock_track(WT_SESSION_IMPL *session, WT_SPINLOCK *t)
         else {
             stats[session->stat_bucket][t->stat_app_usecs_off] += (int64_t)time_diff;
         }
+        //session维度的统计
         session_stats[t->stat_session_usecs_off] += (int64_t)time_diff;
     } else
         __wt_spin_lock(session, t);

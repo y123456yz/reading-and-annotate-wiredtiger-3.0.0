@@ -264,6 +264,7 @@ __wt_stats_clear(void *stats_arg, int slot)
 /*
  * Update per session statistics.
  */
+//session维度的统计信息
 #define WT_STAT_SESSION_INCRV(session, fld, value) \
     WT_STAT_INCRV_BASE(session, &(session)->stats, fld, value)
 #define WT_STAT_SESSION_SET(session, fld, value) \

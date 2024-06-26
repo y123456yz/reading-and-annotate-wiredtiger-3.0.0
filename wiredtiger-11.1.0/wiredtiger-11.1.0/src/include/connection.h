@@ -628,7 +628,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
     //file_extend配置，默认为0
     wt_off_t data_extend_len; /* file_extend data length */
     //file_extend配置，默认不配置，值为WT_CONFIG_UNSET
-    //在__wt_logmgr_config中赋值为conn->log_file_max
+    //在__wt_logmgr_config中赋值为conn->log_file_max  //默认100M
     wt_off_t log_extend_len;  /* file_extend log length */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
