@@ -1715,6 +1715,9 @@ __conn_hash_config(WT_SESSION_IMPL *session, const char *cfg[])
           (uint64_t)cval.val);
     conn->hash_size = (uint64_t)cval.val;
 
+    //"hash.buckets" "hash.dhandle_buckets"支持下可配置，yang add todo xxxxxxxxxxxxxxxxxxxxxxx
+    //百万库表官方测试https://jira.mongodb.org/browse/WT-3337
+    //百万库表https://km.woa.com/articles/show/511904?kmref=search&from_page=1&no=1
     WT_RET(__wt_config_gets(session, cfg, "hash.dhandle_buckets", &cval));
     if (!__wt_ispo2((uint32_t)cval.val))
         WT_RET_MSG(session, EINVAL,
@@ -2357,7 +2360,7 @@ __wt_verbose_dump_sessions(WT_SESSION_IMPL *session, bool show_cursors)
                 "read-committed" :
                 (s->isolation == WT_ISO_READ_UNCOMMITTED ? "read-uncommitted" : "snapshot")));
             WT_ERR(__wt_msg(session, "  Transaction:"));
-            WT_ERR(__wt_verbose_dump_txn_one(session, s, 0, NULL));
+            //WT_ERR(__wt_verbose_dump_txn_one(session, s, 0, NULL)); yang add change
         } else {
             WT_ERR(__wt_msg(session, "  Number of positioned cursors: %u", s->ncursors));
             TAILQ_FOREACH (cursor, &s->cursors, q) {

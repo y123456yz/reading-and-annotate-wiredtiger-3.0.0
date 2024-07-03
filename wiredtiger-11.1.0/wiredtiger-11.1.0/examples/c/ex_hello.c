@@ -173,7 +173,8 @@ access_example(int argc, char *argv[])
         testutil_check(session->checkpoint(session, NULL));
         //__wt_sleep(3, 0);
 
-        //testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,verbose=[config_all_verbos:5, metadata:0, api:0]"));
+        testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,"
+        "file_manager=(close_idle_time=10000), hash=(dhandle_buckets=1000), verbose=[config_all_verbos:5, metadata:0, api:0]"));
 
         // error_check(cursor->close(cursor));
 

@@ -1026,11 +1026,12 @@ main(int argc, char *argv[])
          * the time we notice that the file has been created. That allows the test to run correctly
          * on really slow machines.
          */
+        //这里一定要等checkpoint完成，才会走后面得kill逻辑
         testutil_check(__wt_snprintf(statname, sizeof(statname), "%s/%s", home, ckpt_file));
         while (stat(statname, &sb) != 0)
             testutil_sleep_wait(1, pid);
         sleep(timeout); //yang add change
-        //usleep(5 * 1000);
+        //usleep(5 * 1000); //yang add change  也就是timestamp -t xxx， 运行多长时间
         sa.sa_handler = SIG_DFL;
         testutil_assert_errno(sigaction(SIGCHLD, &sa, NULL) == 0);
 

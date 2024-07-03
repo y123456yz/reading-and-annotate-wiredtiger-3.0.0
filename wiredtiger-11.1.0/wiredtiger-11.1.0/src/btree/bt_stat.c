@@ -46,6 +46,7 @@ __wt_btree_stat_init(WT_SESSION_IMPL *session, WT_CURSOR_STAT *cst)
       __wt_cache_bytes_plus_overhead(S2C(session)->cache, btree->bytes_dirty_total));
     WT_STAT_SET(session, stats, cache_bytes_inuse, __wt_btree_bytes_inuse(session));
 
+    //yang add todo xxxxxxxxxxxxxxxxxxxxx     compress_precomp_leaf_max_page_size的对应描述多了一个空格   yang add todo xxxxxxxxxxxxxxxxx
     WT_STAT_SET(session, stats, compress_precomp_leaf_max_page_size, btree->maxleafpage_precomp);
     WT_STAT_SET(session, stats, compress_precomp_intl_max_page_size, btree->maxintlpage_precomp);
 

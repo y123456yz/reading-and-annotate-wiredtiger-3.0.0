@@ -254,6 +254,7 @@ __txn_get_snapshot_int(WT_SESSION_IMPL *session, bool publish)
             txn->snapshot[n++] = id;
         //printf("yang test .........__txn_get_snapshot_int......%d, %lu\r\n", publish, id);    
         if (publish)
+            //也就是当前事务进行中的时候，其他线程
             txn_shared->metadata_pinned = id;
     }
     
@@ -391,12 +392,16 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
     /* The oldest ID cannot change while we are holding the scan lock. */
     prev_oldest_id = txn_global->oldest_id;
     last_running = oldest_id = txn_global->current;
+
+    //如果当前有其他线程正在做checkpoint则metadata_pinned为正在做checkpoint的线程对应事务id
+    //如果有其他线程在做checkpoint，则可能metadata_pinned会小于当前所有其他事务的最小id
     if ((metadata_pinned = txn_global->checkpoint_txn_shared.id) == WT_TXN_NONE)
         metadata_pinned = oldest_id;
 
     /* Walk the array of concurrent transactions. */
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
     WT_STAT_CONN_INCR(session, txn_walk_sessions);
+    //获取当前所有事务id中的最小事务id赋值给last_running
     for (i = 0, s = txn_global->txn_shared_list; i < session_cnt; i++, s++) {
         WT_STAT_CONN_INCR(session, txn_sessions_walked);
         /* Update the last running transaction ID. */
@@ -429,6 +434,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
 
         /* Update the metadata pinned ID. */
         //也就是所有session对应事务中大于txn_global->current的最小事务metadata_pinned赋值 
+        //事务进行中的时候可能checkpoint线程在做checkpoint，s->metadata_pinned就是开始事务时候做checkpoint的线程事务id
         if ((id = s->metadata_pinned) != WT_TXN_NONE && WT_TXNID_LT(id, metadata_pinned))
             metadata_pinned = id;
 
@@ -441,12 +447,53 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
          * details.
          */
         //也就是所有session对应事务中大于txn_global->current的最小事务pinned_id赋值给oldest_id，并记录下这个session
+
+        //快照隔离级别WT_ISO_READ_UNCOMMITTED的时候, 就不会通过__wt_txn_get_snapshot调用__wt_txn_cursor_op获取快照列表，这时候就需要通过s->pinned_id获取oldest id
+        //如果不是WT_ISO_READ_UNCOMMITTED，则这里的s->pinned_id一般就和前面的last_running是相等的
+
+        //这里主要是为WT_ISO_READ_UNCOMMITTED隔离级别准备的
         if ((id = s->pinned_id) != WT_TXN_NONE && WT_TXNID_LT(id, oldest_id)) {
             oldest_id = id;
             oldest_session = &conn->sessions[i];
         }
     }
 
+/*
+oldest ID: 22
+durable timestamp: (0, 20)
+oldest timestamp: (0, 0)
+pinned timestamp: (0, 0)
+stable timestamp: (0, 0)
+has_durable_timestamp: yes
+has_oldest_timestamp: no
+has_pinned_timestamp: no
+has_stable_timestamp: no
+oldest_is_pinned: no
+stable_is_pinned: no
+checkpoint running: yes
+checkpoint generation: 2
+checkpoint pinned ID: 22
+checkpoint txn ID: 29
+session count: 22
+Transaction state of active sessions:
+session ID: 16, txn ID: 31, pinned ID: 22, metadata pinned ID: 29, name: connection-open-session
+transaction id: 31, mod count: 3, snap min: 22, snap max: 31, snapshot count: 5, snapshot: [22, 24, 26, 28, 29], commit_timestamp: (0, 22), durable_timestamp: (0, 22), first_commit_timestamp: (0, 21), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 21), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 18, txn ID: 33, pinned ID: 24, metadata pinned ID: 29, name: connection-open-session
+transaction id: 33, mod count: 3, snap min: 24, snap max: 33, snapshot count: 5, snapshot: [24, 26, 28, 29, 31], commit_timestamp: (0, 24), durable_timestamp: (0, 24), first_commit_timestamp: (0, 23), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 23), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 19, txn ID: 35, pinned ID: 26, metadata pinned ID: 29, name: connection-open-session
+transaction id: 35, mod count: 3, snap min: 26, snap max: 35, snapshot count: 5, snapshot: [26, 28, 29, 31, 33], commit_timestamp: (0, 26), durable_timestamp: (0, 26), first_commit_timestamp: (0, 25), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 25), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 20, txn ID: 37, pinned ID: 28, metadata pinned ID: 29, name: connection-open-session
+transaction id: 37, mod count: 3, snap min: 28, snap max: 37, snapshot count: 5, snapshot: [28, 29, 31, 33, 35], commit_timestamp: (0, 28), durable_timestamp: (0, 28), first_commit_timestamp: (0, 27), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 27), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+//这里为什么pinned ID: 31，因为pinned ID不包括 snapshot:[]中的checkpoint对应事务id，因此需要剔除29，29是checkpoint事务id
+session ID: 21, txn ID: 39, pinned ID: 31, metadata pinned ID: 29, name: connection-open-session
+transaction id: 39, mod count: 3, snap min: 29, snap max: 39, snapshot count: 5, snapshot: [29, 31, 33, 35, 37], commit_timestamp: (0, 30), durable_timestamp: (0, 30), first_commit_timestamp: (0, 29), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 29), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+checkpoint session ID: 22, txn ID: 29, pinned ID: 22, metadata pinned ID: 0, name: eviction-server
+ */
+//以上面的这个例子为例:
+//  当前所有session事务txn ID分别是: 31  33  35  37  39,  这里可以看出last_running = 31
+//  metadata pinned ID分别是: 29  29  29  29  29,  这里可以看出metadata_pinned = 29
+//  pinned ID分别是: 22 24 26 28 31, 也就是对应事务snapshot[]中除了checkpoint事务以外的事务id的最小值, 这里可以看出oldest_id = 22
+//  最终: oldest_id=22, last_running=31, metadata_pinned=22
     if (WT_TXNID_LT(last_running, oldest_id))
         oldest_id = last_running;
 
@@ -2680,7 +2727,8 @@ __wt_txn_is_blocking(WT_SESSION_IMPL *session)
  */
 int
 __wt_verbose_dump_txn_one(
-  WT_SESSION_IMPL *session, WT_SESSION_IMPL *txn_session, int error_code, const char *error_string)
+  WT_SESSION_IMPL *session, WT_SESSION_IMPL *txn_session, int error_code, const char *error_string, 
+  WT_ITEM *txn_one_buf)
 {
     WT_TXN *txn;
     WT_TXN_SHARED *txn_shared;
@@ -2763,6 +2811,8 @@ __wt_verbose_dump_txn_one(
     } else {
         WT_ERR(__wt_msg(session, "%s", (char*)buf->data));
     }
+
+    WT_ERR(__wt_buf_catfmt(session, txn_one_buf, "%s\r\n", (char*)buf->data));
 
 err:
     __wt_scr_free(session, &snapshot_buf);
@@ -2903,63 +2953,70 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
     uint64_t id;
     uint32_t i, session_cnt;
     char ts_string[WT_TS_INT_STRING_SIZE];
+    WT_DECL_ITEM(snapshot_buf);
+   // WT_DECL_ITEM(txn_one_buf);
+    WT_DECL_RET;
 
     conn = S2C(session);
     txn_global = &conn->txn_global;
 
     //return 0;//yang add change
 
-    if (func_name)
-        WT_RET(__wt_msg(session, "\r\n\r\n%s:", func_name));
-        //__wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", func_name);
-    else 
-        WT_RET(__wt_msg(session, "\r\n\r\n%s:", WT_DIVIDER));
-        //__wt_verbose(session, WT_VERB_TRANSACTION,"\r\n\r\n%s:", WT_DIVIDER);
-        
-    WT_RET(__wt_msg(session, "transaction state dump"));
-    WT_RET(__wt_msg(session, "now print session ID: %" PRIu32, session->id));
-
-    WT_RET(__wt_msg(session, "current ID: %" PRIu64, txn_global->current));
-    WT_RET(__wt_msg(session, "last running ID: %" PRIu64, txn_global->last_running));
-    WT_RET(__wt_msg(session, "metadata_pinned ID: %" PRIu64, txn_global->metadata_pinned));
-    WT_RET(__wt_msg(session, "oldest ID: %" PRIu64, txn_global->oldest_id));
-
-    //durable_timestamp、oldest_timestamp、 stable_timestamp这三个时间戳可以通过__wt_txn_global_set_timestamp设置
-    //  pinned_timestamp不可配置，是通过动态计算出来的
-    WT_RET(__wt_msg(session, "durable timestamp: %s",
-      __wt_timestamp_to_string(txn_global->durable_timestamp, ts_string)));
-    WT_RET(__wt_msg(session, "oldest timestamp: %s",
-      __wt_timestamp_to_string(txn_global->oldest_timestamp, ts_string)));
-    WT_RET(__wt_msg(session, "pinned timestamp: %s",
-      __wt_timestamp_to_string(txn_global->pinned_timestamp, ts_string)));
-    WT_RET(__wt_msg(session, "stable timestamp: %s",
-      __wt_timestamp_to_string(txn_global->stable_timestamp, ts_string)));
-    WT_RET(__wt_msg(
-      session, "has_durable_timestamp: %s", txn_global->has_durable_timestamp ? "yes" : "no"));
-    WT_RET(__wt_msg(
-      session, "has_oldest_timestamp: %s", txn_global->has_oldest_timestamp ? "yes" : "no"));
-    WT_RET(__wt_msg(
-      session, "has_pinned_timestamp: %s", txn_global->has_pinned_timestamp ? "yes" : "no"));
-    WT_RET(__wt_msg(
-      session, "has_stable_timestamp: %s", txn_global->has_stable_timestamp ? "yes" : "no"));
-    WT_RET(__wt_msg(session, "oldest_is_pinned: %s", txn_global->oldest_is_pinned ? "yes" : "no"));
-    WT_RET(__wt_msg(session, "stable_is_pinned: %s", txn_global->stable_is_pinned ? "yes" : "no"));
-
-    WT_RET(
-      __wt_msg(session, "checkpoint running: %s", txn_global->checkpoint_running ? "yes" : "no"));
-    WT_RET(
-      __wt_msg(session, "checkpoint generation: %" PRIu64, __wt_gen(session, WT_GEN_CHECKPOINT)));
-    WT_RET(__wt_msg(
-      session, "checkpoint pinned ID: %" PRIu64, txn_global->checkpoint_txn_shared.pinned_id));
+    WT_ERR(__wt_scr_alloc(session, 20480, &snapshot_buf));
     
-    WT_RET(__wt_msg(session, "checkpoint timestamp: %s",
+    if (func_name)
+        WT_ERR(__wt_buf_fmt(session, snapshot_buf, "\r\n\r\n%s:", func_name));
+    else 
+        WT_ERR(__wt_buf_fmt(session, snapshot_buf, "\r\n\r\n%s:", WT_DIVIDER));
+
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "%s", "transaction state dump\r\n"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "now print session ID: %" PRIu32 "\r\n", session->id));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "current ID: %" PRIu64 "\r\n", txn_global->current));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "last running ID: %" PRIu64 "\r\n", txn_global->last_running));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "metadata_pinned ID: %" PRIu64 "\r\n", txn_global->metadata_pinned));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest ID: %" PRIu64 "\r\n", txn_global->oldest_id));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "durable timestamp: %s\r\n",
+      __wt_timestamp_to_string(txn_global->durable_timestamp, ts_string)));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest timestamp: %s\r\n",
+      __wt_timestamp_to_string(txn_global->oldest_timestamp, ts_string)));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "pinned timestamp: %s\r\n",
+      __wt_timestamp_to_string(txn_global->pinned_timestamp, ts_string)));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "stable timestamp: %s\r\n",
+      __wt_timestamp_to_string(txn_global->stable_timestamp, ts_string)));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_durable_timestamp: %s\r\n", txn_global->has_durable_timestamp ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_oldest_timestamp: %s\r\n", txn_global->has_oldest_timestamp ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_pinned_timestamp: %s\r\n", txn_global->has_pinned_timestamp ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_stable_timestamp: %s\r\n", txn_global->has_stable_timestamp ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest_is_pinned: %s\r\n", txn_global->oldest_is_pinned ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "stable_is_pinned: %s\r\n", txn_global->stable_is_pinned ? "yes" : "no"));
+
+
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "checkpoint running: %s\r\n", txn_global->checkpoint_running ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "checkpoint generation: %" PRIu64 "\r\n", __wt_gen(session, WT_GEN_CHECKPOINT)));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "checkpoint pinned ID: %" PRIu64 "\r\n", txn_global->checkpoint_txn_shared.pinned_id));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf,  "checkpoint timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->checkpoint_timestamp, ts_string)));
-
-    WT_RET(__wt_msg(session, "checkpoint txn ID: %" PRIu64, txn_global->checkpoint_txn_shared.id));
-
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "checkpoint txn ID: %" PRIu64 "\r\n", txn_global->checkpoint_txn_shared.id));
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
-    WT_RET(__wt_msg(session, "session count: %" PRIu32, session_cnt));
-    WT_RET(__wt_msg(session, "Transaction state of active sessions:"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "session count: %" PRIu32 "\r\n", session_cnt));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "Transaction state of active sessions:\r\n"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_oldest_timestamp: %s\r\n", txn_global->has_oldest_timestamp ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_pinned_timestamp: %s\r\n", txn_global->has_pinned_timestamp ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_stable_timestamp: %s\r\n", txn_global->has_stable_timestamp ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest_is_pinned: %s\r\n", txn_global->oldest_is_pinned ? "yes" : "no"));
+    WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "stable_is_pinned: %s\r\n", txn_global->stable_is_pinned ? "yes" : "no"));
+    WT_RET(
+      __wt_buf_catfmt(session, snapshot_buf, "checkpoint running: %s\r\n", txn_global->checkpoint_running ? "yes" : "no"));
+    WT_RET(
+      __wt_buf_catfmt(session, snapshot_buf, "checkpoint generation: %" PRIu64 "\r\n", __wt_gen(session, WT_GEN_CHECKPOINT)));
+    WT_RET(__wt_buf_catfmt(
+      session, snapshot_buf, "checkpoint pinned ID: %" PRIu64 "\r\n", txn_global->checkpoint_txn_shared.pinned_id));
+    WT_RET(__wt_buf_catfmt(session, snapshot_buf, "checkpoint timestamp: %s\r\n",
+      __wt_timestamp_to_string(txn_global->checkpoint_timestamp, ts_string)));
+    WT_RET(__wt_buf_catfmt(session, snapshot_buf, "checkpoint txn ID: %" PRIu64 "\r\n", txn_global->checkpoint_txn_shared.id));
+    WT_ORDERED_READ(session_cnt, conn->session_cnt);
+    WT_RET(__wt_buf_catfmt(session, snapshot_buf, "session count: %" PRIu32 "\r\n", session_cnt));
+    WT_RET(__wt_buf_catfmt(session, snapshot_buf, "Transaction state of active sessions:"));
 
     /*
      * Walk each session transaction state and dump information. Accessing the content of session
@@ -2981,22 +3038,28 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
         //    continue;
 
         sess = &conn->sessions[i];
-        WT_RET(__wt_msg(session,
-          "session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", i, id,
+        WT_RET(__wt_buf_catfmt(session, snapshot_buf,
+          "session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s\r\n", i, id,
           s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
-        WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL));
+        WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL, snapshot_buf));
     }
 
     s = &txn_global->checkpoint_txn_shared;
-    if ((id = s->id) == WT_TXN_NONE && s->pinned_id == WT_TXN_NONE)
-        return (0);
-
+    if ((id = s->id) == WT_TXN_NONE && s->pinned_id == WT_TXN_NONE) {
+        goto end;
+    }
     //yang add todo xxxxxxxxxxxxxxxxxxxxxx下一期PR加上
     sess = session;
-    WT_RET(__wt_msg(session,
-      "checkpoint session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s", i, id,
+    WT_RET(__wt_buf_catfmt(session, snapshot_buf, 
+      "checkpoint session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s\r\n", i, id,
       s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
-    WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL));
+    WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL, snapshot_buf));
+
+end:
+    WT_ERR(__wt_msg(session, "%s", (char*)snapshot_buf->data));
+    
+err:
+    __wt_scr_free(session, &snapshot_buf);
 
     return (0);
 }
