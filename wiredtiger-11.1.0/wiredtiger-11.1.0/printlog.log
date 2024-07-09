@@ -15,7 +15,7 @@
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "SYSTEM: Log manager created at 1707103171"
+    "message" : "SYSTEM: Log manager created at 1720169173"
   },
   { "lsn" : [1,384],
     "hdr_flags" : "",
@@ -30,14 +30,14 @@
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "OPEN/CREATE: posix_directory_sync WT_HOME_LOG_1/WiredTigerHS.wt"
+    "message" : "OPEN/CREATE: posix_directory_sync WT_HOME/WiredTigerHS.wt"
   },
   { "lsn" : [1,640],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "OPEN/CREATE: DONE posix_directory_sync WT_HOME_LOG_1/WiredTigerHS.wt"
+    "message" : "OPEN/CREATE: DONE posix_directory_sync WT_HOME/WiredTigerHS.wt"
   },
   { "lsn" : [1,768],
     "hdr_flags" : "",
@@ -50,9 +50,7 @@
         "fileid": 0,
         "fileid-hex": "0x0",
         "key": "file:WiredTigerHS.wt\u0000",
-        "key-hex": "66696c653a5769726564546967657248532e777400",
-        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=1,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=QQQu,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none\u0000",
-        "value-hex": "6163636573735f7061747465726e5f68696e743d6e6f6e652c616c6c6f636174696f6e5f73697a653d344b422c6170705f6d657461646174613d2c6173736572743d28636f6d6d69745f74696d657374616d703d6e6f6e652c64757261626c655f74696d657374616d703d6e6f6e652c726561645f74696d657374616d703d6e6f6e652c77726974655f74696d657374616d703d6f6666292c626c6f636b5f616c6c6f636174696f6e3d626573742c626c6f636b5f636f6d70726573736f723d6e6f6e652c63616368655f7265736964656e743d66616c73652c636865636b706f696e743d2c636865636b706f696e745f6261636b75705f696e666f3d2c636865636b706f696e745f6c736e3d2c636865636b73756d3d6f6e2c636f6c6c61746f723d2c636f6c756d6e733d2c64696374696f6e6172793d302c656e6372797074696f6e3d286b657969643d2c6e616d653d292c666f726d61743d62747265652c687566666d616e5f6b65793d2c687566666d616e5f76616c75653d2c69643d312c69676e6f72655f696e5f6d656d6f72795f63616368655f73697a653d66616c73652c696e7465726e616c5f6974656d5f6d61783d302c696e7465726e616c5f6b65795f6d61783d302c696e7465726e616c5f6b65795f7472756e636174653d747275652c696e7465726e616c5f706167655f6d61783d31364b422c6b65795f666f726d61743d497551512c6b65795f6761703d31302c6c6561665f6974656d5f6d61783d302c6c6561665f6b65795f6d61783d302c6c6561665f706167655f6d61783d33324b422c6c6561665f76616c75655f6d61783d36344d422c6c6f673d28656e61626c65643d74727565292c6d656d6f72795f706167655f696d6167655f6d61783d302c6d656d6f72795f706167655f6d61783d354d422c6f735f63616368655f64697274795f6d61783d302c6f735f63616368655f6d61783d302c7072656669785f636f6d7072657373696f6e3d66616c73652c7072656669785f636f6d7072657373696f6e5f6d696e3d342c726561646f6e6c793d66616c73652c73706c69745f64656570656e5f6d696e5f6368696c643d302c73706c69745f64656570656e5f7065725f6368696c643d302c73706c69745f7063743d39302c7469657265645f6f626a6563743d66616c73652c7469657265645f73746f726167653d28617574685f746f6b656e3d2c6275636b65743d2c6275636b65745f7072656669783d2c63616368655f6469726563746f72793d2c6c6f63616c5f726574656e74696f6e3d3330302c6e616d653d2c6f626a6563745f7461726765745f73697a653d30292c76616c75655f666f726d61743d515151752c766572626f73653d5b5d2c76657273696f6e3d286d616a6f723d322c6d696e6f723d31292c77726974655f74696d657374616d705f75736167653d6e6f6e6500"
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=1,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=QQQu,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none\u0000"
       }
     ]
   },
@@ -69,7 +67,7 @@
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "SYSTEM: Log manager threads started post-recovery at 1707103171"
+    "message" : "SYSTEM: Log manager threads started post-recovery at 1720169173"
   },
   { "lsn" : [1,2176],
     "hdr_flags" : "",
@@ -81,10 +79,8 @@
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
-        "key": "table:logtest\u0000",
-        "key-hex": "7461626c653a6c6f677465737400",
-        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=S,verbose=[],write_timestamp_usage=none\u0000",
-        "value-hex": "6170705f6d657461646174613d2c6173736572743d28636f6d6d69745f74696d657374616d703d6e6f6e652c64757261626c655f74696d657374616d703d6e6f6e652c726561645f74696d657374616d703d6e6f6e652c77726974655f74696d657374616d703d6f6666292c636f6c67726f7570733d2c636f6c6c61746f723d2c636f6c756d6e733d2c6b65795f666f726d61743d532c76616c75655f666f726d61743d532c766572626f73653d5b5d2c77726974655f74696d657374616d705f75736167653d6e6f6e6500"
+        "key": "table:collection\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=u,verbose=[],write_timestamp_usage=none\u0000"
       }
     ]
   },
@@ -93,14 +89,14 @@
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "OPEN/CREATE: posix_directory_sync WT_HOME_LOG_1/logtest.wt"
+    "message" : "OPEN/CREATE: posix_directory_sync WT_HOME/collection.wt"
   },
   { "lsn" : [1,2560],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "OPEN/CREATE: DONE posix_directory_sync WT_HOME_LOG_1/logtest.wt"
+    "message" : "OPEN/CREATE: DONE posix_directory_sync WT_HOME/collection.wt"
   },
   { "lsn" : [1,2688],
     "hdr_flags" : "",
@@ -112,10 +108,8 @@
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
-        "key": "file:logtest.wt\u0000",
-        "key-hex": "66696c653a6c6f67746573742e777400",
-        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none\u0000",
-        "value-hex": "6163636573735f7061747465726e5f68696e743d6e6f6e652c616c6c6f636174696f6e5f73697a653d344b422c6170705f6d657461646174613d2c6173736572743d28636f6d6d69745f74696d657374616d703d6e6f6e652c64757261626c655f74696d657374616d703d6e6f6e652c726561645f74696d657374616d703d6e6f6e652c77726974655f74696d657374616d703d6f6666292c626c6f636b5f616c6c6f636174696f6e3d626573742c626c6f636b5f636f6d70726573736f723d2c63616368655f7265736964656e743d66616c73652c636865636b706f696e743d2c636865636b706f696e745f6261636b75705f696e666f3d2c636865636b706f696e745f6c736e3d2c636865636b73756d3d6f6e2c636f6c6c61746f723d2c636f6c756d6e733d2c64696374696f6e6172793d302c656e6372797074696f6e3d286b657969643d2c6e616d653d292c666f726d61743d62747265652c687566666d616e5f6b65793d2c687566666d616e5f76616c75653d2c69643d322c69676e6f72655f696e5f6d656d6f72795f63616368655f73697a653d66616c73652c696e7465726e616c5f6974656d5f6d61783d302c696e7465726e616c5f6b65795f6d61783d302c696e7465726e616c5f6b65795f7472756e636174653d747275652c696e7465726e616c5f706167655f6d61783d344b422c6b65795f666f726d61743d532c6b65795f6761703d31302c6c6561665f6974656d5f6d61783d302c6c6561665f6b65795f6d61783d302c6c6561665f706167655f6d61783d33324b422c6c6561665f76616c75655f6d61783d302c6c6f673d28656e61626c65643d74727565292c6d656d6f72795f706167655f696d6167655f6d61783d302c6d656d6f72795f706167655f6d61783d354d422c6f735f63616368655f64697274795f6d61783d302c6f735f63616368655f6d61783d302c7072656669785f636f6d7072657373696f6e3d66616c73652c7072656669785f636f6d7072657373696f6e5f6d696e3d342c726561646f6e6c793d66616c73652c73706c69745f64656570656e5f6d696e5f6368696c643d302c73706c69745f64656570656e5f7065725f6368696c643d302c73706c69745f7063743d39302c7469657265645f6f626a6563743d66616c73652c7469657265645f73746f726167653d28617574685f746f6b656e3d2c6275636b65743d2c6275636b65745f7072656669783d2c63616368655f6469726563746f72793d2c6c6f63616c5f726574656e74696f6e3d3330302c6e616d653d2c6f626a6563745f7461726765745f73697a653d30292c76616c75655f666f726d61743d532c766572626f73653d5b5d2c76657273696f6e3d286d616a6f723d322c6d696e6f723d31292c77726974655f74696d657374616d705f75736167653d6e6f6e6500"
+        "key": "file:collection.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none\u0000"
       }
     ]
   },
@@ -129,10 +123,8 @@
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
-        "key": "colgroup:logtest\u0000",
-        "key-hex": "636f6c67726f75703a6c6f677465737400",
-        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source=\"file:logtest.wt\",type=file,verbose=[],write_timestamp_usage=none\u0000",
-        "value-hex": "6170705f6d657461646174613d2c6173736572743d28636f6d6d69745f74696d657374616d703d6e6f6e652c64757261626c655f74696d657374616d703d6e6f6e652c726561645f74696d657374616d703d6e6f6e652c77726974655f74696d657374616d703d6f6666292c636f6c6c61746f723d2c636f6c756d6e733d2c736f757263653d2266696c653a6c6f67746573742e7774222c747970653d66696c652c766572626f73653d5b5d2c77726974655f74696d657374616d705f75736167653d6e6f6e6500"
+        "key": "colgroup:collection\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source=\"file:collection.wt\",type=file,verbose=[],write_timestamp_usage=none\u0000"
       }
     ]
   },
@@ -146,23 +138,16 @@
   },
   { "lsn" : [1,4224],
     "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
+    "rec_len" : 256,
+    "mem_len" : 256,
     "type" : "commit",
     "txnid" : 5,
     "ops": [
-      { REDACTED
-      }
-    ]
-  },
-  { "lsn" : [1,4352],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 6,
-    "ops": [
-      { REDACTED
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "table:shadow\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=u,verbose=[],write_timestamp_usage=none\u0000"
       }
     ]
   },
@@ -170,117 +155,189 @@
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 7,
-    "ops": [
-      { REDACTED
-      }
-    ]
+    "type" : "message",
+    "message" : "OPEN/CREATE: posix_directory_sync WT_HOME/shadow.wt"
   },
   { "lsn" : [1,4608],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 8,
-    "ops": [
-      { REDACTED
-      }
-    ]
+    "type" : "message",
+    "message" : "OPEN/CREATE: DONE posix_directory_sync WT_HOME/shadow.wt"
   },
   { "lsn" : [1,4736],
     "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
+    "rec_len" : 1152,
+    "mem_len" : 1152,
     "type" : "commit",
-    "txnid" : 9,
+    "txnid" : 6,
     "ops": [
-      { REDACTED
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:shadow.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=3,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none\u0000"
       }
     ]
   },
-  { "lsn" : [1,4864],
+  { "lsn" : [1,5888],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 7,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "colgroup:shadow\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source=\"file:shadow.wt\",type=file,verbose=[],write_timestamp_usage=none\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,6144],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 10,
-    "ops": [
-      { REDACTED
-      }
-    ]
+    "type" : "file_sync",
+    "fileid" : 0,
+    "start" : 0
   },
-  { "lsn" : [1,4992],
+  { "lsn" : [1,6272],
     "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
+    "rec_len" : 256,
+    "mem_len" : 256,
     "type" : "commit",
-    "txnid" : 11,
+    "txnid" : 8,
     "ops": [
-      { REDACTED
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "table:local\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=u,verbose=[],write_timestamp_usage=none\u0000"
       }
     ]
   },
-  { "lsn" : [1,5120],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 12,
-    "ops": [
-      { REDACTED
-      }
-    ]
-  },
-  { "lsn" : [1,5248],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 13,
-    "ops": [
-      { REDACTED
-      }
-    ]
-  },
-  { "lsn" : [1,5376],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 14,
-    "ops": [
-      { REDACTED
-      }
-    ]
-  },
-  { "lsn" : [1,5504],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "commit",
-    "txnid" : 15,
-    "ops": [
-      { REDACTED
-      },
-      { REDACTED
-      },
-      { REDACTED
-      },
-      { REDACTED
-      },
-      { REDACTED
-      }
-    ]
-  },
-  { "lsn" : [1,5632],
+  { "lsn" : [1,6528],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "Wrote 15 records"
+    "message" : "OPEN/CREATE: posix_directory_sync WT_HOME/local.wt"
   },
-  { "lsn" : [1,5760],
+  { "lsn" : [1,6656],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "message",
+    "message" : "OPEN/CREATE: DONE posix_directory_sync WT_HOME/local.wt"
+  },
+  { "lsn" : [1,6784],
+    "hdr_flags" : "",
+    "rec_len" : 1152,
+    "mem_len" : 1152,
+    "type" : "commit",
+    "txnid" : 9,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:local.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=4,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,7936],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 10,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "colgroup:local\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source=\"file:local.wt\",type=file,verbose=[],write_timestamp_usage=none\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,8192],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "file_sync",
+    "fileid" : 0,
+    "start" : 0
+  },
+  { "lsn" : [1,8320],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 11,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "table:oplog\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),colgroups=,collator=,columns=,key_format=S,value_format=u,verbose=[],write_timestamp_usage=none\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,8576],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "message",
+    "message" : "OPEN/CREATE: posix_directory_sync WT_HOME/oplog.wt"
+  },
+  { "lsn" : [1,8704],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "message",
+    "message" : "OPEN/CREATE: DONE posix_directory_sync WT_HOME/oplog.wt"
+  },
+  { "lsn" : [1,8832],
+    "hdr_flags" : "",
+    "rec_len" : 1152,
+    "mem_len" : 1152,
+    "type" : "commit",
+    "txnid" : 12,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:oplog.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checkpoint=,checkpoint_backup_info=,checkpoint_lsn=,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=5,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,9984],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 13,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "colgroup:oplog\u0000",
+        "value": "app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source=\"file:oplog.wt\",type=file,verbose=[],write_timestamp_usage=none\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,10240],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "file_sync",
+    "fileid" : 0,
+    "start" : 0
+  },
+  { "lsn" : [1,10368],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
@@ -291,104 +348,1302 @@
       }
     ]
   },
-  { "lsn" : [1,5888],
+  { "lsn" : [1,10496],
     "hdr_flags" : "",
-    "rec_len" : 2944,
-    "mem_len" : 2944,
+    "rec_len" : 6656,
+    "mem_len" : 6656,
     "type" : "commit",
-    "txnid" : 16,
+    "txnid" : 14,
     "ops": [
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
-        "key": "file:logtest.wt\u0000",
-        "key-hex": "66696c653a6c6f67746573742e777400",
-        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"018181e4de65cedc8281e41546bd168381e444791e4a808080e22fc0cfc0\",order=1,time=1707103172,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,5760)\u0000",
-        "value-hex": "6163636573735f7061747465726e5f68696e743d6e6f6e652c616c6c6f636174696f6e5f73697a653d344b422c6170705f6d657461646174613d2c6173736572743d28636f6d6d69745f74696d657374616d703d6e6f6e652c64757261626c655f74696d657374616d703d6e6f6e652c726561645f74696d657374616d703d6e6f6e652c77726974655f74696d657374616d703d6f6666292c626c6f636b5f616c6c6f636174696f6e3d626573742c626c6f636b5f636f6d70726573736f723d2c63616368655f7265736964656e743d66616c73652c636865636b73756d3d6f6e2c636f6c6c61746f723d2c636f6c756d6e733d2c64696374696f6e6172793d302c656e6372797074696f6e3d286b657969643d2c6e616d653d292c666f726d61743d62747265652c687566666d616e5f6b65793d2c687566666d616e5f76616c75653d2c69643d322c69676e6f72655f696e5f6d656d6f72795f63616368655f73697a653d66616c73652c696e7465726e616c5f6974656d5f6d61783d302c696e7465726e616c5f6b65795f6d61783d302c696e7465726e616c5f6b65795f7472756e636174653d747275652c696e7465726e616c5f706167655f6d61783d344b422c6b65795f666f726d61743d532c6b65795f6761703d31302c6c6561665f6974656d5f6d61783d302c6c6561665f6b65795f6d61783d302c6c6561665f706167655f6d61783d33324b422c6c6561665f76616c75655f6d61783d302c6c6f673d28656e61626c65643d74727565292c6d656d6f72795f706167655f696d6167655f6d61783d302c6d656d6f72795f706167655f6d61783d354d422c6f735f63616368655f64697274795f6d61783d302c6f735f63616368655f6d61783d302c7072656669785f636f6d7072657373696f6e3d66616c73652c7072656669785f636f6d7072657373696f6e5f6d696e3d342c726561646f6e6c793d66616c73652c73706c69745f64656570656e5f6d696e5f6368696c643d302c73706c69745f64656570656e5f7065725f6368696c643d302c73706c69745f7063743d39302c7469657265645f6f626a6563743d66616c73652c7469657265645f73746f726167653d28617574685f746f6b656e3d2c6275636b65743d2c6275636b65745f7072656669783d2c63616368655f6469726563746f72793d2c6c6f63616c5f726574656e74696f6e3d3330302c6e616d653d2c6f626a6563745f7461726765745f73697a653d30292c76616c75655f666f726d61743d532c766572626f73653d5b5d2c76657273696f6e3d286d616a6f723d322c6d696e6f723d31292c77726974655f74696d657374616d705f75736167653d6e6f6e652c636865636b706f696e743d2857697265645469676572436865636b706f696e742e313d28616464723d22303138313831653464653635636564633832383165343135343662643136383338316534343437393165346138303830383065323266633063666330222c6f726465723d312c74696d653d313730373130333137322c73697a653d383139322c6e65776573745f73746172745f64757261626c655f74733d302c6f6c646573745f73746172745f74733d302c6e65776573745f74786e3d302c6e65776573745f73746f705f64757261626c655f74733d302c6e65776573745f73746f705f74733d2d312c6e65776573745f73746f705f74786e3d2d31312c707265706172653d302c77726974655f67656e3d332c72756e5f77726974655f67656e3d3129292c636865636b706f696e745f6261636b75705f696e666f3d2c636865636b706f696e745f6c736e3d28312c353736302900"
+        "key": "file:oplog.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=5,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"\",order=1,time=1720169174,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=1,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,0)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:local.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=4,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"\",order=1,time=1720169174,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=1,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,0)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:shadow.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=3,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"\",order=1,time=1720169174,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=1,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,0)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:collection.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"\",order=1,time=1720169174,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=1,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,0)\u0000"
       },
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
         "key": "file:WiredTigerHS.wt\u0000",
-        "key-hex": "66696c653a5769726564546967657248532e777400",
-        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=1,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=QQQu,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"\",order=1,time=1707103172,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=1,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,0)\u0000",
-        "value-hex": "6163636573735f7061747465726e5f68696e743d6e6f6e652c616c6c6f636174696f6e5f73697a653d344b422c6170705f6d657461646174613d2c6173736572743d28636f6d6d69745f74696d657374616d703d6e6f6e652c64757261626c655f74696d657374616d703d6e6f6e652c726561645f74696d657374616d703d6e6f6e652c77726974655f74696d657374616d703d6f6666292c626c6f636b5f616c6c6f636174696f6e3d626573742c626c6f636b5f636f6d70726573736f723d6e6f6e652c63616368655f7265736964656e743d66616c73652c636865636b73756d3d6f6e2c636f6c6c61746f723d2c636f6c756d6e733d2c64696374696f6e6172793d302c656e6372797074696f6e3d286b657969643d2c6e616d653d292c666f726d61743d62747265652c687566666d616e5f6b65793d2c687566666d616e5f76616c75653d2c69643d312c69676e6f72655f696e5f6d656d6f72795f63616368655f73697a653d66616c73652c696e7465726e616c5f6974656d5f6d61783d302c696e7465726e616c5f6b65795f6d61783d302c696e7465726e616c5f6b65795f7472756e636174653d747275652c696e7465726e616c5f706167655f6d61783d31364b422c6b65795f666f726d61743d497551512c6b65795f6761703d31302c6c6561665f6974656d5f6d61783d302c6c6561665f6b65795f6d61783d302c6c6561665f706167655f6d61783d33324b422c6c6561665f76616c75655f6d61783d36344d422c6c6f673d28656e61626c65643d74727565292c6d656d6f72795f706167655f696d6167655f6d61783d302c6d656d6f72795f706167655f6d61783d354d422c6f735f63616368655f64697274795f6d61783d302c6f735f63616368655f6d61783d302c7072656669785f636f6d7072657373696f6e3d66616c73652c7072656669785f636f6d7072657373696f6e5f6d696e3d342c726561646f6e6c793d66616c73652c73706c69745f64656570656e5f6d696e5f6368696c643d302c73706c69745f64656570656e5f7065725f6368696c643d302c73706c69745f7063743d39302c7469657265645f6f626a6563743d66616c73652c7469657265645f73746f726167653d28617574685f746f6b656e3d2c6275636b65743d2c6275636b65745f7072656669783d2c63616368655f6469726563746f72793d2c6c6f63616c5f726574656e74696f6e3d3330302c6e616d653d2c6f626a6563745f7461726765745f73697a653d30292c76616c75655f666f726d61743d515151752c766572626f73653d5b5d2c76657273696f6e3d286d616a6f723d322c6d696e6f723d31292c77726974655f74696d657374616d705f75736167653d6e6f6e652c636865636b706f696e743d2857697265645469676572436865636b706f696e742e313d28616464723d22222c6f726465723d312c74696d653d313730373130333137322c73697a653d302c6e65776573745f73746172745f64757261626c655f74733d302c6f6c646573745f73746172745f74733d302c6e65776573745f74786e3d302c6e65776573745f73746f705f64757261626c655f74733d302c6e65776573745f73746f705f74733d2d312c6e65776573745f73746f705f74786e3d2d31312c707265706172653d302c77726974655f67656e3d312c72756e5f77726974655f67656e3d3129292c636865636b706f696e745f6261636b75705f696e666f3d2c636865636b706f696e745f6c736e3d28312c302900"
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=1,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=QQQu,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"\",order=1,time=1720169174,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=1,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,0)\u0000"
       },
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
         "key": "system:checkpoint_snapshot\u0000",
-        "key-hex": "73797374656d3a636865636b706f696e745f736e617073686f7400",
-        "value": "snapshot_min=16,snapshot_max=16,snapshot_count=0,checkpoint_time=1707103172,write_gen=1\u0000",
-        "value-hex": "736e617073686f745f6d696e3d31362c736e617073686f745f6d61783d31362c736e617073686f745f636f756e743d302c636865636b706f696e745f74696d653d313730373130333137322c77726974655f67656e3d3100"
+        "value": "snapshot_min=14,snapshot_max=14,snapshot_count=0,checkpoint_time=1720169174,write_gen=1\u0000"
       },
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
         "key": "system:checkpoint_base_write_gen\u0000",
-        "key-hex": "73797374656d3a636865636b706f696e745f626173655f77726974655f67656e00",
-        "value": "base_write_gen=1\u0000",
-        "value-hex": "626173655f77726974655f67656e3d3100"
+        "value": "base_write_gen=1\u0000"
       }
     ]
   },
-  { "lsn" : [1,8832],
+  { "lsn" : [1,17152],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 15,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169173,
+        "time_nsec": 222101906,
+        "commit_ts": 1000000001,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000001,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000000\u0000",
+        "value": "COLL: thread:0 ts:1000000001 key: 1000000000000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169173,
+        "time_nsec": 343874180,
+        "commit_ts": 1000000002,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000001,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000000\u0000",
+        "value": "COLL: thread:0 ts:1000000001 key: 1000000000000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000000\u0000",
+        "value": "OPLOG: thread:0 ts:1000000001 key: 1000000000000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,17536],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 16,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000000\u0000",
+        "value": "LOCAL: thread:0 ts:1000000001 key: 1000000000000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,17664],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 17,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169173,
+        "time_nsec": 717004826,
+        "commit_ts": 1000000004,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000004,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000001\u0000",
+        "value": "COLL: t"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169173,
+        "time_nsec": 835450322,
+        "commit_ts": 1000000005,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000004,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000001\u0000",
+        "value": "COLL: t"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000001\u0000",
+        "value": "OPLOG: thread:0 ts:1000000004 key: 1000000000001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,17920],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 18,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000001\u0000",
+        "value": "LOCAL: thread:0 ts:1000000004 key: 1000000000001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,18048],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
-  { "lsn" : [1,8960],
+  { "lsn" : [1,18176],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: DONE posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: DONE posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
-  { "lsn" : [1,9088],
+  { "lsn" : [1,18304],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "checkpoint",
-    "ckpt_lsn" : [1,5760]
+    "ckpt_lsn" : [1,10368]
   },
-  { "lsn" : [1,9216],
+  { "lsn" : [1,18432],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 19,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169174,
+        "time_nsec": 198498941,
+        "commit_ts": 1000000007,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000007,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000002\u0000",
+        "value": "COLL: thread:0 ts:1000000007 key: 1000000000002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169174,
+        "time_nsec": 308902179,
+        "commit_ts": 1000000008,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000007,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000002\u0000",
+        "value": "COLL: thread:0 ts:1000000007 key: 1000000000002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000002\u0000",
+        "value": "OPLOG: thread:0 ts:1000000007 key: 1000000000002\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,18816],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
-    "type" : "file_sync",
-    "fileid" : 0,
-    "start" : 1
+    "type" : "commit",
+    "txnid" : 20,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000002\u0000",
+        "value": "LOCAL: thread:0 ts:1000000007 key: 1000000000002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
   },
-  { "lsn" : [1,9344],
+  { "lsn" : [1,18944],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 21,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169174,
+        "time_nsec": 643068338,
+        "commit_ts": 1000000010,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000010,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000003\u0000",
+        "value": "COLL: thread:0 ts:1000000010 key: 1000000000003"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169174,
+        "time_nsec": 753320305,
+        "commit_ts": 1000000011,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000010,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000003\u0000",
+        "value": "COLL: thread:0 ts:1000000010 key: 1000000000003"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000003\u0000",
+        "value": "OPLOG: thread:0 ts:1000000010 key: 1000000000003\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,19328],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 22,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000003\u0000",
+        "value": "LOCAL: thread:0 ts:1000000010 key: 1000000000003\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,19456],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "system",
+    "ops": [
+      { "optype": "checkpoint_start"
+
+      }
+    ]
+  },
+  { "lsn" : [1,19584],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 23,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169175,
+        "time_nsec": 91652685,
+        "commit_ts": 1000000013,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000013,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000004\u0000",
+        "value": "COLL: thread:0 ts:1000000013 key: 10"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169175,
+        "time_nsec": 201994673,
+        "commit_ts": 1000000014,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000013,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000004\u0000",
+        "value": "COLL: thread:0 ts:1000000013 key: 10"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000004\u0000",
+        "value": "O"
+      }
+    ]
+  },
+  { "lsn" : [1,19840],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 25,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000004\u0000",
+        "value": "LOCAL: thread:0 ts:10"
+      }
+    ]
+  },
+  { "lsn" : [1,19968],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 26,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169175,
+        "time_nsec": 535711994,
+        "commit_ts": 1000000016,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000016,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000005\u0000",
+        "value": "COLL: thread:0 ts:1000000016 key: 1000000000005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169175,
+        "time_nsec": 646251696,
+        "commit_ts": 1000000017,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000016,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000005\u0000",
+        "value": "COLL: thread:0 ts:1000000016 key: 1000000000005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000005\u0000",
+        "value": "OPLOG: thread:0 ts:1000000016 key: 1000000000005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,20352],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 27,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000005\u0000",
+        "value": "LOCAL: thread:0 ts:1000000016 key: 1000000000005\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,20480],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 28,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169175,
+        "time_nsec": 984643826,
+        "commit_ts": 1000000019,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000019,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000006\u0000",
+        "value": "COLL: thread:0 ts:100000001"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169176,
+        "time_nsec": 95815038,
+        "commit_ts": 1000000020,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000019,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000006\u0000",
+        "value": "COLL: thread:0 ts:100000001"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000006\u0000",
+        "value": "OPLOG: thread:0 ts:1000000019 k"
+      }
+    ]
+  },
+  { "lsn" : [1,20736],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 29,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000006\u0000",
+        "value": "LOCAL: thread:0 ts:1000000019 key: 1000000000006\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,20864],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 30,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169176,
+        "time_nsec": 429471497,
+        "commit_ts": 1000000022,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000022,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000007\u0000",
+        "value": "COLL: thread:0 ts:100000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169176,
+        "time_nsec": 540766262,
+        "commit_ts": 1000000023,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000022,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000007\u0000",
+        "value": "COLL: thread:0 ts:100000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000007\u0000",
+        "value": "OPLOG: thread:0 ts:10"
+      }
+    ]
+  },
+  { "lsn" : [1,21120],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 31,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000007\u0000",
+        "value": "LOCAL: thread:0 t"
+      }
+    ]
+  },
+  { "lsn" : [1,21248],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 32,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169176,
+        "time_nsec": 874219238,
+        "commit_ts": 1000000025,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000025,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000008\u0000",
+        "value": "COLL: thread:0 ts:1000000025 key: 1000000000008\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169176,
+        "time_nsec": 985024445,
+        "commit_ts": 1000000026,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000025,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000008\u0000",
+        "value": "COLL: thread:0 ts:1000000025 key: 1000000000008\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000008\u0000",
+        "value": "OPLOG: thread:0 ts:1000000025 key: 1000000000008\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,21632],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 33,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000008\u0000",
+        "value": "LOCAL: thread:0 ts:1000000025 key:"
+      }
+    ]
+  },
+  { "lsn" : [1,21760],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 34,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169177,
+        "time_nsec": 318337236,
+        "commit_ts": 1000000028,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000028,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000009\u0000",
+        "value": "COLL: thread:0 ts:1000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169177,
+        "time_nsec": 430268954,
+        "commit_ts": 1000000029,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000028,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000009\u0000",
+        "value": "COLL: thread:0 ts:1000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000009\u0000",
+        "value": "OPLOG: thread:0 ts:1000000028 key: 1000000"
+      }
+    ]
+  },
+  { "lsn" : [1,22016],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 35,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000009\u0000",
+        "value": "LOCAL: thread:0 ts:1000000028 key: 1000000000009\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,22144],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 36,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169177,
+        "time_nsec": 763585889,
+        "commit_ts": 1000000031,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000031,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000010\u0000",
+        "value": "COLL: thread:0 ts:1000000031 key: 1000000000010\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169177,
+        "time_nsec": 874771748,
+        "commit_ts": 1000000032,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000031,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000010\u0000",
+        "value": "COLL: thread:0 ts:1000000031 key: 1000000000010\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000010\u0000",
+        "value": "OPL"
+      }
+    ]
+  },
+  { "lsn" : [1,22528],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 37,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000010\u0000",
+        "value": "LOCAL: thread:0 ts:"
+      }
+    ]
+  },
+  { "lsn" : [1,22656],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 38,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169178,
+        "time_nsec": 208276042,
+        "commit_ts": 1000000034,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000034,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000011\u0000",
+        "value": "COLL: thread:0 ts:1000000034 key:"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169178,
+        "time_nsec": 318602723,
+        "commit_ts": 1000000035,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000034,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000011\u0000",
+        "value": "COLL: thread:0 ts:1000000034 key:"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000011\u0000",
+        "value": "OPLOG: thread:0 ts:1000000034 key: 1000000000011\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,23040],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 39,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000011\u0000",
+        "value": "LOCAL: thread:0 ts:1000000034 key: 1000000000011\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,23168],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 40,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169178,
+        "time_nsec": 651620472,
+        "commit_ts": 1000000037,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000037,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000012\u0000",
+        "value": "COLL: thread:0 ts:1000000037"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169178,
+        "time_nsec": 763232366,
+        "commit_ts": 1000000038,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000037,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000012\u0000",
+        "value": "COLL: thread:0 ts:1000000037"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000012\u0000",
+        "value": "OPLOG: thread:0 ts:1000000037 key: 1000000000012\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,23552],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 41,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000012\u0000",
+        "value": "LOCAL: thread:0 ts:1000000037 key: 1000000000012\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,23680],
+    "hdr_flags" : "",
+    "rec_len" : 5888,
+    "mem_len" : 5888,
+    "type" : "commit",
+    "txnid" : 24,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:oplog.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=5,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.2=(addr=\"018181e453ae26eb8281e41546bd168381e4dad1f979808080e22fc0cfc0\",order=2,time=1720169175,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,19456)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:local.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=4,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.2=(addr=\"018181e4981d11148281e41546bd168381e4ed75d337808080e22fc0cfc0\",order=2,time=1720169175,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,19456)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:shadow.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=3,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.2=(addr=\"018181e44494baee8281e41546bd168381e4c4cd6d31808080e22fc0cfc0\",order=2,time=1720169175,size=8192,newest_start_durable_ts=1000000011,oldest_start_ts=0,newest_txn=21,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,19456)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:collection.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.2=(addr=\"018181e4b0341ca78281e41546bd168381e437d370c8808080e22fc0cfc0\",order=2,time=1720169175,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,19456)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:checkpoint\u0000",
+        "value": "checkpoint_timestamp=\"3b9aca0a\",checkpoint_time=1720169175,write_gen=1\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:oldest\u0000",
+        "value": "oldest_timestamp=\"3b9aca0a\",checkpoint_time=1720169175,write_gen=1\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:checkpoint_snapshot\u0000",
+        "value": "snapshot_min=23,snapshot_max=24,snapshot_count=1,snapshots=[23],checkpoint_time=1720169175,write_gen=1\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:checkpoint_base_write_gen\u0000",
+        "value": "base_write_gen=1\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,29568],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 42,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169179,
+        "time_nsec": 96631975,
+        "commit_ts": 1000000040,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000040,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000013\u0000",
+        "value": "COLL: thread:0 ts:1000000040 key: 10000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169179,
+        "time_nsec": 207318997,
+        "commit_ts": 1000000041,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000040,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000013\u0000",
+        "value": "COLL: thread:0 ts:1000000040 key: 10000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000013\u0000",
+        "value": "OPLOG: thread:0 ts:1000000040 key: 1000000000013\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,29952],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 43,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000013\u0000",
+        "value": "LOCAL: thread:0 ts:1000000040 key: 1000000000013\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,30080],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 44,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169179,
+        "time_nsec": 542091748,
+        "commit_ts": 1000000043,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000043,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000014\u0000",
+        "value": "COLL: thread:0 ts:1000000043 key: 1000000000014\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169179,
+        "time_nsec": 652893838,
+        "commit_ts": 1000000044,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000043,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000014\u0000",
+        "value": "COLL: thread:0 ts:1000000043 key: 1000000000014\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000014\u0000",
+        "value": "OPLOG: thread:0 ts:10000000"
+      }
+    ]
+  },
+  { "lsn" : [1,30464],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 45,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000014\u0000",
+        "value": "LOCAL: thread:0 ts:1000000043"
+      }
+    ]
+  },
+  { "lsn" : [1,30592],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
-  { "lsn" : [1,9472],
+  { "lsn" : [1,30720],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: DONE posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: DONE posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
-  { "lsn" : [1,9600],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "file_sync",
-    "fileid" : 0,
-    "start" : 0
-  },
-  { "lsn" : [1,9728],
+  { "lsn" : [1,30848],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "checkpoint",
-    "ckpt_lsn" : [1,9600]
+    "ckpt_lsn" : [1,19456]
+  },
+  { "lsn" : [1,30976],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "system",
+    "ops": [
+      { "optype": "checkpoint_start"
+
+      }
+    ]
+  },
+  { "lsn" : [1,31104],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 46,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169179,
+        "time_nsec": 987190604,
+        "commit_ts": 1000000046,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000046,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000015\u0000",
+        "value": "COLL: thread:0 ts:1000000046 key: 1000000000015\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169180,
+        "time_nsec": 99202635,
+        "commit_ts": 1000000047,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000046,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000015\u0000",
+        "value": "COLL: thread:0 ts:1000000046 key: 1000000000015\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000015\u0000",
+        "value": "OPLOG: thread:0 ts:1000000046 key: 1000000000015\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,31488],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 48,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000015\u0000",
+        "value": "LOCAL: thread:0 ts:1000000046 key: 100000000001"
+      }
+    ]
+  },
+  { "lsn" : [1,31616],
+    "hdr_flags" : "",
+    "rec_len" : 256,
+    "mem_len" : 256,
+    "type" : "commit",
+    "txnid" : 49,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169180,
+        "time_nsec": 432835179,
+        "commit_ts": 1000000049,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000049,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000016\u0000",
+        "value": "COLL: thread"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169180,
+        "time_nsec": 544023394,
+        "commit_ts": 1000000050,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000049,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000016\u0000",
+        "value": "COLL: thread"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000016\u0000",
+        "value": "OPLOG:"
+      }
+    ]
+  },
+  { "lsn" : [1,31872],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 50,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000016\u0000",
+        "value": "LOCAL: thread:0 ts:1000000049 key: 10000000000"
+      }
+    ]
+  },
+  { "lsn" : [1,32000],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 51,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169180,
+        "time_nsec": 883004773,
+        "commit_ts": 1000000052,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000052,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000017\u0000",
+        "value": "COLL: thread:0 ts:1000000052 key: 1000000000017\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169180,
+        "time_nsec": 993492776,
+        "commit_ts": 1000000053,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000052,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000017\u0000",
+        "value": "COLL: thread:0 ts:1000000052 key: 1000000000017\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000017\u0000",
+        "value": "OPLOG: thread:0 ts:1000000052 key: 1000000000017\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
+  },
+  { "lsn" : [1,32384],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "commit",
+    "txnid" : 52,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 4,
+        "fileid-hex": "0x4",
+        "key": "1000000000017\u0000",
+        "value": "LOCAL: thread:0 ts:1000000052 "
+      }
+    ]
+  },
+  { "lsn" : [1,32512],
+    "hdr_flags" : "",
+    "rec_len" : 384,
+    "mem_len" : 384,
+    "type" : "commit",
+    "txnid" : 53,
+    "ops": [
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169181,
+        "time_nsec": 329347526,
+        "commit_ts": 1000000055,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000055,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483650,
+        "fileid-hex": "0x80000002",
+        "key": "1000000000018\u0000",
+        "value": "COLL: thread:0 ts:1"
+      },
+      { "optype": "txn_timestamp",
+        "time_sec": 1720169181,
+        "time_nsec": 440284500,
+        "commit_ts": 1000000056,
+        "durable_ts": 0,
+        "first_commit_ts": 1000000055,
+        "prepare_ts": 0,
+        "read_ts": 0
+      },
+      { "optype": "row_put",
+        "fileid": 2147483651,
+        "fileid-hex": "0x80000003",
+        "key": "1000000000018\u0000",
+        "value": "COLL: thread:0 ts:1"
+      },
+      { "optype": "row_put",
+        "fileid": 5,
+        "fileid-hex": "0x5",
+        "key": "1000000000018\u0000",
+        "value": "OPLOG: thread:0 ts:1000000055 key: 1000000000018\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    ]
   },
   { "lsn" : [2,128],
     "hdr_flags" : "",
@@ -406,7 +1661,7 @@
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "SYSTEM: Log manager created at 1707103171"
+    "message" : "SYSTEM: Log manager created at 1720169182"
   },
   { "lsn" : [2,384],
     "hdr_flags" : "",
@@ -424,14 +1679,14 @@
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
   { "lsn" : [2,640],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: DONE posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: DONE posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
   { "lsn" : [2,768],
     "hdr_flags" : "",
@@ -453,7 +1708,7 @@
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "SYSTEM: Log manager threads started post-recovery at 1707103171"
+    "message" : "SYSTEM: Log manager threads started post-recovery at 1720169186"
   },
   { "lsn" : [2,1152],
     "hdr_flags" : "",
@@ -468,51 +1723,59 @@
   },
   { "lsn" : [2,1280],
     "hdr_flags" : "",
-    "rec_len" : 256,
-    "mem_len" : 256,
+    "rec_len" : 384,
+    "mem_len" : 384,
     "type" : "commit",
-    "txnid" : 2,
+    "txnid" : 39,
     "ops": [
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
+        "key": "system:checkpoint\u0000",
+        "value": "checkpoint_timestamp=\"3b9aca0a\",checkpoint_time=1720169186,write_gen=10\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:oldest\u0000",
+        "value": "oldest_timestamp=\"3b9aca0a\",checkpoint_time=1720169186,write_gen=10\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
         "key": "system:checkpoint_snapshot\u0000",
-        "key-hex": "73797374656d3a636865636b706f696e745f736e617073686f7400",
-        "value": "snapshot_min=2,snapshot_max=2,snapshot_count=0,checkpoint_time=1707103175,write_gen=7\u0000",
-        "value-hex": "736e617073686f745f6d696e3d322c736e617073686f745f6d61783d322c736e617073686f745f636f756e743d302c636865636b706f696e745f74696d653d313730373130333137352c77726974655f67656e3d3700"
+        "value": "snapshot_min=39,snapshot_max=39,snapshot_count=0,checkpoint_time=1720169186,write_gen=10\u0000"
       },
       { "optype": "row_put",
         "fileid": 0,
         "fileid-hex": "0x0",
         "key": "system:checkpoint_base_write_gen\u0000",
-        "key-hex": "73797374656d3a636865636b706f696e745f626173655f77726974655f67656e00",
-        "value": "base_write_gen=7\u0000",
-        "value-hex": "626173655f77726974655f67656e3d3700"
+        "value": "base_write_gen=10\u0000"
       }
     ]
-  },
-  { "lsn" : [2,1536],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "message",
-    "message" : "RENAME: posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
   },
   { "lsn" : [2,1664],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: DONE posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
   { "lsn" : [2,1792],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "message",
+    "message" : "RENAME: DONE posix_directory_sync WT_HOME/WiredTiger.turtle.set"
+  },
+  { "lsn" : [2,1920],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "checkpoint",
     "ckpt_lsn" : [2,1152]
   },
-  { "lsn" : [2,1920],
+  { "lsn" : [2,2048],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
@@ -520,21 +1783,21 @@
     "fileid" : 0,
     "start" : 1
   },
-  { "lsn" : [2,2048],
-    "hdr_flags" : "",
-    "rec_len" : 128,
-    "mem_len" : 128,
-    "type" : "message",
-    "message" : "RENAME: posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
-  },
   { "lsn" : [2,2176],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "message",
-    "message" : "RENAME: DONE posix_directory_sync WT_HOME_LOG_1/WiredTiger.turtle.set"
+    "message" : "RENAME: posix_directory_sync WT_HOME/WiredTiger.turtle.set"
   },
   { "lsn" : [2,2304],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "message",
+    "message" : "RENAME: DONE posix_directory_sync WT_HOME/WiredTiger.turtle.set"
+  },
+  { "lsn" : [2,2432],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
@@ -542,11 +1805,11 @@
     "fileid" : 0,
     "start" : 0
   },
-  { "lsn" : [2,2432],
+  { "lsn" : [2,2560],
     "hdr_flags" : "",
     "rec_len" : 128,
     "mem_len" : 128,
     "type" : "checkpoint",
-    "ckpt_lsn" : [2,2304]
+    "ckpt_lsn" : [2,2432]
   }
 ]

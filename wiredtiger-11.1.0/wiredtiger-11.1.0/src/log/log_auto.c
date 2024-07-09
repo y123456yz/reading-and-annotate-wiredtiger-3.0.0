@@ -641,6 +641,7 @@ __wt_logop_checkpoint_start_pack(WT_SESSION_IMPL *session, WT_ITEM *logrec)
     size_t size;
     uint32_t optype, recsize;
 
+    //"optype": "checkpoint_start" 最后recover时候的数据就是从这个lsn开始进行增量log加载
     optype = WT_LOGOP_CHECKPOINT_START;
     WT_RET(__wt_struct_size(session, &size, fmt, optype, 0));
 

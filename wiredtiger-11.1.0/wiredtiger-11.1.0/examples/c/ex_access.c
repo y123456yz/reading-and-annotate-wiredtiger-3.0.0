@@ -176,7 +176,7 @@ access_txn20_test(void)
    // uint64_t count;
     char *value;
 
-    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled,file_max=2G), create, verbose=[checkpoint=5, transaction=3, timestamp=0, api:2]", &conn));
+    error_check(wiredtiger_open(home, NULL, "log=(prealloc:true, enabled=false,file_max=2G), create, verbose=[checkpoint=5, transaction=3, timestamp=0, api:2]", &conn));
 
     //test_txn20
     error_check(conn->open_session(conn, NULL, NULL, &session));
@@ -381,7 +381,7 @@ access_example(void)
     
     error_check(wiredtiger_open(home, NULL, ""
     "log=(enabled,file_max=2000KB), checkpoint=[wait=60],create,cache_size=1G, statistics=(all), create,verbose=[config_all_verbos:0, "
-    "checkpoint:2,write:0,reconcile:2, split:2, evict:2,metadata:0, api:0,log:0]", &conn));
+    "checkpoint:2,write:0,reconcile:2, split:2, evict:2,metadata:0, api:0,log:5]", &conn));
      //config_all_verbos=]", &conn));verbose=[recovery_progress,checkpoint_progress,compact_progress]
 
     /* Open a session handle for the database. */

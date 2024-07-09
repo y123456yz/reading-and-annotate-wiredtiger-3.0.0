@@ -662,7 +662,8 @@ thread_run(void *arg)
 
         {
             char buf[100];
-            snprintf(buf, sizeof(buf), "timestamp thread_run thread 1: %u", td->info);
+            snprintf(buf, sizeof(buf), "timestamp thread_run thread 1: %u, active_ts : %lu", td->info,
+                active_ts);
             
             ret = __wt_verbose_dump_txn((WT_SESSION_IMPL *)session, buf);//yang add change
             WT_UNUSED(ret);
@@ -674,7 +675,9 @@ thread_run(void *arg)
         testutil_check(session->commit_transaction(session, NULL));
         {
             char buf[100];
-            snprintf(buf, sizeof(buf), "timestamp thread_run thread 2: %u", td->info);
+            snprintf(buf, sizeof(buf), "timestamp thread_run thread 2: %u, active_ts : %lu", td->info,
+                active_ts);
+
             
             ret = __wt_verbose_dump_txn((WT_SESSION_IMPL *)session, buf);//yang add change
             WT_UNUSED(ret);
@@ -694,7 +697,9 @@ thread_run(void *arg)
 
         {
             char buf[100];
-            snprintf(buf, sizeof(buf), "timestamp thread_run thread 3: %u", td->info);
+            snprintf(buf, sizeof(buf), "timestamp thread_run thread 3: %u, active_ts : %lu", td->info,
+                active_ts);
+
             
             ret = __wt_verbose_dump_txn((WT_SESSION_IMPL *)session, buf);//yang add change
             WT_UNUSED(ret);

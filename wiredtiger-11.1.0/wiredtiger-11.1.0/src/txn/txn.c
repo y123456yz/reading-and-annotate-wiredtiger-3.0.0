@@ -373,6 +373,14 @@ __wt_txn_bump_snapshot(WT_SESSION_IMPL *session)
 /*
  * __txn_oldest_scan --
  *     Sweep the running transactions to calculate the oldest ID required.
+//以上面的这个例子为例:
+//  当前所有session事务txn ID分别是: 31  33  35  37  39,  这里可以看出last_running = 31
+//  metadata pinned ID分别是: 29  29  29  29  29, 也就是对应事务snapshot[]中的checkpoint事务,  这里可以看出metadata_pinned = 29
+//  pinned ID分别是: 22 24 26 28 31, 也就是对应事务snapshot[]中除了checkpoint事务以外的事务id的最小值, 这里可以看出oldest_id = 22
+//  最终: 
+//     oldest_id=22,     也就是当前所有事务的snapshot[]中的快照中除了checkpoint事务id以外的快照最小值
+//     last_running=31,  也就是当前正在运行的事务的id最小值
+//     metadata_pinned=22 也就是当前所有事务的snapshot[]中的checkpoint事务的id最小值
  */
 static void
 __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last_runningp,
@@ -489,11 +497,42 @@ session ID: 21, txn ID: 39, pinned ID: 31, metadata pinned ID: 29, name: connect
 transaction id: 39, mod count: 3, snap min: 29, snap max: 39, snapshot count: 5, snapshot: [29, 31, 33, 35, 37], commit_timestamp: (0, 30), durable_timestamp: (0, 30), first_commit_timestamp: (0, 29), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 29), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
 checkpoint session ID: 22, txn ID: 29, pinned ID: 22, metadata pinned ID: 0, name: eviction-server
  */
-//以上面的这个例子为例:
+//以上面的这个例子1为例:
 //  当前所有session事务txn ID分别是: 31  33  35  37  39,  这里可以看出last_running = 31
-//  metadata pinned ID分别是: 29  29  29  29  29,  这里可以看出metadata_pinned = 29
+//  metadata pinned ID分别是: 29  29  29  29  29, 也就是对应事务snapshot[]中的checkpoint事务,  这里可以看出metadata_pinned = 29
 //  pinned ID分别是: 22 24 26 28 31, 也就是对应事务snapshot[]中除了checkpoint事务以外的事务id的最小值, 这里可以看出oldest_id = 22
-//  最终: oldest_id=22, last_running=31, metadata_pinned=22
+//  最终: 
+//     oldest_id=22,     也就是当前所有事务的snapshot[]中的快照中除了checkpoint事务id以外的快照最小值, 注意__txn_oldest_scan的oldest id没考虑checkpoint快照id, __wt_txn_oldest_id会考虑checkpoint线程对应事务id
+//     last_running=31,  也就是当前正在运行的事务的id最小值
+//     metadata_pinned=22 也就是当前所有事务的snapshot[]中的checkpoint事务的id最小值
+
+
+/*
+Transaction state of active sessions:
+session ID: 20, txn ID: 15, pinned ID: 15, metadata pinned ID: 14, name: connection-open-session
+transaction id: 15, mod count: 1, snap min: 14, snap max: 15, snapshot count: 1, snapshot: [14], commit_timestamp: (0, 1000000014), durable_timestamp: (0, 1000000014), first_commit_timestamp: (0, 1000000013), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000013), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
+session ID: 22, txn ID: 16, pinned ID: 15, metadata pinned ID: 14, name: connection-open-session
+transaction id: 16, mod count: 1, snap min: 14, snap max: 15, snapshot count: 1, snapshot: [14], commit_timestamp: (0, 1000000005), durable_timestamp: (0, 1000000005), first_commit_timestamp: (0, 1000000004), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000004), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
+session ID: 23, txn ID: 17, pinned ID: 15, metadata pinned ID: 14, name: connection-open-session
+transaction id: 17, mod count: 1, snap min: 14, snap max: 17, snapshot count: 3, snapshot: [14, 15, 16], commit_timestamp: (0, 1000000008), durable_timestamp: (0, 1000000008), first_commit_timestamp: (0, 1000000007), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000007), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
+session ID: 24, txn ID: 18, pinned ID: 15, metadata pinned ID: 14, name: connection-open-session
+transaction id: 18, mod count: 1, snap min: 14, snap max: 18, snapshot count: 4, snapshot: [14, 15, 16, 17], commit_timestamp: (0, 1000000011), durable_timestamp: (0, 1000000011), first_commit_timestamp: (0, 1000000010), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000010), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
+session ID: 25, txn ID: 19, pinned ID: 15, metadata pinned ID: 14, name: connection-open-session
+transaction id: 19, mod count: 1, snap min: 14, snap max: 19, snapshot count: 5, snapshot: [14, 15, 16, 17, 18], commit_timestamp: (0, 1000000017), durable_timestamp: (0, 1000000017), first_commit_timestamp: (0, 1000000016), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000016), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
+session ID: 26, txn ID: 21, pinned ID: 15, metadata pinned ID: 14, name: connection-open-session
+transaction id: 21, mod count: 1, snap min: 14, snap max: 20, snapshot count: 6, snapshot: [14, 15, 16, 17, 18, 19], commit_timestamp: (0, 1000000020), durable_timestamp: (0, 1000000020), first_commit_timestamp: (0, 1000000019), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000019), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
+session ID: 27, txn ID: 20, pinned ID: 15, metadata pinned ID: 14, name: connection-open-session
+transaction id: 20, mod count: 1, snap min: 14, snap max: 20, snapshot count: 6, snapshot: [14, 15, 16, 17, 18, 19], commit_timestamp: (0, 1000000023), durable_timestamp: (0, 1000000023), first_commit_timestamp: (0, 1000000022), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000022), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
+
+//以上面的这个例子2为例:
+//  当前所有session事务txn ID分别是: 15 16 17 18 19 21 20,  这里可以看出last_running = 15
+//  metadata pinned ID分别是: 14  14  14  14  14, 也就是对应事务snapshot[]中的checkpoint事务,  这里可以看出metadata_pinned = 14
+//  pinned ID分别是: 15 15 15 15 15, 也就是对应事务snapshot[]中除了checkpoint事务以外的事务id的最小值, 这里可以看出oldest_id = 15
+//  最终: 
+//     oldest_id=15,     也就是当前所有事务的snapshot[]中的快照中除了checkpoint事务id以外的快照最小值, 注意__txn_oldest_scan的oldest id没考虑checkpoint快照id, __wt_txn_oldest_id会考虑checkpoint线程对应事务id
+//     last_running=15,  也就是当前正在运行的事务的id最小值
+//     metadata_pinned=14 也就是当前所有事务的snapshot[]中的checkpoint事务的id最小值
+*/
     if (WT_TXNID_LT(last_running, oldest_id))
         oldest_id = last_running;
 

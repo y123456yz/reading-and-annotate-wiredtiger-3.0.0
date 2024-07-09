@@ -5270,7 +5270,7 @@ extern int wiredtiger_extension_terminate(WT_CONNECTION *connection);
 /*! Column-store modify. */
 #define	WT_LOGOP_COL_MODIFY	9
 /*! Row-store modify. */
-#define	WT_LOGOP_ROW_MODIFY	10
+#define	WT_LOGOP_ROW_MODIFY	10 
 /*
  * NOTE: Diagnostic-only log operations should have values in
  * the ignore range.

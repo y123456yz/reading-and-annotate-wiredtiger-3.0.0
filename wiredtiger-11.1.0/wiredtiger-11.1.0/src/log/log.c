@@ -2199,7 +2199,10 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
     WT_LOG_RECORD *logrec;
     WT_LSN end_lsn, next_lsn, prev_eof, prev_lsn, rd_lsn, start_lsn;
     wt_off_t bad_offset, log_size;
-    uint32_t allocsize, firstlog, lastlog, lognum, rdup_len, reclen;
+    uint32_t allocsize, firstlog, 
+        //也就是最大的WiredTigerLog.xxxxx的id
+        lastlog, 
+        lognum, rdup_len, reclen;
     uint16_t version;
     u_int i, logcount;
     int firstrecord;
@@ -2228,18 +2231,19 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
      * logging is currently enabled or not.
      */
     lastlog = 0;
-    if (log != NULL) {
+    if (log != NULL) {//配置了log enable功能
         allocsize = log->allocsize;
         WT_ASSIGN_LSN(&end_lsn, &log->alloc_lsn);
         WT_ASSIGN_LSN(&start_lsn, &log->first_lsn);
 
-        //如果没有指定start_lsnp，则从log->ckpt_lsn开始
+        //如果没有指定start_lsnp，并且flag标识为WT_LOGSCAN_FROM_CKP，则从log->ckpt_lsn开始，否则从当前所有WiredTigerLog.xxxx的头部开始
         if (start_lsnp == NULL) {
             if (LF_ISSET(WT_LOGSCAN_FROM_CKP))
                 WT_ASSIGN_LSN(&start_lsn, &log->ckpt_lsn);
             else if (!LF_ISSET(WT_LOGSCAN_FIRST))
                 WT_RET_MSG(session, WT_ERROR, "WT_LOGSCAN_FIRST not set");
         }
+        
         lastlog = log->fileid;
     } else {
         /*
@@ -2271,7 +2275,7 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
          * WT_NOTFOUND. It is not an error. But if it is from recovery, we expect valid LSNs so give
          * more information about that.
          */
-        //offset检查
+        //offset检查，必须为allocsize的倍数
         if (start_lsnp->l.offset % allocsize != 0) {
             if (LF_ISSET(WT_LOGSCAN_RECOVER | WT_LOGSCAN_RECOVER_METADATA))
                 WT_ERR_MSG(session, WT_NOTFOUND, "__wt_log_scan unaligned LSN %" PRIu32 "/%" PRIu32,
@@ -2302,13 +2306,16 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
     }
 
     //做校验并返回file对应文件log_fh  
+    //对start_lsn对应WiredTigerLog.xxx文件内容做校验检查
     WT_ERR(__log_open_verify(session, start_lsn.l.file, &log_fh, &prev_lsn, NULL, &need_salvage));
     if (need_salvage)
         WT_ERR_MSG(session, WT_ERROR, "log file requires salvage");
+    //start_lsn对应WiredTigerLog.xxx文件的大小
     WT_ERR(__wt_filesize(session, log_fh, &log_size));
 
     //要遍历的起始lsn
     WT_ASSIGN_LSN(&rd_lsn, &start_lsn);
+    //实际上这个大于代表recover完成需要回放多少wal
     if (LF_ISSET(WT_LOGSCAN_RECOVER | WT_LOGSCAN_RECOVER_METADATA))
         __wt_verbose(session, WT_VERB_RECOVERY_PROGRESS,
           "Recovering log %" PRIu32 " through %" PRIu32, rd_lsn.l.file, end_lsn.l.file);
@@ -2321,12 +2328,15 @@ __wt_log_scan(WT_SESSION_IMPL *session, WT_LSN *start_lsnp, WT_LSN *end_lsnp, ui
     for (;;) {
         if (rd_lsn.l.offset + allocsize > log_size) {
 advance:
+            //有可能一条commit日志跨越两个.wt文件，通过这里检查
             if (rd_lsn.l.offset == log_size)
+                //不存在跨两个WiredTigerLog.xxx文件的日志
                 partial_record = false;
             else {
                 /*
                  * See if there is anything non-zero at the end of this log file.
                  */
+                //partial_record标识是否存在跨两个WiredTigerLog.xxx文件的日志
                 WT_ERR(__log_has_hole(
                   session, log_fh, log_size, rd_lsn.l.offset, &bad_offset, &partial_record));
                 if (bad_offset != 0) {
@@ -2337,6 +2347,7 @@ advance:
             /*
              * If we read the last record, go to the next file.
              */
+            //这个WiredTigerLog.xxxx文件已经回放完成，关闭该log fd
             WT_ERR(__wt_close(session, &log_fh));
             log_fh = NULL;
             eol = true;
@@ -2346,6 +2357,7 @@ advance:
             if (LF_ISSET(WT_LOGSCAN_RECOVER) && __wt_log_cmp(&rd_lsn, &log->trunc_lsn) < 0) {
                 __wt_verbose(session, WT_VERB_LOG, "Truncate end of log %" PRIu32 "/%" PRIu32,
                   rd_lsn.l.file, rd_lsn.l.offset);
+                //rd_lsn通过__log_truncate切换到下一个WiredTigerLog.xxxx文件
                 WT_ERR(__log_truncate(session, &rd_lsn, true, false));
             }
             /*
@@ -2362,6 +2374,8 @@ advance:
             WT_SET_LSN(&rd_lsn, rd_lsn.l.file + 1, 0);
             if (rd_lsn.l.file > end_lsn.l.file)
                 break;
+                
+            //开始下一个WiredTigerLog.xxxx文件
             if (LF_ISSET(WT_LOGSCAN_RECOVER | WT_LOGSCAN_RECOVER_METADATA))
                 __wt_verbose(session, WT_VERB_RECOVERY_PROGRESS,
                   "Recovering log %" PRIu32 " through %" PRIu32, rd_lsn.l.file, end_lsn.l.file);
@@ -2388,6 +2402,8 @@ advance:
                   "log_scan: Stopping, no system record detected in %s.", log_fh->name);
                 break;
             }
+
+            //获取下一个新的WiredTigerLog.xxxx文件的大小
             WT_ERR(__wt_filesize(session, log_fh, &log_size));
             eol = false;
             continue;

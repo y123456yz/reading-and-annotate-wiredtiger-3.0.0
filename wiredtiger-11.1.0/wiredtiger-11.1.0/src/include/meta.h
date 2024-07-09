@@ -22,6 +22,7 @@
  */
 #define WT_BACKUP_TMP "WiredTiger.backup.tmp"  /* Backup tmp file */
 #define WT_EXPORT_BACKUP "WiredTiger.export"   /* Export backup file */
+//存在"WiredTiger.backup"文件说明是hotback文件
 #define WT_METADATA_BACKUP "WiredTiger.backup" /* Hot backup file */
 #define WT_LOGINCR_BACKUP "WiredTiger.ibackup" /* Log incremental backup */
 #define WT_LOGINCR_SRC "WiredTiger.isrc"       /* Log incremental source */
@@ -139,7 +140,9 @@ struct __wt_block_mods {
 #define WT_CKPT_FOREACH_NAME_OR_ORDER(ckptbase, ckpt) \
     for ((ckpt) = (ckptbase); (ckpt)->name != NULL || (ckpt)->order != 0; ++(ckpt))
 
-//__wt_meta_ckptlist_get_from_config中分配空间, 实例重启的时候通过__wt_btree_open->__wt_meta_checkpoint加载checkpoint元数据
+//__wt_meta_ckptlist_get_from_config中分配空间, 实例重启的时候通过__wt_btree_open->__wt_meta_checkpoint加载checkpoint元数据 
+//__ckpt_last也可以解析获取
+
 //__wt_btree.ckpt为该类型
 struct __wt_ckpt {
     //赋值见__checkpoint_lock_dirty_tree，不指定name，默认为"WiredTigerCheckpoint"

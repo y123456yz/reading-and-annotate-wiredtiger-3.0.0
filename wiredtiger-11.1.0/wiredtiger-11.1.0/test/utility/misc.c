@@ -371,6 +371,7 @@ testutil_wiredtiger_open(TEST_OPTS *opts, const char *config, WT_EVENT_HANDLER *
     testutil_check(__wt_snprintf(buf, sizeof(buf), "%s%s%s%s", config,
       (rerun ? TESTUTIL_ENV_CONFIG_REC : ""), (opts->compat ? TESTUTIL_ENV_CONFIG_COMPAT : ""),
       (opts->tiered_storage ? TESTUTIL_ENV_CONFIG_TIERED_EXT TESTUTIL_ENV_CONFIG_TIERED : "")));
+    //wiredtiger_open configuration: ,log=(recover=on,remove=false),statistics=(all),statistics_log=(json,on_close,wait=1),extensions=[""],verbose=[timestamp:5,transaction:5, recovery:5, recovery_progress:5]
     printf("wiredtiger_open configuration: %s\n", buf);
     testutil_check(wiredtiger_open(NULL, event_handler, buf, connectionp));
 }

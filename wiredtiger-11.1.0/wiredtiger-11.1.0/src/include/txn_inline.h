@@ -469,6 +469,7 @@ err:
 /*
  * __wt_txn_oldest_id --
  *     Return the oldest transaction ID that has to be kept for the current tree.
+ 注意__txn_oldest_scan的oldest id没考虑checkpoint快照id, __wt_txn_oldest_id会考虑checkpoint线程对应事务id
  */
 static inline uint64_t
 __wt_txn_oldest_id(WT_SESSION_IMPL *session)

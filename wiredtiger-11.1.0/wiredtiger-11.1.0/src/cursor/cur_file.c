@@ -332,6 +332,7 @@ err:
 /*
  * __curfile_search_near --
  *     WT_CURSOR->search_near method for the btree cursor type.
+ //一般前缀匹配搜索就会用search_near，例如__recovery_file_scan_prefix从wiredtiger.wt中搜索指定前缀的元数据信息
  */
 static int
 __curfile_search_near(WT_CURSOR *cursor, int *exact)

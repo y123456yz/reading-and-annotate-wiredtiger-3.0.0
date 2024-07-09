@@ -15,25 +15,35 @@
 
 /* State maintained during recovery. */
 typedef struct {
+    //赋值见__recovery_setup_file
     const char *uri; /* File URI. */
+    //访问该文件的cursor，赋值见__recovery_cursor
     WT_CURSOR *c;    /* Cursor used for recovery. */
+    //也就是checkpoint_lsn
     WT_LSN ckpt_lsn; /* File's checkpoint LSN. */
 } WT_RECOVERY_FILE;
 
+//成员内容解析来自于__recovery_setup_file
 typedef struct {
     WT_SESSION_IMPL *session;
 
     /* Files from the metadata, indexed by file ID. */
+    //每个文件对应files[]数组的一个成员，例如files[0]对应wiredtiger.wt文件， files[1]对应file:WiredTigerHS.wt文件， 还有其他.wt文件以此类推
     WT_RECOVERY_FILE *files;
     size_t file_alloc; /* Allocated size of files array. */
     u_int max_fileid;  /* Maximum file ID seen. */
+    //所有wt文件总数
     u_int nfiles;      /* Number of files in the metadata. */
 
+    //__txn_log_recover中解析checkpoint信息
     WT_LSN ckpt_lsn;     /* Start LSN for main recovery loop. */
     WT_LSN max_ckpt_lsn; /* Maximum checkpoint LSN seen. */
+    //__txn_log_recover中赋值
     WT_LSN max_rec_lsn;  /* Maximum recovery LSN seen. */
 
     bool missing;       /* Were there missing files? */
+    //也就是0号文件,wiredtiger.wt,代表当前正在apply应用wal到wiredtiger.wt
+    //赋值见__wt_txn_recover
     bool metadata_only; /*
                          * Set during the first recovery pass,
                          * when only the metadata is recovered.
@@ -43,6 +53,8 @@ typedef struct {
 /*
  * __recovery_cursor --
  *     Get a cursor for a recovery operation.
+ //如果lsnp >= r->files[id].ckpt_lsn， 获取id对应wt文件，也就是r->files[id].uri文件对应的cursor
+ //如果lsnp < r->files[id].ckpt_lsn，则cp返回null，该lsnp对应log可以忽略
  */
 static int
 __recovery_cursor(
@@ -57,6 +69,7 @@ __recovery_cursor(
     /*
      * File ids with the bit set to ignore this operation are skipped.
      */
+    //说明没有启用log功能
     if (WT_LOGOP_IS_IGNORED(id))
         return (0);
     /*
@@ -68,9 +81,12 @@ __recovery_cursor(
      * hot backup.
      */
     metadata_op = id == WT_METAFILE_ID;
-    if (r->metadata_only != metadata_op)
+    //r->metadata_only的作用是:
+    //  1. 如果id为0号文件并且metadata_only标识为true(apply到0号wiredtiger.wt文件)，则apply日志到wiredtiger.wt文件
+    //  2. 如果id不为0号文件并且metadata_only标识为false(apply到0号wiredtiger.wt以外的文件)，则apply日志到wiredtiger.wt文件
+    if (r->metadata_only != metadata_op) //wiredtiger.wt文件，也就是0号文件
         ;
-    else if (id >= r->nfiles || r->files[id].uri == NULL) {
+    else if (id >= r->nfiles || r->files[id].uri == NULL) {//文件没找到，则标识missing
         /* If a file is missing, output a verbose message once. */
         if (!r->missing)
             __wt_verbose(
@@ -80,6 +96,7 @@ __recovery_cursor(
         /*
          * We're going to apply the operation. Get the cursor, opening one if none is cached.
          */
+        //id对应wt文件的访问cursor
         if ((c = r->files[id].c) == NULL) {
             WT_RET(__wt_open_cursor(session, r->files[id].uri, NULL, cfg, &c));
             r->files[id].c = c;
@@ -94,6 +111,7 @@ __recovery_cursor(
 #endif
     }
 
+    //判断是否需要再次打开获取cursor
     if (duplicate && c != NULL)
         WT_RET(__wt_open_cursor(session, r->files[id].uri, NULL, cfg, &c));
 
@@ -103,20 +121,31 @@ __recovery_cursor(
 
 /*
  * Helper to a cursor if this operation is to be applied during recovery.
+//yang add todo  Skipping op 4 to file 2147483650 at LSN 1/19840  2147483650对应十六进制80000002，首位为1代表debug_mode=(table_logging=true
+输出op可以转换为字符串，fileid可以通过外层的WT_RECOVERY r->WT_RECOVERY_FILE转换为uri，这样日志会更加直观，方便理解
+cp其实就i是cursor，这里最好用cursor替代cp,或者cursor用cp替代，这里统一一下更好理解代码
+break需要空两格
+ 
+ //跳过不属于本wt文件的op: Skipping op 4 to file 5 at LSN 1/19840
+ //回放属于本wt文件的op: Applying op 4 to file 0 at LSN 1/24064
  */
+//打印表名该wal是需要跳过还是需要回放
 #define GET_RECOVERY_CURSOR(session, r, lsnp, fileid, cp)                            \
+    //获取fileid对应wt文件的访问cursor    \
     ret = __recovery_cursor(session, r, lsnp, fileid, false, cp);                    \
     __wt_verbose_debug2(session, WT_VERB_RECOVERY,                                   \
       "%s op %" PRIu32 " to file %" PRIu32 " at LSN %" PRIu32 "/%" PRIu32,           \
       ret != 0 ? "Error" : cursor == NULL ? "Skipping" : "Applying", optype, fileid, \
       (lsnp)->l.file, (lsnp)->l.offset);                                             \
     WT_ERR(ret);                                                                     \
+    //如果cursor为NULL，直接返回ret             \
     if (cursor == NULL)                                                              \
     break
 
 /*
  * __txn_op_apply --
  *     Apply a transactional operation during recovery.
+ //回放一条wal日志
  */
 static int
 __txn_op_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8_t *end)
@@ -131,6 +160,9 @@ __txn_op_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8_t *
 
     session = r->session;
     cursor = NULL;
+    __wt_verbose_debug2(session, WT_VERB_RECOVERY,                                   
+      "__txn_op_apply apply at LSN %" PRIu32 "/%" PRIu32, 
+      (lsnp)->l.file, (lsnp)->l.offset);   
 
     /* Peek at the size and the type. */
     WT_ERR(__wt_logop_read(session, pp, end, &optype, &opsize));
@@ -223,7 +255,7 @@ __txn_op_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8_t *
         WT_ERR(ret);
         break;
 
-    case WT_LOGOP_ROW_MODIFY:
+    case WT_LOGOP_ROW_MODIFY:  //10
         WT_ERR(__wt_logop_row_modify_unpack(session, pp, end, &fileid, &key, &value));
         GET_RECOVERY_CURSOR(session, r, lsnp, fileid, &cursor);
         __wt_cursor_set_raw_key(cursor, &key);
@@ -240,7 +272,7 @@ __txn_op_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8_t *
         }
         break;
 
-    case WT_LOGOP_ROW_PUT:
+    case WT_LOGOP_ROW_PUT:  //4
         WT_ERR(__wt_logop_row_put_unpack(session, pp, end, &fileid, &key, &value));
         GET_RECOVERY_CURSOR(session, r, lsnp, fileid, &cursor);
         __wt_cursor_set_raw_key(cursor, &key);
@@ -248,7 +280,7 @@ __txn_op_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8_t *
         WT_ERR(cursor->insert(cursor));
         break;
 
-    case WT_LOGOP_ROW_REMOVE:
+    case WT_LOGOP_ROW_REMOVE:  //5
         WT_ERR(__wt_logop_row_remove_unpack(session, pp, end, &fileid, &key));
         GET_RECOVERY_CURSOR(session, r, lsnp, fileid, &cursor);
         __wt_cursor_set_raw_key(cursor, &key);
@@ -260,7 +292,7 @@ __txn_op_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8_t *
         WT_ERR_NOTFOUND_OK(cursor->remove(cursor), false);
         break;
 
-    case WT_LOGOP_ROW_TRUNCATE:
+    case WT_LOGOP_ROW_TRUNCATE: //6
         WT_ERR(
           __wt_logop_row_truncate_unpack(session, pp, end, &fileid, &start_key, &stop_key, &mode));
         GET_RECOVERY_CURSOR(session, r, lsnp, fileid, &cursor);
@@ -335,11 +367,14 @@ err:
 /*
  * __txn_commit_apply --
  *     Apply a commit record during recovery.
+ 把写入WiredTigerLog.xxxx文件中的一条wal日志回放到B+tree中
+ 只会回放WT_LOGREC_COMMIT类型的wal日志
  */
 static int
 __txn_commit_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8_t *end)
 {
     /* The logging subsystem zero-pads records. */
+    //有时候一个commit中包含多个表的数据写操作，就通过这里的while一条一条回放
     while (*pp < end && **pp)
         WT_RET(__txn_op_apply(r, lsnp, pp, end));
 
@@ -349,6 +384,7 @@ __txn_commit_apply(WT_RECOVERY *r, WT_LSN *lsnp, const uint8_t **pp, const uint8
 /*
  * __txn_log_recover --
  *     Roll the log forward to recover committed changes.
+ //回放wal日志来恢复数据
  */
 static int
 __txn_log_recover(WT_SESSION_IMPL *session, WT_ITEM *logrec, WT_LSN *lsnp, WT_LSN *next_lsnp,
@@ -380,12 +416,14 @@ __txn_log_recover(WT_SESSION_IMPL *session, WT_ITEM *logrec, WT_LSN *lsnp, WT_LS
     switch (rectype) {
     case WT_LOGREC_CHECKPOINT:
         if (r->metadata_only)
+            //获取日志中的checkpoint信息
             WT_RET(__wt_txn_checkpoint_logread(session, &p, end, &r->ckpt_lsn));
         break;
 
     case WT_LOGREC_COMMIT:
         if ((ret = __wt_vunpack_uint(&p, WT_PTRDIFF(end, p), &txnid_unused)) != 0)
             WT_RET_MSG(session, ret, "txn_log_recover: unpack failure");
+        // 把写入WiredTigerLog.xxxx文件中的一条wal日志回放到B+tree中
         WT_RET(__txn_commit_apply(r, lsnp, &p, end));
         break;
     }
@@ -420,6 +458,8 @@ __recovery_set_checkpoint_timestamp(WT_RECOVERY *r)
      */
     conn->txn_global.meta_ckpt_timestamp = conn->txn_global.recovery_timestamp = ckpt_timestamp;
 
+    //WT_VERB_RECOVERY_ALL.categories[__v_idx]
+    printf("yang test .......__recovery_set_checkpoint_timestamp............\r\n");
     __wt_verbose_multi(session, WT_VERB_RECOVERY_ALL, "Set global recovery timestamp: %s",
       __wt_timestamp_to_string(conn->txn_global.recovery_timestamp, ts_string));
 
@@ -497,6 +537,7 @@ __recovery_set_checkpoint_snapshot(WT_SESSION_IMPL *session)
 /*
  * __recovery_set_ckpt_base_write_gen --
  *     Set the base write gen as retrieved from the metadata file.
+ //也就是获取WiredTiger.wt文件中的system:checkpoint_base_write_gen
  */
 static int
 __recovery_set_ckpt_base_write_gen(WT_RECOVERY *r)
@@ -509,6 +550,7 @@ __recovery_set_ckpt_base_write_gen(WT_RECOVERY *r)
     sys_config = NULL;
     session = r->session;
 
+    //也就是获取WiredTiger.wt文件中的system:checkpoint_base_write_gen
     /* Search the metadata for checkpoint base write gen information. */
     WT_ERR_NOTFOUND_OK(
       __wt_metadata_search(session, WT_SYSTEM_BASE_WRITE_GEN_URI, &sys_config), false);
@@ -566,6 +608,24 @@ __recovery_txn_setup_initial_state(WT_SESSION_IMPL *session, WT_RECOVERY *r)
  * __recovery_setup_file --
  *     Set up the recovery slot for a file, track the largest file ID, and update the base write gen
  *     based on the file's configuration.
+
+access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,
+read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,
+collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=0,
+ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,
+key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),
+memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,
+readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,
+bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=S,verbose=[],
+version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.8=(addr="018681e4ccf56d788781e49e36b6498881e47052b90c808080e27fc0e20fc0",
+order=8,time=1720158473,size=16384,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=11,newest_stop_durable_ts=0,
+newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=23,run_write_gen=19)),checkpoint_backup_info=,checkpoint_lsn=(2,2048)
+
+
+__recovery_file_scan_prefix:  wiredtiger.wt元数据文件的恢复
+ __wt_txn_recover: 其他.wt文件数据的恢复
+ 
+ //根据config配置信息解析对应自动内容赋值给WT_RECOVERY结构
  */
 static int
 __recovery_setup_file(WT_RECOVERY *r, const char *uri, const char *config)
@@ -575,9 +635,10 @@ __recovery_setup_file(WT_RECOVERY *r, const char *uri, const char *config)
     WT_LSN lsn;
     uint32_t fileid, lsnfile, lsnoffset;
 
+    //获取id配置，也就是文件号，每个文件都有一个文件号,wiredtiger.wt文件号为0
     WT_RET(__wt_config_getones(r->session, config, "id", &cval));
     fileid = (uint32_t)cval.val;
-
+    
     /* Track the largest file ID we have seen. */
     if (fileid > r->max_fileid)
         r->max_fileid = fileid;
@@ -587,6 +648,7 @@ __recovery_setup_file(WT_RECOVERY *r, const char *uri, const char *config)
         r->nfiles = fileid + 1;
     }
 
+    //wt文件不应该有重名
     if (r->files[fileid].uri != NULL)
         WT_RET_PANIC(r->session, WT_PANIC,
           "metadata corruption: files %s and %s have the same file ID %u", uri,
@@ -598,7 +660,9 @@ __recovery_setup_file(WT_RECOVERY *r, const char *uri, const char *config)
     /* If there is no checkpoint logged for the file, apply everything. */
     if (cval.type != WT_CONFIG_ITEM_STRUCT)
         WT_INIT_LSN(&lsn);
+        
     /* NOLINTNEXTLINE(cert-err34-c) */
+    //获取checkpoint_lsn的配置信息
     else if (sscanf(cval.str, "(%" SCNu32 ",%" SCNu32 ")", &lsnfile, &lsnoffset) == 2)
         WT_SET_LSN(&lsn, lsnfile, lsnoffset);
     else
@@ -607,10 +671,12 @@ __recovery_setup_file(WT_RECOVERY *r, const char *uri, const char *config)
           cval.str);
     WT_ASSIGN_LSN(&r->files[fileid].ckpt_lsn, &lsn);
 
+    //从这个checkpoint_lsn日志处开始恢复日志
     __wt_verbose(r->session, WT_VERB_RECOVERY,
       "Recovering %s with id %" PRIu32 " @ (%" PRIu32 ", %" PRIu32 ")", uri, fileid, lsn.l.file,
       lsn.l.offset);
 
+    //记录所有.wt文件的最大checkpoint_lsn
     if ((!WT_IS_MAX_LSN(&lsn) && !WT_IS_INIT_LSN(&lsn)) &&
       (WT_IS_MAX_LSN(&r->max_ckpt_lsn) || __wt_log_cmp(&lsn, &r->max_ckpt_lsn) > 0))
         WT_ASSIGN_LSN(&r->max_ckpt_lsn, &lsn);
@@ -650,6 +716,7 @@ __recovery_close_cursors(WT_RECOVERY *r)
  *     Scan the files matching the prefix referenced from the metadata and gather information about
  *     them for recovery.
  */
+//获取wiredtiger.wt中prefix开头的前缀wt文件的 checkpoint_lsn等信息保存到WT_RECOVERY
 static int
 __recovery_file_scan_prefix(WT_RECOVERY *r, const char *prefix, const char *ignore_suffix)
 {
@@ -659,6 +726,7 @@ __recovery_file_scan_prefix(WT_RECOVERY *r, const char *prefix, const char *igno
     const char *uri, *config;
 
     /* Scan through all entries in the metadata matching the prefix. */
+    //也就是访问wiredtiger.wt文件的cursor
     c = r->files[0].c;
     c->set_key(c, prefix);
     if ((ret = c->search_near(c, &cmp)) != 0) {
@@ -675,8 +743,11 @@ __recovery_file_scan_prefix(WT_RECOVERY *r, const char *prefix, const char *igno
         WT_RET(c->get_key(c, &uri));
         if (!WT_PREFIX_MATCH(uri, prefix))
             break;
+        //跳过ignore_suffix的文件
         if (ignore_suffix != NULL && WT_SUFFIX_MATCH(uri, ignore_suffix))
             continue;
+
+        //获取该.wt文件的元数据配置信息
         WT_RET(c->get_value(c, &config));
         WT_RET(__recovery_setup_file(r, uri, config));
     }
@@ -687,6 +758,7 @@ __recovery_file_scan_prefix(WT_RECOVERY *r, const char *prefix, const char *igno
 /*
  * __recovery_file_scan --
  *     Scan the files referenced from the metadata and gather information about them for recovery.
+ //获取wiredtiger.wt中prefix开头的前缀wt文件的 checkpoint_lsn等信息保存到WT_RECOVERY
  */
 static int
 __recovery_file_scan(WT_RECOVERY *r)
@@ -709,6 +781,7 @@ __recovery_file_scan(WT_RECOVERY *r)
  *     Check whether the history store exists. This function looks for both the history store URI in
  *     the metadata file and for the history store data file itself. If we're running salvage, we'll
  *     attempt to salvage the history store here.
+ //从wiredtiger.wt文件中WiredTigerHS.wt文件元数据是否存在
  */
 static int
 __hs_exists(WT_SESSION_IMPL *session, WT_CURSOR *metac, const char *cfg[], bool *hs_exists)
@@ -805,12 +878,15 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
     WT_MAX_LSN(&r.max_rec_lsn);
     conn->txn_global.recovery_timestamp = conn->txn_global.meta_ckpt_timestamp = WT_TS_NONE;
 
+    //从wireditger.turtle文件获取wiredtiger.wt的元数据配置信息
     WT_ERR(__wt_metadata_search(session, WT_METAFILE_URI, &config));
     WT_ERR(__recovery_setup_file(&r, WT_METAFILE_URI, config));
     WT_ERR(__wt_metadata_cursor_open(session, NULL, &metac));
     metafile = &r.files[WT_METAFILE_ID];
+    //也就是访问WiredTiger.wt的cursor
     metafile->c = metac;
 
+    //也就是获取WiredTiger.wt文件中的system:checkpoint_base_write_gen
     WT_ERR(__recovery_set_ckpt_base_write_gen(&r));
 
     /*
@@ -818,6 +894,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
      * with logging disabled, recovery should not run. Scan the metadata to figure out the largest
      * file ID.
      */
+    //没有WiredTigerLog.xxxx日志文件或者关闭了日志功能，见 __wt_log_open
     if (!FLD_ISSET(conn->log_flags, WT_CONN_LOG_EXISTED) || WT_IS_MAX_LSN(&metafile->ckpt_lsn)) {
         /*
          * Detect if we're going from logging disabled to enabled. We need to know this to verify
@@ -826,6 +903,8 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
          * logging in the log file number that is larger than any checkpoint LSN we have from the
          * earlier time.
          */
+
+        //获取wiredtiger.wt中prefix开头的前缀wt文件的 checkpoint_lsn等信息保存到WT_RECOVERY
         WT_ERR(__recovery_file_scan(&r));
         /*
          * The array can be re-allocated in recovery_file_scan. Reset our pointer after scanning all
@@ -852,6 +931,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
      * recovery can continue. Other errors remain errors.
      */
     if (!was_backup) {
+        //标识该if分支apply日志到wiredtiger.wt
         r.metadata_only = true;
         /*
          * If this is a read-only connection, check if the checkpoint LSN in the metadata file is up
@@ -862,7 +942,10 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
             if (needs_rec)
                 WT_ERR_MSG(session, WT_RUN_RECOVERY, "Read-only database needs recovery");
         }
+
+        //例如节点刚启动，写数据还不到一分钟，还没有做checkpoint，这时候只有WAL日志，回放WAL日志
         if (WT_IS_INIT_LSN(&metafile->ckpt_lsn))
+            //没有checkpoint信息，则start_lsnp 和end lsn都为NULL，也就是从
             ret = __wt_log_scan(session, NULL, NULL, WT_LOGSCAN_FIRST, __txn_log_recover, &r);
         else {
             /*
@@ -870,6 +953,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
              * checkpoint while scanning, we will change the full scan to start from there.
              */
             WT_ASSIGN_LSN(&r.ckpt_lsn, &metafile->ckpt_lsn);
+            //从ckpt_lsn开始恢复wiredtiger.wt的WAL日志
             ret = __wt_log_scan(session, &metafile->ckpt_lsn, NULL, WT_LOGSCAN_RECOVER_METADATA,
               __txn_log_recover, &r);
         }
@@ -888,6 +972,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
     }
 
     /* Scan the metadata to find the live files and their IDs. */
+    //获取wiredtiger.wt中prefix开头的前缀wt文件的 checkpoint_lsn等信息保存到WT_RECOVERY
     WT_ERR(__recovery_file_scan(&r));
 
     /*
@@ -898,6 +983,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
      * file scan will involve updating the connection-wide base write generation so we MUST do this
      * before checking for the existence of a history store file.
      */
+    //从wiredtiger.wt文件中WiredTigerHS.wt文件元数据是否存在
     WT_ERR(__hs_exists(session, metac, cfg, &hs_exists));
 
     /*
@@ -910,6 +996,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
      * We no longer need the metadata cursor: close it to avoid pinning any resources that could
      * block eviction during recovery.
      */
+    //
     r.files[0].c = NULL;
     WT_ERR(metac->close(metac));
 
@@ -917,6 +1004,7 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
      * Now, recover all the files apart from the metadata. Pass WT_LOGSCAN_RECOVER so that old logs
      * get truncated.
      */
+    //说明后面开始apply wal日志到 wiredtiger.wt以外的wt文件
     r.metadata_only = false;
     __wt_verbose_multi(session, WT_VERB_RECOVERY_ALL,
       "Main recovery loop: starting at %" PRIu32 "/%" PRIu32 " to %" PRIu32 "/%" PRIu32,

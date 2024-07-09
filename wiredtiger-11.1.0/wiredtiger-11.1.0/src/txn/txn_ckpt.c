@@ -782,6 +782,8 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
      * about the ID for this checkpoint will consider the checkpoint ID in the global structure.
      * Most operations can safely ignore the checkpoint ID (see the visible all check for details).
      */
+    //checkpoint线程对应的事务id在前面赋值给了checkpoint_txn_shared，不要保留在txn_shared中，
+    //  因为checkpoint线程的事务id是一种特殊的事务，由checkpoint_txn_shared统一管理
     txn_shared->id = txn_shared->pinned_id = txn_shared->metadata_pinned = WT_TXN_NONE;
 
     /*

@@ -29,7 +29,7 @@
 //  如果不是能，最终slot的相关flag都不会满足WT_SLOT_FLUSH等条件，也就是
 #define WT_LOG_SYNC_ENABLED 0x8u
 /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
-
+//如果log功能没有启用
 #define WT_LOGOP_IGNORE 0x80000000
 #define WT_LOGOP_IS_IGNORED(val) ((val)&WT_LOGOP_IGNORE)
 
@@ -322,6 +322,7 @@ struct __wt_log {
                            /*
                             * Log file information
                             */
+    //记录最大的WiredTigerLog.xxxxx的id，赋值见__log_newfile
     uint32_t fileid;       /* Current log file number */
     //WiredTigerPreplog.xxxx的xxx，是一个自增项
     uint32_t prep_fileid;  /* Pre-allocated file number */
@@ -357,7 +358,7 @@ struct __wt_log {
     WT_LSN sync_dir_lsn;    /* LSN of the last directory sync */
     //sync刷盘的最后一条lsn, slot最后一个lsn的end offset 赋值见__wt_log_release
     WT_LSN sync_lsn;        /* LSN of the last sync */
-    //记录wiredtigerLog.xxxxxxxxxxx的异常日志位置，主要通过magic校验定位，见__wt_log_scan
+    //记录wiredtigerLog.xxxxxxxxxxx的日志位置，主要通过magic校验定位，见__wt_log_scan
     WT_LSN trunc_lsn;       /* End LSN for recovery truncation */
     //赋值见__wt_log_wrlsn  __wt_log_release， 也就是slot->slot_end_lsn
     //标识当前write到磁盘的slot的最后一条lsn的end offset，注意只是write没有sync

@@ -364,6 +364,7 @@ struct __wt_connection_impl {
     //表数量
     uint64_t dhandle_count;        /* Locked: handles in the queue */
     u_int open_btree_count;        /* Locked: open writable btree count */
+    //下一个新建的.wt文件的文件号__recovery_file_scan
     uint32_t next_file_id;         /* Locked: file ID counter */
     uint32_t open_file_count;      /* Atomic: open file handle count */
     uint32_t open_cursor_count;    /* Atomic: open cursor handle count */
@@ -452,6 +453,7 @@ struct __wt_connection_impl {
     uint64_t base_write_gen;
 
     /* Last checkpoint connection's base write generation */
+    //也就是获取WiredTiger.wt文件中的system:checkpoint_base_write_gen
     uint64_t last_ckpt_base_write_gen;
 
     //__wt_conn_statistics_config中配置
@@ -517,6 +519,7 @@ struct __wt_connection_impl {
 #define WT_CONN_LOG_DEBUG_MODE 0x002u      /* Debug-mode logging enabled */
 #define WT_CONN_LOG_DOWNGRADED 0x004u      /* Running older version */
 #define WT_CONN_LOG_ENABLED 0x008u         /* Logging is enabled */
+//说明有WiredTigerLog.xxxx文件，也就是有wal日志，赋值见__wt_log_open
 #define WT_CONN_LOG_EXISTED 0x010u         /* Log files found */
 #define WT_CONN_LOG_FORCE_DOWNGRADE 0x020u /* Force downgrade */
 #define WT_CONN_LOG_RECOVER_DIRTY 0x040u   /* Recovering unclean */
@@ -756,6 +759,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 #define WT_CONN_RECOVERY_COMPLETE 0x0800000u
 #define WT_CONN_SALVAGE 0x1000000u
 #define WT_CONN_TIERED_FIRST_FLUSH 0x2000000u
+//存在"WiredTiger.backup"文件说明是hotback文件
 #define WT_CONN_WAS_BACKUP 0x4000000u
 
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */

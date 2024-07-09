@@ -113,7 +113,7 @@ struct __wt_txn_shared {
     //在__txn_remove_from_global_table中置为WT_TXN_NONE
     volatile uint64_t id;
     //普通事务: __txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]赋值, 代表该session所能看到的最小事务id,如果获取快照时候还没有其他事务，则为txn_global->current
-    //checkpoint事务: __checkpoint_prepare中对checkpoint_txn_shared.pinned_id赋值
+    //checkpoint事务: __checkpoint_prepare中对checkpoint_txn_shared.pinned_id赋值，也就是做checkpoint时候snapshot[]中的最小事务id
     //普通事务WT_ISO_READ_UNCOMMITTED方式: __wt_txn_cursor_op中对txn_global.txn_shared_list[session->id]赋值
     volatile uint64_t pinned_id;
     //赋值见__txn_get_snapshot_int中对txn_global.txn_shared_list[session->id]，记录的是checkpoint的id
@@ -125,7 +125,7 @@ struct __wt_txn_shared {
      * the durable queue and prevents the all_durable timestamp moving past this point.
      */
     //__wt_txn_publish_durable_timestamp中赋值
-    //也就是最早设置durable_timestamp或者commit_timestamp的时间
+    //例如一个事务中可以多次设置commit_timestamp，也就是最早设置durable_timestamp或者commit_timestamp的时间，可以参考timestamp_abort接口
     wt_timestamp_t pinned_durable_timestamp;
 
     /*
@@ -145,15 +145,21 @@ struct __wt_txn_global {
     //txn_global->current在__txn_get_snapshot_int->__txn_sort_snapshot中会被赋值给txn->snap_max
     volatile uint64_t current; /* Current transaction ID. */
 
+
+    //__wt_txn_update_oldest更新的几个统计项
     /* The oldest running transaction ID (may race). */
     //__wt_txn_update_oldest中赋值
     volatile uint64_t last_running;
-
     /*
      * The oldest transaction ID that is not yet visible to some transaction in the system.
      */
     //初始值为1，参考__wt_txn_global_init，__wt_txn_update_oldest中赋值
+    // 注意__txn_oldest_scan的oldest id没考虑checkpoint快照id, __wt_txn_oldest_id会考虑checkpoint线程对应事务id
     volatile uint64_t oldest_id;
+    //__wt_txn_update_oldest中赋值, 真正生效的地方见__wt_txn_activity_check
+    volatile uint64_t metadata_pinned; /* Oldest ID for metadata */
+
+
 
     //一般在事务提交的时候赋值，参考__wt_txn_commit，或者用户主动__wt_txn_global_set_timestamp设置  
     //回滚__rollback_to_stable赋值
@@ -165,6 +171,7 @@ struct __wt_txn_global {
     wt_timestamp_t oldest_timestamp;
     //__wt_txn_update_pinned_timestamp中赋值
     wt_timestamp_t pinned_timestamp;
+    //赋值见__recovery_set_checkpoint_timestamp
     wt_timestamp_t recovery_timestamp;
     //__wt_txn_global_set_timestamp中赋值
     wt_timestamp_t stable_timestamp;
@@ -211,8 +218,7 @@ struct __wt_txn_global {
     volatile uint64_t debug_ops;       /* Debug mode op counter */
     //debug_mode.rollback_error配置来模拟回滚，该配置标识没debug_rollback次operation有一次需要回滚
     uint64_t debug_rollback;           /* Debug mode rollback */
-    //__wt_txn_update_oldest中赋值
-    volatile uint64_t metadata_pinned; /* Oldest ID for metadata */
+
 
     //成员赋值参考WT_WITH_TXN_ISOLATION
 
@@ -382,6 +388,7 @@ struct __wt_txn {
      * In some use cases, this can be updated while the transaction is running.
      */
     //__wt_txn_set_commit_timestamp中赋值
+    //如果只设置commit_timestamp，则commit_timestamp=durable_timestamp=commit_transaction()接口设置的时间
     wt_timestamp_t commit_timestamp;
 
     /*
@@ -389,6 +396,7 @@ struct __wt_txn {
      * whether to consider this update to be persisted or not by stable checkpoint.
      */
     //__wt_txn_set_commit_timestamp  __wt_txn_set_durable_timestamp中赋值
+    //如果只设置commit_timestamp，则commit_timestamp=durable_timestamp=commit_transaction()接口设置的时间
     wt_timestamp_t durable_timestamp;
 
     /*

@@ -526,6 +526,108 @@ __wt_txn_ts_log(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_checkpoint_log --
  *     Write a log record for a checkpoint operation.
+ 一个完整的checkpoint日志信息如下:
+ 
+{ "lsn" : [1,11776],  ----------------------------- wiredTiger.wt元数据的checkpoint_lsn也就是这个
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "system",
+    "ops": [
+      { "optype": "checkpoint_start"   ----------------标识checkpoint开始时间，做recover恢复的时候从这个时间点开始恢复后面的LSN日志
+
+      }
+    ]
+  },
+..............  这期间有其他写操作事务，具体可以看printlog.log
+..............
+  { "lsn" : [1,16512],
+    "hdr_flags" : "",
+    "rec_len" : 7168,
+    "mem_len" : 7168,
+    "type" : "commit",
+    "txnid" : 19,
+    "ops": [
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:oplog.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=5,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"018181e447dd9a358281e41546bd168381e4fe888a74808080e22fc0cfc0\",order=1,time=1720168135,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,11776)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:local.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=4,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"018181e44bc913448281e41546bd168381e4df967412808080e22fc0cfc0\",order=1,time=1720168135,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,11776)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:shadow.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=3,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"018181e42859f1f78281e41546bd168381e41ac58c8d808080e22fc0cfc0\",order=1,time=1720168135,size=8192,newest_start_durable_ts=1000000005,oldest_start_ts=0,newest_txn=16,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,11776)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:collection.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=2,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=4KB,key_format=S,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=0,log=(enabled=false),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=u,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"018181e477ed4e168281e41546bd168381e4f367f73e808080e22fc0cfc0\",order=1,time=1720168135,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,11776)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "file:WiredTigerHS.wt\u0000",
+        "value": "access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),block_allocation=best,block_compressor=none,cache_resident=false,checksum=on,collator=,columns=,dictionary=0,encryption=(keyid=,name=),format=btree,huffman_key=,huffman_value=,id=1,ignore_in_memory_cache_size=false,internal_item_max=0,internal_key_max=0,internal_key_truncate=true,internal_page_max=16KB,key_format=IuQQ,key_gap=10,leaf_item_max=0,leaf_key_max=0,leaf_page_max=32KB,leaf_value_max=64MB,log=(enabled=true),memory_page_image_max=0,memory_page_max=5MB,os_cache_dirty_max=0,os_cache_max=0,prefix_compression=false,prefix_compression_min=4,readonly=false,split_deepen_min_child=0,split_deepen_per_child=0,split_pct=90,tiered_object=false,tiered_storage=(auth_token=,bucket=,bucket_prefix=,cache_directory=,local_retention=300,name=,object_target_size=0),value_format=QQQu,verbose=[],version=(major=2,minor=1),write_timestamp_usage=none,checkpoint=(WiredTigerCheckpoint.1=(addr=\"\",order=1,time=1720168135,size=0,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=1,run_write_gen=1)),checkpoint_backup_info=,checkpoint_lsn=(1,0)\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:checkpoint\u0000",
+        "value": "checkpoint_timestamp=\"3b9aca04\",checkpoint_time=1720168135,write_gen=1\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:oldest\u0000",
+        "value": "oldest_timestamp=\"3b9aca04\",checkpoint_time=1720168135,write_gen=1\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:checkpoint_snapshot\u0000",
+        "value": "snapshot_min=18,snapshot_max=19,snapshot_count=1,snapshots=[18],checkpoint_time=1720168135,write_gen=1\u0000"
+      },
+      { "optype": "row_put",
+        "fileid": 0,
+        "fileid-hex": "0x0",
+        "key": "system:checkpoint_base_write_gen\u0000",
+        "value": "base_write_gen=1\u0000"
+      }
+    ]
+  },
+  ......................  这期间有其他写操作事务，具体可以看printlog.log
+  ......................
+  
+  { "lsn" : [1,24576],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "message",
+    "message" : "RENAME: posix_directory_sync WT_HOME/WiredTiger.turtle.set"
+  },
+  { "lsn" : [1,24704],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "message",
+    "message" : "RENAME: DONE posix_directory_sync WT_HOME/WiredTiger.turtle.set"
+  },
+  { "lsn" : [1,24832],
+    "hdr_flags" : "",
+    "rec_len" : 128,
+    "mem_len" : 128,
+    "type" : "checkpoint",  ------------------ 代表事务提交的LSN
+    "ckpt_lsn" : [1,11776]  ------------------ wiredTiger.wt元数据的checkpoint_lsn也就是这个
+  },
  */
 int
 __wt_txn_checkpoint_log(WT_SESSION_IMPL *session, bool full, uint32_t flags, WT_LSN *lsnp)
@@ -625,6 +727,7 @@ __wt_txn_checkpoint_log(WT_SESSION_IMPL *session, bool full, uint32_t flags, WT_
             ckpt_snapshot = txn->ckpt_snapshot;
 
         /* Write the checkpoint log record. */
+        //对应的printlog信息为"type" : "checkpoint",
         rectype = WT_LOGREC_CHECKPOINT;
         fmt = WT_UNCHECKED_STRING(IIIIu);
         WT_ERR(__wt_struct_size(session, &recsize, fmt, rectype, ckpt_lsn->l.file,
