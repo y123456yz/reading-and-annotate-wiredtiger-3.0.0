@@ -34,6 +34,19 @@ __wt_wiredtiger_error(int error)
     case WT_RESTART:
         return ("WT_RESTART: restart the operation (internal)");
     case WT_RUN_RECOVERY:
+        /*
+          [root@localhost WT_HOME]# ../../../wt dump file:WiredTiger.wt 
+          [1721281342:377200][57844:0x7f60881f0740], wt, txn-recover: [WT_VERB_DEFAULT][ERROR]: __wt_txn_recover, 1069: Database needs recovery: WT_RUN_RECOVERY: recovery must be run to continue
+          [1721281342:377274][57844:0x7f60881f0740], wt, txn-recover: [WT_VERB_DEFAULT][ERROR]: __wt_txn_recover, 1231: Recovery failed: WT_RUN_RECOVERY: recovery must be run to continue
+          [1721281342:378879][57844:0x7f60881f0740], wt, connection: [WT_VERB_DEFAULT][ERROR]: __wti_cache_destroy, 389: cache server: exiting with 3 pages in memory and 0 pages evicted
+          [1721281342:378902][57844:0x7f60881f0740], wt, connection: [WT_VERB_DEFAULT][ERROR]: __wti_cache_destroy, 394: cache server: exiting with 5169 image bytes in memory
+          [1721281342:378905][57844:0x7f60881f0740], wt, connection: [WT_VERB_DEFAULT][ERROR]: __wti_cache_destroy, 397: cache server: exiting with 11010 bytes in memory
+          [1721281342:378907][57844:0x7f60881f0740], wt, connection: [WT_VERB_DEFAULT][ERROR]: __wti_cache_destroy, 405: cache server: exiting with 10164 bytes dirty and 1 pages dirty
+          wt: WT_PANIC: WiredTiger library panic
+          Note: this issue typically arises from running wt util in an incorrect directory or not specifying one. Ensure you execute wt within a WiredTiger directory, or use the -h flag to direct it to one.
+          */
+        //log=(recover=on)  yang add todo xxxxxxxxxxxxxxx   如果是wt，则需要加上-R参数    背景如上
+        //return ("WT_RUN_RECOVERY: recovery must be run with config "log=(recover=on)" to continue");
         return ("WT_RUN_RECOVERY: recovery must be run to continue");
     case WT_CACHE_FULL:
         return ("WT_CACHE_FULL: operation would overflow cache");

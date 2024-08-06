@@ -80,6 +80,17 @@ __txn_get_read_timestamp(WT_TXN_SHARED *txn_shared, wt_timestamp_t *read_timesta
 /*
  * __wt_txn_get_pinned_timestamp --
  *     Calculate the current pinned timestamp.
+
+ * __session_timestamp_transaction_uint --
+ *     WT_SESSION->timestamp_transaction_uint method.
+ mongodb  7.0  WiredTigerBeginTxnBlock::setReadSnapshot->WiredTigerRecoveryUnit::setTimestamp接口调用，设置
+ 快照读，一条数据删了后，一定时间内可以读到数据 5.0版本 minSnapshotHistoryWindowInSeconds   
+ 读取历史数据 timestamp参考https://www.mongodb.com/zh-cn/docs/manual/reference/read-concern-snapshot/atClusterTime的允许值取决于minSnapshotHistoryWindowInSeconds参数。
+ db.runCommand( {find: "test4", filter: {"_id" : ObjectId("6414462353e5946d312f98d0")}, readConcern: {level: "snapshot",  atClusterTime: Timestamp(1679050275, 1)}})
+
+ readConcern: {level: "snapshot",  atClusterTime: Timestamp(1679050275, 1)}这里的时间就是session设置的read_timestamp
+
+
  //获取所有session事务中的最小read_timestamp及oldest_timestamp的最小值，如果没用has_oldest_timestamp直接返回0
  */
 void
@@ -149,6 +160,13 @@ __txn_get_durable_timestamp(WT_TXN_SHARED *txn_shared, wt_timestamp_t *durable_t
  * __txn_global_query_timestamp --
  *     Query a timestamp on the global transaction.
  //参考https://source.wiredtiger.com/develop/timestamp_global_api.html#:~:text=Setting%20oldest_timestamp%20indicates%20future%20read%20timestamps%20will%20be,timestamps%3A%20this%20setting%20only%20indicates%20future%20application%20needs.
+
+Wiredtiger_kv_engine.cpp (\src\mongo\db\storage\wiredtiger):        invariantWTOK(_conn->query_timestamp(_conn, buf, "get=recovery"), nullptr);
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):        int ret = _conn->query_timestamp(_conn, buf, "get=oldest");
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    auto wtStatus = conn->query_timestamp(conn, buf, "get=all_durable");
+Wiredtiger_kv_engine.cpp (src\mongo\db\storage\wiredtiger):    invariantWTOK(_conn->query_timestamp(_conn, buf, "get=last_checkpoint"), nullptr);
+Wiredtiger_recovery_unit.cpp (src\mongo\db\storage\wiredtiger):    auto wtstatus = session->query_timestamp(session, buf, "get=read");
+
 
 参考multi_document_txn.log中的WT_CONNECTION:query_timestamp接口信息
  */
@@ -278,7 +296,7 @@ __wt_txn_update_pinned_timestamp(WT_SESSION_IMPL *session, bool force)
         return;
 
     /* Scan to find the global pinned timestamp. */
-    //获取所有session事务最小read_timestamp和txn_global->checkpoint_timestamp中的最小值，如果没用has_oldest_timestamp直接返回0
+    //获取所有session事务最小read_timestamp、oldest_timestamp和txn_global->checkpoint_timestamp中的最小值，如果没用has_oldest_timestamp直接返回0
     __wt_txn_get_pinned_timestamp(session, &pinned_timestamp, WT_TXN_TS_INCLUDE_OLDEST);
     if (pinned_timestamp == 0)
         return;
@@ -832,6 +850,7 @@ __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t read_ts)
          * oldest timestamp.
          */
         if (F_ISSET(txn, WT_TXN_TS_ROUND_READ)) {
+            //也就是是否启用"roundup_timestamps.read"，赋值见__wt_txn_config，一般不会进来
             txn_shared->read_timestamp = ts_oldest;
             did_roundup_to_oldest = true;
         } else {
@@ -873,6 +892,7 @@ __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t read_ts)
      * If we already have a snapshot, it may be too early to match the timestamp (including the one
      * we just read, if rounding to oldest). Get a new one.
      */
+    //修改了read_timestamp，需要重新获取快照列表
     if (F_ISSET(txn, WT_TXN_RUNNING))
         __wt_txn_get_snapshot(session);
 

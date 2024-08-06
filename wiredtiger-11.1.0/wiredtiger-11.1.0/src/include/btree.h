@@ -102,6 +102,7 @@ struct __wt_btree {
     WT_DATA_HANDLE *dhandle;
 
     //记录进行checkpoint的信息，赋值见__checkpoint_lock_dirty_tree
+    //__checkpoint_lock_dirty_tree->__wt_meta_ckptlist_get->__meta_ckptlist_allocate_new_ckpt创建WT_CKPT数组空间,最终赋值给btree->ckpt
     WT_CKPT *ckpt;               /* Checkpoint information */
     //ckpt数组分配的空间
     size_t ckpt_bytes_allocated; /* Checkpoint information array allocation size */
@@ -333,6 +334,10 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
 #define WT_BTREE_IGNORE_CACHE 0x0008000u   /* Cache-resident object */
 #define WT_BTREE_IN_MEMORY 0x0010000u      /* Cache-resident object */
 //log.enabled配置,默认为true  生效见__wt_log_op不会记录日志，同时影响__txn_timestamp_usage_check和__wt_txn_prepare
+//FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED)  F_ISSET(btree, WT_BTREE_LOGGED) 
+//WT_CONN_LOG_ENABLED代表全局log是否开启，WT_BTREE_LOGGED代表table表级是否开启日志功能
+//只有全局WT_CONN_LOG_ENABLED  log启用，并且表级log.enabled也为true的时候才会置位WT_BTREE_LOGGED，默认表级log.enabled为false，所以表级WT_BTREE_LOGGED不会置位，参考__btree_conf
+//mongodb 副本集普通数据表的log是关闭了的，oplog表的log功能是打开的
 #define WT_BTREE_LOGGED 0x0020000u         /* Commit-level durability without timestamps */
 #define WT_BTREE_NO_CHECKPOINT 0x0040000u  /* Disable checkpoints */
 #define WT_BTREE_OBSOLETE_PAGES 0x0080000u /* Handle has obsolete pages */

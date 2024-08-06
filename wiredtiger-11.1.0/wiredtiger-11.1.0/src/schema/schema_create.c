@@ -61,6 +61,8 @@ __wt_direct_io_size_check(
  *     signify that this is the case. If configured, it is possible to import files with timestamps
  *     smaller than or equal to the stable timestamp. However, there is no history migrated with the
  *     files and thus reading historical versions will not work.
+  __wt_meta_ckptlist_to_meta中写入wiredTiger.wt， __rollback_to_stable_btree_apply中读取wiredtiger.wt
+
  */
 static int
 __check_imported_ts(

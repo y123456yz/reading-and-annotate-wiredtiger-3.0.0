@@ -17,8 +17,10 @@ bool verbose = false; /* Verbose flag */
 static const char *command; /* Command name */
 
 /* Give users a hint in the help output for if they're trying to read MongoDB data files */
+///data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -r -C "log=(enabled=true,path=journal,compressor=snappy)" printlog -u
 static const char *mongodb_config = "log=(enabled=true,path=journal,compressor=snappy)";
 
+//这里一定要注意，很可能wt工具会默认带上这些配置
 #define READONLY "readonly=true"
 #define REC_ERROR "log=(recover=error)"
 #define REC_LOGOFF "log=(enabled=false)"
@@ -71,6 +73,14 @@ usage(void)
 /*
  * main --
  *     The wt utility.
+
+ wt printlog需要支持指定WiredTigerLog.xxxx路径，实际上已经支持，mongodb_config中的path目录指定 
+    /data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -r -C "log=(enabled=true,path=journal,compressor=snappy)" printlog -u
+ /data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -R -C "log=(enabled=true,path=journal,compressor=snappy)"  dump -j file:mycusttest/collection/0-5920062409383964761.wt 
+
+
+ yang add todo xxxxxxxxxxxxxxxx
+ 2. wt printlog可能引起数据丢失
  */
 int
 main(int argc, char *argv[])

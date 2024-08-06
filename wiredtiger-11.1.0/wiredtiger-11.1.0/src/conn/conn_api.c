@@ -370,6 +370,7 @@ __wt_conn_remove_data_source(WT_SESSION_IMPL *session)
 /*
  * __encryptor_confchk --
  *     Validate the encryptor.
+ //判断cval对应加密算法是否已注册
  */
 static int
 __encryptor_confchk(
@@ -432,6 +433,7 @@ __wt_encryptor_config(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval, WT_CONFIG_
         WT_ERR_MSG(session, EINVAL, "table encryption requires connection encryption to be set");
     hash = __wt_hash_city64(keyid->str, keyid->len);
     bucket = hash & (conn->hash_size - 1);
+    //该keyid在keyedhashqh对应的key hash桶中存在则直接返回这个已存在的kenc加密器，实际上就是为了
     TAILQ_FOREACH (kenc, &nenc->keyedhashqh[bucket], q)
         if (WT_STRING_MATCH(kenc->keyid, keyid->str, keyid->len))
             goto out;
@@ -1419,6 +1421,7 @@ err:
 /*
  * __conn_config_append --
  *     Append an entry to a config stack.
+ cfg[]数组末尾追加config
  */
 static void
 __conn_config_append(const char *cfg[], const char *config)
@@ -2532,6 +2535,7 @@ __conn_write_base_config(WT_SESSION_IMPL *session, const char *cfg[])
      * some configuration values need to be stripped out from the base configuration file; do that
      * now, and merge the rest to be written.
      */
+    //这里的注意目的就是避免这些信息被记录到wiredtiget.wt的元数据文件中，例如"encryption=(secretkey=),"是敏感信息，因此需要不能记录到元数据wiredtiger.wt中
     WT_ERR(__wt_config_merge(session, cfg + 1,
       "compatibility=(release=),"
       "config_base=,"

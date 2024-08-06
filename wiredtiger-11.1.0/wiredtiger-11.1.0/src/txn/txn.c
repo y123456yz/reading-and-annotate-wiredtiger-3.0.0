@@ -373,14 +373,46 @@ __wt_txn_bump_snapshot(WT_SESSION_IMPL *session)
 /*
  * __txn_oldest_scan --
  *     Sweep the running transactions to calculate the oldest ID required.
+
+oldest ID: 22
+durable timestamp: (0, 20)
+oldest timestamp: (0, 0)
+pinned timestamp: (0, 0)
+stable timestamp: (0, 0)
+has_durable_timestamp: yes
+has_oldest_timestamp: no
+has_pinned_timestamp: no
+has_stable_timestamp: no
+oldest_is_pinned: no
+stable_is_pinned: no
+checkpoint running: yes
+checkpoint generation: 2
+checkpoint pinned ID: 22
+checkpoint txn ID: 29
+session count: 22
+Transaction state of active sessions:
+session ID: 16, txn ID: 31, pinned ID: 22, metadata pinned ID: 29, name: connection-open-session
+transaction id: 31, mod count: 3, snap min: 22, snap max: 31, snapshot count: 5, snapshot: [22, 24, 26, 28, 29], commit_timestamp: (0, 22), durable_timestamp: (0, 22), first_commit_timestamp: (0, 21), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 21), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 18, txn ID: 33, pinned ID: 24, metadata pinned ID: 29, name: connection-open-session
+transaction id: 33, mod count: 3, snap min: 24, snap max: 33, snapshot count: 5, snapshot: [24, 26, 28, 29, 31], commit_timestamp: (0, 24), durable_timestamp: (0, 24), first_commit_timestamp: (0, 23), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 23), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 19, txn ID: 35, pinned ID: 26, metadata pinned ID: 29, name: connection-open-session
+transaction id: 35, mod count: 3, snap min: 26, snap max: 35, snapshot count: 5, snapshot: [26, 28, 29, 31, 33], commit_timestamp: (0, 26), durable_timestamp: (0, 26), first_commit_timestamp: (0, 25), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 25), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+session ID: 20, txn ID: 37, pinned ID: 28, metadata pinned ID: 29, name: connection-open-session
+transaction id: 37, mod count: 3, snap min: 28, snap max: 37, snapshot count: 5, snapshot: [28, 29, 31, 33, 35], commit_timestamp: (0, 28), durable_timestamp: (0, 28), first_commit_timestamp: (0, 27), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 27), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+//这里为什么pinned ID: 31，因为pinned ID不包括 snapshot:[]中的checkpoint对应事务id，因此需要剔除29，29是checkpoint事务id
+session ID: 21, txn ID: 39, pinned ID: 31, metadata pinned ID: 29, name: connection-open-session
+transaction id: 39, mod count: 3, snap min: 29, snap max: 39, snapshot count: 5, snapshot: [29, 31, 33, 35, 37], commit_timestamp: (0, 30), durable_timestamp: (0, 30), first_commit_timestamp: (0, 29), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 29), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000301c, isolation: WT_ISO_SNAPSHOT
+checkpoint session ID: 22, txn ID: 29, pinned ID: 22, metadata pinned ID: 0, name: eviction-server
+
+ 
 //以上面的这个例子为例:
-//  当前所有session事务txn ID分别是: 31  33  35  37  39,  这里可以看出last_running = 31
+//  当前所有session事务txn ID分别是: 31  33  35  37  39,  这里可以看出last_running = 31，也就是当前正在运行的所有事务的最小事务id
 //  metadata pinned ID分别是: 29  29  29  29  29, 也就是对应事务snapshot[]中的checkpoint事务,  这里可以看出metadata_pinned = 29
 //  pinned ID分别是: 22 24 26 28 31, 也就是对应事务snapshot[]中除了checkpoint事务以外的事务id的最小值, 这里可以看出oldest_id = 22
 //  最终: 
 //     oldest_id=22,     也就是当前所有事务的snapshot[]中的快照中除了checkpoint事务id以外的快照最小值
-//     last_running=31,  也就是当前正在运行的事务的id最小值
-//     metadata_pinned=22 也就是当前所有事务的snapshot[]中的checkpoint事务的id最小值
+//     last_running=31,  也就是当前正在运行的事务的id最小值(不包括checkpoint事务id)
+//     metadata_pinned=22 也就是当前所有事务的snapshot[]中的事务(包括checkpoint事务id)的id最小值
  */
 static void
 __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last_runningp,
@@ -462,6 +494,7 @@ __txn_oldest_scan(WT_SESSION_IMPL *session, uint64_t *oldest_idp, uint64_t *last
         //这里主要是为WT_ISO_READ_UNCOMMITTED隔离级别准备的
         if ((id = s->pinned_id) != WT_TXN_NONE && WT_TXNID_LT(id, oldest_id)) {
             oldest_id = id;
+            //也就是当前所有事务(不包括checkpoint事务)的最小事务id对应的事务
             oldest_session = &conn->sessions[i];
         }
     }
@@ -498,13 +531,13 @@ transaction id: 39, mod count: 3, snap min: 29, snap max: 39, snapshot count: 5,
 checkpoint session ID: 22, txn ID: 29, pinned ID: 22, metadata pinned ID: 0, name: eviction-server
  */
 //以上面的这个例子1为例:
-//  当前所有session事务txn ID分别是: 31  33  35  37  39,  这里可以看出last_running = 31
+//  当前所有session事务txn ID分别是: 31  33  35  37  39,  这里可以看出last_running = 31，也就是当前正在运行的所有事务的最小事务id
 //  metadata pinned ID分别是: 29  29  29  29  29, 也就是对应事务snapshot[]中的checkpoint事务,  这里可以看出metadata_pinned = 29
 //  pinned ID分别是: 22 24 26 28 31, 也就是对应事务snapshot[]中除了checkpoint事务以外的事务id的最小值, 这里可以看出oldest_id = 22
 //  最终: 
 //     oldest_id=22,     也就是当前所有事务的snapshot[]中的快照中除了checkpoint事务id以外的快照最小值, 注意__txn_oldest_scan的oldest id没考虑checkpoint快照id, __wt_txn_oldest_id会考虑checkpoint线程对应事务id
-//     last_running=31,  也就是当前正在运行的事务的id最小值
-//     metadata_pinned=22 也就是当前所有事务的snapshot[]中的checkpoint事务的id最小值
+//     last_running=31,  也就是当前正在运行的事务的id最小值(不包括checkpoint事务id)
+//     metadata_pinned=22 也就是当前所有事务的snapshot[]中的所有事务(包括checkpoint事务id)的id最小值
 
 
 /*
@@ -525,20 +558,26 @@ session ID: 27, txn ID: 20, pinned ID: 15, metadata pinned ID: 14, name: connect
 transaction id: 20, mod count: 1, snap min: 14, snap max: 20, snapshot count: 6, snapshot: [14, 15, 16, 17, 18, 19], commit_timestamp: (0, 1000000023), durable_timestamp: (0, 1000000023), first_commit_timestamp: (0, 1000000022), prepare_timestamp: (0, 0), pinned_durable_timestamp: (0, 1000000022), read_timestamp: (0, 0), checkpoint LSN: [0][0], full checkpoint: false, rollback reason: , flags: 0x0000601c, isolation: WT_ISO_SNAPSHOT
 
 //以上面的这个例子2为例:
-//  当前所有session事务txn ID分别是: 15 16 17 18 19 21 20,  这里可以看出last_running = 15
+//  当前所有session事务txn ID分别是: 15 16 17 18 19 21 20,  这里可以看出last_running = 15，也就是当前正在运行的所有事务的最小事务id
 //  metadata pinned ID分别是: 14  14  14  14  14, 也就是对应事务snapshot[]中的checkpoint事务,  这里可以看出metadata_pinned = 14
 //  pinned ID分别是: 15 15 15 15 15, 也就是对应事务snapshot[]中除了checkpoint事务以外的事务id的最小值, 这里可以看出oldest_id = 15
 //  最终: 
 //     oldest_id=15,     也就是当前所有事务的snapshot[]中的快照中除了checkpoint事务id以外的快照最小值, 注意__txn_oldest_scan的oldest id没考虑checkpoint快照id, __wt_txn_oldest_id会考虑checkpoint线程对应事务id
-//     last_running=15,  也就是当前正在运行的事务的id最小值
-//     metadata_pinned=14 也就是当前所有事务的snapshot[]中的checkpoint事务的id最小值
+//     last_running=15,  也就是当前正在运行的除开checkpoint事务以外的id最小值(不包括checkpoint事务id)
+//     metadata_pinned=14 也就是当前所有事务的snapshot[]中的事务(包括checkpoint事务id)的id最小值
 */
     if (WT_TXNID_LT(last_running, oldest_id))
         oldest_id = last_running;
 
     /* The metadata pinned ID can't move past the oldest ID. */
+    //metadata_pinned初始值为txn_global->checkpoint_txn_shared.id
     if (WT_TXNID_LT(oldest_id, metadata_pinned))
         metadata_pinned = oldest_id;
+
+    //yang add todo xxxxxxxxxxxxxxxxxxxxxx   实际上这里用ckpt_session也不对，因为用户可能自己做checkpoint，而不一定是checkpoint server做checkpoint
+    if (WT_TXNID_LT(metadata_pinned, oldest_id))
+        oldest_session = &conn->ckpt_session;
+
 
     //到这里说明oldest_id是所有session中事务id、pinned_id中最小的
     //metadata_pinned是所有session中metadata_pinned最小的，并且metadata_pinned不能大于oldest_id
@@ -1051,6 +1090,7 @@ __txn_timestamp_usage_check(WT_SESSION_IMPL *session, WT_TXN_OP *op, WT_UPDATE *
     txn_has_ts = F_ISSET(txn, WT_TXN_HAS_TS_COMMIT | WT_TXN_HAS_TS_DURABLE);
 
     /* Timestamps are ignored on logged files. */
+    ////mongodb 副本集普通数据表的log是关闭了的，oplog表的log功能是打开的
     if (F_ISSET(btree, WT_BTREE_LOGGED))
         return (0);
 
@@ -2513,11 +2553,17 @@ __wt_txn_stats_update(WT_SESSION_IMPL *session)
     checkpoint_timestamp = txn_global->checkpoint_timestamp;
     durable_timestamp = txn_global->durable_timestamp;
     pinned_timestamp = txn_global->pinned_timestamp;
+
     if (checkpoint_timestamp != WT_TS_NONE && checkpoint_timestamp < pinned_timestamp)
         pinned_timestamp = checkpoint_timestamp;
     WT_STAT_SET(session, stats, txn_pinned_timestamp, durable_timestamp - pinned_timestamp);
-    WT_STAT_SET(
-      session, stats, txn_pinned_timestamp_checkpoint, durable_timestamp - checkpoint_timestamp);
+    //yang add todo xxxxxxxxxx checkpoint完成后会被清0，这里的统计有问题
+    if (checkpoint_timestamp == WT_TS_NONE)
+        WT_STAT_SET(session, stats, txn_pinned_timestamp_checkpoint, 0);
+    else 
+        WT_STAT_SET(
+          session, stats, txn_pinned_timestamp_checkpoint, durable_timestamp - checkpoint_timestamp); 
+          
     WT_STAT_SET(session, stats, txn_pinned_timestamp_oldest,
       durable_timestamp - txn_global->oldest_timestamp);
 
@@ -3011,17 +3057,32 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "%s", "transaction state dump\r\n"));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "now print session ID: %" PRIu32 "\r\n", session->id));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "current ID: %" PRIu64 "\r\n", txn_global->current));
+    //这三个用于全局事务可见性判断，历史版本内存释放等
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "last running ID: %" PRIu64 "\r\n", txn_global->last_running));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "metadata_pinned ID: %" PRIu64 "\r\n", txn_global->metadata_pinned));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest ID: %" PRIu64 "\r\n", txn_global->oldest_id));
+    Timestamp calculatedOldestTimestamp(stableTimestamp.getSecs() -
+                                            minSnapshotHistoryWindowInSeconds.load(),
+                                        stableTimestamp.getInc());
+
+
+    //如果没有现实设置durable_timestamp，每次事务提交的时候都会默认和commit_timestamp保持一致
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "durable timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->durable_timestamp, ts_string)));
+    //mongodb会设置oldest_timestamp=stable_timestamp-minSnapshotHistoryWindowInSeconds
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->oldest_timestamp, ts_string)));
+    //pinned_timestamp是在__wt_txn_update_pinned_timestamp中根据oldest_timestamp和所有事务的read_timestamp取最小值算出来的，(mongodb txnOpen.setReadSnapshot(_readAtTimestamp);)
+    //实际上真实用处如下:
+    //  1. 只会在__wt_update_obsolete_check中当一个K上面的历史版本超过20个的时候才会影响该update的检查
+    //  2. __wt_txn_visible_all->__wt_txn_pinned_timestamp用pinned_timestamp来判断事务可见性，进而影响历史版本数据从内存释放
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "pinned timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->pinned_timestamp, ts_string)));
+    //checkpoint持久化的时候用该时间做为checkpoint时间写入wiredtiger.wt，最终目的是rollback_to_stable快速回滚到这个时间点
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "stable timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->stable_timestamp, ts_string)));
+
+      
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_durable_timestamp: %s\r\n", txn_global->has_durable_timestamp ? "yes" : "no"));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_oldest_timestamp: %s\r\n", txn_global->has_oldest_timestamp ? "yes" : "no"));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "has_pinned_timestamp: %s\r\n", txn_global->has_pinned_timestamp ? "yes" : "no"));
@@ -3078,8 +3139,8 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
 
         sess = &conn->sessions[i];
         WT_RET(__wt_buf_catfmt(session, snapshot_buf,
-          "session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s\r\n", i, id,
-          s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
+          "session ID: %" PRIu32 ", txn ID: %" PRIu64 ", pinned ID: %" PRIu64 ", metadata pinned ID: %" PRIu64 ", name: %s\r\n", 
+          i, id, s->pinned_id, s->metadata_pinned, sess->name == NULL ? "EMPTY" : sess->name));
         WT_RET(__wt_verbose_dump_txn_one(session, sess, 0, NULL, snapshot_buf));
     }
 

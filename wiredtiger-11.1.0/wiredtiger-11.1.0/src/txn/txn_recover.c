@@ -129,16 +129,14 @@ break需要空两格
  //跳过不属于本wt文件的op: Skipping op 4 to file 5 at LSN 1/19840
  //回放属于本wt文件的op: Applying op 4 to file 0 at LSN 1/24064
  */
-//打印表名该wal是需要跳过还是需要回放
+//打印表名该wal是需要跳过还是需要回放  //获取fileid对应wt文件的访问cursor     
 #define GET_RECOVERY_CURSOR(session, r, lsnp, fileid, cp)                            \
-    //获取fileid对应wt文件的访问cursor    \
     ret = __recovery_cursor(session, r, lsnp, fileid, false, cp);                    \
     __wt_verbose_debug2(session, WT_VERB_RECOVERY,                                   \
       "%s op %" PRIu32 " to file %" PRIu32 " at LSN %" PRIu32 "/%" PRIu32,           \
       ret != 0 ? "Error" : cursor == NULL ? "Skipping" : "Applying", optype, fileid, \
       (lsnp)->l.file, (lsnp)->l.offset);                                             \
     WT_ERR(ret);                                                                     \
-    //如果cursor为NULL，直接返回ret             \
     if (cursor == NULL)                                                              \
     break
 
@@ -450,6 +448,11 @@ __recovery_set_checkpoint_timestamp(WT_RECOVERY *r)
      * Read the system checkpoint information from the metadata file and save the stable timestamp
      * of the last checkpoint for later query. This gets saved in the connection.
      */
+/*
+system:checkpoint\00
+checkpoint_timestamp="3b9aca04",checkpoint_time=1721294244,write_gen=13\00
+获取checkpoint_timestamp存入ckpt_timestamp
+*/
     WT_RET(__wt_meta_read_checkpoint_timestamp(r->session, NULL, &ckpt_timestamp, NULL));
 
     /*
@@ -459,7 +462,7 @@ __recovery_set_checkpoint_timestamp(WT_RECOVERY *r)
     conn->txn_global.meta_ckpt_timestamp = conn->txn_global.recovery_timestamp = ckpt_timestamp;
 
     //WT_VERB_RECOVERY_ALL.categories[__v_idx]
-    printf("yang test .......__recovery_set_checkpoint_timestamp............\r\n");
+    //printf("yang test .......__recovery_set_checkpoint_timestamp............\r\n");
     __wt_verbose_multi(session, WT_VERB_RECOVERY_ALL, "Set global recovery timestamp: %s",
       __wt_timestamp_to_string(conn->txn_global.recovery_timestamp, ts_string));
 
@@ -498,6 +501,9 @@ __recovery_set_oldest_timestamp(WT_RECOVERY *r)
 /*
  * __recovery_set_checkpoint_snapshot --
  *     Set the checkpoint snapshot details as retrieved from the metadata file.
+
+system:checkpoint_snapshot\00
+snapshot_min=1,snapshot_max=1,snapshot_count=0,checkpoint_time=1721461898,write_gen=16\00
  */
 static int
 __recovery_set_checkpoint_snapshot(WT_SESSION_IMPL *session)
@@ -569,6 +575,7 @@ err:
 /*
  * __recovery_txn_setup_initial_state --
  *     Setup the transaction initial state required by rollback to stable.
+ //从wiredtiger.wt文件中获取checkpoint_timestamp   oldest_timestamp信息
  */
 static int
 __recovery_txn_setup_initial_state(WT_SESSION_IMPL *session, WT_RECOVERY *r)
@@ -576,20 +583,28 @@ __recovery_txn_setup_initial_state(WT_SESSION_IMPL *session, WT_RECOVERY *r)
     WT_CONNECTION_IMPL *conn;
 
     conn = S2C(session);
-
+    //system:checkpoint_snapshot\00
+    //snapshot_min=1,snapshot_max=1,snapshot_count=0,checkpoint_time=1721461898,write_gen=16\00
     WT_RET(__recovery_set_checkpoint_snapshot(session));
 
     /*
      * Set the checkpoint timestamp and oldest timestamp retrieved from the checkpoint metadata.
      * These are the stable timestamp and oldest timestamps of the last successful checkpoint.
      */
+
+    //__txn_checkpoint->__wt_meta_sysinfo_set中把checkpoint_timestamp和oldest_timestamp写入wiredtiger.wt
+    //__recovery_txn_setup_initial_state进行recover的时候从wiredtiger.wt中恢复
+     
+    //从wiredtiger.wt文件中获取checkpoint_timestamp信息
     WT_RET(__recovery_set_checkpoint_timestamp(r));
+    //从wiredtiger.wt文件中获取oldest_timestamp信息
     WT_RET(__recovery_set_oldest_timestamp(r));
 
     /*
      * Now that timestamps extracted from the checkpoint metadata have been configured, configure
      * the pinned timestamp.
      */
+    //设置checkpoint_timestamp给txn_global->pinned_timestamp
     __wt_txn_update_pinned_timestamp(session, true);
 
     WT_ASSERT(session,
@@ -597,6 +612,9 @@ __recovery_txn_setup_initial_state(WT_SESSION_IMPL *session, WT_RECOVERY *r)
         conn->txn_global.stable_timestamp == WT_TS_NONE);
 
     /* Set the stable timestamp from recovery timestamp. */
+    //注意stable_timestamp这里赋值，不是在__wt_txn_update_pinned_timestamp，因此
+    //txn_global->stable_is_pinned = txn_global->pinned_timestamp == txn_global->stable_timestamp不满足条件
+    //???????????? yang add todo xxxxxxxxxxxxx 这里要不要设置txn_global->stable_is_pinned = True，因为这里两个已经相等了
     conn->txn_global.stable_timestamp = conn->txn_global.recovery_timestamp;
     if (conn->txn_global.stable_timestamp != WT_TS_NONE)
         conn->txn_global.has_stable_timestamp = true;
@@ -1004,16 +1022,19 @@ __wt_txn_recover(WT_SESSION_IMPL *session, const char *cfg[])
      * Now, recover all the files apart from the metadata. Pass WT_LOGSCAN_RECOVER so that old logs
      * get truncated.
      */
-    //说明后面开始apply wal日志到 wiredtiger.wt以外的wt文件
+    //说明后面开始apply wal日志到 wiredtiger.wt以外的wt文件   yang add todo xxxxxxxxxxxxxxxxxxxxx 同样的
     r.metadata_only = false;
     __wt_verbose_multi(session, WT_VERB_RECOVERY_ALL,
       "Main recovery loop: starting at %" PRIu32 "/%" PRIu32 " to %" PRIu32 "/%" PRIu32,
       r.ckpt_lsn.l.file, r.ckpt_lsn.l.offset, r.max_rec_lsn.l.file, r.max_rec_lsn.l.offset);
+
+    // needs_rec判断是否有需要恢复得WiredTigerLog.xxxx中的wal记录，1标识有，0标识没有
     WT_ERR(__wt_log_needs_recovery(session, &r.ckpt_lsn, &needs_rec));
     /*
      * Check if the database was shut down cleanly. If not return an error if the user does not want
      * automatic recovery.
      */
+    //recover失败，给出异常打印，如果是./wt需要加-R参数
     if (needs_rec &&
       (FLD_ISSET(conn->log_flags, WT_CONN_LOG_RECOVER_ERR) || F_ISSET(conn, WT_CONN_READONLY))) {
         if (F_ISSET(conn, WT_CONN_READONLY))
@@ -1072,6 +1093,7 @@ done:
           "Upgrading from a WiredTiger version 10.0.0 database that was not shutdown cleanly is "
           "not allowed. Perform a clean shutdown on version 10.0.0 and then upgrade.");
 #endif
+    //从wiredtiger.wt文件中获取checkpoint_timestamp   oldest_timestamp信息
     WT_ERR(__recovery_txn_setup_initial_state(session, &r));
 
     /*

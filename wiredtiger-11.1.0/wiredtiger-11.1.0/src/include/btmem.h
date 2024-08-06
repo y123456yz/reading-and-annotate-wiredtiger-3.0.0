@@ -1524,10 +1524,12 @@ struct __wt_update {
     volatile uint64_t txnid; /* transaction ID */
 
 
+    //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
     //只有设置了commit_timestamp并且没有启用WAL功能，durable_ts和start_ts功能才会有效，参考__wt_txn_op_set_timestamp
-    //__wt_txn_commit->__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点durable_timestamp记录到durable_ts中
+    //__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点durable_timestamp记录到durable_ts中,最终在WT_TIME_WINDOW_SET_START中使用
     wt_timestamp_t durable_ts; /* timestamps */
-    //__wt_txn_commit->__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点commit_timestamp记录到start_ts中
+    //__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点commit_timestamp记录到start_ts中,最终在WT_TIME_WINDOW_SET_STOP中使用
+    //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
     wt_timestamp_t start_ts;
 
     /*

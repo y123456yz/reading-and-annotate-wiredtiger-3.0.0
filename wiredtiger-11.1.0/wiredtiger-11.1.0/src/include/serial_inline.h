@@ -314,6 +314,7 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
         obsolete_timestamp = page->modify->obsolete_check_timestamp;
         if (!__wt_txn_visible_all(session, txn, obsolete_timestamp)) {
             /* Try to move the oldest ID forward and re-check. */
+            //update oldest然后在后面再做一次可见性判断
             ret = __wt_txn_update_oldest(session, 0);
             /*
              * We cannot proceed if we fail here as we have inserted the updates to the update
@@ -324,6 +325,7 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
             if (ret != 0)
                 WT_RET_PANIC(session, ret, "fail to update oldest after serializing the updates");
 
+            //说明该page还在被其他事务使用，不是全局可见的
             if (!__wt_txn_visible_all(session, txn, obsolete_timestamp))
                 return (0);
         }

@@ -366,7 +366,8 @@ err:
 /*
  * __wt_log_needs_recovery --
  *     Return 0 if we encounter a clean shutdown and 1 if recovery must be run in the given
- *     variable.
+ *     variable.     yang add todo xxxxxxxxxxxxxxxxx    注释的1和0最好用 true和false
+recp判断是否有需要恢复得WiredTigerLog.xxxx中的wal记录，1标识有，0标识没有
  */
 int
 __wt_log_needs_recovery(WT_SESSION_IMPL *session, WT_LSN *ckp_lsn, bool *recp)
@@ -405,12 +406,13 @@ __wt_log_needs_recovery(WT_SESSION_IMPL *session, WT_LSN *ckp_lsn, bool *recp)
              */
             WT_ERR(c->get_value(
               c, &dummy_txnid, &rectype, &dummy_optype, &dummy_fileid, &dummy_key, &dummy_value));
-            if (rectype == WT_LOGREC_COMMIT)
+            if (rectype == WT_LOGREC_COMMIT) //说明WiredTigerLog.xxxx文件至少有一条wal日志需要恢复
                 break;
         }
         /*
          * If we get to the end of the log, we can skip recovery.
          */
+        //WiredTigerLog.xxxx中一条需要恢复得wal日志都没有
         if (ret == WT_NOTFOUND) {
             *recp = false;
             ret = 0;
@@ -2101,6 +2103,7 @@ __wt_log_release(WT_SESSION_IMPL *session, WT_LOGSLOT *slot, bool *freep)
             continue;
         }
         locked = true;
+//        __session_log_flush
 
         /*
          * Record the current end of our update after the lock. That is how far our calls can
@@ -2661,7 +2664,7 @@ __wt_log_force_write(WT_SESSION_IMPL *session, bool retry, bool *did_work)
 int
 __wt_log_write(WT_SESSION_IMPL *session, WT_ITEM *record, WT_LSN *lsnp, 
     //checkpoint相关日志这里flags可能为0，也可能会带有sync  flush等标识
-    //用户线程的log日志这里就和transaction_sync.enabled配置相关
+    //用户线程的log日志这里就和transaction_sync.enabled配置相关，来源在__logmgr_sync_cfg
     uint32_t flags)
 {
     WT_COMPRESSOR *compressor;

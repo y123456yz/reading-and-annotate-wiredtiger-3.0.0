@@ -255,6 +255,7 @@ __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
     else
         FLD_CLR(conn->log_flags, WT_CONN_LOG_CONFIG_ENABLED);
 
+    
     /*
      * Setup a log path and compression even if logging is disabled in case we are going to print a
      * log. Only do this on creation. Once a compressor or log path are set they cannot be changed.
@@ -331,6 +332,8 @@ __wt_logmgr_config(WT_SESSION_IMPL *session, const char **cfg, bool reconfig)
      */
     if (!reconfig) {
         WT_RET(__wt_config_gets_def(session, cfg, "log.recover", 0, &cval));
+        //"log=(recover=error)"配置则会置位该标识，然后__wt_log_needs_recovery中做检查，判断释放需要recover，如果需要recover则wt需要带上-R(也就是配置"log=(recover=on)")进行数据恢复
+        //否则__wt_log_needs_recovery外层会直接抛异常
         if (WT_STRING_MATCH("error", cval.str, cval.len))
             FLD_SET(conn->log_flags, WT_CONN_LOG_RECOVER_ERR);
     }

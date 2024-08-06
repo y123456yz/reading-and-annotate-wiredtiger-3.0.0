@@ -133,6 +133,7 @@ struct __wt_reconcile {
     uint64_t last_running;
 
     /* Track the oldest running id. This one doesn't consider checkpoint. */
+    //赋值见__rec_init，真正生效见WT_REC_TW_START_VISIBLE_ALL
     uint64_t rec_start_oldest_id;
 
     /* Track the pinned timestamp at the time reconciliation started. */

@@ -50,7 +50,7 @@ __cache_config_abs_to_pct(
 /*
  * __cache_config_local --
  *     Configure the underlying cache.
- */ //获取cacheSize配置大小
+ */ //获取cacheSize配置大小 
 static int
 __cache_config_local(WT_SESSION_IMPL *session, bool shared, const char *cfg[])
 {

@@ -407,6 +407,7 @@ __btree_conf(WT_SESSION_IMPL *session, WT_CKPT *ckpt, bool is_ckpt)
     if (FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED)) {//默认为true
         WT_RET(__wt_config_gets(session, cfg, "log.enabled", &cval));
         if (cval.val)
+        //只有全局WT_CONN_LOG_ENABLED  log启用，并且表级log.enabled也为true的时候才会置位WT_BTREE_LOGGED，默认表级log.enabled为false，所以表级WT_BTREE_LOGGED不会置位
             F_SET(btree, WT_BTREE_LOGGED);
     }
     if (F_ISSET(conn, WT_CONN_IN_MEMORY)) {

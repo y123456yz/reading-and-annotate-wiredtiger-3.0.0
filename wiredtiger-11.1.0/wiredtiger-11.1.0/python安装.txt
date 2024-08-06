@@ -7,6 +7,8 @@ collect2: error: ld returned 1 exit status
 如果编译报错，可以跳过snappy，对应命令如下:
 cmake -DENABLE_SNAPPY=0 ../.
 
+scons install-mongod   -j22 -Q MONGO_VERSION=5.0.12 LINKFLAGS="-static-libstdc++"
+
 启用snappy用DHAVE_BUILTIN_EXTENSION_SNAPPY=1， 不要用DENABLE_SNAPPY=1
 cmake  -DHAVE_UNITTEST=1  -DHAVE_DIAGNOSTIC=1 -DENABLE_CPPSUITE=1 -DHAVE_BUILTIN_EXTENSION_SNAPPY=1  ../.
 
@@ -56,6 +58,30 @@ std::map<int, std::pair<StringData, Section>> WiredTigerOperationStats::_statNam
 
 
 windows环境编译wiredtiger参考文档: https://blog.csdn.net/qq_44918090/article/details/132190274
+
+mongodb  时序压测:https://questdb.io/blog/mongodb-time-series-benchmark-review/
+
+标准raft流程:
+1. 主节点写oplog
+2. 主节点写本地oplog成功后，主节点主动推oplog到从节点
+3. 等待节点返回(一主2从模式，只要一个从节点返回即可)
+4. 主节点开始数据提交
+5. 数据写入wt成功后，发送Ok给客户端
+
+
+那4.2以后的逻辑是不是这样:
+1. 主节点写oplog
+2. 主节点写本地oplog成功后apply，数据写入存储引擎事（apply过程），这时oplog和数据都写了
+3.主apply数据到wt后，主动发送oplog到从节点，和2应该没有先后
+4. 主等待节点返回(一主2从模式，只要一个从节点返回即可)
+5.返回数据达到client的writeconcern后，给client返回
+
+4.2以前
+1. 主节点写oplog
+2. 主节点写本地oplog成功后apply，数据写入存储引擎事（apply过程），这时oplog和数据都写了
+3. 从节点replWriterThreadCount线程拉去主节点oplog进行本地回放
+4. 主等待节点返回(一主2从模式，只要一个从节点返回即可)
+5.返回数据达到client的writeconcern后，给client返回
 
 
  ctest -C Debug -j 15 进行test_wt2323_join_visibility等c模块的单元测试，假设第一次运行结束有几个模块失败，下次直接在build中再次运行该 ctest -C Debug -j 15命令可以从失败的模块进行重新测试，如果想单独运行这个模块，在build中find找该模块，如果找不到，可以清理build路径，然后 cmake -DENABLE_SNAPPY=0 -DHAVE_DIAGNOSTIC=1 ../. 后，make -j 3重新编译就会有该模块了，可以find找到

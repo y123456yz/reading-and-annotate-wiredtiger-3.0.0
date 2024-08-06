@@ -373,7 +373,7 @@ __ckpt_named(WT_SESSION_IMPL *session, const char *checkpoint, const char *confi
 /*
  * __ckpt_last --
  *     Return the information associated with the file's last checkpoint.
- checkpoint=(WiredTigerCheckpoint.1=(addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0",order=1,time=1702006313,size=2355200,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=227,run_write_gen=1))
+ //checkpoint=(WiredTigerCheckpoint.1=(addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0",order=1,time=1702006313,size=2355200,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=227,run_write_gen=1))
  */
 
 //__ckpt_process进行checkpoint相关元数据持久化
@@ -485,7 +485,10 @@ err:
 //在session对应表的wiredtiger.wt元数据config配置基础上增加
 //encryption=%.*s,block_metadata_encrypted=%s,block_metadata=[%.*s]几个配置保存到ckpt->block_metadata
 int
-__wt_meta_block_metadata(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt)
+__wt_meta_block_metadata(WT_SESSION_IMPL *session, 
+    //注意config是某个表的wiredtiger.wt中的元数据信息
+    const char *config, 
+    WT_CKPT *ckpt)
 {
     WT_CONFIG_ITEM cval;
     WT_DECL_ITEM(a);
@@ -771,6 +774,7 @@ __meta_ckptlist_allocate_new_ckpt(
      */
 
     /* Either load block mods from the config, or from the previous checkpoint. */
+    //从config(也就是wiredtiger.wt元数据)中加载checkpoint信息
     WT_RET(
       __meta_blk_mods_load(session, config, (slot == 0 ? NULL : &ckptbase[slot - 1]), ckpt, false));
     WT_ASSERT(session, ckpt->block_metadata != NULL);
@@ -879,6 +883,7 @@ __wt_meta_ckptlist_get(
      * list command.
      */
     btree = S2BT_SAFE(session);
+    //已经不是第一次进入这里，则btree->ckpt不为NULL，如果是第一次进入这里则在else中创建btree->ckpt空间并赋值
     if (btree != NULL && btree->ckpt != NULL && !WT_IS_METADATA(session->dhandle)) {
         *ckptbasep = btree->ckpt;
         if (update)
@@ -900,7 +905,7 @@ __wt_meta_ckptlist_get(
         __wt_meta_ckptlist_free(session, &ckptbase_comp);
         WT_ERR(ret);
 #endif
-    } else {
+    } else {//例如进程第一次启动，wiredtiger.wt中没有checkpoint的元数据，则通过这个分支创建
         /*
     yang test ..............__wt_meta_ckptlist_get...........fname:file:access.wt,
     config:access_pattern_hint=none,allocation_size=4KB,app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,
@@ -925,12 +930,17 @@ err:
 /*
  * __wt_meta_ckptlist_get_from_config --
  *     Provided a metadata config, load all available checkpoint information for a file.
+ checkpoint=(WiredTigerCheckpoint.2=(addr="018581e4339a46f48681e4424107b48781e40f31e220808080e26fc0cfc0",order=2,
+ time=1721886438,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,
+ newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=6,run_write_gen=4))
  */
 //分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
 //也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
 int
 __wt_meta_ckptlist_get_from_config(WT_SESSION_IMPL *session, bool update, WT_CKPT **ckptbasep,
-  size_t *allocatedp, const char *config)
+  size_t *allocatedp, 
+  //注意config是某个表的wiredtiger.wt中的元数据信息
+  const char *config)
 {
     WT_CKPT *ckpt, *ckptbase;
     WT_CONFIG ckptconf;
@@ -950,20 +960,31 @@ __wt_meta_ckptlist_get_from_config(WT_SESSION_IMPL *session, bool update, WT_CKP
     if ((ret = __wt_config_getones(session, config, "checkpoint", &v)) == 0) {
         __wt_config_subinit(session, &ckptconf, &v);
         for (; __wt_config_next(&ckptconf, &k, &v) == 0; ++slot) {
+            //例如第一次启动程序，则没有checkpoint配置，不会进入这个流程
+            //如果wiredtiger.wt中有checkpoint=
             /*
              * Allocate a slot for a new value, plus a slot to mark the end.
+
+         checkpoint=(WiredTigerCheckpoint.2=(addr="018581e4339a46f48681e4424107b48781e40f31e220808080e26fc0cfc0",order=2,
+         time=1721886438,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,
+         newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=6,run_write_gen=4))
              */
+            //多分配一个slot，标记end
             WT_ERR(__wt_realloc_def(session, &allocated, slot + 2, &ckptbase));
             ckpt = &ckptbase[slot];
 
+            //获取config的checkpoint=xxx的信息, 并解析存储到WT_CKPT相关成员
             WT_ERR(__ckpt_load(session, &k, &v, ckpt));
             WT_ERR(__wt_meta_block_metadata(session, config, ckpt));
         }
     }
+
     WT_ERR_NOTFOUND_OK(ret, false);
     if (!update && slot == 0)
         WT_ERR(WT_NOTFOUND);
 
+    //如果是第一次进来，则ckptbase为空，如果是wiredtiger.wt中已经有checkpoint信息，则ckptbase数组不为空
+    
     /* Sort in creation-order. */
     __wt_qsort(ckptbase, slot, sizeof(WT_CKPT), __ckpt_compare_order);
 
@@ -988,12 +1009,16 @@ err:
 /*
  * __ckpt_load --
  *     Load a single checkpoint's information into a WT_CKPT structure.
- checkpoint=(WiredTigerCheckpoint.1=(addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0",order=1,time=1702006313,size=2355200,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=227,run_write_gen=1))
+// checkpoint=(WiredTigerCheckpoint.1=(addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0",order=1,time=1702006313,size=2355200,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=227,run_write_gen=1))
 
   //__ckpt_process进行checkpoint相关元数据持久化
  //__wt_meta_checkpoint->__ckpt_last->__ckpt_load获取checkpoint信息，然后__wt_block_checkpoint_load加载checkpoint相关元数据
 
  */ //__wt_meta_checkpoint->__ckpt_last->__ckpt_load
+
+//__wt_meta_ckptlist_to_meta中写入wiredTiger.wt， __ckpt_load和__rollback_to_stable_btree_apply中读取wiredtiger.wt
+
+ 
 //获取config的checkpoint=xxx的信息, 并解析存储到WT_CKPT相关成员
 static int
 __ckpt_load(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *k, WT_CONFIG_ITEM *v, WT_CKPT *ckpt)
@@ -1004,6 +1029,10 @@ __ckpt_load(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *k, WT_CONFIG_ITEM *v, WT_C
     /*
      * Copy the name, address (raw and hex), order and time into the slot. If there's no address,
      * it's a fake.
+
+     checkpoint=(WiredTigerCheckpoint.2=(addr="018581e4339a46f48681e4424107b48781e40f31e220808080e26fc0cfc0",order=2,
+     time=1721886438,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,
+     newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=6,run_write_gen=4))
      */
     WT_RET(__wt_strndup(session, k->str, k->len, &ckpt->name));
 
@@ -1111,8 +1140,8 @@ __ckpt_load(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *k, WT_CONFIG_ITEM *v, WT_C
  *     Update the connection's base write generation and most recent checkpoint time from the config
  *     string.
 
- checkpoint=(WiredTigerCheckpoint.2=(addr=\"018181e4675695398281e41546bd168381e488042fd9808080e22fc0cfc0\",order=2,time=1720169925,
- size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,
+// checkpoint=(WiredTigerCheckpoint.2=(addr=\"018181e4675695398281e41546bd168381e488042fd9808080e22fc0cfc0\",order=2,time=1720169925,
+// size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,
  prepare=0,write_gen=3,run_write_gen=1))
  */
 int
@@ -1199,6 +1228,9 @@ err:
 /*
  * __wt_meta_ckptlist_to_meta --
  *     Convert a checkpoint list into its metadata representation.
+
+  __wt_meta_ckptlist_to_meta中写入wiredTiger.wt， __ckpt_load和__rollback_to_stable_btree_apply中读取wiredtiger.wt
+
  */
 //把所有checkpoint核心元数据: 【root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息
 //  +avail跳表持久化到磁盘的核心元数据信息】转换为wiredtiger.wt中对应的checkpoint=xxx字符串
@@ -1249,6 +1281,10 @@ __wt_meta_ckptlist_to_meta(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_ITEM 
           (int64_t)ckpt->run_write_gen));
     }
     WT_RET(__wt_buf_catfmt(session, buf, ")"));
+
+    //yang add change
+   // __wt_verbose(session, WT_VERB_TIMESTAMP,
+   //   "__wt_meta_ckptlist_to_meta: %s",(const char *)buf->data);
 
     return (0);
 }
@@ -1453,6 +1489,10 @@ __wt_meta_checkpoint_free(WT_SESSION_IMPL *session, WT_CKPT *ckpt)
 /*
  * __meta_print_snapshot --
  *     Generate the text form of the checkpoint's snapshot for recording in the metadata.
+
+也就是组装wiredtiger.wt中的如下信息
+system:checkpoint_snapshot\00
+snapshot_min=2,snapshot_max=2,snapshot_count=0,checkpoint_time=1721282674,write_gen=16\00
  */
 static int
 __meta_print_snapshot(WT_SESSION_IMPL *session, WT_ITEM *buf)
@@ -1520,6 +1560,8 @@ __meta_sysinfo_remove(WT_SESSION_IMPL *session, bool full, const char *name, siz
 /*
  * __wt_meta_sysinfo_set --
  *     Set the system information in the metadata.
+//__txn_checkpoint->__wt_meta_sysinfo_set中把checkpoint_timestamp和oldest_timestamp写入wiredtiger.wt
+//__recovery_txn_setup_initial_state进行recover的时候从wiredtiger.wt中恢复
  */
 int
 __wt_meta_sysinfo_set(WT_SESSION_IMPL *session, bool full, const char *name, size_t namelen)
@@ -1581,10 +1623,18 @@ __wt_meta_sysinfo_set(WT_SESSION_IMPL *session, bool full, const char *name, siz
 
     /* Handle the checkpoint timestamp. */
 
+/*
+system:checkpoint\00
+checkpoint_timestamp="3b9aca04",checkpoint_time=1721294244,write_gen=13\00
+*/
+    //如果meta_ckpt_timestamp为0，则从wiredtiger.wt中清楚system:checkpoint对应KV
     __wt_timestamp_to_hex_string(txn_global->meta_ckpt_timestamp, hex_timestamp);
     if (strcmp(hex_timestamp, "0") == 0)
         WT_ERR(__meta_sysinfo_remove(session, full, name, namelen, uribuf, WT_SYSTEM_CKPT_URI));
     else {
+    //如果meta_ckpt_timestamp不为0，则在wiredtiger.wt中写入system:checkpoint对应KV，也就是把最近一次做checkpoint的stable_timestamp记录到checkpoint_timestamp
+
+        //也就是最近一次做checkpoint的stable_timestamp
         WT_ERR(__wt_buf_fmt(session, valbuf,
           WT_SYSTEM_CKPT_TS "=\"%s\"," WT_SYSTEM_TS_TIME "=%" PRIu64 "," WT_SYSTEM_TS_WRITE_GEN
                             "=%" PRIu64,
@@ -1602,12 +1652,19 @@ __wt_meta_sysinfo_set(WT_SESSION_IMPL *session, bool full, const char *name, siz
 
     oldest_timestamp = txn_global->oldest_timestamp;
     WT_READ_BARRIER();
+    //oldest_timestamp为oldest_timestamp与stable_timestamp的最小timestamp
     __wt_timestamp_to_hex_string(
       WT_MIN(oldest_timestamp, txn_global->meta_ckpt_timestamp), hex_timestamp);
 
+/*
+system:oldest\00
+oldest_timestamp="3b9aca04",checkpoint_time=1721294244,write_gen=13\00
+oldest_timestamp为oldest_timestamp与meta_ckpt_timestamp的最小timestamp
+*/
+    //如果oldest_timestamp为0，则从wiredtiger.wt中清楚"system:oldest"对应KV
     if (strcmp(hex_timestamp, "0") == 0)
         WT_ERR(__meta_sysinfo_remove(session, full, name, namelen, uribuf, WT_SYSTEM_OLDEST_URI));
-    else {
+    else {//如果oldest_timestamp不为0，则在wiredtiger.wt中写入system:oldest对应KV
         WT_ERR(__wt_buf_fmt(session, valbuf,
           WT_SYSTEM_OLDEST_TS "=\"%s\"," WT_SYSTEM_TS_TIME "=%" PRIu64 "," WT_SYSTEM_TS_WRITE_GEN
                               "=%" PRIu64,
@@ -1617,7 +1674,7 @@ __wt_meta_sysinfo_set(WT_SESSION_IMPL *session, bool full, const char *name, siz
     }
 
     /* Handle the snapshot information. */
-
+    //记录"system:checkpoint_snapshot"信息到wiredtiger.wt
     WT_ERR(__meta_print_snapshot(session, valbuf));
     WT_ERR(__meta_sysinfo_update(
       session, full, name, namelen, uribuf, WT_SYSTEM_CKPT_SNAPSHOT_URI, valbuf->data));
@@ -1640,6 +1697,9 @@ __wt_meta_sysinfo_set(WT_SESSION_IMPL *session, bool full, const char *name, siz
      * Note that "full" here means what it does in __txn_checkpoint: the user didn't give an
      * explicit list of trees to checkpoint. It is allowed (though currently not sensible) for the
      * user to do that with a named checkpoint, in which case we don't want to make this change.
+     也就是./wt解析出的
+     system:checkpoint_base_write_gen\00
+     base_write_gen=7\00
      */
     if (full) {
         WT_ERR(__wt_buf_fmt(
@@ -1684,6 +1744,10 @@ err:
  *     called with NULL return parameters to avoid (in particular) bothering to allocate the
  *     snapshot data if it's not needed. Note that if you retrieve the snapshot data you must also
  *     retrieve the snapshot count.
+
+
+system:checkpoint_snapshot\00
+snapshot_min=1,snapshot_max=1,snapshot_count=0,checkpoint_time=1721461898,write_gen=16\00
  */
 int
 __wt_meta_read_checkpoint_snapshot(WT_SESSION_IMPL *session, const char *ckpt_name,
@@ -1727,6 +1791,7 @@ __wt_meta_read_checkpoint_snapshot(WT_SESSION_IMPL *session, const char *ckpt_na
         *ckpttime = 0;
 
     /* Fetch the metadata string. */
+    //获取wiredtiger.wt文件中的"system:checkpoint_snapshot"，对应的value存入sys_config
     if (ckpt_name == NULL)
         WT_ERR_NOTFOUND_OK(
           __wt_metadata_search(session, WT_SYSTEM_CKPT_SNAPSHOT_URI, &sys_config), false);
@@ -1873,10 +1938,17 @@ err:
  *
  * Here "checkpoint timestamp" means "the stable timestamp saved with a checkpoint". This variance
  *     in terminology is confusing, but at this point not readily avoided.
+
+system:checkpoint\00
+checkpoint_timestamp="3b9aca04",checkpoint_time=1721294244,write_gen=13\00
+//也就是最近一次做checkpoint的stable_timestamp
  */
 int
 __wt_meta_read_checkpoint_timestamp(
-  WT_SESSION_IMPL *session, const char *ckpt_name, wt_timestamp_t *timestampp, uint64_t *ckpttime)
+  WT_SESSION_IMPL *session, const char *ckpt_name, 
+  //checkpoint_timestamp="3b9aca04"中的3b9aca04存储到timestampp
+  wt_timestamp_t *timestampp, 
+  uint64_t *ckpttime)
 {
     return (__meta_retrieve_a_checkpoint_timestamp(
       session, ckpt_name, WT_SYSTEM_CKPT_URI, WT_SYSTEM_CKPT_TS, timestampp, ckpttime));
@@ -1886,6 +1958,11 @@ __wt_meta_read_checkpoint_timestamp(
  * __wt_meta_read_checkpoint_oldest --
  *     Fetch a checkpoint's oldest timestamp from the metadata. If the checkpoint name passed is
  *     null, returns the timestamp from the most recent checkpoint.
+
+
+system:oldest\00
+oldest_timestamp="3b9aca04",checkpoint_time=1721294244,write_gen=13\00
+//也就是oldest_timestamp与stable_timestamp的最小timestamp
  */
 int
 __wt_meta_read_checkpoint_oldest(

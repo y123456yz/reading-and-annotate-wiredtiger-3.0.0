@@ -353,6 +353,7 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
     if (!F_ISSET(txn, WT_TXN_HAS_TS_COMMIT))
         return;
     //如果启用了WAL功能，则timestamp功能失效
+    //mongodb 副本集普通数据表的log是关闭了的，oplog表的log功能是打开的
     if (F_ISSET(btree, WT_BTREE_LOGGED))
         return;
 
@@ -379,11 +380,19 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
              * durable timestamps need to be updated.
              */
             upd = op->u.op_upd;
+            //mongodb普通表log.enabled为false,只有oplog表为true，因此这里mongodb只有oplog表才会记录start_ts和durable_ts
             if (upd->start_ts == WT_TS_NONE) {
+                //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
+                //这两个成员真正生效是如果表没有启用log功能，则reconcile的时候会同时把start ts等信息写入磁盘，生效地方见WT_TIME_WINDOW_SET_START和WT_TIME_WINDOW_SET_STOP
                 upd->start_ts = txn->commit_timestamp;
                 upd->durable_ts = txn->durable_timestamp;
-                printf("yang test ...............txn->commit_timestamp:%lu, %lu\r\n", upd->start_ts,
-                    upd->durable_ts);
+                {//yang add change 
+                    char ts_string[2][WT_TS_INT_STRING_SIZE];
+                    __wt_verbose(session, WT_VERB_TIMESTAMP, "start_ts %s, durable_ts: %s, %s", 
+                        __wt_timestamp_to_string(upd->start_ts, ts_string[0]), 
+                        __wt_timestamp_to_string(upd->durable_ts, ts_string[1]), 
+                        "__wt_txn_op_set_timestamp");
+                }
             }
         }
     }
@@ -393,6 +402,7 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
  * __wt_txn_modify --
  *     Mark a WT_UPDATE object modified by the current transaction.
  //获取一个事务op并对相关成员赋值  __wt_row_modify->__wt_txn_modify->__txn_next_op
+  //只有key存在时候得modify才会进来，insert不会进来
  */
 static inline int
 __wt_txn_modify(WT_SESSION_IMPL *session, WT_UPDATE *upd)
@@ -658,7 +668,7 @@ __wt_txn_visible_all(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t times
 /*
  * __wt_txn_upd_visible_all --
  *     Is the given update visible to all (possible) readers?
- // 判断upd是否对当前所有session可见，对update影响较大，可以参考__wt_update_obsolete_check
+ // 判断upd是否对当前所有session可见，对update影响较大，可以参考__wt_update_obsolete_check, 判断udp数据是否可以释放
  */
 static inline bool
 __wt_txn_upd_visible_all(WT_SESSION_IMPL *session, WT_UPDATE *upd)
@@ -1454,7 +1464,8 @@ __wt_txn_search_check(WT_SESSION_IMPL *session)
     name = session->dhandle->name;
 
     /* Timestamps are ignored on logged files. */
-    //
+    //表级log启用，timestamps功能失效
+    //mongodb 副本集普通数据表的log是关闭了的，oplog表的log功能是打开的
     if (F_ISSET(S2BT(session), WT_BTREE_LOGGED))
         return (0);
 

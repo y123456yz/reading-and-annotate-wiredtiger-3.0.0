@@ -731,7 +731,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
             //拷贝val数据到r->first_free对应空间
             __wt_rec_image_copy(session, r, val);
         }
-        //tw统计
+        //tw信息赋值给r，最终reconcile写入磁盘
         WT_TIME_AGGREGATE_UPDATE(session, &r->cur_ptr->ta, &tw);
 
         /* Update compression state. */
@@ -805,7 +805,7 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化
 */
 
 int
-__wt_rec_row_leaf(
+__wt_rec_row_leaf( 
   WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REF *pageref, WT_SALVAGE_COOKIE *salvage)
 {
     static WT_UPDATE upd_tombstone = {.txnid = WT_TXN_NONE, .type = WT_UPDATE_TOMBSTONE};

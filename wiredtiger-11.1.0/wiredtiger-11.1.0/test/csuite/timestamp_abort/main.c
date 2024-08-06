@@ -100,6 +100,7 @@ static TEST_OPTS *opts, _opts;
 #define ENV_CONFIG_ADD_STRESS ",timing_stress_for_test=[prepare_checkpoint_delay]"
 
 //statistics_log相关统计可以每秒获取一次wiredtiger的统计信息存入WiredTigerStat.x文件中   , config_all_verbos:0
+//注意这里的verbose我在testutil_wiredtiger_open修改了，会被覆盖掉
 #define ENV_CONFIG_DEF                                        \
     "cache_size=%" PRIu32                                     \
     "M,create,verbose=[log:5,checkpoint=5,timestamp:5,api:2, transaction:5,history_store=5,history_store_activity=5],"                  \
@@ -304,6 +305,7 @@ thread_ts_run(void *arg)
 
         /* Let the oldest timestamp lag 25% of the time. */
         //5秒时间范围中，有一秒是更新stable_timestamp，其他4秒更新oldest_timestamp和stable_timestamp
+        //也就是有25%的概率oldest_timestamp会比stable_timestamp小
         rand_op = __wt_random(&rnd) % 3;
         if (rand_op == 1)
             testutil_check(__wt_snprintf(tscfg, sizeof(tscfg), "stable_timestamp=%" PRIx64, ts));
@@ -376,6 +378,8 @@ thread_ckpt_run(void *arg)
         testutil_check(session->checkpoint(session, "use_timestamp=true"));
         testutil_check(td->conn->query_timestamp(td->conn, ts_string, "get=last_checkpoint"));
         testutil_assert(sscanf(ts_string, "%" SCNx64, &stable) == 1);
+
+        //这里打印的stable也就是本次做checkpoint时候的last_ckpt_timestamp
         printf("Checkpoint %d complete at stable %" PRIu64 ".\n", i, stable);
         fflush(stdout);
         /*
@@ -545,6 +549,10 @@ thread_run(void *arg)
     // 如果use_prep为false, 同一个session打开的多个表cursor，这些cursor对应的session  CUR2S会是同一个session ,
     // 此外每个__curfile_insert(coll->insert)都会__txn_get_snapshot_int获取快照，并通过__wt_txn_id_alloc获取事务id,
     //    但是每个insert结尾都会通过TXN_API_END->__wt_txn_commit来提交事务
+
+
+    //注意run_workload中，collection和shadow表没有启用oplog功能(log=(enabled=false)), local和oplog启用了oplog功能(log=(enabled=true))
+    
     //for (i = td->start;i < td->start + 10; ++i) {  //yang add change
     for (i = td->start;i < td->start + 1; ++i) {
         printf("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nyang test ..thread_run...................use_ts:%d, use_prep:%d, start:%lu\r\n",

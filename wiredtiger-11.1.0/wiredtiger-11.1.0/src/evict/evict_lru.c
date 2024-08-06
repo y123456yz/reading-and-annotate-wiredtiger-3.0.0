@@ -2274,6 +2274,7 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
          * evict the same page.
          */
         if (!__wt_page_evict_retry(session, page) ||
+          //说明page上可能还有很多未提交的事务在使用这个page，因此跳过这个evict
           (modified && page->modify->update_txn >= conn->txn_global.last_running))
             continue;
 

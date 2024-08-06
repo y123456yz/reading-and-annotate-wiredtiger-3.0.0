@@ -49,6 +49,8 @@
 /*
  * Set the start values of a time window from those in an update structure. Durable timestamp can be
  * 0 for prepared updates, in those cases use the prepared timestamp as durable timestamp.
+ udp->start_ts和durable_ts可以参考__wt_txn_op_set_timestamp，注意记录KV删除的时间  
+ //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
  */
 #define WT_TIME_WINDOW_SET_START(tw, upd)                          \
     do {                                                           \
@@ -61,6 +63,8 @@
 /*
  * Set the start values of a time window from those in an update structure. Durable timestamp can be
  * 0 for prepared updates, in those cases use the prepared timestamp as durable timestamp.
+  udp->start_ts和durable_ts可以参考__wt_txn_op_set_timestamp
+  //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
  */
 #define WT_TIME_WINDOW_SET_STOP(tw, upd)                         \
     do {                                                         \
@@ -142,6 +146,8 @@
 #define WT_TIME_AGGREGATE_COPY(dest, source) (*(dest) = *(source))
 
 /* Update the aggregated window to reflect for a new time window. */
+//源头还是WT_TIME_WINDOW_SET_START和WT_TIME_WINDOW_SET_STOP
+//注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
 #define WT_TIME_AGGREGATE_UPDATE(session, ta, tw)                              \
     do {                                                                       \
         WT_ASSERT(session, (ta)->init_merge == 1);                             \

@@ -655,12 +655,14 @@ __rollback_ondisk_fixup_key(WT_SESSION_IMPL *session, WT_REF *ref, WT_ROW *rip, 
             WT_STAT_CONN_DATA_INCR(session, txn_rts_hs_restore_tombstones);
         }
     } else {
+        //获取一个需要删除的udp WT_UPDATE_TOMBSTONE
         WT_ERR(__wt_upd_alloc_tombstone(session, &upd, NULL));
         WT_STAT_CONN_DATA_INCR(session, txn_rts_keys_removed);
         __wt_verbose_level_multi(
           session, WT_VERB_RECOVERY_RTS(session), WT_VERBOSE_DEBUG_3, "%s", "key removed");
     }
 
+    //从btree中删除这个key
     if (rip != NULL)
         WT_ERR(__rollback_row_modify(session, ref, upd, key));
     else
@@ -695,6 +697,7 @@ err:
 /*
  * __rollback_abort_ondisk_kv --
  *     Fix the on-disk K/V version according to the given timestamp.
+根据rollback_timestamp判断row_key是否需要回滚，如果需要回滚则直接删除row_key
  */
 static int
 __rollback_abort_ondisk_kv(WT_SESSION_IMPL *session, WT_REF *ref, WT_ROW *rip, uint64_t recno,
@@ -1114,6 +1117,7 @@ __rollback_abort_row_leaf(WT_SESSION_IMPL *session, WT_REF *ref, wt_timestamp_t 
      * Review updates that belong to keys that are on the disk image, as well as for keys inserted
      * since the page was read from disk.
      */
+    
     WT_ROW_FOREACH (page, rip, i) {
         stable_update_found = false;
         if ((upd = WT_ROW_UPDATE(page, rip)) != NULL) {
@@ -1327,6 +1331,7 @@ __rollback_to_stable_page_skip(
      * there's no way to get correct behavior and skipping matches the historic behavior. Note that
      * eviction is running; we must lock the WT_REF before examining the fast-delete information.
      */
+    //该page已经删除，则跳过
     if (ref->state == WT_REF_DELETED &&
       WT_REF_CAS_STATE(session, ref, WT_REF_DELETED, WT_REF_LOCKED)) {
         page_del = ref->page_del;
@@ -1403,6 +1408,7 @@ __rollback_to_stable_btree_walk(WT_SESSION_IMPL *session, wt_timestamp_t rollbac
 /*
  * __rollback_to_stable_btree --
  *     Called for each object handle - choose to either skip or wipe the commits
+ 对应高版本的__wti_rts_btree_walk_btree
  */
 static int
 __rollback_to_stable_btree(WT_SESSION_IMPL *session, wt_timestamp_t rollback_timestamp)
@@ -1419,7 +1425,8 @@ __rollback_to_stable_btree(WT_SESSION_IMPL *session, wt_timestamp_t rollback_tim
       F_ISSET(btree, WT_BTREE_LOGGED) ? "true" : "false");
 
     /* Files with commit-level durability (without timestamps), don't get their commits wiped. */
-    if (F_ISSET(btree, WT_BTREE_LOGGED))
+    //mongodb 副本集普通数据表的log是关闭了的，oplog表的log功能是打开的
+    if (F_ISSET(btree, WT_BTREE_LOGGED)) //启用日志功能，timestamps会失效，所以这里可以直接返回
         return (0);
 
     /* There is never anything to do for checkpoint handles. */
@@ -1436,6 +1443,7 @@ __rollback_to_stable_btree(WT_SESSION_IMPL *session, wt_timestamp_t rollback_tim
 /*
  * __rollback_to_stable_check --
  *     Check to the extent possible that the rollback request is reasonable.
+ __rollback_to_stable的时候需要检查不能有正在运行的事务和活跃cursor
  */
 static int
 __rollback_to_stable_check(WT_SESSION_IMPL *session)
@@ -1683,6 +1691,7 @@ __rollback_progress_msg(WT_SESSION_IMPL *session, struct timespec rollback_start
 /*
  * __rollback_to_stable_check_btree_modified --
  *     Check that the rollback to stable btree is modified or not.
+ //例如有Applying op 4 to file 5 at LSN 1/22016 有回放wal到btree，则该btree一般modified为true
  */
 static int
 __rollback_to_stable_check_btree_modified(WT_SESSION_IMPL *session, const char *uri, bool *modified)
@@ -1697,10 +1706,14 @@ __rollback_to_stable_check_btree_modified(WT_SESSION_IMPL *session, const char *
 /*
  * __rollback_to_stable_btree_apply --
  *     Perform rollback to stable on a single file.
+yang add todo xxxxxxxxxxxxxxxxxxxx   __ckpt_load和__rollback_to_stable_btree_apply的解析checkpoint配置项的代码可以合并为公共代码，避免代码重复
+ __wt_meta_ckptlist_to_meta中写入wiredTiger.wt， __ckpt_load和__rollback_to_stable_btree_apply中读取wiredtiger.wt
  */
 static int
 __rollback_to_stable_btree_apply(
-  WT_SESSION_IMPL *session, const char *uri, const char *config, wt_timestamp_t rollback_timestamp)
+  WT_SESSION_IMPL *session, const char *uri, const char *config, 
+  //rollback_timestamp也就是wiredtiger.wt中system:checkpoint\00中的checkpoint_timestamp
+  wt_timestamp_t rollback_timestamp)
 {
     WT_CONFIG ckptconf;
     WT_CONFIG_ITEM cval, value, key;
@@ -1726,7 +1739,10 @@ __rollback_to_stable_btree_apply(
     newest_start_durable_ts = newest_stop_durable_ts = WT_TS_NONE;
     durable_ts_found = prepared_updates = has_txn_updates_gt_than_ckpt_snap = false;
 
-    WT_RET(__wt_config_getones(session, config, "checkpoint", &cval));
+    //获取wiredtiger.wt中的uri的配置信息中的checkpoint
+    //checkpoint=(WiredTigerCheckpoint.3=(addr="018581e484fa6c9f8681e4424107b48781e40b25a777808080e26fc0cfc0",order=3,time=1721459685,
+    //size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=0,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=9,run_write_gen=7))
+    WT_RET(__wt_config_getones(session, config, "checkpoint", &cval));//__wt_meta_ckptlist_to_meta中写入元数据文件
     __wt_config_subinit(session, &ckptconf, &cval);
     for (; __wt_config_next(&ckptconf, &key, &cval) == 0;) {
         ret = __wt_config_subgets(session, &cval, "newest_start_durable_ts", &value);
@@ -1759,6 +1775,18 @@ __rollback_to_stable_btree_apply(
         if (ret == 0)
             write_gen = (uint64_t)value.val;
         WT_RET_NOTFOUND_OK(ret);
+
+        if (ret == 0) 
+            //yang add todo xxxxxxx 日志中加uri， 下面的日志中没有uri的也可以加上
+            __wt_verbose_level_multi(session, WT_VERB_RECOVERY_RTS(session), WT_VERBOSE_DEBUG_2,
+              "btree %s object found with newest_start_durable_timestamp=%s, "
+              "newest_stop_durable_timestamp=%s, "
+              "rollback_txnid=%" PRIu64 ", write_gen=%" PRIu64, 
+              uri,
+              __wt_timestamp_to_string(newest_start_durable_ts, ts_string[0]),
+              __wt_timestamp_to_string(newest_stop_durable_ts, ts_string[1]), rollback_txnid,
+              write_gen);
+
     }
     max_durable_ts = WT_MAX(newest_start_durable_ts, newest_stop_durable_ts);
 
@@ -1801,6 +1829,7 @@ __rollback_to_stable_btree_apply(
      */
     WT_WITHOUT_DHANDLE(session,
       WT_WITH_HANDLE_LIST_READ_LOCK(
+         //例如有Applying op 4 to file 5 at LSN 1/22016 有回放wal到btree，则该btree一般modified为true
         session, (ret = __rollback_to_stable_check_btree_modified(session, uri, &modified))));
 
     WT_ERR_NOTFOUND_OK(ret, false);
@@ -1811,12 +1840,14 @@ __rollback_to_stable_btree_apply(
          * Open a handle; we're potentially opening a lot of handles and there's no reason to cache
          * all of them for future unknown use, discard on close.
          */
+        //这里WT_DHANDLE_DISCARD没有任何意义，可以用0替换  高版本已经修复
         ret = __wt_session_get_dhandle(session, uri, NULL, NULL, WT_DHANDLE_DISCARD);
         if (ret != 0)
             WT_ERR_MSG(session, ret, "%s: unable to open handle%s", uri,
               ret == EBUSY ? ", error indicates handle is unavailable due to concurrent use" : "");
         dhandle_allocated = true;
 
+        //这里给出__rollback_to_stable_btree的原因，实际上就是前面if满足的条件，对应新版本wiredtiger的函数在__rollback_to_stable_btree
         __wt_verbose_multi(session, WT_VERB_RECOVERY_RTS(session),
           "tree rolled back because it is modified: %s, or its durable timestamp (%s) > stable "
           "timestamp (%s): "
@@ -1832,7 +1863,7 @@ __rollback_to_stable_btree_apply(
           has_txn_updates_gt_than_ckpt_snap ? "true" : "false");
 
         WT_ERR(__rollback_to_stable_btree(session, rollback_timestamp));
-    } else
+    } else//这个分支给出btree不需要__rollback_to_stable_btree的原因
         __wt_verbose_multi(session, WT_VERB_RECOVERY_RTS(session),
           "%s: tree skipped with durable timestamp: %s and stable timestamp: %s or txnid: %" PRIu64,
           uri, __wt_timestamp_to_string(max_durable_ts, ts_string[0]),
@@ -1902,7 +1933,9 @@ __wt_rollback_to_stable_one(WT_SESSION_IMPL *session, const char *uri, bool *ski
  *     history store files.
  */
 static int
-__rollback_to_stable_btree_apply_all(WT_SESSION_IMPL *session, wt_timestamp_t rollback_timestamp)
+__rollback_to_stable_btree_apply_all(WT_SESSION_IMPL *session, 
+    //rollback_timestamp也就是wiredtiger.wt中system:checkpoint\00中的checkpoint_timestamp
+    wt_timestamp_t rollback_timestamp)
 {
     struct timespec rollback_timer;
     WT_CURSOR *cursor;
@@ -1920,11 +1953,14 @@ __rollback_to_stable_btree_apply_all(WT_SESSION_IMPL *session, wt_timestamp_t ro
         /* Log a progress message. */
         __rollback_progress_msg(session, rollback_timer, rollback_count, &rollback_msg_count);
         ++rollback_count;
-
+        //获取wiredtiger.wt中的元数据key，也就是uri
         WT_ERR(cursor->get_key(cursor, &uri));
+        //获取wiredtiger.wt中的元数据value, 也就是uri对应的config
         WT_ERR(cursor->get_value(cursor, &config));
 
         F_SET(session, WT_SESSION_QUIET_CORRUPT_FILE);
+        //注意: 新版本这里用了线程池加快rollback apply
+        //每个表执行一次__rollback_to_stable_btree_apply
         ret = __rollback_to_stable_btree_apply(session, uri, config, rollback_timestamp);
         F_CLR(session, WT_SESSION_QUIET_CORRUPT_FILE);
 
@@ -1971,7 +2007,7 @@ __rollback_to_stable(WT_SESSION_IMPL *session, bool no_ckpt)
      * entire table sequentially.
      */
     F_SET(session, WT_SESSION_ROLLBACK_TO_STABLE);
-
+    //__rollback_to_stable的时候需要检查不能有正在运行的事务和活跃cursor
     WT_ERR(__rollback_to_stable_check(session));
 
     /*
@@ -1993,6 +2029,7 @@ __rollback_to_stable(WT_SESSION_IMPL *session, bool no_ckpt)
      * though the stable timestamp isn't supposed to be updated while rolling back, accessing it
      * without a lock would violate protocol.
      */
+    //recover逻辑stable_timestamp在__recovery_txn_setup_initial_state中赋值，也就是wiredtiger.wt中system:checkpoint\00中的checkpoint_timestamp
     WT_ORDERED_READ(rollback_timestamp, txn_global->stable_timestamp);
     __wt_verbose_multi(session, WT_VERB_RECOVERY_RTS(session),
       "performing rollback to stable with stable timestamp: %s and oldest timestamp: %s",
@@ -2006,6 +2043,8 @@ __rollback_to_stable(WT_SESSION_IMPL *session, bool no_ckpt)
           conn->recovery_ckpt_snap_min, conn->recovery_ckpt_snap_max,
           conn->recovery_ckpt_snapshot_count);
 
+
+    //rollback_timestamp也就是wiredtiger.wt中system:checkpoint\00中的checkpoint_timestamp
     WT_ERR(__rollback_to_stable_btree_apply_all(session, rollback_timestamp));
 
     /* Rollback the global durable timestamp to the stable timestamp. */
@@ -2018,6 +2057,7 @@ __rollback_to_stable(WT_SESSION_IMPL *session, bool no_ckpt)
      * checkpoint.
      */
     if (!F_ISSET(conn, WT_CONN_IN_MEMORY) && !no_ckpt)
+        //force生效见__wt_checkpoint，yang add todo xxxxxxxxxxxx 这里1用true，其他地方有类似问题
         WT_ERR(session->iface.checkpoint(&session->iface, "force=1"));
 
 err:

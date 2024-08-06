@@ -131,8 +131,16 @@ struct __wt_txn_shared {
     /*
      * The read timestamp used for this transaction. Determines what updates can be read and
      * prevents the oldest timestamp moving past this point.
+     mongodb  7.0  WiredTigerBeginTxnBlock::setReadSnapshot->WiredTigerRecoveryUnit::setTimestamp接口调用，设置
+     快照读，一条数据删了后，一定时间内可以读到数据 5.0版本 minSnapshotHistoryWindowInSeconds   
+     读取历史数据 timestamp参考https://www.mongodb.com/zh-cn/docs/manual/reference/read-concern-snapshot/atClusterTime的允许值取决于minSnapshotHistoryWindowInSeconds参数。
+     db.runCommand( {find: "test4", filter: {"_id" : ObjectId("6414462353e5946d312f98d0")}, readConcern: {level: "snapshot",  atClusterTime: Timestamp(1679050275, 1)}})
+     
+     readConcern: {level: "snapshot",  atClusterTime: Timestamp(1679050275, 1)}这里的时间就是session设置的read_timestamp
+
      */
     //__wt_txn_set_read_timestamp
+    //read_timestamp会影响__wt_txn_visible事务可见性，同时会影响txn_global->pinned_timestamp(__wt_txn_get_pinned_timestamp->__txn_get_read_timestamp)
     wt_timestamp_t read_timestamp;
 
     volatile uint8_t is_allocating;
@@ -145,7 +153,14 @@ struct __wt_txn_global {
     //txn_global->current在__txn_get_snapshot_int->__txn_sort_snapshot中会被赋值给txn->snap_max
     volatile uint64_t current; /* Current transaction ID. */
 
+   //非WT_ISO_READ_UNCOMMITTED事务隔离级别:
+    //     oldest_id: 也就是当前所有事务的snapshot[]中的快照中除了checkpoint事务id以外的快照最小值, 注意__txn_oldest_scan的oldest id没考虑checkpoint快照id, __wt_txn_oldest_id会考虑checkpoint线程对应事务id
+    //     last_running: 也就是当前正在运行的除开checkpoint事务以外的id最小值(不包括checkpoint事务id)
+    //     metadata_pinned: 也就是当前所有事务的snapshot[]中的事务(包括checkpoint事务id)的id最小值
 
+   //WT_ISO_READ_UNCOMMITTED事务隔离级别:
+    // oldest_id = last_running = metadata_pinned
+    
     //__wt_txn_update_oldest更新的几个统计项
     /* The oldest running transaction ID (may race). */
     //__wt_txn_update_oldest中赋值
@@ -164,17 +179,27 @@ struct __wt_txn_global {
     //一般在事务提交的时候赋值，参考__wt_txn_commit，或者用户主动__wt_txn_global_set_timestamp设置  
     //回滚__rollback_to_stable赋值
     wt_timestamp_t durable_timestamp;
-    //赋值参考__txn_checkpoint，也就是txn_global->checkpoint_timestamp
+    //赋值参考__txn_checkpoint，也就是txn_global->checkpoint_timestamp，也就是上一次做checkpoint的时间
+    //txn_global->checkpoint_timestamp只在checkpoint期间记录，checkpoint完成后会清0，last_ckpt_timestamp会保存上次做checkpoint
+    //时候的timestamp, txn_global->checkpoint_timestamp表示当前正在做checkpoint的timestamp
     wt_timestamp_t last_ckpt_timestamp;
+    //也就是txn_global->checkpoint_timestamp，一般就是stable_timestamp
     wt_timestamp_t meta_ckpt_timestamp;
+    
     //__recovery_set_oldest_timestamp  __conn_set_timestamp->__wt_txn_global_set_timestamp
+    //stable_timestamp  oldest_timestamp这几个全局timestamp通过__conn_set_timestamp接口设置，pinned_timestamp在__conn_set_timestamp中
+    // 设置stable_timestamp  oldest_timestamp的时候，会自动得到pinned_timestamp
+    
+    //durable_timestamp如果没有通过__conn_set_timestamp显示设置，则一般在事务提交的时候会自动赋值，也就是
     wt_timestamp_t oldest_timestamp;
     //__wt_txn_update_pinned_timestamp中赋值
     wt_timestamp_t pinned_timestamp;
     //赋值见__recovery_set_checkpoint_timestamp
     wt_timestamp_t recovery_timestamp;
-    //__wt_txn_global_set_timestamp中赋值
+    //__wt_txn_global_set_timestamp中赋值，数据永远不会被回滚的应用程序时间
     wt_timestamp_t stable_timestamp;
+
+    
     wt_timestamp_t version_cursor_pinned_timestamp;
     bool has_durable_timestamp;
     //__wt_txn_global_set_timestamp中置为true, has_oldest_timestamp与oldest_is_pinned状态相反
@@ -212,7 +237,7 @@ struct __wt_txn_global {
     //checkpoint_txn_shared整个结构体赋值见__checkpoint_prepare
     //代表正在做checkpoint的事务信息
     WT_TXN_SHARED checkpoint_txn_shared; /* Checkpoint's txn shared state */
-    //赋值参考__checkpoint_prepare，也就是txn_global->stable_timestamp
+    //赋值参考__checkpoint_prepare，开始checkpoint的时候赋值为txn_global->stable_timestamp，如果checkpoint完成后，在__wt_txn_release_snapshot中设置checkpoint_timestamp为WT_TS_NONE
     wt_timestamp_t checkpoint_timestamp; /* Checkpoint's timestamp */
 
     volatile uint64_t debug_ops;       /* Debug mode op counter */
@@ -488,11 +513,12 @@ struct __wt_txn {
 #define WT_TXN_RUNNING 0x01000u
 //__wt_txn_publish_durable_timestamp中置位
 #define WT_TXN_SHARED_TS_DURABLE 0x02000u
-//__wt_txn_set_read_timestamp中置位
+//__wt_txn_set_read_timestamp中置位，表示该事务有设置read_timestamp
 #define WT_TXN_SHARED_TS_READ 0x04000u
 #define WT_TXN_SYNC_SET 0x08000u
 #define WT_TXN_TS_NOT_SET 0x10000u
 #define WT_TXN_TS_ROUND_PREPARED 0x20000u
+//也就是是否启用"roundup_timestamps.read"，赋值见__wt_txn_config
 #define WT_TXN_TS_ROUND_READ 0x40000u
 #define WT_TXN_UPDATE 0x80000u
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */

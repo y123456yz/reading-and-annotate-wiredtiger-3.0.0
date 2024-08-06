@@ -96,7 +96,7 @@ access_example(void)
         printf("Got cursor2 record: %s : %s\n", key, value);
     }
 
-    //__wt_sleep(3, 10000);
+    __wt_sleep(3, 10000);
     exit(1);
     scan_end_check(ret == WT_NOTFOUND); /* Check for end-of-table. */
     /*! [access example cursor list] */

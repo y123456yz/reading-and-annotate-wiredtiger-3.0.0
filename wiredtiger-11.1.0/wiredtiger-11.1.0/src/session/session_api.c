@@ -995,8 +995,15 @@ err:
 
 /*
  * __session_log_flush --
- *     WT_SESSION->log_flush method.
- */ //可以先忽略,mongodb实际上没有调用该接口
+ *     WT_SESSION->log_flush method. 
+
+log_flush和 transaction_sync=(enable=true)有相同功能，如果mongodb writeconcern的J配置为true，mongodb的journal后台
+线程会写入oplog后对wiredtigerLog.xxx进行主动fsync
+
+ mongo server会有个线程周期性专门调用接口invariantWTOK(s->log_flush(s,"sync=on")); 默认100ms 可以调整为1-500ms
+ 如果mongodb writeconcern的J配置为true,则会没写一条数据都会调用log_flush接口
+ 
+ */  
 static int
 __session_log_flush(WT_SESSION *wt_session, const char *config)
 {
@@ -2133,7 +2140,10 @@ err:
 /*
  * __session_timestamp_transaction_uint --
  *     WT_SESSION->timestamp_transaction_uint method.
- mongodb  7.0  WiredTigerRecoveryUnit::setTimestamp接口调用，设置
+ mongodb  7.0  WiredTigerBeginTxnBlock::setReadSnapshot->WiredTigerRecoveryUnit::setTimestamp接口调用，设置
+ 快照读，一条数据删了后，一定时间内可以读到数据 5.0版本 minSnapshotHistoryWindowInSeconds   
+ 读取历史数据 timestamp参考https://www.mongodb.com/zh-cn/docs/manual/reference/read-concern-snapshot/atClusterTime的允许值取决于minSnapshotHistoryWindowInSeconds参数。
+ db.runCommand( {find: "test4", filter: {"_id" : ObjectId("6414462353e5946d312f98d0")}, readConcern: {level: "snapshot",  atClusterTime: Timestamp(1679050275, 1)}})
  */
 static int
 __session_timestamp_transaction_uint(WT_SESSION *wt_session, WT_TS_TXN_TYPE which, uint64_t ts)

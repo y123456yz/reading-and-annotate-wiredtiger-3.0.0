@@ -21,6 +21,10 @@
 //con级别配置见__logmgr_sync_cfg， session级别配置"WT_SESSION.log_flush"配置默认sync on __session_log_flush 
 //真正生效见__log_write_internal
 #define WT_LOG_FLUSH 0x2u
+
+//log_flush和 transaction_sync=(enable=true)有相同功能，如果mongodb writeconcern的J配置为true，mongodb的journal后台
+//  线程会写入oplog后对wiredtigerLog.xxx进行主动fsync
+
 //__wt_txn_checkpoint_log
 //真正生效见__log_write_internal
 #define WT_LOG_FSYNC 0x4u

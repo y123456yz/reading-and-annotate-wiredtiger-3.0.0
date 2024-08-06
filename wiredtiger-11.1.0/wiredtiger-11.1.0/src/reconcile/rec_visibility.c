@@ -667,7 +667,7 @@ __rec_fill_tw_from_upd_select(
      * Otherwise, leave the end of the visibility window at the maximum possible value to indicate
      * that the value is visible to any timestamp/transaction id ahead of it.
      */
-    if (upd->type == WT_UPDATE_TOMBSTONE) {
+    if (upd->type == WT_UPDATE_TOMBSTONE) {//已经删除了的kv，记录其stop time,也就是这个K执行删除操作时候,参考__wt_txn_op_set_timestamp
         WT_TIME_WINDOW_SET_STOP(select_tw, upd);
         tombstone = upd_select->tombstone = upd;
 
@@ -684,7 +684,7 @@ __rec_fill_tw_from_upd_select(
         }
     }
 
-    if (upd != NULL)
+    if (upd != NULL) //已经删除了的kv，记录其start time,也就是这个K执行删除操作时候,参考__wt_txn_op_set_timestamp
         /* The beginning of the validity window is the selected update's time point. */
         WT_TIME_WINDOW_SET_START(select_tw, upd);
     else if (select_tw->stop_ts != WT_TS_NONE || select_tw->stop_txn != WT_TXN_NONE) {

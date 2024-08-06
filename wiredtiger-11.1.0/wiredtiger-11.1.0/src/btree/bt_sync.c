@@ -439,7 +439,7 @@ __wt_sync_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)
     time_start = WT_VERBOSE_ISSET(session, WT_VERB_CHECKPOINT) ? __wt_clock(session) : 0;
 
     switch (syncop) {
-    case WT_SYNC_WRITE_LEAVES:
+    case WT_SYNC_WRITE_LEAVES://lsm才会走这里
         /*
          * Write all immediately available, dirty in-cache leaf pages.
          *

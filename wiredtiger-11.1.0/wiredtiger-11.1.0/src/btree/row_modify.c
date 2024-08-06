@@ -399,7 +399,8 @@ __wt_update_obsolete_check(
      * Walk the list of updates, looking for obsolete updates at the end.
      *
      * Only updates with globally visible, self-contained data can terminate update chains.
-     *
+     *  
+     * count表示该K对应的v历史版本数量
      */
     for (first = NULL, count = 0; upd != NULL; upd = upd->next, count++) {
         if (upd->txnid == WT_TXN_ABORTED)
@@ -483,6 +484,8 @@ __wt_update_obsolete_check(
      * there is a modify structure.
      */
     if (count > 20 && page->modify != NULL) {
+        //这里增加obsolete_check_txn和obsolete_check_timestamp的目的是避免__wt_update_serial下次再WT_PAGE_TRYLOCK等待锁然后
+        //  对该page做__wt_update_obsolete_check检查
         page->modify->obsolete_check_txn = txn_global->last_running;
         if (txn_global->has_pinned_timestamp)
             page->modify->obsolete_check_timestamp = txn_global->pinned_timestamp;

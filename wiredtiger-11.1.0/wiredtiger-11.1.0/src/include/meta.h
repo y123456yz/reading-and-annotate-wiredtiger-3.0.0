@@ -45,9 +45,11 @@
 #define WT_HS_URI "file:WiredTigerHS.wt" /* History store table URI */
 
 #define WT_SYSTEM_PREFIX "system:"                               /* System URI prefix */
+//也就是最近一次做checkpoint的stable_timestamp
 #define WT_SYSTEM_CKPT_TS "checkpoint_timestamp"                 /* Checkpoint timestamp name */
 #define WT_SYSTEM_CKPT_URI "system:checkpoint"                   /* Checkpoint timestamp URI */
 #define WT_SYSTEM_OLDEST_TS "oldest_timestamp"                   /* Oldest timestamp name */
+//也就是oldest_timestamp与stable_timestamp的最小timestamp
 #define WT_SYSTEM_OLDEST_URI "system:oldest"                     /* Oldest timestamp URI */
 #define WT_SYSTEM_TS_TIME "checkpoint_time"                      /* Checkpoint wall time */
 #define WT_SYSTEM_TS_WRITE_GEN "write_gen"                       /* Checkpoint write generation */
@@ -143,7 +145,8 @@ struct __wt_block_mods {
 //__wt_meta_ckptlist_get_from_config中分配空间, 实例重启的时候通过__wt_btree_open->__wt_meta_checkpoint加载checkpoint元数据 
 //__ckpt_last也可以解析获取
 
-//__wt_btree.ckpt为该类型
+//__ckpt_load解析ckpt信息赋值给对应字段
+//__wt_btree.ckpt为该类型，对应wiredtiger.wt中一个表(也就是一个btree)的checkpoint信息
 struct __wt_ckpt {
     //赋值见__checkpoint_lock_dirty_tree，不指定name，默认为"WiredTigerCheckpoint"
     //wreidtiger.wt中checkpoint=(WiredTigerCheckpoint.1=(addr="018181e4886a50198281e41546bd168381e4fa0c608a808080e22fc0cfc0"
@@ -170,7 +173,7 @@ struct __wt_ckpt {
     uint64_t write_gen;     /* Write generation */
     uint64_t run_write_gen; /* Runtime write generation. */
 
-    //赋值参考__wt_meta_block_metadata
+    //赋值参考__wt_meta_block_metadata，实际上就是该btree表的
     char *block_metadata;   /* Block-stored metadata */
     //把所有checkpoint核心元数据: 【root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息
     //  +avail跳表持久化到磁盘的核心元数据信息】转换为wiredtiger.wt中对应的checkpoint=xxx字符串

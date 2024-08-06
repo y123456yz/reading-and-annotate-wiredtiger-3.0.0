@@ -192,7 +192,7 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
          * want to block waiting to get exclusive access.
          */
         WT_WITH_DHANDLE(session, dhandle, ret = __wt_session_dhandle_try_writelock(session));
-        if (ret == 0) {
+        if (ret == 0) {//加写锁成功
             if (F_ISSET(dhandle, WT_DHANDLE_DEAD)) {
                 *is_deadp = true;
                 WT_WITH_DHANDLE(session, dhandle, __wt_session_dhandle_writeunlock(session));
@@ -202,6 +202,7 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
             /*
              * If it was opened while we waited, drop the write lock and get a read lock instead.
              */
+            //不是想加独占锁，则重试while逻辑
             if (F_ISSET(dhandle, WT_DHANDLE_OPEN) && !want_exclusive) {
                 lock_busy = false;
                 WT_WITH_DHANDLE(session, dhandle, __wt_session_dhandle_writeunlock(session));
@@ -878,6 +879,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *
             continue;
 
         /* If the handle is open in the mode we want, we're done. */
+        //该session不是独占该btree，一般从这里break返回
         if (LF_ISSET(WT_DHANDLE_LOCK_ONLY) ||
           (F_ISSET(dhandle, WT_DHANDLE_OPEN) && !LF_ISSET(WT_BTREE_SPECIAL_FLAGS)))
             break;

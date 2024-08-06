@@ -73,6 +73,7 @@ typedef enum __wt_cache_op {
     WT_SYNC_CHECKPOINT,
     WT_SYNC_CLOSE,
     WT_SYNC_DISCARD,
+    //lsm才会有该逻辑，参考__wt_lsm_checkpoint_chunk
     WT_SYNC_WRITE_LEAVES
 } WT_CACHE_OP;
 
@@ -106,6 +107,7 @@ struct __wt_cache {
     uint64_t bytes_inmem;      /* Bytes/pages in memory */
     uint64_t bytes_internal;   /* Bytes of internal pages */
     uint64_t bytes_read;       /* Bytes read into memory */
+    //因为update分配的空间，会影响update dirty和update triger
     uint64_t bytes_updates;    /* Bytes of updates to pages */
     uint64_t bytes_written;
 

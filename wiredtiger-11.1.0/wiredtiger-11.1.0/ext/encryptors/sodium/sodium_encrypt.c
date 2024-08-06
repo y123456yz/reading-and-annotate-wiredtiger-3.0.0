@@ -380,6 +380,7 @@ wiredtiger_extension_init(WT_CONNECTION *connection, WT_CONFIG_ARG *config)
     if ((sodium_encryptor = calloc(1, sizeof(SODIUM_ENCRYPTOR))) == NULL)
         return (errno);
 
+   // printf("yang test .......wiredtiger_extension_init.........\r\n");
     /*
      * Allocate a local encryptor structure, with a WT_ENCRYPTOR structure as the first field,
      * allowing us to treat references to either type of structure as a reference to the other type.

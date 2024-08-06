@@ -1882,7 +1882,7 @@ __wt_page_evict_retry(WT_SESSION_IMPL *session, WT_PAGE *page)
      * a reasonable amount of time is currently pretty arbitrary.
      */
     if (__wt_cache_aggressive(session) ||
-      //yang add todo xxxxxxxxxxxxxxxx，上次reconcile evict后, 这次又选到
+      //yang add todo xxxxxxxxxxxxxxxx，上次reconcile evict后, 这次又选到该page
       mod->last_evict_pass_gen + 5 < S2C(session)->cache->evict_pass_gen)
         return (true);
 

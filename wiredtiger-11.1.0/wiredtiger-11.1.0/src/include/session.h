@@ -180,6 +180,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     //正在使用的cursors队列
     //cursors和cursor_cache的区别，可以参考__wt_cursor_cache  __wt_cursor_reopen
     WT_CURSOR_LIST cursors;          /* Cursors closed with the session */
+    //该session当前正在使用得cursor总数，可以参考__rollback_to_stable_check
     u_int ncursors;                  /* Count of active file cursors. */
     uint32_t cursor_sweep_position;  /* Position in cursor_cache for sweep */
     uint32_t cursor_sweep_countdown; /* Countdown to cursor sweep */
@@ -235,7 +236,8 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     WT_ITEM *ckpt_drop_list;
 
     /* Checkpoint time of current checkpoint, during a checkpoint */
-    //__txn_checkpoint_establish_time中赋值
+    //__txn_checkpoint_establish_time中赋值，也就是当前做checkpoint的时间
+    //__meta_print_snapshot中赋值写入wiredtiger.wt中
     uint64_t current_ckpt_sec;
 
     /*
@@ -311,6 +313,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
 #define WT_SESSION_READ_WONT_NEED 0x08000u
 //__session_commit_transaction中置位，__wt_txn_commit执行完成后复位
 #define WT_SESSION_RESOLVING_TXN 0x10000u
+//__rollback_to_stable置位
 #define WT_SESSION_ROLLBACK_TO_STABLE 0x20000u
 #define WT_SESSION_SCHEMA_TXN 0x40000u
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */

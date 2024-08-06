@@ -562,7 +562,10 @@ __log_slot_close  __wt_log_slot_free: 这两个会置位高2位flag
  //确定mysize对应log在slot中的位置[join_off, setjoin_offset + mysize],
  */
 void
-__wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, uint32_t flags, WT_MYSLOT *myslot)
+__wt_log_slot_join(WT_SESSION_IMPL *session, uint64_t mysize, 
+    //最终该flags影响WT_SLOT_SYNC等, flags来源在__logmgr_sync_cfg
+    uint32_t flags, 
+    WT_MYSLOT *myslot)
 {
     WT_CONNECTION_IMPL *conn;
     WT_LOG *log;

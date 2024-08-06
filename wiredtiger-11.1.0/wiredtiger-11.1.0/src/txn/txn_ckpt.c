@@ -803,6 +803,8 @@ __checkpoint_prepare(WT_SESSION_IMPL *session, bool *trackingp, const char *cfg[
          */
         if (txn_global->has_stable_timestamp) {
             txn_global->checkpoint_timestamp = txn_global->stable_timestamp;
+            //checkpoint_timestamp和meta_ckpt_timestamp的区别是，如果当前正在做recover则meta_ckpt_timestamp是上一次的checkpoint_timestamp
+            //如果当前没有做recover则meta_ckpt_timestamp和checkpoint_timestamp完全相等
             if (!F_ISSET(conn, WT_CONN_RECOVERING))
                 txn_global->meta_ckpt_timestamp = txn_global->checkpoint_timestamp;
         } else if (!F_ISSET(conn, WT_CONN_RECOVERING))
@@ -1943,7 +1945,7 @@ __checkpoint_lock_dirty_tree(
     //分配WT_CKPT结构，并对相关成员赋值，通过ckptbasep返回WT_CKPT，相关成员赋值可能来在session对应表的wiredtiger.wt元数据(配置文件中有该表的checkpoint配置)
     //也可能来自默认配置(wiredtiger.wt文件中每个session对应表的checkpoint配置)
 
-    //ckpt_bytes_allocated表示为WT_CKPT分配的空间
+    //ckpt_bytes_allocated表示为WT_CKPT分配的空间， ckptbase表示分配的ckpt空间，最终在下面存入btree->ckpt
     WT_ERR(__wt_meta_ckptlist_get(session, dhandle->name, true, &ckptbase, &ckpt_bytes_allocated));
 
     /* We may be dropping specific checkpoints, check the configuration. */
@@ -2024,6 +2026,7 @@ __checkpoint_lock_dirty_tree(
     }
 
     if (ckptbase->name != NULL) {
+        //__checkpoint_lock_dirty_tree->__wt_meta_ckptlist_get->__meta_ckptlist_allocate_new_ckpt创建WT_CKPT数组空间,最终赋值给下面的btree->ckpt
         btree->ckpt = ckptbase;
         btree->ckpt_bytes_allocated = ckpt_bytes_allocated;
     } else {

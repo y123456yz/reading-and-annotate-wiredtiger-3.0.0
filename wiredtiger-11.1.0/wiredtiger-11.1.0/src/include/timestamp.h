@@ -31,13 +31,17 @@
 //__wt_rec_cell_build_val:  生成KV中的V(含WT_TIME_WINDOW)，最终通过__wt_rec_image_copy及reconcile流程写入磁盘
 //__wt_row_leaf_value_cell: 从磁盘读取KV中的V(含WT_TIME_WINDOW)
 
-//__wt_update_value.wt为该类型
+//__wt_update_value.wt为该类型，真正的赋值来源见__rec_fill_tw_from_upd_select，最终在__rec_row_leaf_insert  __wt_rec_row_leaf通
+// 过WT_TIME_AGGREGATE_UPDATE赋值给r后reconcile持久化到磁盘
 struct __wt_time_window {
+    //注意: __wt_rec_time_window_clear_obsolete中可能重新置为WT_TXN_NONE
+    //WT_TIME_WINDOW_SET_START
     wt_timestamp_t durable_start_ts; /* default value: WT_TS_NONE */
     wt_timestamp_t start_ts;         /* default value: WT_TS_NONE */
     uint64_t start_txn;              /* default value: WT_TXN_NONE */
 
     //stop窗口相关赋值见__wt_upd_value_assign  __wt_txn_read_upd_list_internal  
+    //WT_TIME_WINDOW_SET_STOP
     wt_timestamp_t durable_stop_ts; /* default value: WT_TS_NONE */
     wt_timestamp_t stop_ts;         /* default value: WT_TS_MAX */
     uint64_t stop_txn;              /* default value: WT_TXN_MAX */
@@ -62,11 +66,16 @@ struct __wt_time_window {
  * - prepare                 - Prepared updates
  官方说明参考: https://source.wiredtiger.com/develop/arch-timestamp.html
  */
+//赋值参考WT_TIME_AGGREGATE_UPDATE
 struct __wt_time_aggregate {
+    //真正赋值的地方参考WT_TIME_AGGREGATE_UPDATE
     wt_timestamp_t newest_start_durable_ts; /* default value: WT_TS_NONE */
+    //真正赋值的地方参考WT_TIME_AGGREGATE_UPDATE
     wt_timestamp_t newest_stop_durable_ts;  /* default value: WT_TS_NONE */
 
+    //真正赋值的地方参考WT_TIME_AGGREGATE_UPDATE
     wt_timestamp_t oldest_start_ts; /* default value: WT_TS_NONE */
+    //真正赋值的地方参考WT_TIME_AGGREGATE_UPDATE
     uint64_t newest_txn;            /* default value: WT_TXN_NONE */
     wt_timestamp_t newest_stop_ts;  /* default value: WT_TS_MAX */
     uint64_t newest_stop_txn;       /* default value: WT_TXN_MAX */

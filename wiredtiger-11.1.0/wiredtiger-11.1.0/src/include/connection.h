@@ -81,6 +81,7 @@ struct __wt_bucket_storage {
  *	A list entry for an encryptor with a unique (name, keyid).
  */
 struct __wt_keyed_encryptor {
+    //赋值见__wt_encryptor_config
     const char *keyid;       /* Key id of encryptor */
     int owned;               /* Encryptor needs to be terminated */
     size_t size_const;       /* The result of the sizing callback */
@@ -292,6 +293,7 @@ struct __wt_connection_impl {
     //是不是刚使用/data1/containers/211909456/db目录数据，第一次使用这里为true，如果是mongod关闭进程，重启，这里为false
     int is_new;               /* Connection created database */
 
+    //赋值见__wt_turtle_validate_version，也就是WiredTiger.turtle中的version
     WT_VERSION recovery_version; /* Version of the database being recovered */
 
 #ifndef WT_STANDALONE_BUILD
@@ -380,6 +382,7 @@ struct __wt_connection_impl {
      * array when only a few threads are running.
      */
     //__wt_connection_open中提前分配内存
+    //该conn下面拥有的session总数，可以参考__rollback_to_stable_check
     WT_SESSION_IMPL *sessions; /* Session reference */
     //__conn_session_size中初始化，从配置文件解析后赋值 __conn_session_size
     //节点最多用这么多session
@@ -397,6 +400,11 @@ struct __wt_connection_impl {
 
     WT_TXN_GLOBAL txn_global; /* Global transaction state */
 
+    /*
+    Wiredtiger.wt中的下面信息:
+    system:checkpoint_snapshot\00
+    snapshot_min=1,snapshot_max=1,snapshot_count=0,checkpoint_time=1721461898,write_gen=16\00
+    */
     /* Recovery checkpoint snapshot details saved in the metadata file */
     uint64_t recovery_ckpt_snap_min, recovery_ckpt_snap_max;
     uint64_t *recovery_ckpt_snapshot;
@@ -518,12 +526,16 @@ struct __wt_connection_impl {
 #define WT_CONN_LOG_CONFIG_ENABLED 0x001u  /* Logging is configured */
 #define WT_CONN_LOG_DEBUG_MODE 0x002u      /* Debug-mode logging enabled */
 #define WT_CONN_LOG_DOWNGRADED 0x004u      /* Running older version */
+//FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED)  F_ISSET(btree, WT_BTREE_LOGGED) 
+//WT_CONN_LOG_ENABLED代表全局log是否开启，WT_BTREE_LOGGED代表table表级是否开启日志功能
 #define WT_CONN_LOG_ENABLED 0x008u         /* Logging is enabled */
 //说明有WiredTigerLog.xxxx文件，也就是有wal日志，赋值见__wt_log_open
 #define WT_CONN_LOG_EXISTED 0x010u         /* Log files found */
 #define WT_CONN_LOG_FORCE_DOWNGRADE 0x020u /* Force downgrade */
 #define WT_CONN_LOG_RECOVER_DIRTY 0x040u   /* Recovering unclean */
 #define WT_CONN_LOG_RECOVER_DONE 0x080u    /* Recovery completed */
+//"log=(recover=error)"配置则会置位该标识，然后__wt_log_needs_recovery中做检查，判断释放需要recover，如果需要recover则wt需要带上-R(也就是配置"log=(recover=on)")进行数据恢复
+//否则__wt_log_needs_recovery外层会直接抛异常
 #define WT_CONN_LOG_RECOVER_ERR 0x100u     /* Error if recovery required */
 #define WT_CONN_LOG_RECOVER_FAILED 0x200u  /* Recovery failed */
 //默认为ture, log.remove配置，值默认为true
@@ -606,6 +618,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
     TAILQ_HEAD(__wt_dsrc_qh, __wt_named_data_source) dsrcqh;
 
     /* Locked: encryptor list */
+    //WT_CONNECTION->add_encryptor注册加密算法到该hash桶中  add_my_encryptors
     WT_SPINLOCK encryptor_lock; /* Encryptor list lock */
     TAILQ_HEAD(__wt_encrypt_qh, __wt_named_encryptor) encryptqh;
 

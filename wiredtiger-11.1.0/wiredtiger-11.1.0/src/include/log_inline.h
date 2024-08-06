@@ -40,6 +40,10 @@ __wt_log_op(WT_SESSION_IMPL *session)
      * Objects with checkpoint durability don't need logging unless we're in debug mode. That rules
      * out almost all log records, check it first.
      */
+    //默认Mongo SERVER 普通表表级log是关闭的log=(enabled=false)，从这里可以看出一般是不会写日志的，因为默认不会开启"debug_mode.table_logging"
+    //只有log=(enabled=false)并且"debug_mode.table_logging"=true的时候才会返回true
+    
+    //mongodb 副本集普通数据表的log是关闭了的，oplog表的log功能是打开的，副本集也就是只有oplog表才会记录wal日志
     if (!F_ISSET(S2BT(session), WT_BTREE_LOGGED) &&
       !FLD_ISSET(conn->log_flags, WT_CONN_LOG_DEBUG_MODE))
         return (false);
