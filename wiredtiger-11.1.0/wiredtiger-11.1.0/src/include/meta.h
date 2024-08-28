@@ -39,6 +39,16 @@
 #define WT_METAFILE_SLVG "WiredTiger.wt.orig" /* Metadata copy */
 #define WT_METAFILE_URI "file:WiredTiger.wt"  /* Metadata table URI */
 
+/*
+Starting in MongoDB 5.0, you can use the minSnapshotHistoryWindowInSeconds parameter to specify how long WiredTiger 
+  keeps the snapshot history.
+
+Increasing the value of minSnapshotHistoryWindowInSeconds increases disk usage because the server must maintain 
+  the history of older modified values within the specified time window. The amount of disk space used depends 
+  on your workload, with higher volume workloads requiring more disk space.
+
+MongoDB maintains the snapshot history in the WiredTigerHS.wt file, located in your specifie
+*/
 //Snapshot History Retention,MongoDB maintains the snapshot history in the WiredTigerHS.wt file
 //参考https://www.mongodb.com/docs/manual/core/wiredtiger/
 #define WT_HS_FILE "WiredTigerHS.wt"     /* History store table */
@@ -136,7 +146,12 @@ struct __wt_block_mods {
  * WT_CKPT --
  *	Encapsulation of checkpoint information, shared by the metadata, the
  * btree engine, and the block manager.
- */ //每生成一个checkpoint就会自增，见__meta_ckptlist_allocate_new_ckpt  __wt_meta_ckptlist_to_meta
+ //默认WT_CHECKPOINT checkpoint就会自增，也就是WiredTigerCheckpoint.x，见__meta_ckptlist_allocate_new_ckpt  __wt_meta_ckptlist_to_meta
+
+//用户不能显示指定checkpoint的名称为WiredTigerCheckpoint开头的，因为__checkpoint_name_ok中有做检查
+ */ 
+
+ //每生成一个checkpoint就会自增，见__meta_ckptlist_allocate_new_ckpt  __wt_meta_ckptlist_to_meta
 #define WT_CHECKPOINT "WiredTigerCheckpoint"
 #define WT_CKPT_FOREACH(ckptbase, ckpt) for ((ckpt) = (ckptbase); (ckpt)->name != NULL; ++(ckpt))
 #define WT_CKPT_FOREACH_NAME_OR_ORDER(ckptbase, ckpt) \
@@ -162,7 +177,7 @@ struct __wt_ckpt {
      * open on those checkpoints. I can't think of any way to return incorrect results by racing
      * with those cursors, but it's simpler not to worry about it.
      */
-    //每生成一个checkpoint就会自增，见__meta_ckptlist_allocate_new_ckpt  __wt_meta_ckptlist_to_meta
+    //默认WT_CHECKPOINT checkpoint就会自增，也就是WiredTigerCheckpoint.x，见__meta_ckptlist_allocate_new_ckpt  __wt_meta_ckptlist_to_meta
     int64_t order; /* Checkpoint order */
     //也就是checkpoint开始时间session->current_ckpt_sec，参考__meta_ckptlist_allocate_new_ckpt
     uint64_t sec; /* Wall clock time */
@@ -175,10 +190,9 @@ struct __wt_ckpt {
 
     //赋值参考__wt_meta_block_metadata，实际上就是该btree表的
     char *block_metadata;   /* Block-stored metadata */
-    //把所有checkpoint核心元数据: 【root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息
-    //  +avail跳表持久化到磁盘的核心元数据信息】转换为wiredtiger.wt中对应的checkpoint=xxx字符串
+    //把所有checkpoint核心元数据: [root持久化元数据 + alloc跳表持久化到磁盘的核心元数据信息 +avail跳表持久化到磁盘的核心元数据信息]转换为wiredtiger.wt中对应的checkpoint=xxx字符串
     //转换后的字符串存储到block_checkpoint中，赋值参考__ckpt_update
-    char *block_checkpoint; /* Block-stored checkpoint */
+    char *block_checkpoint; /* Block-stored checkpoint */ //也就是wiredtiger.wt文件中的checkpoint=(xxxxx)信息记录到这里
 
     WT_BLOCK_MODS backup_blocks[WT_BLKINCR_MAX];
 
@@ -186,6 +200,7 @@ struct __wt_ckpt {
     WT_TIME_AGGREGATE ta; /* Validity window */
 
     //wiredtiger.wt中的checkpoint.addr中的原始checkpoint二进制元数据信息
+    //赋值见__wt_meta_ckptlist_to_meta,也就是checkpoint=(midnight=(addr="xxxxx"))中addr后的内容，内容来源实际上在__wt_block_ckpt_pack
     WT_ITEM addr; /* Checkpoint cookie string */
     //赋值参考__ckpt_update
     //封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
@@ -195,17 +210,20 @@ struct __wt_ckpt {
     //也可以参考__wt_ckpt_verbose
     WT_ITEM raw;  /* Checkpoint cookie raw */
 
-    //创建空间及初始化__ckpt_extlist_read, 类型为WT_BLOCK_CKPT
+    //创建空间及初始化__ckpt_extlist_read, 真正使用在__ckpt_extlist_read， WT_BLOCK_CKPT类型
     //ext list的真实数据ext内存元数据存储在这里__ckpt_extlist_read
     //bpriv代表上一次该表checkpoint的元数据信息通过__ckpt_extlist_read加载存到这里，在第一次和第二次两次checkpoint期间如果有page有修改，则把这期间修改
     //的page与第一次的checkpoint在__ckpt_process中做merge
     void *bpriv; /* Block manager private */
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
-//表示这是新的checkpoint
+//表示这是新的checkpoint   __meta_ckptlist_allocate_new_ckpt->__meta_blk_mods_load置位
 #define WT_CKPT_ADD 0x01u        /* Checkpoint to be added */
+//代表backup期间修改的block，__meta_blk_mods_load中置位
 #define WT_CKPT_BLOCK_MODS 0x02u /* Return list of modified blocks */
-//__drop
+//__drop  __drop_from  __drop_to置位，标识需要删除
+//__drop，如果ckptbase链表中已经存在已有得checkpoint name，说明之前的相同checkpoint name对应的checkpoint需要删除，需要删除的checkpoint保存到drop_list，
+//  同时设置WT_CKPT_DELETE标识, 等待__ckpt_process做真正的删除
 #define WT_CKPT_DELETE 0x04u     /* Checkpoint to be deleted */
 #define WT_CKPT_FAKE 0x08u       /* Checkpoint is a fake */
 #define WT_CKPT_UPDATE 0x10u     /* Checkpoint requires update */

@@ -792,6 +792,7 @@ __wt_txn_set_prepare_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t prepare_
               __wt_timestamp_to_string(stable_ts, ts_string[1]));
     }
     txn->prepare_timestamp = prepare_ts;
+    //说明设置了"prepare_timestamp=xxxxx"
     F_SET(txn, WT_TXN_HAS_TS_PREPARE);
 
     return (0);

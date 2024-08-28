@@ -204,7 +204,7 @@ __block_size_srch(WT_SIZE **head, wt_off_t size, WT_SIZE ***stack)
 //例如场景1，a:[4096, 1404928], b:[1404928, 278528]， 删除的newext:[1401928,178528 ]就是横跨[A,B], beforep=a, afterp=b
 //例如场景2，a:[4096, 1404928]， 删除的newext:[1104928,1204928 ]，也就是newext在a范围内，这时候beforep=a, after=NULL
 
-//判断off位置是否在el对应ext跳跃表中，beforep对应最近的>=off的ext, afterp对应最近>=off的ext
+//判断off位置是否在el对应ext跳跃表中，beforep对应最近的<off的ext, afterp对应最近>=off的ext
 static inline void
 __block_off_srch_pair(WT_EXTLIST *el, wt_off_t off, WT_EXT **beforep, WT_EXT **afterp)
 {
@@ -886,6 +886,7 @@ __wt_block_off_free(
         //被删除的offset对应的ext重新添加到avail中，代表的实际上就是磁盘碎片
         ret = __block_merge(session, block, &block->live.avail, offset, size);
     } else if (ret == WT_NOTFOUND)
+        //If this extent is referenced in a previous checkpoint, merge into the discard list
         //从alloc跳跃表中删除某个范围的ext，如果alloc跳跃表中没找到，则这个要删除范围对应的ext添加到discard跳跃表中，参考__wt_block_off_free
         ret = __block_merge(session, block, &block->live.discard, offset, size);
    /// printf("yang test ...3....__wt_block_off_free......alloc:%u, avail:%u, discard:%u\r\n", block->live.alloc.entries
@@ -930,6 +931,11 @@ __wt_block_extlist_check(WT_SESSION_IMPL *session, WT_EXTLIST *al, WT_EXTLIST *b
  * __wt_block_extlist_overlap --
  *     Review a checkpoint's alloc/discard extent lists, move overlaps into the live system's
  *     checkpoint-avail list.
+ //例如 __wt_block_extlist_overlap + __block_ext_overlap配合阅读
+ //  alloc=[4096,36864] + [45056,53248]
+ //  discard=[28672, 36864]
+ //  ckpt_avail=[36864, 45056]
+ //  经过__wt_block_extlist_overlap处理后，ckpt_avail=[28672-45056]  alloc=[4096, 28672] + [45056, 53248] discard=[空]
  */
 int
 __wt_block_extlist_overlap(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_BLOCK_CKPT *ci)
@@ -956,6 +962,11 @@ __wt_block_extlist_overlap(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_BLOCK_C
         /* Reconcile the overlap. */
         WT_RET(__block_ext_overlap(session, block, &ci->alloc, &alloc, &ci->discard, &discard));
     }
+
+    //yang add change todo xxxxxxxx  yang add todo xxxxxxxxxxx
+    WT_RET(__block_extlist_dump(session, block, &ci->alloc, "write"));
+    WT_RET(__block_extlist_dump(session, block, &ci->discard, "write"));
+    WT_RET(__block_extlist_dump(session, block, &block->live.ckpt_avail, "write"));
     return (0);
 }
 
@@ -1236,6 +1247,7 @@ __block_append(
 /*
  * __wt_block_insert_ext --
  *     Insert an extent into an extent list, merging if possible.
+ //[off, size]添加到el跳跃表中
  */
 int
 __wt_block_insert_ext(
@@ -1313,7 +1325,7 @@ __block_merge(
      */
     //下面流程说明可以和befor直接拼接在一起或者和after直接拼接到一起
 
-    //例如off:size=[200,400],after=[400, 500], 合并到ext中[400,500]
+    //例如off:size=[200,400],after=[400, 500], 合并到ext中[200,500]
     if (before == NULL) {//也就是after!=NULL, ext可以和after直接拼接到一起
         WT_RET(__block_off_remove(session, block, el, after->off, &ext));
 
@@ -1475,6 +1487,7 @@ err:
   __wt_block_extlist_read与__wt_block_extlist_write对应
  */
 //把el跳跃表管理的所有ext持久化到磁盘中，这样就可以直接从磁盘加载还原内存中的有序ext跳跃表
+//WT_BLOCK_EXTLIST_MAGIC/0 pair  + 真实的多个ext pair(off, size) + WT_BLOCK_INVALID_OFFSET/0 pair
 int
 __wt_block_extlist_write(
   WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, WT_EXTLIST *additional)
@@ -1507,6 +1520,9 @@ __wt_block_extlist_write(
      *
      * Allocate memory for the extent list entries plus two additional entries: the initial
      * WT_BLOCK_EXTLIST_MAGIC/0 pair and the list- terminating WT_BLOCK_INVALID_OFFSET/0 pair.
+
+
+     //WT_BLOCK_EXTLIST_MAGIC/0 pair  + 真实的多个ext pair(off, size) + WT_BLOCK_INVALID_OFFSET/0 pair
      */
     size = ((size_t)entries + 2) * 2 * WT_INTPACK64_MAXSIZE;
     //size按照block->allocsize对齐
@@ -1561,7 +1577,8 @@ __wt_block_extlist_write(
      * any allocation list.
      */
 
-    //checkpoint对应的磁盘ext元数据不用记录到内存中，这个持久化到磁盘就可以了
+    //前面checkpoint对应的磁盘el ext元数据不用记录到内存中，这个持久化到磁盘就可以了，因此需要从alloc跳表内存中删除el跳表持久化对应的ext
+    //从这里可以看出，alloc内存中只会记录真实数据page，包括root、 internal、leaf page的ext数据，不包括el持久化的ext数据
     WT_TRET(
       __wt_block_off_remove_overlap(session, block, &block->live.alloc, el->offset, el->size));
 
@@ -1691,16 +1708,24 @@ __block_extlist_dump(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, 
 
     if (el->entries == 0)
         goto done;
-
+    
+    //yang add todo xxxxxxxxxxxxx增加ext详细信息
     memset(sizes, 0, sizeof(sizes));
-    //计算每个ext对应的大小范围断
-    WT_EXT_FOREACH (ext, el->off)
+    WT_ERR(__wt_scr_alloc(session, 0, &t3));
+    WT_ERR(__wt_buf_catfmt(session, t3, "ext: "));
+     //计算每个ext对应的大小范围断
+    WT_EXT_FOREACH (ext, el->off) {
+        WT_ERR(__wt_buf_catfmt(session, t3, "[%" PRIu64 ", %" PRIu64 "] ", 
+            (long unsigned int)ext->off, (long unsigned int)(ext->off + ext->size)));
         //2的9次方=512
         for (i = 9, pow = 512;; ++i, pow *= 2)
             if (ext->size <= (wt_off_t)pow) {
                 ++sizes[i];
                 break;
             }
+    }
+    __wt_verbose_level(session, WT_VERB_BLOCK, level, "%s", (char *)t3->data);
+
     //extents by bucket: {1MB: 1}, {2MB: 1}
     sep = "extents by bucket:";
     t1->size = 0;

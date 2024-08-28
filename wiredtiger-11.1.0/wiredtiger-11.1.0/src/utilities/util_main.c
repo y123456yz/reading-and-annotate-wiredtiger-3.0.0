@@ -77,6 +77,7 @@ usage(void)
  wt printlog需要支持指定WiredTigerLog.xxxx路径，实际上已经支持，mongodb_config中的path目录指定 
     /data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -r -C "log=(enabled=true,path=journal,compressor=snappy)" printlog -u
  /data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -R -C "log=(enabled=true,path=journal,compressor=snappy)"  dump -j file:mycusttest/collection/0-5920062409383964761.wt 
+ /data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -R -C "log=(enabled=true,path=journal,compressor=snappy)"  dump -j file:mycusttest/index/1-9110921648507150440.wt 
 
 
  yang add todo xxxxxxxxxxxxxxxx

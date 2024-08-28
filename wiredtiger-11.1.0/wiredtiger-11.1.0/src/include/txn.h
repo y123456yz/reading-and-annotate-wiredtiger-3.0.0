@@ -48,6 +48,13 @@
 
 typedef enum {
     WT_VISIBLE_FALSE = 0,   /* Not a visible update */
+    //__wt_txn_prepare prepare的事务会释放快照，这样就会影响evict和可见性，因此prepare节点释放快照，这样可以减轻内存压力
+    // 但是可见性会不一致，因此会增加对WT_PREPARE_INPROGRESS的WT_VISIBLE_PREPARE(见__wt_txn_upd_visible_type)，并增加udp
+    // WT_PREPARE_CONFLICT冲突检查(见__wt_txn_read_upd_list_internal)
+
+    
+    //赋值参考__wt_txn_upd_visible_type， 如果prepare状态为prepare_state == WT_PREPARE_INPROGRESS，则为这个状态
+    //真正生效见__wt_txn_read_upd_list_internal
     WT_VISIBLE_PREPARE = 1, /* Prepared update */
     WT_VISIBLE_TRUE = 2     /* A visible update */
 } WT_VISIBLE_TYPE;
@@ -238,6 +245,7 @@ struct __wt_txn_global {
     //代表正在做checkpoint的事务信息
     WT_TXN_SHARED checkpoint_txn_shared; /* Checkpoint's txn shared state */
     //赋值参考__checkpoint_prepare，开始checkpoint的时候赋值为txn_global->stable_timestamp，如果checkpoint完成后，在__wt_txn_release_snapshot中设置checkpoint_timestamp为WT_TS_NONE
+    //真正生效的地方见__wt_txn_pinned_timestamp
     wt_timestamp_t checkpoint_timestamp; /* Checkpoint's timestamp */
 
     volatile uint64_t debug_ops;       /* Debug mode op counter */
@@ -361,6 +369,7 @@ struct __wt_txn_op {
     } u;
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//如果udp链表上面有连续的两个udp的事务id一样(也就是同一个事务连续修改了同一个K)，则会设置WT_TXN_OP_KEY_REPEATED标识 __wt_txn_prepare
 #define WT_TXN_OP_KEY_REPEATED 0x1u
     /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
     uint32_t flags;
@@ -414,6 +423,7 @@ struct __wt_txn {
      */
     //__wt_txn_set_commit_timestamp中赋值
     //如果只设置commit_timestamp，则commit_timestamp=durable_timestamp=commit_transaction()接口设置的时间
+    //如果设置了prepare_timestamp，则commit_timestamp不能小于prepare_timestamp
     wt_timestamp_t commit_timestamp;
 
     /*
@@ -435,7 +445,9 @@ struct __wt_txn {
     /*
      * Timestamp copied into updates created by this transaction, when this transaction is prepared.
      */
-    //__wt_txn_set_prepare_timestamp中赋值
+    //__wt_txn_set_prepare_timestamp中赋值 
+    //说明设置了"prepare_timestamp=xxxxx"，这个值必须大于oldest_timestamp
+    //真正生效的地方其实在__wt_txn_prepare和__wt_txn_op_delete_apply_prepare_state，最终会影响upd->start_ts
     wt_timestamp_t prepare_timestamp;
 
     /*
@@ -445,6 +457,14 @@ struct __wt_txn {
     wt_timestamp_t checkpoint_read_timestamp;
     wt_timestamp_t checkpoint_oldest_timestamp;
 
+
+/*
+* For example, a transaction has modified [k,v] as
+*  [k, v]  -> [k, u1]   (txn_op : txn_op1)
+*  [k, u1] -> [k, u2]   (txn_op : txn_op2)
+*  update chain : u2->u1
+*  txn_mod      : txn_op1->txn_op2.
+*/
     /* Array of modifications by this transaction. */
     //实际上是一个数组，数组大小为下面的mod_count，可以参考__txn_next_op
     WT_TXN_OP *mod;
@@ -505,7 +525,7 @@ struct __wt_txn {
 #define WT_TXN_IGNORE_PREPARE 0x00080u
 //__wt_txn_init_checkpoint_cursor配置，代表checkpoint游标，参考__curfile_check_cbt_txn
 #define WT_TXN_IS_CHECKPOINT 0x00100u
-//__wt_txn_prepare中置位
+//__wt_txn_prepare中置位，不会显示的清理这个标识位，只会在事务提交或者回滚的时候调用__wt_txn_release对flag清0
 #define WT_TXN_PREPARE 0x00200u
 #define WT_TXN_PREPARE_IGNORE_API_CHECK 0x00400u
 #define WT_TXN_READONLY 0x00800u

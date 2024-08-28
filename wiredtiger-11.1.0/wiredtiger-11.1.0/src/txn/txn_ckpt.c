@@ -160,6 +160,7 @@ __checkpoint_name_ok(WT_SESSION_IMPL *session, const char *name, size_t len, boo
     /*
      * The internal checkpoint name is special, applications aren't allowed to use it. Be aggressive
      * and disallow any matching prefix, it makes things easier when checking in other places.
+     yang add todo xxxxxxxxxxxxxxx  这里最好提升checkpoint前缀不能是WiredTigerCheckpoint
      */
     if (len >= strlen(WT_CHECKPOINT) && WT_PREFIX_MATCH(name, WT_CHECKPOINT))
         WT_RET_MSG(session, EINVAL, "the checkpoint name \"%s\" is reserved", WT_CHECKPOINT);
@@ -1609,10 +1610,15 @@ __drop_list_add(WT_SESSION_IMPL *session, WT_ITEM *drop_list, const char *name)
 * drop list for snapshot/timestamp metadata because the metadata will be replaced by the new
 * checkpoint.
  */
-//如果是指定name(非"WiredTigerCheckpoint")的checkpoint获取需要删除的checkpoint，保存到drop_list，同时设置WT_CKPT_DELETE标识
+//__drop，如果ckptbase链表中已经存在已有得checkpoint name，说明之前的相同checkpoint name对应的checkpoint需要删除，需要删除的checkpoint保存到drop_list，
+//  同时设置WT_CKPT_DELETE标识, 等待__ckpt_process做真正的删除
 static int
 __drop(
-  WT_SESSION_IMPL *session, WT_ITEM *drop_list, WT_CKPT *ckptbase, const char *name, size_t len)
+  WT_SESSION_IMPL *session, WT_ITEM *drop_list, 
+  //ckptbase数组中是老的已有的checkpoint
+  WT_CKPT *ckptbase, 
+  //name是新的chekpoint
+  const char *name, size_t len)
 {
     WT_CKPT *ckpt;
 
@@ -1622,6 +1628,8 @@ __drop(
      * any variant of this name, so the test is still pretty simple, if the leading bytes match,
      * it's one we want to drop.
      */
+    //如果checkpoint名字为WiredTigerCheckpoint或者WiredTigerCheckpoint.x说明是内部checkpoint现成定期生成的快照，
+    //  上一次的WiredTigerCheckpoint需要删除
     if (strncmp(WT_CHECKPOINT, name, len) == 0) {
         WT_CKPT_FOREACH (ckptbase, ckpt)
             if (WT_PREFIX_MATCH(ckpt->name, WT_CHECKPOINT))
@@ -1990,11 +1998,12 @@ __checkpoint_lock_dirty_tree(
      * drop list for snapshot/timestamp metadata because the metadata will be replaced by the new
      * checkpoint.
      */
-    //如果是指定name(非"WiredTigerCheckpoint")的checkpoint获取需要删除的checkpoint，保存到drop_list，同时设置WT_CKPT_DELETE标识
+    //__drop，如果ckptbase链表中已经存在已有得checkpoint name，说明之前的相同checkpoint name对应的checkpoint需要删除，需要删除的checkpoint保存到drop_list，
+    //  同时设置WT_CKPT_DELETE标识, 等待__ckpt_process做真正的删除
     WT_ERR(__drop(session, NULL, ckptbase, name, strlen(name)));
 
     /* Set the name of the new entry at the end of the list. */
-    //ckpt执行ckptbase数组末尾
+    //ckpt指向ckptbase数组末尾
     WT_CKPT_FOREACH (ckptbase, ckpt)
         ;
     //设置ckptbase末尾成员checkpoint的name
@@ -2157,6 +2166,7 @@ __checkpoint_mark_skip(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, bool force)
 /*
  * __wt_checkpoint_tree_reconcile_update --
  *     Update a checkpoint based on reconciliation results.
+ //root做reconcile说明在做checkpoint,需要更新checkpoint的time窗口，每完成一个表的checkpoint持久化，就会调用这个更新这个表的窗口信息和write_gen信息
  */
 void
 __wt_checkpoint_tree_reconcile_update(WT_SESSION_IMPL *session, WT_TIME_AGGREGATE *ta)

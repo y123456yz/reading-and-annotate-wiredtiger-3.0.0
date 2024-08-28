@@ -482,6 +482,7 @@ thread_run(void *arg)
     else
         testutil_check(session->open_cursor(session, uri, NULL, NULL, &cur_local));
 
+
     //注意oplog没有使用prepared_session
     testutil_check(__wt_snprintf(uri, sizeof(uri), "%s:%s", table_pfx, uri_oplog));
     //__session_open_cursor
@@ -552,6 +553,7 @@ thread_run(void *arg)
 
 
     //注意run_workload中，collection和shadow表没有启用oplog功能(log=(enabled=false)), local和oplog启用了oplog功能(log=(enabled=true))
+    //如果use_prep启用，注意oplog表是session管理，其他3个表由prepared_session管理
     
     //for (i = td->start;i < td->start + 10; ++i) {  //yang add change
     for (i = td->start;i < td->start + 1; ++i) {
@@ -647,6 +649,7 @@ thread_run(void *arg)
             if (i % PREPARE_FREQ == 0) {
                 testutil_check(
                   __wt_snprintf(tscfg, sizeof(tscfg), "prepare_timestamp=%" PRIx64, active_ts));
+                //注意这里会调用__wt_txn_release_snapshot清楚该prepared_session的快照信息
                 testutil_check(prepared_session->prepare_transaction(prepared_session, tscfg));
                 if (i % PREPARE_YIELD == 0)
                     __wt_yield();

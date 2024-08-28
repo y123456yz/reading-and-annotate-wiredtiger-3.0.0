@@ -156,6 +156,7 @@ struct __wt_data_handle {
 //独占访问 //__wt_curfile_open   __wt_session_lock_dhandle
 //代表是否独占dhandle,dhandle加写锁后就代表独占
 #define WT_DHANDLE_EXCLUSIVE 0x020u    /* Exclusive access */ //
+//也就是WT_HS_URI文件
 #define WT_DHANDLE_HS 0x040u           /* History store table */
 //__wt_conn_dhandle_alloc  说明对应元数据文件"file:WiredTiger.wt"
 #define WT_DHANDLE_IS_METADATA 0x080u  /* Metadata handle */

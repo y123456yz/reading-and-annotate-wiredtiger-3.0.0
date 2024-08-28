@@ -15,7 +15,14 @@
 //r->supd相关统计及赋值
 static inline int
 __rec_update_save(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, WT_ROW *rip,
-  WT_UPDATE *onpage_upd, WT_UPDATE *tombstone, bool supd_restore, size_t upd_memsize)
+   //如果upd_select->upd链表第一个udp不是删除操作，指向这个udp
+  WT_UPDATE *onpage_upd, 
+  //如果upd_select->upd链表第一个udp是删除操作，指向这个删除udp
+  WT_UPDATE *tombstone, 
+  //如果supd_restore为true说明存在全局id不可见的udp，如果supd_restore为false说明ins->udp
+  //链表上面都是全局id可见的udp链表，但是存在timestamp不是全局可见的udp
+  bool supd_restore, 
+  size_t upd_memsize)
 {
     WT_SAVE_UPD *supd;
 
@@ -33,7 +40,9 @@ __rec_update_save(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, WT_
     supd->ins = ins;
     supd->rip = rip;
     supd->onpage_upd = onpage_upd;
-    supd->onpage_tombstone = tombstone;
+    supd->onpage_tombstone = tombstone; 
+    //如果supd_restore为true说明存在全局id不可见的udp，如果supd_restore为false说明ins->udp
+    //链表上面都是全局id可见的udp链表，但是存在timestamp不是全局可见的udp
     supd->restore = supd_restore;
     ++r->supd_next;
     r->supd_memsize += upd_memsize;
@@ -213,6 +222,8 @@ err:
 /*
  * __rec_find_and_save_delete_hs_upd --
  *     Find and save the update that needs to be deleted from the history store later
+ __rec_find_and_save_delete_hs_upd: 把需要从WiredtigerHS.wt文件中删除的udp找出来，记录到delete_hs_upd[]数组中,等等__rec_hs_wrapup做真正的删除操作
+ __rec_hs_wrapup: 做真正的hs删除操作
  */
 static int
 __rec_find_and_save_delete_hs_upd(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins,
@@ -251,6 +262,7 @@ __rec_find_and_save_delete_hs_upd(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_
 /*
  * __rec_need_save_upd --
  *     Return if we need to save the update chain
+ //upd_select->upd链表上的第一个udp时间戳可见性检查
  */
 static inline bool
 __rec_need_save_upd(
@@ -259,6 +271,9 @@ __rec_need_save_upd(
     if (upd_select->tw.prepare)
         return (true);
 
+    //普通evict并且需要reconcile的udp链表上面有不可见的udp，这直接返回true, 注意这里的has_newer_updates之做了id可见性检查，
+    // timestamp时间戳可见性没有做检查，时间戳的可见性检查在后面的__wt_txn_tw_stop_visible_all和__wt_txn_tw_start_visible_all
+    // 中进行
     if (F_ISSET(r, WT_REC_EVICT) && has_newer_updates)
         return (true);
 
@@ -278,6 +293,8 @@ __rec_need_save_upd(
     if (F_ISSET(r, WT_REC_CHECKPOINT) && upd_select->upd == NULL)
         return (false);
 
+    //如果原始upd_select->upd(并且has_newer_updates=false)则说明upd_select->upd链表上面所有的udp是全局可见的
+    //  这时候我们需要进一步验证链表头的udp的时间戳可见性
     if (WT_TIME_WINDOW_HAS_STOP(&upd_select->tw))
         return (!__wt_txn_tw_stop_visible_all(session, &upd_select->tw));
     else
@@ -480,8 +497,14 @@ __rec_calc_upd_memsize(WT_UPDATE *onpage_upd, WT_UPDATE *tombstone, size_t upd_m
  */
 static int
 __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd, //udp链表头部
-  //first_upd链表中最新的update数据   //first_upd链表中第一个可见的update数据
-  WT_UPDATE_SELECT *upd_select, WT_UPDATE **first_txn_updp, bool *has_newer_updatesp,
+  //first_upd链表中可见的update链表数据，可见的udp数据都在这个链表上面  
+  WT_UPDATE_SELECT *upd_select,  
+   //first_upd链表中第一个update数据，可能是不可见的
+  WT_UPDATE **first_txn_updp, 
+  //first_upd链表上面是否有不可见的udp成员，注意这里只做了全局id有效性判断，没由做timestamp检查
+  //对时间戳的有效性检查再外层的__rec_need_save_upd
+  bool *has_newer_updatesp,
+  //first_upd链表上面所有不可见的udp总内存
   size_t *upd_memsizep)
 {
     WT_UPDATE *upd;
@@ -540,6 +563,8 @@ __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd
               WT_UPDATE_DS | WT_UPDATE_PREPARE_RESTORED_FROM_DS | WT_UPDATE_RESTORED_FROM_DS |
                 WT_UPDATE_RESTORED_FROM_HS) &&
           !is_hs_page &&
+          //注意这里没有考虑__wt_txn_visible_all中的pinned_timestamp时间戳判断，__evict_walk_tree中选择需要evict的page的时候也没有考虑timestamp
+          // 对时间戳的有效性检查再外层的__rec_need_save_upd
           (F_ISSET(r, WT_REC_VISIBLE_ALL) ? WT_TXNID_LE(r->last_running, txnid) :
                                             !__txn_visible_id(session, txnid))) {
             /*
@@ -555,6 +580,7 @@ __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd
 
             *upd_memsizep += WT_UPDATE_MEMSIZE(upd);
             *has_newer_updatesp = true;
+            //如果该udp不可见，则continue继续
             continue;
         }
 
@@ -588,12 +614,14 @@ __rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_UPDATE *first_upd
             }
         }
 
+        //走到这里说明该udp可见了，可以访问了
+        
         /* Track the first update with non-zero timestamp. */
         if (upd->start_ts > max_ts) //记录upd链表中节点最大的时间戳
             max_ts = upd->start_ts;
 
         /* Always select the newest committed update to write to disk */
-        if (upd_select->upd == NULL) //获取最新的一条upd数据，记录到upd_select->upd
+        if (upd_select->upd == NULL) //获取最新的可见udp链表，记录到upd_select->upd
             upd_select->upd = upd;
 
         /*
@@ -669,22 +697,25 @@ __rec_fill_tw_from_upd_select(
      */
     if (upd->type == WT_UPDATE_TOMBSTONE) {//已经删除了的kv，记录其stop time,也就是这个K执行删除操作时候,参考__wt_txn_op_set_timestamp
         WT_TIME_WINDOW_SET_STOP(select_tw, upd);
+        //说明upd_select->upd链表第一个udp是删除操作，指向这个删除udp
         tombstone = upd_select->tombstone = upd;
 
         /* Find the update this tombstone applies to. */
         if (!__wt_txn_upd_visible_all(session, upd)) {
+            //跳过回滚的udp
             while (upd->next != NULL && upd->next->txnid == WT_TXN_ABORTED)
                 upd = upd->next;
 
             WT_ASSERT(session, upd->next == NULL || upd->next->txnid != WT_TXN_ABORTED);
             upd_select->upd = upd = upd->next;
             /* We should not see multiple consecutive tombstones. */
+            //update链表上面不应该有多个删除操作
             WT_ASSERT_ALWAYS(session, upd == NULL || upd->type != WT_UPDATE_TOMBSTONE,
               "Consecutive tombstones found on the update chain");
         }
     }
 
-    if (upd != NULL) //已经删除了的kv，记录其start time,也就是这个K执行删除操作时候,参考__wt_txn_op_set_timestamp
+    if (upd != NULL) //普通的KV update，记录其start time, 
         /* The beginning of the validity window is the selected update's time point. */
         WT_TIME_WINDOW_SET_START(select_tw, upd);
     else if (select_tw->stop_ts != WT_TS_NONE || select_tw->stop_txn != WT_TXN_NONE) {
@@ -797,12 +828,12 @@ __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, W
             return (0);
     }
 
-    //获取事务中提交的最新可见的value存储到upd_select中
+    //获取事务中已提交的id全局可见的udp链表(不包括时间戳可见性判断)
     WT_RET(__rec_upd_select(
       session, r, first_upd, upd_select, &first_txn_upd, &has_newer_updates, &upd_memsize));
 
     /* Keep track of the selected update. */
-    //也就是已提交事务最新的V
+    //也就是可见的udp链表，这个链表上的所有数据都是全局id可见的
     upd = upd_select->upd;
 
     WT_ASSERT_ALWAYS(session,
@@ -841,6 +872,7 @@ __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, W
         r->update_used = true;
 
     if (upd != NULL)
+        //注意这里面可能会修改upd_select->udp
         WT_RET(__rec_fill_tw_from_upd_select(session, page, vpack, upd_select));
 
     /* Mark the page dirty after reconciliation. */
@@ -909,18 +941,26 @@ __wt_rec_upd_select(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins, W
      *
      * Additionally history store reconciliation is not set skip saving an update.
      */
+    //原始first_upd链表上面是否有不可见的udp
     if (__rec_need_save_upd(session, r, upd_select, has_newer_updates)) {
         /*
          * We should restore the update chains to the new disk image if there are newer updates in
          * eviction, or for cases that don't support history store, such as an in-memory database.
          */
+        //说明原始first_upd链表上面有不是全局id可见的udp，注意has_newer_updates只做了全局id有效性检查，没用做timestamp检查
+        // __rec_need_save_upd中会进一步对timestamp进行检查，如果supd_restore为true说明存在全局id不可见的udp，如果supd_restore
+        // 为false说明ins->udp链表上面都是全局id可见的udp链表，但是存在timestamp不是全局可见的udp
         supd_restore = F_ISSET(r, WT_REC_EVICT) &&
           (has_newer_updates || F_ISSET(S2C(session), WT_CONN_IN_MEMORY));
 
         upd_memsize = __rec_calc_upd_memsize(onpage_upd, upd_select->tombstone, upd_memsize);
         //r->supd相关统计及赋值
         WT_RET(__rec_update_save(
-          session, r, ins, rip, onpage_upd, upd_select->tombstone, supd_restore, upd_memsize));
+          session, r, ins, rip, 
+          //如果upd_select->upd链表第一个udp不是删除操作，指向这个udp
+          onpage_upd, 
+          //如果upd_select->upd链表第一个udp是删除操作，指向这个删除udp
+          upd_select->tombstone, supd_restore, upd_memsize));
 
         /*
          * Mark the selected update (and potentially the tombstone preceding it) as being destined

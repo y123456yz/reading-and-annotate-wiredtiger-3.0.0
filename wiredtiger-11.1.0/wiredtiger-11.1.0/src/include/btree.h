@@ -101,6 +101,7 @@ struct __wt_btree {
     //复制见__wt_conn_dhandle_alloc
     WT_DATA_HANDLE *dhandle;
 
+    //记录的是当前对这个表做的chekpoint信息，可以参考__wt_meta_ckptlist_to_meta来理解,例如连续做了2次checkpoint，则这个数组就有两个checkpoint成员
     //记录进行checkpoint的信息，赋值见__checkpoint_lock_dirty_tree
     //__checkpoint_lock_dirty_tree->__wt_meta_ckptlist_get->__meta_ckptlist_allocate_new_ckpt创建WT_CKPT数组空间,最终赋值给btree->ckpt
     WT_CKPT *ckpt;               /* Checkpoint information */

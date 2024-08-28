@@ -1244,6 +1244,7 @@ err:
 /*
  * __txn_search_prepared_op --
  *     Search for an operation's prepared update.
+ 获取op对应key(op->u.op_row.key)的可见udp链表
  */
 static int
 __txn_search_prepared_op(
@@ -1259,6 +1260,7 @@ __txn_search_prepared_op(
 
     txn = session->txn;
 
+    //创建一个btree的cursor
     cursor = *cursorp;
     if (cursor == NULL || CUR2BT(cursor)->id != op->btree->id) {
         *cursorp = NULL;
@@ -1290,6 +1292,7 @@ __txn_search_prepared_op(
     case WT_TXN_OP_BASIC_ROW:
     case WT_TXN_OP_INMEM_ROW:
         F_CLR(txn, txn_flags);
+        //设置cursor的key为op->u.op_row.key
         __wt_cursor_set_raw_key(cursor, &op->u.op_row.key);
         F_SET(txn, txn_flags);
         break;
@@ -1302,6 +1305,7 @@ __txn_search_prepared_op(
     }
 
     F_CLR(txn, txn_flags);
+    //获取op->u.op_row.key这个key的v updp
     WT_WITH_BTREE(session, op->btree, ret = __wt_btcur_search_prepared(cursor, updp));
     F_SET(txn, txn_flags);
     F_CLR(txn, WT_TXN_PREPARE_IGNORE_API_CHECK);
@@ -1351,6 +1355,7 @@ err:
  *     Helper for resolving updates. Recursively visit the update chain and resolve the updates on
  *     the way back out, so older updates are resolved first; this avoids a race with reconciliation
  *     (see WT-6778).
+ 把udp链表上面属于本session事务正在操作的udp节点的状态置为WT_PREPARE_RESOLVED
  */
 static void
 __txn_resolve_prepared_update_chain(WT_SESSION_IMPL *session, WT_UPDATE *upd, bool commit)
@@ -1364,7 +1369,9 @@ __txn_resolve_prepared_update_chain(WT_SESSION_IMPL *session, WT_UPDATE *upd, bo
      * Aborted updates can exist in the update chain of our transaction. Generally this will occur
      * due to a reserved update. As such we should skip over these updates entirely.
      */
+    //跳过abort的udp节点
     if (upd->txnid == WT_TXN_ABORTED) {
+        //递归
         __txn_resolve_prepared_update_chain(session, upd->next, commit);
         return;
     }
@@ -1373,18 +1380,22 @@ __txn_resolve_prepared_update_chain(WT_SESSION_IMPL *session, WT_UPDATE *upd, bo
      * If the transaction id is then different and not aborted we know we've reached the end of our
      * update chain and don't need to look deeper.
      */
+    //只处理本session对应事务的udp
     if (upd->txnid != session->txn->id)
         return;
 
     /* Go down the chain. Do the resolves on the way back up. */
+    //递归
     __txn_resolve_prepared_update_chain(session, upd->next, commit);
 
     if (!commit) {
+        //说明是通过__wt_txn_rollback到了这里
         upd->txnid = WT_TXN_ABORTED;
         WT_STAT_CONN_INCR(session, txn_prepared_updates_rolledback);
         return;
     }
 
+    //说明是__wt_txn_commit调用到了这里
     /*
      * Performing an update on the same key where the truncate operation is performed can lead to
      * updates that are already resolved in the updated list. Ignore the already resolved updates.
@@ -1402,6 +1413,7 @@ __txn_resolve_prepared_update_chain(WT_SESSION_IMPL *session, WT_UPDATE *upd, bo
 /*
  * __txn_resolve_prepared_op --
  *     Resolve a transaction's operations indirect references.
+ // 把udp链表上面属于本session事务正在操作的udp节点的状态置为WT_PREPARE_RESOLVED
  */
 static int
 __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, WT_CURSOR **cursorp)
@@ -1431,18 +1443,20 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
 #define RESOLVE_IN_MEMORY 3
     resolve_case = RESOLVE_UPDATE_CHAIN;
 
+    // 获取op对应key(op->u.op_row.key)的可见udp链表
     WT_RET(__txn_search_prepared_op(session, op, cursorp, &upd));
 
     if (commit)
+        //yang add todo xxxxxxxxxxx  这两个打印完善日志增加prepare timestamp
         __wt_verbose_debug2(session, WT_VERB_TRANSACTION,
           "commit resolving prepared transaction with txnid: %" PRIu64
-          " and timestamp: %s to commit and durable timestamps: %s, %s",
+          " and prepare timestamp: %s to commit and durable timestamps: %s, %s",
           txn->id, __wt_timestamp_to_string(txn->prepare_timestamp, ts_string[0]),
           __wt_timestamp_to_string(txn->commit_timestamp, ts_string[1]),
           __wt_timestamp_to_string(txn->durable_timestamp, ts_string[2]));
     else
         __wt_verbose_debug2(session, WT_VERB_TRANSACTION,
-          "rollback resolving prepared transaction with txnid: %" PRIu64 " and timestamp: %s",
+          "rollback resolving prepared transaction with txnid: %" PRIu64 " and prepare timestamp: %s",
           txn->id, __wt_timestamp_to_string(txn->prepare_timestamp, ts_string[0]));
 
     /*
@@ -1467,6 +1481,7 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
     if (commit)
         WT_RET(__txn_timestamp_usage_check(session, op, upd));
 
+    //first_committed_upd指向第一个非WT_TXN_ABORTED状态并且WT_PREPARE_INPROGRESS的udp
     for (first_committed_upd = upd; first_committed_upd != NULL &&
          (first_committed_upd->txnid == WT_TXN_ABORTED ||
            first_committed_upd->prepare_state == WT_PREPARE_INPROGRESS);
@@ -1478,6 +1493,7 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
      * resolved. The hazard pointer on the page is already acquired during the cursor search
      * operation to prevent eviction evicting the page while resolving the prepared updates.
      */
+    //也就是key(op->u.op_row.key)对应的page
     cbt = (WT_CURSOR_BTREE *)(*cursorp);
     page = cbt->ref->page;
 
@@ -1550,6 +1566,7 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
     else if (F_ISSET(S2C(session), WT_CONN_IN_MEMORY))
         resolve_case = RESOLVE_IN_MEMORY;
     else
+        //一般走这里
         resolve_case = RESOLVE_UPDATE_CHAIN;
 
     switch (resolve_case) {
@@ -1684,6 +1701,7 @@ __txn_resolve_prepared_op(WT_SESSION_IMPL *session, WT_TXN_OP *op, bool commit, 
      * In the above example, we will resolve "u2" and "u1" as part of resolving "txn_op1" and will
      * not do any significant thing as part of "txn_op2".
      */
+    // 把udp链表上面属于本session事务正在操作的udp节点的状态置为WT_PREPARE_RESOLVED
     __txn_resolve_prepared_update_chain(session, upd, commit);
 
     /* Mark the page dirty once the prepared updates are resolved. */
@@ -1788,6 +1806,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 #ifdef HAVE_DIAGNOSTIC
     prepare_count = 0;
 #endif
+    //说明有调用->prepare_transaction()接口
     prepare = F_ISSET(txn, WT_TXN_PREPARE);
     readonly = txn->mod_count == 0;
     cannot_fail = locked = false;
@@ -1920,7 +1939,6 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
         locked = true;
         WT_ERR(__wt_txn_log_commit(session, cfg));
     }
-
     
     /* Process updates. */
     for (i = 0, op = txn->mod; i < txn->mod_count; i++, op++) {
@@ -1932,7 +1950,7 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
         case WT_TXN_OP_BASIC_ROW:
         case WT_TXN_OP_INMEM_COL:
         case WT_TXN_OP_INMEM_ROW:
-            if (!prepare) {
+            if (!prepare) {//非prepare的事务走这里
                 upd = op->u.op_upd;
 
                 /*
@@ -1943,7 +1961,8 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
                     upd->txnid = WT_TXN_ABORTED;
                     break;
                 }
-                //printf("yang test .....__wt_txn_commit..2........op->type:%u\r\n", op->type);
+                
+             //printf("yang test .....__wt_txn_commit..2........op->type:%u\r\n", op->type);
                 /*
                  * Don't reset the timestamp of the history store records with history store
                  * transaction timestamp. Those records should already have the original time window
@@ -1954,12 +1973,13 @@ __wt_txn_commit(WT_SESSION_IMPL *session, const char *cfg[])
 
                 __wt_txn_op_set_timestamp(session, op);
                 WT_ERR(__txn_timestamp_usage_check(session, op, upd));
-            } else {
+            } else {//prepare的事务走这里
                 /*
                  * If an operation has the key repeated flag set, skip resolving prepared updates as
                  * the work will happen on a different modification in this txn.
                  */
                 if (!F_ISSET(op, WT_TXN_OP_KEY_REPEATED))
+                    // 把udp链表上面属于本session事务正在操作的udp节点的状态置为WT_PREPARE_RESOLVED
                     WT_ERR(__txn_resolve_prepared_op(session, op, true, &cursor));
 #ifdef HAVE_DIAGNOSTIC
                 ++prepare_count;
@@ -2231,6 +2251,7 @@ __wt_txn_prepare(WT_SESSION_IMPL *session, const char *cfg[])
             for (tmp = upd->next; tmp != NULL && tmp->txnid == upd->txnid; tmp = tmp->next)
                 if (tmp->type != WT_UPDATE_RESERVE &&
                   !F_ISSET(tmp, WT_UPDATE_RESTORED_FAST_TRUNCATE)) {
+                    //如果udp链表上面有连续的两个udp的事务id一样(也就是同一个事务连续修改了同一个K)，则会设置WT_TXN_OP_KEY_REPEATED标识 __wt_txn_prepare
                     F_SET(op, WT_TXN_OP_KEY_REPEATED);
                     ++prepared_updates_key_repeated;
                     break;
@@ -3065,17 +3086,30 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
                                             minSnapshotHistoryWindowInSeconds.load(),
                                         stableTimestamp.getInc());
 
+/*
+{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960240,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198679, 839): Updated global stable timestamp"}}}
+{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960278,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198379, 839): Updated global oldest timestamp"}}}
+{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960298,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198379, 839): Updated pinned timestamp"}}}
+*/
+//向副本集实例不停的写数据，会不停打印更新stable timestamp和oldest timestamp，两个差值就是默认的minSnapshotHistoryWindowInSeconds=300秒
+
+    //https://source.wiredtiger.com/develop/timestamp_global_api.html
+
+
+
 
     //如果没有现实设置durable_timestamp，每次事务提交的时候都会默认和commit_timestamp保持一致
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "durable timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->durable_timestamp, ts_string)));
-    //mongodb会设置oldest_timestamp=stable_timestamp-minSnapshotHistoryWindowInSeconds
+    //mongodb会设置oldest_timestamp=stable_timestamp-minSnapshotHistoryWindowInSeconds, 真正生效实际上是在
+    //  __wt_txn_update_pinned_timestamp影响pinned_timestamp, 然后间接的影响事务全局可见性__wt_txn_visible_all->__wt_txn_pinned_timestamp
+    //  ，进而影响历史版本数据从内存释放以及访问可见性
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->oldest_timestamp, ts_string)));
-    //pinned_timestamp是在__wt_txn_update_pinned_timestamp中根据oldest_timestamp和所有事务的read_timestamp取最小值算出来的，(mongodb txnOpen.setReadSnapshot(_readAtTimestamp);)
+    //pinned_timestamp是在__wt_txn_update_pinned_timestamp中根据oldest_timestamp、checkpoint_timestamp和所有事务的read_timestamp取最小值算出来的，(mongodb txnOpen.setReadSnapshot(_readAtTimestamp);)
     //实际上真实用处如下:
     //  1. 只会在__wt_update_obsolete_check中当一个K上面的历史版本超过20个的时候才会影响该update的检查
-    //  2. __wt_txn_visible_all->__wt_txn_pinned_timestamp用pinned_timestamp来判断事务可见性，进而影响历史版本数据从内存释放
+    //  2. __wt_txn_visible_all->__wt_txn_pinned_timestamp用pinned_timestamp来判断事务可见性，进而影响历史版本数据从内存释放以及访问可见性
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "pinned timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->pinned_timestamp, ts_string)));
     //checkpoint持久化的时候用该时间做为checkpoint时间写入wiredtiger.wt，最终目的是rollback_to_stable快速回滚到这个时间点

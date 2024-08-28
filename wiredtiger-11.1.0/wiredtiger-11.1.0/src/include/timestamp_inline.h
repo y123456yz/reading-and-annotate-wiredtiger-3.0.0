@@ -65,7 +65,8 @@
  * 0 for prepared updates, in those cases use the prepared timestamp as durable timestamp.
   udp->start_ts和durable_ts可以参考__wt_txn_op_set_timestamp
   //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
- */
+ */ 
+//记录KV删除的时间戳信息
 #define WT_TIME_WINDOW_SET_STOP(tw, upd)                         \
     do {                                                         \
         (tw)->durable_stop_ts = (tw)->stop_ts = (upd)->start_ts; \

@@ -98,7 +98,13 @@ cursor_ops(WT_SESSION *session)
         error_check(session->open_cursor(session, "table:mytable", NULL, "overwrite=1", &cursor));
         /*! [boolean configuration string example] */
     }
+    //假设下面这里做两次checkpoint并设置name，则wiredtiger.wt文件中的内容会有两条:
+    // checkpoint=(midnight=(xxxxxx))   checkpoint=(midnight2=(xxxxxx)) 
+    //  error_check(session->checkpoint(session, "name=midnight"));
+    //  error_check(session->checkpoint(session, "name=midnight2"));
 
+    //wiredtiger.wt元数据文件中的内容名为midnight=(addr="018781e415df2f5a8881e4db2533318a81e404356d848981e41546bd16e29fc0dfc0",order=2,time=1723631695,size=12288,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=15,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=6,run_write_gen=1)),
+    //如果不指定name，则默认为类似这样的:checkpoint=(WiredTigerCheckpoint.3=(addr="018081e42cd349888181e4abc2e2728281e43d1d44fe808080e28fc0dfc0",order=3,time=1723631312,size=12288,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=17,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=8,run_write_gen=4)),
     error_check(session->checkpoint(session, "name=midnight"));
 
     {

@@ -477,6 +477,7 @@ err:
 /*
  * __curfile_update --
  *     WT_CURSOR->update method for the btree cursor type.
+ //注意->update()后cursor会指向update的这个KV的下一条数据，如果用cursor遍历只会遍历Btree上下一条开始的数据
  */
 static int
 __curfile_update(WT_CURSOR *cursor)

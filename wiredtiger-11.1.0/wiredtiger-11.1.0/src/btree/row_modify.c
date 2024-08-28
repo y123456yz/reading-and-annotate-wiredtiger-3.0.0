@@ -467,6 +467,15 @@ __wt_update_obsolete_check(
      * the minSnapshotHistoryWindowInSeconds to 300 introduced a performance regression in which the
      * average number of updates on a single item was approximately 1000 in write-heavy workloads.
      * This is why we use WT_THOUSAND here.
+
+
+     Starting in MongoDB 5.0, you can use the minSnapshotHistoryWindowInSeconds parameter to specify how long 
+        WiredTiger keeps the snapshot history.
+     Increasing the value of minSnapshotHistoryWindowInSeconds increases disk usage because the server must maintain 
+        the history of older modified values within the specified time window. The amount of disk space used depends 
+        on your workload, with higher volume workloads requiring more disk space.
+
+     MongoDB maintains the snapshot history in the WiredTigerHS.wt file, located in your specifie
      */
     //如果一个page上任何一个key的历史value超过1000个，也就是对一个key更新了1000次，则需要强制让evict线程淘汰掉该page
     if (count > WT_THOUSAND) {
@@ -486,6 +495,8 @@ __wt_update_obsolete_check(
     if (count > 20 && page->modify != NULL) {
         //这里增加obsolete_check_txn和obsolete_check_timestamp的目的是避免__wt_update_serial下次再WT_PAGE_TRYLOCK等待锁然后
         //  对该page做__wt_update_obsolete_check检查
+
+        //还有个目的是为了主动做__wt_txn_update_oldest检查，进而释放内存中的历史版本，20个一批一批的内存检查释放
         page->modify->obsolete_check_txn = txn_global->last_running;
         if (txn_global->has_pinned_timestamp)
             page->modify->obsolete_check_timestamp = txn_global->pinned_timestamp;

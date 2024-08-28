@@ -299,11 +299,13 @@ __wt_block_ckpt_decode(WT_SESSION *wt_session, WT_BLOCK *block, const uint8_t *c
  * __wt_block_ckpt_pack --
  *     Convert the components into its checkpoint cookie.
   //__wt_block_ckpt_pack和__block_ckpt_unpack对应
- //封包或者解包所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+ //封包或者解包所有checkpoint核心元数据: root page持久化元数据 + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 
  */
-//封装所有checkpoint核心元数据: root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
+//封装所有checkpoint核心元数据: root持久化元数据 + alloc跳表持久化到磁盘的核心元数据信息+avail跳表持久化到磁盘的核心元数据信息
 //注意这里是封包后存储的，补上直接把root_offset等原样存储，这样可以节省磁盘空间
+
+//root page的磁盘地址+alloc跳表+avail跳表+discard跳表的磁盘位置信息封装到pp中
 int
 __wt_block_ckpt_pack(
   WT_SESSION_IMPL *session, WT_BLOCK *block, uint8_t **pp, WT_BLOCK_CKPT *ci, bool skip_avail)

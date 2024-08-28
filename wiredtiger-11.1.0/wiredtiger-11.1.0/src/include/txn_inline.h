@@ -131,6 +131,7 @@ __wt_txn_op_set_key(WT_SESSION_IMPL *session, const WT_ITEM *key)
 /*
  * __txn_resolve_prepared_update --
  *     Resolve a prepared update as committed update.
+ //把upd->prepare_state设置为WT_PREPARE_RESOLVED
  */
 static inline void
 __txn_resolve_prepared_update(WT_SESSION_IMPL *session, WT_UPDATE *upd)
@@ -207,7 +208,7 @@ __wt_txn_unmodify(WT_SESSION_IMPL *session)
 /*
  * __wt_txn_op_delete_apply_prepare_state --
  *     Apply the correct prepare state and the timestamp to the ref and to any updates in the page
- *     del update list.
+ *     del update list.  
  */
 static inline void
 __wt_txn_op_delete_apply_prepare_state(WT_SESSION_IMPL *session, WT_REF *ref, bool commit)
@@ -349,7 +350,9 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
      */
     //只有设置了commit_timestamp并且没有启用WAL功能，timestamp功能才会有效
      
-    //一定要设置commit_timestamp timestamp功能才会有效
+    //一定要设置commit_timestamp timestamp功能才会有效, 如果没有设置commit_timestamp则直接返回，就不会进入下面的流程
+    
+    //如果session设置了commit_timestamp则__wt_txn_commit的时候会再次进入这里面走后面的流程
     if (!F_ISSET(txn, WT_TXN_HAS_TS_COMMIT))
         return;
     //如果启用了WAL功能，则timestamp功能失效
@@ -381,7 +384,7 @@ __wt_txn_op_set_timestamp(WT_SESSION_IMPL *session, WT_TXN_OP *op)
              */
             upd = op->u.op_upd;
             //mongodb普通表log.enabled为false,只有oplog表为true，因此这里mongodb只有oplog表才会记录start_ts和durable_ts
-            if (upd->start_ts == WT_TS_NONE) {
+            if (upd->start_ts == WT_TS_NONE) {//如果没有设置commit_timestamp则不会进入这里流程，在前面WT_TXN_HAS_TS_COMMIT会直接返回，所以ts都会为0
                 //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
                 //这两个成员真正生效是如果表没有启用log功能，则reconcile的时候会同时把start ts等信息写入磁盘，生效地方见WT_TIME_WINDOW_SET_START和WT_TIME_WINDOW_SET_STOP
                 upd->start_ts = txn->commit_timestamp;
@@ -575,6 +578,9 @@ __wt_txn_pinned_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t *pinned_tsp)
  *     Check if a given transaction ID is "globally visible". This is, if all sessions in the system
  *     will see the transaction ID including the ID that belongs to a running checkpoint.
  判断事务id是否对当前所有session可见
+
+__wt_txn_visible:  id对应udp是否对当前session可见
+__txn_visible_all_id:  id对应udp是否对所有session可见
  */
 static inline bool
 __txn_visible_all_id(WT_SESSION_IMPL *session, uint64_t id)
@@ -668,6 +674,8 @@ __wt_txn_visible_all(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t times
 /*
  * __wt_txn_upd_visible_all --
  *     Is the given update visible to all (possible) readers?
+ //用的最多的地方在__wt_update_obsolete_check，用来判断是否可以对历史版本数据从内存清理掉
+ 
  // 判断upd是否对当前所有session可见，对update影响较大，可以参考__wt_update_obsolete_check, 判断udp数据是否可以释放
  */
 static inline bool
@@ -833,6 +841,9 @@ __txn_visible_id(WT_SESSION_IMPL *session, uint64_t id)
 //upd->txnid为修改该值对应的事务id(__wt_txn_modify)，该id值不会因为事务提交置为0
 
 注意这里的id为upd->txnid, 可能是其他session做的更新
+
+__wt_txn_visible:  id对应udp是否对当前session可见
+__txn_visible_all_id:  id对应udp是否对所有session可见
  */
 static inline bool
 __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp)
@@ -903,9 +914,12 @@ __wt_txn_upd_visible_type(WT_SESSION_IMPL *session, WT_UPDATE *upd)
         WT_STAT_CONN_INCR(session, prepared_transition_blocked_page);
     }
 
+    //不可见
     if (!upd_visible)
         return (WT_VISIBLE_FALSE);
 
+    //udp可见，需要再做一次WT_PREPARE_INPROGRESS检查，如果upd->prepare_state=WT_PREPARE_INPROGRESS,则直接返回WT_VISIBLE_PREPARE
+    //如果是__wt_txn_prepare prepare事务更新的udp，则访问类型为WT_VISIBLE_PREPARE，这样再__wt_txn_read_upd_list_internal中会再次做一次WT_VISIBLE_PREPARE判断
     if (prepare_state == WT_PREPARE_INPROGRESS)
         return (WT_VISIBLE_PREPARE);
 
@@ -1057,6 +1071,8 @@ __wt_txn_read_upd_list_internal(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, 
             *restored_updp = upd;
         }
 
+        //如果visible类型为WT_VISIBLE_PREPARE，则返回WT_PREPARE_CONFLICT，mongo server收到这个一次就会不停的重试
+        //增加WT_PREPARE_CONFLICT的原因是prepare_transaction中释放了快照，因此这里会影响可见性判断，并且会影响evict
         if (upd_visible == WT_VISIBLE_PREPARE) {
             /* Ignore the prepared update, if transaction configuration says so. */
             if (F_ISSET(session->txn, WT_TXN_IGNORE_PREPARE))
@@ -1526,12 +1542,15 @@ __wt_txn_modify_block(
     F_CLR(txn, WT_TXN_IGNORE_PREPARE);
     //如果session对应事务对udp所有变更数据都不可见，说明冲突了，因为不能修改该K，这时候需要回滚
     //yang add todo xxxxxxxxxxxxxxxx 这里是否可以增加重试机制????
+
+    //写冲突对应的业务感知字符串为"WT_ROLLBACK: conflict between concurrent operations"  可以参考test_txn27.py模拟的写冲突
     for (; upd != NULL && !__wt_txn_upd_visible(session, upd); upd = upd->next) {
         if (upd->txnid != WT_TXN_ABORTED) {
             //ret = __log_slot_close(session, slot, &release, forced);后增加一个延迟 __wt_sleep(0, 30000);//yang add change  即可模拟出来
             __wt_verbose_debug1(session, WT_VERB_TRANSACTION,
               "Conflict with update with txn id %" PRIu64 " at timestamp: %s", upd->txnid,
               __wt_timestamp_to_string(upd->start_ts, ts_string));
+            //如果这里是因为快照冲突引起的，这里是不是可以增加重试机制__txn_visible_id(session, id)，并增加重试超时时间配置
             rollback = true;
             break;
         }
@@ -1729,7 +1748,8 @@ __wt_txn_cursor_op(WT_SESSION_IMPL *session)
             txn_shared->pinned_id = txn_global->last_running;
         if (txn_shared->metadata_pinned == WT_TXN_NONE)
             txn_shared->metadata_pinned = txn_shared->pinned_id;
-    } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) {//说明是WT_ISO_READ_COMMITTED
+    } else if (!F_ISSET(txn, WT_TXN_HAS_SNAPSHOT)) {//说明是WT_ISO_READ_COMMITTED, 
+    //配合__wt_txn_begin阅读，如果是WT_ISO_READ_COMMITTED,则在__wt_txn_begin不会获取快照，而是在这里获取快照
         //printf("yang test ..............__wt_txn_cursor_op...........\r\n");
         //如果没有显示的定义txn begain，直接写入，则会进入这里
         // 从这里可以看出，如果是WT_ISO_READ_COMMITTED每次读写都会重新获取快照

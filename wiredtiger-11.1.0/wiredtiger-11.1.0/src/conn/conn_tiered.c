@@ -361,6 +361,9 @@ __tier_storage_remove(WT_SESSION_IMPL *session, bool force)
 /*
  * __tiered_server --
  *     The tiered storage server thread.
+  //分层存储没有真正的线上使用  
+ //The WiredTiger Tiered Storage support has not been developed, tested or tuned in production scenarios, and should be viewed as experimental code.
+ //官网链接: https://source.wiredtiger.com/develop/tiered_storage.html
  */
 static WT_THREAD_RET
 __tiered_server(void *arg)
@@ -423,6 +426,9 @@ err:
 /*
  * __wt_tiered_storage_create --
  *     Start the tiered storage subsystem.
+ //分层存储没有真正的线上使用  
+ //The WiredTiger Tiered Storage support has not been developed, tested or tuned in production scenarios, and should be viewed as experimental code.
+ //官网链接: https://source.wiredtiger.com/develop/tiered_storage.html
  */
 int
 __wt_tiered_storage_create(WT_SESSION_IMPL *session)

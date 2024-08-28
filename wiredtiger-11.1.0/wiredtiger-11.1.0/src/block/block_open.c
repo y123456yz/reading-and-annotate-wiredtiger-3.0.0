@@ -148,6 +148,7 @@ __wt_block_close(WT_SESSION_IMPL *session, WT_BLOCK *block)
 /*
  * __wt_block_configure_first_fit --
  *     Configure first-fit allocation.
+ //打开还是关闭allocfirst功能
  */
 void
 __wt_block_configure_first_fit(WT_BLOCK *block, bool on)
@@ -201,6 +202,7 @@ __wt_block_open(WT_SESSION_IMPL *session, const char *filename, uint32_t objecti
     /* Basic structure allocation, initialization. */
     WT_ERR(__wt_calloc_one(session, &block));
     WT_ERR(__wt_strdup(session, filename, &block->name));
+    //实际上写死的为WT_TIERED_OBJECTID_NONE 0，参考__wt_blkcache_open
     block->objectid = objectid;
     block->ref = 1;
     WT_CONN_BLOCK_INSERT(conn, block, bucket);

@@ -173,6 +173,8 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
 //赋值见__rec_split_write
 //__wt_multi.addr为该类型
 struct __wt_addr {
+    //赋值见__rec_split_write,真实来源实际上在__rec_row_leaf_insert  __wt_rec_row_leaf->WT_TIME_AGGREGATE_UPDATE中统计赋值
+    //最终会赋值给父page的index[]数组下面ref->addr.ta，并通过internal page在__wt_rec_cell_build_addr函数中持久化到磁盘
     WT_TIME_AGGREGATE ta;
 
     //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
@@ -289,8 +291,13 @@ struct __wt_ovfl_reuse {
 struct __wt_save_upd {
     WT_INSERT *ins; /* Insert list reference */
     WT_ROW *rip;    /* Original on-page reference */
+    //如果upd_select->upd链表第一个udp是删除操作，指向这个删除udp
     WT_UPDATE *onpage_upd;
+    //如果upd_select->upd链表第一个udp是删除操作，指向这个删除udp
     WT_UPDATE *onpage_tombstone;
+    //赋值参考__rec_update_save
+    //如果supd_restore为true说明存在全局id不可见的udp，如果supd_restore为false说明ins->udp
+    //链表上面都是全局id可见的udp链表，但是存在timestamp不是全局可见的udp
     bool restore; /* Whether to restore this saved update chain */
 };
 
@@ -339,9 +346,11 @@ struct __wt_multi {
      * If there are unresolved updates, the block wasn't written and there will always be a disk
      * image.
      */
-    //赋值参考__rec_supd_move
+    //赋值参考__rec_supd_move  __rec_update_save
+    //记录这个reconcile的page上面存在的不可见的udp链表信息，这里是一个数组，最终会通过__rec_hs_wrapup把这些不可见的upd记录到wiredtigerHs.wt文件中
     WT_SAVE_UPD *supd;
     uint32_t supd_entries;
+    //说明有不是全局id可见的udp,赋值参考__rec_update_save
     bool supd_restore; /* Whether to restore saved update chains to this page */
 
     /*
@@ -983,8 +992,14 @@ struct __wt_page {
     0 /* Must be 0, as structures    \
          will be default initialized \
          with 0. */
+//赋值见__page_inmem_prepare_update  __wt_txn_prepare
+//__wt_txn_prepare prepare的事务会释放快照，这样就会影响evict和可见性，因此prepare节点释放快照，这样可以减轻内存压力
+// 但是可见性会不一致，因此会增加对WT_PREPARE_INPROGRESS的WT_VISIBLE_PREPARE(见__wt_txn_upd_visible_type)，并增加udp
+// WT_PREPARE_CONFLICT冲突检查(见__wt_txn_read_upd_list_internal)
 #define WT_PREPARE_INPROGRESS 1
+//赋值见__txn_resolve_prepared_update
 #define WT_PREPARE_LOCKED 2
+//赋值见__txn_resolve_prepared_update  把udp链表上面属于本session事务正在操作的udp节点的状态置为WT_PREPARE_RESOLVED
 #define WT_PREPARE_RESOLVED 3
 
 /*
@@ -1527,10 +1542,10 @@ struct __wt_update {
     //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
     //只有设置了commit_timestamp并且没有启用WAL功能，durable_ts和start_ts功能才会有效，参考__wt_txn_op_set_timestamp
     //__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点durable_timestamp记录到durable_ts中,最终在WT_TIME_WINDOW_SET_START中使用
-    wt_timestamp_t durable_ts; /* timestamps */
+    wt_timestamp_t durable_ts; /* timestamps */ //如果是prepare_transaction则赋值在__txn_resolve_prepared_update
     //__wt_txn_op_set_timestamp记录该操作在事务中提交的时间点commit_timestamp记录到start_ts中,最终在WT_TIME_WINDOW_SET_STOP中使用
     //注意只有关闭了oplog(log=(enabled=false))功能的表才会有upd timestamp功能
-    wt_timestamp_t start_ts;
+    wt_timestamp_t start_ts; //如果是prepare_transaction则赋值在__txn_resolve_prepared_update  __wt_txn_prepare和__wt_txn_op_delete_apply_prepare_state
 
     /*
      * The durable timestamp of the previous update in the update chain. This timestamp is used for
@@ -1551,7 +1566,7 @@ struct __wt_update {
 #define WT_UPDATE_RESERVE 2   /* reserved */
 //一般都是这个状态,普通更新
 #define WT_UPDATE_STANDARD 3  /* complete value */
-//说明是删除操作
+//说明是删除操作 __wt_upd_alloc_tombstone创建delete udp
 #define WT_UPDATE_TOMBSTONE 4 /* deleted */
     //代表是什么类型的更新，是普通更新还是删除操作，还是部分更新
     uint8_t type;             /* type (one byte to conserve memory) */
@@ -1570,6 +1585,7 @@ struct __wt_update {
 #define WT_UPDATE_DS 0x01u                       /* Update has been written to the data store. */
 #define WT_UPDATE_HS 0x02u                       /* Update has been written to history store. */
 #define WT_UPDATE_PREPARE_RESTORED_FROM_DS 0x04u /* Prepared update restored from data store. */
+//__tombstone_update_alloc中置位
 #define WT_UPDATE_RESTORED_FAST_TRUNCATE 0x08u   /* Fast truncate instantiation */
 #define WT_UPDATE_RESTORED_FROM_DS 0x10u         /* Update restored from data store. */
 #define WT_UPDATE_RESTORED_FROM_HS 0x20u         /* Update restored from history store. */

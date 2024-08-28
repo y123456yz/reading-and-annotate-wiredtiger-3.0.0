@@ -668,6 +668,7 @@ __ckpt_copy_blk_mods(WT_SESSION_IMPL *session, WT_CKPT *src_ckpt, WT_CKPT *dst_c
  * __meta_blk_mods_load --
  *     Load the block mods for a given checkpoint and set up all the information to store. Load from
  *     either the metadata or from a base checkpoint.
+ __meta_ckptlist_allocate_new_ckpt->__meta_blk_mods_load
  */
 //从元数据或者配置文件中加载信息存储到ckpt->block_metadata
 static int
@@ -1231,9 +1232,13 @@ err:
 
   __wt_meta_ckptlist_to_meta中写入wiredTiger.wt， __ckpt_load和__rollback_to_stable_btree_apply中读取wiredtiger.wt
 
- */
-//把所有checkpoint核心元数据: 【root持久化元数据(包括internal ref key+所有leafpage ext) + alloc跳表持久化到磁盘的核心元数据信息
-//  +avail跳表持久化到磁盘的核心元数据信息】转换为wiredtiger.wt中对应的checkpoint=xxx字符串
+
+checkpoint=(midnight=(addr="xxxxx",order=1,time=1724235585,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=8,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=3,run_write_gen=1),
+midnight2=(addr="xxxxx",order=2,time=1724235586,size=8192,newest_start_durable_ts=0,oldest_start_ts=0,newest_txn=12,newest_stop_durable_ts=0,newest_stop_ts=-1,newest_stop_txn=-11,prepare=0,write_gen=6,run_write_gen=1))
+
+*/
+
+//元数据内容写入buf中返回
 int
 __wt_meta_ckptlist_to_meta(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_ITEM *buf)
 {
@@ -1255,6 +1260,7 @@ __wt_meta_ckptlist_to_meta(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_ITEM 
             if (ckpt->raw.size == 0)
                 ckpt->addr.size = 0;
             else
+                //也就是checkpoint=(midnight=(addr="xxxxx"))中addr后的内容，内容来源实际上在__wt_block_ckpt_pack
                 WT_RET(__wt_raw_to_hex(session, ckpt->raw.data, ckpt->raw.size, &ckpt->addr));
         }
 

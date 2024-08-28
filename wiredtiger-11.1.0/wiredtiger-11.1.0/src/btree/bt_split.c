@@ -2265,6 +2265,8 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
     /*
      * Split into the parent.
      */
+    printf("yang test ....................split_ref[0].page:%p, split_ref[1].page:%p\r\n", 
+        split_ref[0]->page, split_ref[1]->page);
     if ((ret = __split_parent(session, ref, split_ref, 2, parent_incr, false, true)) == 0)
         return (0);
 
@@ -2304,7 +2306,7 @@ __split_insert(WT_SESSION_IMPL *session, WT_REF *ref)
 
     /* Fix up accounting for the page size. */
     __wt_cache_page_inmem_incr(session, page, page_decr);
-
+    
 err:
     if (split_ref[0] != NULL) {
         /*

@@ -3964,6 +3964,9 @@ const char *wiredtiger_version(int *majorp, int *minorp, int *patchp)
  * record which is part of a transaction that has been prepared but not yet
  * resolved.
  */
+//__wt_txn_prepare prepare的事务会释放快照，这样就会影响evict和可见性，因此prepare节点释放快照，这样可以减轻内存压力
+// 但是可见性会不一致，因此会增加对WT_PREPARE_INPROGRESS的WT_VISIBLE_PREPARE(见__wt_txn_upd_visible_type)，并增加udp
+// WT_PREPARE_CONFLICT冲突检查(见__wt_txn_read_upd_list_internal)
 #define	WT_PREPARE_CONFLICT	(-31808)
 /*!
  * Database corruption detected.

@@ -2275,6 +2275,8 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
          */
         if (!__wt_page_evict_retry(session, page) ||
           //说明page上可能还有很多未提交的事务在使用这个page，因此跳过这个evict
+          //这里可以看出如果该page最近一次更改的事务id不是全局可见，则不允许evict     
+          //????????????? 这里为什么不考虑__wt_txn_visible_all中的pinned_timestamp时间戳判断,事务id全局可见，时间戳不是全局可见，可以做evict????
           (modified && page->modify->update_txn >= conn->txn_global.last_running))
             continue;
 

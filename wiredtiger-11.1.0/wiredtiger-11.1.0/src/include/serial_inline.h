@@ -315,6 +315,7 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
         if (!__wt_txn_visible_all(session, txn, obsolete_timestamp)) {
             /* Try to move the oldest ID forward and re-check. */
             //update oldest然后在后面再做一次可见性判断
+            //还有个目的是为了主动做__wt_txn_update_oldest检查，进而释放内存中的历史版本
             ret = __wt_txn_update_oldest(session, 0);
             /*
              * We cannot proceed if we fail here as we have inserted the updates to the update
@@ -325,7 +326,8 @@ __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page
             if (ret != 0)
                 WT_RET_PANIC(session, ret, "fail to update oldest after serializing the updates");
 
-            //说明该page还在被其他事务使用，不是全局可见的
+            //说明obsolete_check_txn之前的udp还是不是全局可见的，也就是还是不能释放obsolete_check_txn之前内存中的所有版本
+            //增加obsolete_check_txn逻辑可以帮助update比较多的k，主动快速释放历史内存版本，减轻内存压力
             if (!__wt_txn_visible_all(session, txn, obsolete_timestamp))
                 return (0);
         }

@@ -121,7 +121,7 @@ struct __wt_import_list {
 
 /*
  * WT_WITH_LOCK_WAIT --
- *	Wait for a lock, perform an operation, drop the lock.
+ *	Wait for a lock, perform an operation, drop the lock.  例如lock_metadata_wait_application等lock_xxxx_wait_application走这里
  如果一个线程进入else分支，则加锁后会置位lock_flags，其他线程进来后就不需要加锁而是直接执行op
  //注意这里的lock_flags是诊断本session的，也就是本线程内的循环op调度
  */
@@ -159,6 +159,7 @@ struct __wt_import_list {
  * WT_WITH_CHECKPOINT_LOCK, WT_WITH_CHECKPOINT_LOCK_NOWAIT --
  *	Acquire the checkpoint lock, perform an operation, drop the lock.
  */
+//WT_SPIN_INIT_TRACKED中初始化checkpoint_lock锁
 #define WT_WITH_CHECKPOINT_LOCK(session, op) \
     WT_WITH_LOCK_WAIT(session, &S2C(session)->checkpoint_lock, WT_SESSION_LOCKED_CHECKPOINT, op)
 #define WT_WITH_CHECKPOINT_LOCK_NOWAIT(session, ret, op) \
@@ -174,6 +175,7 @@ struct __wt_import_list {
  *	Note: always waits because some operations need the handle list lock to
  *	discard handles, and we only expect it to be held across short
  *	operations.
+ __wt_connection_init初始化dhandle_lock锁
  */
 //加S2C(session)->dhandle_lock锁，执行op，然后释放锁
 #define WT_WITH_HANDLE_LIST_READ_LOCK(session, op)                            \

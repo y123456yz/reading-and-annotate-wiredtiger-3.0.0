@@ -629,7 +629,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
 
     for (; ins != NULL; ins = WT_SKIP_NEXT(ins)) {//遍历跳跃表
          //获取该ins对应的update链表中最新的V
-         //获取该ins对应的update链表中最新的V存储到upd_select， 及其可用历史版本存储到r->supd
+         //获取该ins对应的update链表中最新可见udp链表到upd_select，链表头部也就是第一个最新可见的udp
         WT_RET(__wt_rec_upd_select(session, r, ins, NULL, NULL, &upd_select));
         if ((upd = upd_select.upd) == NULL) {//upd记录的是该key对应的value修改列表，一般不会进来
             /*
@@ -685,7 +685,7 @@ __rec_row_leaf_insert(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_INSERT *ins)
                 val->len = 0;
             else
                 /* Take the value from the update. */
-                //value数据封装到r->v中
+                //value数据封装到r->v中，tw也会封装到r->v中最终写入磁盘
                 WT_RET(__wt_rec_cell_build_val(session, r, upd->data, upd->size, &tw, 0));
             break;
         case WT_UPDATE_TOMBSTONE:

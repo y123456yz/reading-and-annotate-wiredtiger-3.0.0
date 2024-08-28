@@ -373,6 +373,7 @@ conn_stats = [
     ##########################################
     # Locking statistics
     ##########################################
+    #__wt_connection_init中初始化
     LockStat('lock_checkpoint_count', 'checkpoint lock acquisitions'),
     LockStat('lock_checkpoint_wait_application', 'checkpoint lock application thread wait time (usecs)'),
     LockStat('lock_checkpoint_wait_internal', 'checkpoint lock internal thread wait time (usecs)'),
@@ -387,6 +388,7 @@ conn_stats = [
     LockStat('lock_metadata_count', 'metadata lock acquisitions'),
     LockStat('lock_metadata_wait_application', 'metadata lock application thread wait time (usecs)'),
     LockStat('lock_metadata_wait_internal', 'metadata lock internal thread wait time (usecs)'),
+    #lock_read_timestamp和lock_durable_timestamp实际上都没有用  yang add todo xxxxxxxxxxxxxxx
     LockStat('lock_read_timestamp_read_count', 'read timestamp queue read lock acquisitions'),
     LockStat('lock_read_timestamp_wait_application', 'read timestamp queue lock application thread time waiting (usecs)'),
     LockStat('lock_read_timestamp_wait_internal', 'read timestamp queue lock internal thread time waiting (usecs)'),

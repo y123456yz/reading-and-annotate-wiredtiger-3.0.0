@@ -52,7 +52,7 @@
 //__wt_block_ckpt的alloc avail discard为该类型
 //__wt_block_alloc中如果需要从avail中获取指定size的ext, 有了size跳跃表，可以方便快速查找指定长度可用的ext
 struct __wt_extlist {
-    //赋值见__wt_block_extlist_init
+    //赋值见__wt_block_extlist_init    
     char *name; /* Name */
 
     //跳表中所有elem数据字节数总和，参考__block_append  __block_ext_insert中增加extlist中所有ext保护的数据总数，
@@ -65,6 +65,7 @@ struct __wt_extlist {
     //赋值参考__wt_block_extlist_write，也就是跳表持久化到磁盘的核心元数据信息
     //重启的时候通过checkpoint元数据从__wt_block_ckpt_unpack加载起来对应跳表元数据
     uint32_t objectid; /* Written object ID */
+    //也就是记录该el跳表元数据记录到的磁盘位置，赋值参考__wt_block_extlist_write， [offset, size]也就是el跳表元数据在磁盘中位置段
     wt_off_t offset;   /* Written extent offset */
     uint32_t checksum; /* Written extent checksum */
     uint32_t size;     /* Written extent size */
@@ -185,7 +186,8 @@ struct __wt_block_ckpt {
     //配合__wt_ckpt_verbose阅读, 这里存储的就是__wt_rec_row_int封包的internal ref key+该internal page下面的持久化后在磁盘的元数据信息
 
     //重启的时候从__wt_block_checkpoint_load加载起来, root元数据来源见__wt_rec_row_int
-    uint32_t root_objectid;
+    //root page在磁盘的位置和大小
+    uint32_t root_objectid;//实际上写死的为WT_TIERED_OBJECTID_NONE 0，参考__wt_blkcache_open
     wt_off_t root_offset; /* The root */
     uint32_t root_checksum, root_size;
 
@@ -196,7 +198,52 @@ There are three extent lists that are maintained per checkpoint:
     discard: The file ranges freed in the current checkpoint.
 The alloc and discard extent lists are maintained as a skiplist sorted by file offset.
 The avail extent list also maintains an extra skiplist sorted by the extent size to aid with allocating new blocks.
+*/  
+
+
+/*
+    第一次生成一个midnight的checkpoint
+    for (int i = 0; i < 56; i++) {
+        snprintf(key_buf, 512, "keyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxx_keyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxxkeyxxxxxxxxxxxxxxxxxxxxxxxxx_%d", i);
+        cursor->set_key(cursor, i);  
+        cursor->set_value(cursor, key_buf);
+        error_check(cursor->insert(cursor));
+    }
+    error_check(session->checkpoint(session, "name=midnight")); 
+ 
+                  ext
+      文件头    leafpage1      leafpage2      root    el.alloc     el.avail  
+    |________|_____________|______________|________|___________|___________|
+    0      4096         28672           32768   36864       40960       45056    
+    
+    第一次checkpoint的结果是: 
+    el.alloc磁盘空间[36864, 40960]存储的是: [4096, 36864]上面的root + 所有leaf page的磁盘元数据。 因此只有获取到alloc中的内容就可以间接的获取到root + 所有leafpage
+    el.avail这里实际上存储的内容是[36864, 40960]对应的ext, 可以参考__ckpt_update->__wt_block_extlist_write->__wt_block_off_remove_overlap
+    el.alloc和el.avail的元数据存储在wiredtiger.wt中的checkpoint=xxxx中，因此通过wiredtiger.wt中的checkpoint=xxxx就可以获取的el.alloc和el.avail，从而可以间接的获取到磁盘上的所有page信息
+
+
+    第二次新增一条数据，page也就是有修改，生成同名midnight的checkpoint
+    cursor->set_key(cursor, 56);  
+    cursor->set_value(cursor, "4444444444444444444");
+    error_check(cursor->insert(cursor));
+    error_check(session->checkpoint(session, "name=midnight")); 
+
+                  ext
+      文件头    leafpage1      leafpage2      root    el.alloc     el.avail  leafpage2-new   new root  el.alloc     el.avail
+    |________|_____________|______________|________|___________|___________|_______________|_________|___________|___________|
+    0      4096         28672           32768   36864       40960       45056            49152    53248       57344       61440
+    \                                                                      /\                                                /
+     \                                                                    /  \                                              /         
+      \                             第一次checkpoint                     /    \               第二次checkpoint             /
+
+      第二次checkpoint后:
+      新的el.alloc磁盘空间[53248, 57344]存储的是:  [4096, 28672] = [4096, 28672] + [45056, 53248] = leafpage1[4096, 28672] + leafpage2-new[45056, 49152] + new root[49152, 53248]
+      
 */
+
+
+    //alloc内存中只会记录真实数据page，包括root、 internal、leaf page的ext数据，不包括el持久化的ext数据，参考__wt_block_extlist_write
+
     //ext信息打印可以配合__wt_ckpt_verbose阅读
     //重启的时候通过checkpoint元数据从__wt_block_ckpt_unpack加载起来对应跳表元数据
     WT_EXTLIST alloc;   /* Extents allocated */ //__wt_block_alloc中分配ext空间，添加到alloc跳跃表中
@@ -204,6 +251,8 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     //__wt_block_alloc中如果需要从avail中获取指定size的ext, 有了size跳跃表，可以方便快速查找指定长度可用的ext
     WT_EXTLIST avail;   /* Extents available */
     //从alloc跳跃表中删除某个范围的ext，如果alloc跳跃表中没找到，则这个要删除范围对应的ext添加到discard跳跃表中，参考__wt_block_off_free
+    //例如对某个表连续做了两次checkpoint，两次checkpoint期间，某个page做了修改，则第二次得checkpoint会对修改得page重新生成一个ext,并标识
+    //  这个修改得page在第一次checkpoint的对应ext为discard，也就是discard对应ext记录的是第二次checkpoint相比第一次checkpoint修改的page对应的ext
     WT_EXTLIST discard; /* Extents discarded */
 
     //赋值参考__ckpt_update， 也就是block->size，也就是做checkpoint时候的文件大小
@@ -215,6 +264,7 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
     uint64_t ckpt_size; /* Checkpoint byte count */
 
     //分配空间__ckpt_proces, 赋值见__ckpt_extlist_fblocks
+    //把需要释放的checkpoint对应的el再磁盘上的ext元数据添加到ckpt_avail   
     WT_EXTLIST ckpt_avail; /* Checkpoint free'd extents */
     /*
      * Checkpoint archive: the block manager may potentially free a lot of memory from the
@@ -309,7 +359,7 @@ struct __wt_bm {
 struct __wt_block {
     //例如access.wt
     const char *name;  /* Name */
-    //__wt_block_open中赋值
+    //__wt_block_open中赋值 //实际上写死的为WT_TIERED_OBJECTID_NONE 0，参考__wt_blkcache_open
     uint32_t objectid; /* Object id */
     uint32_t ref;      /* References */
 

@@ -59,7 +59,7 @@ struct __wt_rec_chunk {
     //对应的ref key，赋值参考__rec_split_row_promote __wt_rec_split_init  __rec_split_finish_process_prev, 实际上就是split的拆分点
     //__rec_split_write中赋值给WT_MULTI.key.ikey, 在__rec_split_dump_keys会打印
     WT_ITEM key;
-    //WT_TIME_AGGREGATE_UPDATE中统计赋值
+    //__rec_row_leaf_insert  __wt_rec_row_leaf->WT_TIME_AGGREGATE_UPDATE中统计赋值
     WT_TIME_AGGREGATE ta;
 
     /* Saved minimum split-size boundary information. */
@@ -324,9 +324,11 @@ yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:2866
      * page, we save WT_UPDATE lists here, and then move them to per-block areas as the blocks are
      * defined.
      */
-    //__rec_update_save中对下面几个值赋值，记录的是存在更新操作的KV中的V的多个版本信息
+    //reconcile的时候如果page上对应的KV udp链表上面有全局不可见的udp，则会把这些udp链表记录到sudp数组中保存起来
+    //__rec_update_save中对下面几个值赋值，记录的是存在更新操作的KV中的V的多个版本信息, 
+    //最终在__rec_supd_move赋值给multi->supd[]数组，然后在__rec_hs_wrapup持久化wiredtigerHS.wt中
     WT_SAVE_UPD *supd; /* Saved updates */
-    //数组大小
+    //数组大小，赋值见__rec_update_save
     uint32_t supd_next;
     size_t supd_allocated;
     size_t supd_memsize; /* Size of saved update structures */
@@ -336,6 +338,8 @@ yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:2866
      * we save the updates that needs to be deleted from history store here, and then delete them
      * after we have built the disk image.
      */
+    // __rec_find_and_save_delete_hs_upd: 把需要从WiredtigerHS.wt文件中删除的udp找出来，记录到delete_hs_upd[]数组中,等待__rec_hs_wrapup做真正的删除操作
+    // __rec_hs_wrapup: 做真正的hs删除操作
     WT_DELETE_HS_UPD *delete_hs_upd; /* Updates to delete from history store */
     uint32_t delete_hs_upd_next;
     size_t delete_hs_upd_allocated;
@@ -345,9 +349,8 @@ yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:2866
 
     //可以参考__rec_split_dump_keys的遍历,__rec_split_write这里创建空间和赋值
     //__rec_split_write中把chunk数据写入磁盘，并保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)到WT_MULTI中
-    WT_MULTI *multi;
+    WT_MULTI *multi;//是一个数组，数组大小multi_next，见__rec_split_write
     //__rec_split_write中自增, 也就是该page拆分为了多少个新page，可以参考__rec_split_dump_keys的打印
-    //0:删除该page   1:page和其他page交换了  >=2: 说明一个拆分为多个chunk
     uint32_t multi_next;
     size_t multi_allocated;
 
@@ -434,6 +437,7 @@ yang test ......__rec_split_write.......__wt_memdup....supd_restore:0..size:2866
 typedef struct {
     //这个是同一个K数据对应的最新的V，参考__rec_upd_select
     WT_UPDATE *upd;       /* Update to write (or NULL) */
+    //指向链表上面的删除udp, 说明upd_select->upd链表第一个udp是删除操作，指向这个删除udp
     WT_UPDATE *tombstone; /* The tombstone to write (or NULL) */
 
     //赋值见__rec_fill_tw_from_upd_select

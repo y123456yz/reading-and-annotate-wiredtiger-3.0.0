@@ -128,10 +128,17 @@ __bm_block_header(WT_BM *bm)
 //leaf page持久化到ext流程: __reconcile->__wt_rec_row_leaf->__wt_rec_split_finish->__rec_split_write->__rec_write
 //    ->__wt_blkcache_write->__bm_write->__wt_block_write
 
+//真正的源头在__rec_write_wrapup->__rec_write(session, r->wrapup_checkpoint,xxxxxxxxxxxxxxxx)
+
 //buf内容为internal page的ref key及其下面所有子page的磁盘元数据信息，参考__wt_rec_row_int
 static int
 __bm_checkpoint(
-  WT_BM *bm, WT_SESSION_IMPL *session, WT_ITEM *buf, WT_CKPT *ckptbase, bool data_checksum)
+  WT_BM *bm, WT_SESSION_IMPL *session, 
+  //这里的bug实际上是root page的ref key信息
+  WT_ITEM *buf, 
+  //也就是btree->ckpt
+  WT_CKPT *ckptbase, 
+  bool data_checksum)
 {
     WT_BLOCK *block, *tblock;
     WT_CONNECTION_IMPL *conn;

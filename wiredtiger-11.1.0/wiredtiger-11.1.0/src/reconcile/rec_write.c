@@ -1832,6 +1832,7 @@ __wt_rec_split_finish(WT_SESSION_IMPL *session, WT_RECONCILE *r)
 /*
  * __rec_supd_move --
  *     Move a saved WT_UPDATE list from the per-page cache to a specific block's list.
+ //把需要reconcile的page上面的存在不是全局可见的udp链表信息转存到multi中
  */
 static int
 __rec_supd_move(WT_SESSION_IMPL *session, WT_MULTI *multi, WT_SAVE_UPD *supd, uint32_t n)
@@ -1859,7 +1860,9 @@ __rec_supd_move(WT_SESSION_IMPL *session, WT_MULTI *multi, WT_SAVE_UPD *supd, ui
  */
 static int
 __rec_split_write_supd(
-  WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk, WT_MULTI *multi, bool last_block)
+  WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk, WT_MULTI *multi, 
+  //代表r->chunk这个需要block是不是这个page持久化的最后一个block
+  bool last_block)
 {
     WT_BTREE *btree;
     WT_DECL_ITEM(key);
@@ -1880,7 +1883,8 @@ __rec_split_write_supd(
      *
      * The last block gets all remaining saved updates.
      */
-    if (last_block) {
+    if (last_block) {//代表r->chunk这个需要持久化的block是不是这个page持久化的最后一个block
+        //把需要reconcile的page上面的存在不是全局可见的udp链表信息转存到multi中
         WT_RET(__rec_supd_move(session, multi, r->supd, r->supd_next));
         r->supd_next = 0;
         r->supd_memsize = 0;
@@ -1916,6 +1920,7 @@ __rec_split_write_supd(
         for (i = 0, supd = r->supd; i < r->supd_next; ++i, ++supd)
             if (WT_INSERT_RECNO(supd->ins) >= next->recno)
                 break;
+    
     if (i != 0) {
         WT_ERR(__rec_supd_move(session, multi, r->supd, i));
 
@@ -2213,7 +2218,7 @@ __rec_compression_adjust(WT_SESSION_IMPL *session,
 static int
 __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk,
   WT_ITEM *compressed_image, 
-  //代表
+  //代表r->chunk这个需要block是不是这个page持久化的最后一个block
   bool last_block)
 {
     WT_BTREE *btree;
@@ -2253,6 +2258,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
     //printf("yang test ...............__rec_split_write............multi_next:%d\r\n", (int)r->multi_next);
 
     /* Initialize the address (set the addr type for the parent). */
+    //r->multi[]数组中这个multi的ta赋值
     WT_TIME_AGGREGATE_COPY(&multi->addr.ta, &chunk->ta);
 
     switch (page->type) {
@@ -2306,16 +2312,19 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
      */
     //如果ref对应root page，并且root page只有一个chunk就可以存储，则不会走后面的__rec_write写盘逻辑，这里直接记录wrapup_checkpoint返回
     if (last_block && r->multi_next == 1 && __rec_is_checkpoint(session, r)) {
+        //也就是代表当前持久化root page, 也就是说明在做checkpoint
         WT_ASSERT_ALWAYS(
           session, r->supd_next == 0, "Attempting to write final block but further updates found");
-
-        //root一般在__rec_write_wrapup真正写盘
+        //说明该session做checkpoint时候已经开始对root做checkpoint，root page做checkpoint不是简单得把root持久化到磁盘，而是在
+        //__rec_write_wrapup进行alloc avail跳表中ext的持久化
+        //注意: 这里不会走后面的__rec_write流程，而是在__rec_write_wrapup进行特殊的持久化
         if (compressed_image == NULL)
             r->wrapup_checkpoint = &chunk->image;
         else {
             r->wrapup_checkpoint = compressed_image;
             r->wrapup_checkpoint_compressed = true;
         }
+        //注意这里直接返回了，真正得__rec_write持久化在__rec_write_wrapup
         return (0);
     }
 
@@ -2337,7 +2346,9 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
             return (__wt_set_return(session, EBUSY));
 
         /* If we need to restore the page to memory, copy the disk image. */
+        //说明有不是全局id可见的udp,赋值参考__rec_update_save
         if (multi->supd_restore)
+            //这里会直接跳过后面的__rec_write持久化流程，直接把这部分需要reconcile的内存拷贝给multi->disk_image
             goto copy_image;
 
         WT_ASSERT_ALWAYS(session, chunk->entries > 0, "Trying to write an empty chunk");
@@ -2398,7 +2409,7 @@ copy_image:
      * If re-instantiating this page in memory (either because eviction wants to, or because we
      * skipped updates to build the disk image), save a copy of the disk image.
     //__evict_update_work 例如如果已使用内存占比总内存不超过(target 80% + trigger 95%)配置的一半，则设置标识WT_CACHE_EVICT_SCRUB，
-    //  说明reconcile的适合可以内存拷贝一份page数据存入image
+    //  说明reconcile的时候可以内存拷贝一份page数据存入image
      */
     //拷贝数据到multi->disk_image,  reconcile会满足WT_REC_SCRUB条件
     if (F_ISSET(r, WT_REC_SCRUB) || multi->supd_restore) {
@@ -2626,6 +2637,8 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
      * If using the history store table eviction path and we found updates that weren't globally
      * visible when reconciling this page, copy them into the database's history store. This can
      * fail, so try before clearing the page's previous reconciliation state.
+
+     reconcile操作的page上面如果有不是全局可见的udp，则需要把这些不可见的udp添加到wiredtigerHS.wt文件中
      */
     if (F_ISSET(r, WT_REC_HS))
         WT_RET(__rec_hs_wrapup(session, r));
@@ -2680,6 +2693,7 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
                              * The exception is root pages are never tracked or free'd, they are
                              * checkpoints, and must be explicitly dropped.
                              */
+        //例如两次checkpoint或者同一个page修改后evict期间，某个page修改了，这时候就需要释放之前的page加入discard
         if (!__wt_ref_is_root(ref))
             WT_RET(__wt_btree_block_free(session, mod->mod_replace.addr, mod->mod_replace.size));
 
@@ -2708,6 +2722,7 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
          */
         ref = r->ref;
         if (__wt_ref_is_root(ref)) {
+            //root做reconcile说明在做checkpoint,需要更新checkpoint的time窗口
             __wt_checkpoint_tree_reconcile_update(session, &ta);
             WT_RET(bm->checkpoint(bm, session, NULL, btree->ckpt, false));
         }
@@ -2748,8 +2763,11 @@ __rec_write_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
             r->multi->addr.addr = NULL;
             mod->mod_disk_image = r->multi->disk_image;
             r->multi->disk_image = NULL;
-        } else {//如果是root page，并且只有reconcile后只有一个page，则在这里写盘
+        } else {//说明当前做checkpoint已经到了顶层的root page，
+            //root做reconcile说明在做checkpoint,需要更新checkpoint的time窗口
             __wt_checkpoint_tree_reconcile_update(session, &r->multi->addr.ta);
+
+            //配合__rec_split_write阅读，__rec_split_write中没有持久化，直接这里持久化，注意这里__rec_write的checkpoint为true
             WT_RET(__rec_write(session, r->wrapup_checkpoint, NULL, NULL, NULL, true,
               F_ISSET(r, WT_REC_CHECKPOINT), r->wrapup_checkpoint_compressed));
         }
@@ -2871,6 +2889,8 @@ __rec_write_err(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 /*
  * __rec_hs_wrapup --
  *     Copy all of the saved updates into the database's history store table.
+  __rec_find_and_save_delete_hs_upd: 把需要从WiredtigerHS.wt文件中删除的udp找出来，记录到delete_hs_upd[]数组中
+ __rec_hs_wrapup: 做真正的hs删除操作
  */
 static int
 __rec_hs_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r)
@@ -2895,12 +2915,15 @@ __rec_hs_wrapup(WT_SESSION_IMPL *session, WT_RECONCILE *r)
      * Delete the updates left in the history store by prepared rollback first before moving updates
      * to the history store.
      */
+    //从WiredtigerHS.wt文件中删除需要删除的udp
     WT_ERR(__wt_hs_delete_updates(session, r));
 
     /* Check if there's work to do. */
+    //首先判断本次做reconcile对应的page上释放存在不可见的udp信息
     for (multi = r->multi, i = 0; i < r->multi_next; ++multi, ++i)
         if (multi->supd != NULL)
             break;
+            
     if (i == r->multi_next)
         return (0);
 
