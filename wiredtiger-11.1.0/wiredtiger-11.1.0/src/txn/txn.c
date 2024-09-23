@@ -575,8 +575,8 @@ transaction id: 20, mod count: 1, snap min: 14, snap max: 20, snapshot count: 6,
         metadata_pinned = oldest_id;
 
     //yang add todo xxxxxxxxxxxxxxxxxxxxxx   实际上这里用ckpt_session也不对，因为用户可能自己做checkpoint，而不一定是checkpoint server做checkpoint
-    if (WT_TXNID_LT(metadata_pinned, oldest_id))
-        oldest_session = &conn->ckpt_session;
+   // if (WT_TXNID_LT(metadata_pinned, oldest_id))
+    //    oldest_session = &conn->ckpt_session;
 
 
     //到这里说明oldest_id是所有session中事务id、pinned_id中最小的
@@ -649,7 +649,7 @@ __wt_txn_update_oldest(WT_SESSION_IMPL *session, uint32_t flags)
     uint64_t current_id, last_running, metadata_pinned, oldest_id;
     uint64_t prev_last_running, prev_metadata_pinned, prev_oldest_id;
     bool strict, wait;
-
+    
     conn = S2C(session);
     txn_global = &conn->txn_global;
     strict = LF_ISSET(WT_TXN_OLDEST_STRICT);
@@ -3066,7 +3066,7 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
     conn = S2C(session);
     txn_global = &conn->txn_global;
 
-    //return 0;//yang add change
+    return 0;//yang add change
 
     WT_ERR(__wt_scr_alloc(session, 20480, &snapshot_buf));
     
@@ -3082,14 +3082,17 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "last running ID: %" PRIu64 "\r\n", txn_global->last_running));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "metadata_pinned ID: %" PRIu64 "\r\n", txn_global->metadata_pinned));
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest ID: %" PRIu64 "\r\n", txn_global->oldest_id));
-    Timestamp calculatedOldestTimestamp(stableTimestamp.getSecs() -
-                                            minSnapshotHistoryWindowInSeconds.load(),
-                                        stableTimestamp.getInc());
+
 
 /*
 {"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960240,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198679, 839): Updated global stable timestamp"}}}
 {"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960278,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198379, 839): Updated global oldest timestamp"}}}
 {"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960298,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198379, 839): Updated pinned timestamp"}}}
+
+mongo server
+Timestamp calculatedOldestTimestamp(stableTimestamp.getSecs() -
+                                        minSnapshotHistoryWindowInSeconds.load(),
+                                    stableTimestamp.getInc());
 */
 //向副本集实例不停的写数据，会不停打印更新stable timestamp和oldest timestamp，两个差值就是默认的minSnapshotHistoryWindowInSeconds=300秒
 

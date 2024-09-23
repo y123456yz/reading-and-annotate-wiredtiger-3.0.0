@@ -238,7 +238,8 @@ The avail extent list also maintains an extra skiplist sorted by the extent size
 
       第二次checkpoint后:
       新的el.alloc磁盘空间[53248, 57344]存储的是:  [4096, 28672] = [4096, 28672] + [45056, 53248] = leafpage1[4096, 28672] + leafpage2-new[45056, 49152] + new root[49152, 53248]
-      
+
+      参考demo: debug_checkpoint理解_ex.c
 */
 
 
@@ -317,9 +318,11 @@ struct __wt_bm {
     //__bm_read
     int (*read)(WT_BM *, WT_SESSION_IMPL *, WT_ITEM *, const uint8_t *, size_t);
     int (*salvage_end)(WT_BM *, WT_SESSION_IMPL *);
+    //__bm_salvage_next
     int (*salvage_next)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t *, bool *);
     //__bm_salvage_start
     int (*salvage_start)(WT_BM *, WT_SESSION_IMPL *);
+    //__bm_salvage_valid
     int (*salvage_valid)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t, bool);
     int (*size)(WT_BM *, WT_SESSION_IMPL *, wt_off_t *);
     //__bm_stat
@@ -412,6 +415,7 @@ struct __wt_block {
         //__wt_block_checkpoint_start
         WT_CKPT_INPROGRESS,
         WT_CKPT_PANIC_ON_FAILURE,
+        //__wt_block_salvage_start中赋值
         WT_CKPT_SALVAGE
     } ckpt_state;
 
@@ -453,9 +457,10 @@ struct __wt_block {
   a magic number, and a checksum of the block contents. This information is used to verify that the file is a legitimate WiredTiger
   data file with a compatible WiredTiger version, and that its contents are not corrupted.
  */
-//先把该结构写入数据文件最前面 __wt_desc_write
+//先把该结构写入数据文件最前面 __wt_desc_write， 也就是一个表对应wt文件的头部4K记录的信息，头部异常则读取wt文件会在__desc_read报错
+//可以通过./wt -C "verbose=[all:5]" -R  salvage -F file:collection-9--6421956552934611461.wt进行强制数据修复
 struct __wt_block_desc {
-#define WT_BLOCK_MAGIC 120897
+#define WT_BLOCK_MAGIC 120897 
     uint32_t magic; /* 00-03: Magic number */
 #define WT_BLOCK_MAJOR_VERSION 1
     uint16_t majorv; /* 04-05: Major version */
@@ -501,6 +506,8 @@ __wt_block_desc_byteswap(WT_BLOCK_DESC *desc)
 
  参考https://source.wiredtiger.com/develop/arch-block.html
  */
+//wt文件头部4K magic  checksum检查在__desc_read
+
 //WT_PAGE_HEADER(__wt_page_header)在__rec_split_write_header中完成赋值，对应内存位置见WT_BLOCK_HEADER_REF
 //WT_BLOCK_HEADER(__wt_block_header)赋值在写磁盘完成后，在__block_write_off赋值,对应内存偏移见WT_PAGE_HEADER_BYTE_SIZE
 //如果配置了压缩，则__wt_page_header记录的是压缩前的数据信息,__wt_block_header记录的是压缩后的数据信息
@@ -539,6 +546,7 @@ struct __wt_block_header {
  * WT_BLOCK_HEADER_SIZE is the number of bytes we allocate for the structure: if the compiler
  * inserts padding it will break the world.
  */
+//也就是上面的__wt_block_header结构长度，__block_write_off中通过blk填充
 #define WT_BLOCK_HEADER_SIZE 12
 
 /*

@@ -14,6 +14,7 @@
  * __block_addr_unpack --
  *     Unpack an address cookie into components, UPDATING the caller's buffer reference so this
  *     function can be called repeatedly to unpack a buffer containing multiple address cookies.
+ __wt_block_addr_pack和__block_addr_unpack对应
  */
 //__block_ckpt_unpack->__block_addr_unpack
 //从checkpoint核心二进制元数据pp数组addr="018c81e4ab0a3a0d8d81e476e6c0b19981e448ded3b9808080e3270fc0e323bfc0"中解包还原到objectidp offsetp sizep checksump对应成员变量中
@@ -85,8 +86,9 @@ __block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t **p
 /*
  * __wt_block_addr_pack --
  *     Pack components into an address cookie, UPDATING the caller's buffer reference.
+  __wt_block_addr_pack和__block_addr_unpack对应
  */
-//对objectid offset size  checksum四个字段进行封包存入pp[]数组中,
+//对objectid offset size  checksum四个字段进行封包存入pp[]数组中, 通过获取pp[]数组即可获取到一个完整block的元数据
 int
 __wt_block_addr_pack(WT_BLOCK *block, uint8_t **pp, uint32_t objectid, wt_off_t offset,
   uint32_t size, uint32_t checksum)

@@ -102,7 +102,7 @@ __wt_page_release_evict(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
     
    // printf("yang test ...............__wt_page_release_evict........................2..\r\n");
     (void)__wt_atomic_addv32(&btree->evict_busy, 1);
-    WT_RET(__wt_msg(session, "yang test .............................__wt_page_release_evict...................."));
+    //WT_RET(__wt_msg(session, "yang test .............................__wt_page_release_evict...................."));
     ret = __wt_evict(session, ref, previous_state, evict_flags);
     (void)__wt_atomic_subv32(&btree->evict_busy, 1);
 

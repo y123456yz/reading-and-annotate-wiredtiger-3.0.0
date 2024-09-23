@@ -154,7 +154,7 @@ struct __wt_data_handle {
 //如果该表的page都已经evict完了，则标记该表已经evicet完成  __evict_walk_tree中赋值
 #define WT_DHANDLE_EVICTED 0x010u      /* Btree is evicted (advisory) */
 //独占访问 //__wt_curfile_open   __wt_session_lock_dhandle
-//代表是否独占dhandle,dhandle加写锁后就代表独占
+//代表是否独占dhandle,dhandle加写锁后就代表独占,也就是只有当前session一个cursor在访问这个btree
 #define WT_DHANDLE_EXCLUSIVE 0x020u    /* Exclusive access */ //
 //也就是WT_HS_URI文件
 #define WT_DHANDLE_HS 0x040u           /* History store table */

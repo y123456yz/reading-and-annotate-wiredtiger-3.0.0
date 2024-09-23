@@ -543,8 +543,11 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
         btree->syncing = WT_BTREE_SYNC_RUNNING;
         is_hs = WT_IS_HS(btree->dhandle);
 
-        printf("yang test ............................__wt_sync_file.......sleep... \r\n");
-        //__wt_sleep(100,0);//yang add change 
+        __wt_verbose(session, WT_VERB_VERSION,
+          "yang test __wt_sync_file.......sleep.:%s", "");
+
+        //printf("yang test __wt_sync_file.......sleep... \r\n");
+        __wt_sleep(1,0);//yang add change 
 
         /* Add in history store reconciliation for standard files. */
         rec_flags = WT_REC_CHECKPOINT;

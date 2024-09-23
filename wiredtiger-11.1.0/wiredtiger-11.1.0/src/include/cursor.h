@@ -78,21 +78,25 @@ Wiredtiger_record_store.cpp (src\mongo\db\storage\wiredtiger):    WT_CURSOR* c =
             F_SET(cursor, WT_CURSTD_EVICT_REPOSITION);                              \
     } while (0)
 
+//session->bkp_cursor为该类型
 struct __wt_cursor_backup {
     WT_CURSOR iface;
 
     size_t next;     /* Cursor position */
+    //WT_BACKUP_TMP文件  __backup_start，最终在__backup_start结尾被更名为WT_METADATA_BACKUP，里面存储的是备份表的元数据信息
     WT_FSTREAM *bfs; /* Backup file stream */
 
 #define WT_CURSOR_BACKUP_ID(cursor) (((WT_CURSOR_BACKUP *)(cursor))->maxid)
     uint32_t maxid; /* Maximum log file ID seen */
 
+    //赋值参考__backup_list_append，需要备份的文件添加到这里面
     char **list; /* List of files to be copied. */
     size_t list_allocated;
     size_t list_next;
 
     /* File offset-based incremental backup. */
     WT_BLKINCR *incr_src; /* Incremental backup source */
+    //"incremental.file"配置，赋值见__backup_config
     char *incr_file;      /* File name */
 
     WT_CURSOR *incr_cursor; /* File cursor */
@@ -107,13 +111,16 @@ struct __wt_cursor_backup {
 #define WT_CURBACKUP_CKPT_FAKE 0x001u   /* Object has fake checkpoint */
 #define WT_CURBACKUP_CONSOLIDATE 0x002u /* Consolidate returned info on this object */
 #define WT_CURBACKUP_DUP 0x004u         /* Duplicated backup cursor */
+//backup:export配置
 #define WT_CURBACKUP_EXPORT 0x008u      /* Special backup cursor for export operation */
 #define WT_CURBACKUP_FORCE_FULL 0x010u  /* Force full file copy for this cursor */
 #define WT_CURBACKUP_FORCE_STOP 0x020u  /* Force stop incremental backup */
 #define WT_CURBACKUP_HAS_CB_INFO 0x040u /* Object has checkpoint backup info */
 #define WT_CURBACKUP_INCR 0x080u        /* Incremental backup cursor */
 #define WT_CURBACKUP_INCR_INIT 0x100u   /* Cursor traversal initialized */
+//标识在做backu，参考__backup_start， 通过该标识来进行__backup_stop操作
 #define WT_CURBACKUP_LOCKER 0x200u      /* Hot-backup started */
+//backup:query_id配置，和增量相关
 #define WT_CURBACKUP_QUERYID 0x400u     /* Backup cursor for incremental ids */
 #define WT_CURBACKUP_RENAME 0x800u      /* Object had a rename */
                                         /* AUTOMATIC FLAG VALUE GENERATION STOP 32 */
@@ -335,6 +342,7 @@ struct __wt_cursor_bulk {
      * row-store compares keys during bulk load to avoid corruption.
      */
     bool first_insert; /* First insert */
+    //bulk load是顺序insert，因此需要记录上一次的kv，新kv进来的时候比较是否满足顺序，参考__curbulk_insert_row
     WT_ITEM *last;     /* Last key/value inserted */
 
     /*

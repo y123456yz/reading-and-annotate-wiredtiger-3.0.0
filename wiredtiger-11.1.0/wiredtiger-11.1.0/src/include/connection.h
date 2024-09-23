@@ -411,7 +411,9 @@ struct __wt_connection_impl {
     uint32_t recovery_ckpt_snapshot_count;
 
     WT_RWLOCK hot_backup_lock; /* Hot backup serialization */
+    //赋值参考WT_CONN_HOTBACKUP_START
     uint64_t hot_backup_start; /* Clock value of most recent checkpoint needed by hot backup */
+    //赋值参考__backup_start
     char **hot_backup_list;    /* Hot backup file list */
     uint32_t *partial_backup_remove_ids; /* Remove btree id list for partial backup */
 

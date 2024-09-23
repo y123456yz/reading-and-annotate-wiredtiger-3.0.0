@@ -1439,6 +1439,7 @@ err:
 static int
 __session_salvage_worker(WT_SESSION_IMPL *session, const char *uri, const char *cfg[])
 {
+    //salvage逻辑主要在__wt_salvage
     WT_RET(__wt_schema_worker(
       session, uri, __wt_salvage, NULL, cfg, WT_DHANDLE_EXCLUSIVE | WT_BTREE_SALVAGE));
     WT_RET(__wt_schema_worker(session, uri, NULL, __wt_rollback_to_stable_one, cfg, 0));
@@ -1454,7 +1455,8 @@ The salvage command salvages the specified data source, discarding any data that
 files are re-written in place, overwriting the original file contents
 
  http://source.wiredtiger.com/2.7.0/command_line.html  修复异常数据相关
-
+ ../wt  -R -C "verbose=[all:5]" salvage file:collection-7--7537701785906233941.wt 
+salvage的原理是从头读wt文件，然后生成该wt对应btree的checkpoint信息，并修改wiredtiger.wt元数据中的该btree的checkpoint信息，当重启mongod进程的时候就可以通过该checkpoint加载数据
  */ //wiredtiger_open中调用
 static int
 __session_salvage(WT_SESSION *wt_session, const char *uri, const char *config)

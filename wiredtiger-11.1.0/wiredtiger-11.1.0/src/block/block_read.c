@@ -151,6 +151,7 @@ err:
  * __wt_block_read_off --
  *     Read an addr/size pair referenced block into a buffer.
  读取磁盘上面的avail或者alloc跳跃表中的ext元数据到内存中
+ 并且做checksum检查
  */
 int
 __wt_block_read_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint32_t objectid,

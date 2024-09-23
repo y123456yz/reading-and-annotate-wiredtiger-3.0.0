@@ -453,6 +453,7 @@ __wt_log_written_reset(WT_SESSION_IMPL *session)
  *     Retrieve the list of log files for taking a backup, either all of them or only the active
  *     ones (those that are not candidates for removal). The caller is responsible for freeing the
  *     directory list returned.
+ 获取当前的wiredtigerLog.xxx文件名存入filesp[]中
  */
 int
 __wt_log_get_backup_files(

@@ -91,8 +91,8 @@ __wt_reconcile(WT_SESSION_IMPL *session, WT_REF *ref, WT_SALVAGE_COOKIE *salvage
      */
     //__wt_reconcileÓë__wt_insert_serial¡¢__wt_update_serialÐèÒª»¥³â
     //if (page->type == WT_PAGE_ROW_LEAF)
-    printf("yang test .........__wt_reconcile...........WT_PAGE_LOCK.....page:%p   %s, flags:%u\r\n", 
-        page, __wt_page_type_string(page->type), flags);
+    //printf("yang test .........__wt_reconcile...........WT_PAGE_LOCK.....page:%p   %s, flags:%u\r\n", 
+       // page, __wt_page_type_string(page->type), flags);
     WT_PAGE_LOCK(session, page);
     page_locked = true;
     

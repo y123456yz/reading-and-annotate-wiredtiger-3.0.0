@@ -368,7 +368,7 @@ __split_ref_prepare(
         WT_ERR(__wt_realloc_def(session, &alloc, cnt + 2, &locked));
         locked[cnt++] = child;
 
-        printf("yang test .........__split_ref_prepare...........WT_PAGE_LOCK.....page:%p, %s\r\n", child, __wt_page_type_string(child->type));
+       // printf("yang test .........__split_ref_prepare...........WT_PAGE_LOCK.....page:%p, %s\r\n", child, __wt_page_type_string(child->type));
         WT_PAGE_LOCK(session, child);
 
         /* Switch the WT_REF's to their new page. */
@@ -830,8 +830,8 @@ __split_parent(WT_SESSION_IMPL *session,
                 ref_new[j]->home = parent;
                 ref_new[j]->pindex_hint = hint++;
                 *alloc_refp++ = ref_new[j];
-                if (ref_new[j]->page == NULL)
-                    printf("yang test .....__split_parent........2.........page:%p\r\n", ref_new[j]->page);
+                //if (ref_new[j]->page == NULL)
+                 //   printf("yang test .....__split_parent........2.........page:%p\r\n", ref_new[j]->page);
             }
             continue;
         }
@@ -1381,7 +1381,7 @@ __split_internal_lock(WT_SESSION_IMPL *session, WT_REF *ref, bool trylock, WT_PA
         if (trylock) //获取page对应的page_lock锁
             WT_RET(WT_PAGE_TRYLOCK(session, parent));
         else {
-            printf("yang test ...__split_internal_lock...........WT_PAGE_LOCK.....page:%p %s\r\n", parent, __wt_page_type_string(parent->type));
+        //    printf("yang test ...__split_internal_lock...........WT_PAGE_LOCK.....page:%p %s\r\n", parent, __wt_page_type_string(parent->type));
         
             WT_PAGE_LOCK(session, parent);
         }
@@ -2508,9 +2508,9 @@ int
 __wt_split_multi(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
 {
     WT_DECL_RET;
-    uint64_t time_start, time_stop;
+   // uint64_t time_start, time_stop;
 
-    time_start = __wt_clock(session);
+   // time_start = __wt_clock(session);
     __wt_verbose(session, WT_VERB_SPLIT, "%p: split-multi", (void *)ref);
 
     /*
@@ -2519,9 +2519,9 @@ __wt_split_multi(WT_SESSION_IMPL *session, WT_REF *ref, int closing)
      */
     WT_WITH_PAGE_INDEX(session, ret = __split_multi_lock(session, ref, closing));
 
-    time_stop = __wt_clock(session);
+  //  time_stop = __wt_clock(session);
     
-    printf("yang test ..........__wt_split_multi...............time:%d us\r\n", (int)WT_CLOCKDIFF_US(time_stop, time_start));
+   // printf("yang test ..........__wt_split_multi...............time:%d us\r\n", (int)WT_CLOCKDIFF_US(time_stop, time_start));
 
     return (ret);
 }

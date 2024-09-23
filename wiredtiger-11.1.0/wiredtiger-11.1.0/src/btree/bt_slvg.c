@@ -240,7 +240,7 @@ __wt_salvage(WT_SESSION_IMPL *session, const char *cfg[])
 
     btree = S2BT(session);
     bm = btree->bm;
-
+    printf("yang test ............__wt_salvage.............1...\r\n");
     WT_CLEAR(stuff);
     ss = &stuff;
     ss->session = session;
@@ -255,6 +255,7 @@ __wt_salvage(WT_SESSION_IMPL *session, const char *cfg[])
      * Step 1:
      * Inform the underlying block manager that we're salvaging the file.
      */
+    //__bm_salvage_start
     WT_ERR(bm->salvage_start(bm, session));
 
     /*
@@ -438,6 +439,8 @@ __slvg_read(WT_SESSION_IMPL *session, WT_STUFF *ss)
 
     for (;;) {
         /* Get the next block address from the block manager. */
+        //从block->slvg_off位置，不断连续读取4K大小数据以block为单位进行校验检查，如果校验检查不通过，则直接跳过该block, 检查通过的block元数据信息
+        //__bm_salvage_next //获取到一个完成block检查通过后，block元数据(objectid offset size checksum)封装给addr[]数组, 通过获取addr[]数组即可获取到一个完整block的元数据
         WT_ERR(bm->salvage_next(bm, session, addr, &addr_size, &eof));
         if (eof)
             break;
@@ -454,14 +457,16 @@ __slvg_read(WT_SESSION_IMPL *session, WT_STUFF *ss)
          *
          * Report the block's status to the block manager.
          */
+        //通过一个完整block的元数据(objectid offset size checksum)，读取block中的内如存入buf
         if ((ret = __wt_blkcache_read(session, buf, addr, addr_size)) == 0)
             valid = true;
-        else {
+        else {//例如读取的block数据解压校验失败，走这里
             valid = false;
             if (ret == WT_ERROR)
                 ret = 0;
             WT_ERR(ret);
         }
+        //__bm_salvage_valid， 如果是数据层面解压失败，需要把这个block加到avail跳表中
         WT_ERR(bm->salvage_valid(bm, session, addr, addr_size, valid));
         if (!valid)
             continue;

@@ -738,7 +738,7 @@ __wt_btcur_iterate_setup(WT_CURSOR_BTREE *cbt)
      */
     //例如第一次开始使用next, 这时候就还不知道ref位置
     if (cbt->ref == NULL) {
-        printf("yang test __wt_btcur_iterate_setup ..................%p\r\n", cbt->ref);
+        //printf("yang test __wt_btcur_iterate_setup ..................%p\r\n", cbt->ref);
 #ifdef HAVE_DIAGNOSTIC
         __wt_cursor_key_order_reset(cbt);
 #endif

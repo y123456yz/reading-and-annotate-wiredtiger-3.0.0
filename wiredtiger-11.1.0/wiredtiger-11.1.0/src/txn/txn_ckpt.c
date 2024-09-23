@@ -1497,7 +1497,9 @@ __txn_checkpoint_wrapper(WT_SESSION_IMPL *session, const char *cfg[])
  //
  */
 int
-__wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], bool waiting)
+__wt_txn_checkpoint(WT_SESSION_IMPL *session, const char *cfg[], 
+//ÆÕÍ¨checkpoint£¬ waitingÎªtrue£¬²Î¿¼__session_checkpoint
+bool waiting)
 {
     WT_CONFIG_ITEM cval;
     WT_DECL_RET;

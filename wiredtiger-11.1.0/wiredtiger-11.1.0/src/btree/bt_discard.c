@@ -65,7 +65,7 @@ __wt_page_out(WT_SESSION_IMPL *session, WT_PAGE **pagep)
      */
     page = *pagep;
     *pagep = NULL;
-    printf("yang test ........__wt_page_out...................page:%p, page type:%s\r\n", page, __wt_page_type_string(page->type));
+    //printf("yang test ........__wt_page_out...................page:%p, page type:%s\r\n", page, __wt_page_type_string(page->type));
     /*
      * Unless we have a dead handle or we're closing the database, we should never discard a dirty
      * page. We do ordinary eviction from dead trees until sweep gets to them, so we may not in the

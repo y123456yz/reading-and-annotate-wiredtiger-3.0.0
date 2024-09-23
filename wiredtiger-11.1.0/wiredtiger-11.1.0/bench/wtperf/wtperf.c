@@ -944,10 +944,9 @@ populate_thread(void *arg)
     /* Do bulk loads if populate is single-threaded. */
     cursor_config = NULL;
     if (opts->populate_threads == 1 && !opts->index && opts->tiered_flush_interval == 0)
-        cursor_config = "bulk";
+        cursor_config = "bulk"; //"bulk"方式加载数据
 
     /* Create the cursors. */
-    //"bulk"方式加载数据
     cursors = dcalloc(total_table_count, sizeof(WT_CURSOR *));
     for (i = 0; i < total_table_count; i++) {
         if ((ret = session->open_cursor(
@@ -973,6 +972,7 @@ populate_thread(void *arg)
         /*
          * Figure out which table this op belongs to.
          */
+        //确定写到指定表的cursor
         cursor = cursors[map_key_to_table(wtperf->opts, op)];
         generate_key(opts, key_buf, op);
         //默认sample_rate=50，也就是50次采样一次进行统计
@@ -1972,7 +1972,7 @@ find_table_count(WTPERF *wtperf)
     opts = wtperf->opts;
     conn = wtperf->conn;
 
-    printf("yang test 11111111111111111111111111111111\r\n");
+    printf("yang test 11111111111111111111111111111111 opts->sess_config:%s\r\n", opts->sess_config);
     max_icount = 0;
     if ((ret = conn->open_session(conn, NULL, opts->sess_config, &session)) != 0) {
         lprintf(wtperf, ret, 0, "find_table_count: open_session failed");
@@ -2387,6 +2387,7 @@ start_run(WTPERF *wtperf)
     create_uris(wtperf);
 
     /* If creating, create the tables. */
+    //建表
     if (opts->create != 0 && (ret = create_tables(wtperf)) != 0)
         goto err;
 

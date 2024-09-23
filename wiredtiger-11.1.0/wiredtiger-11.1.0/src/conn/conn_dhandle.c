@@ -792,6 +792,7 @@ __conn_dhandle_close_one(
      * Lock the handle exclusively. If this is part of schema-changing operation (indicated by
      * metadata tracking being enabled), hold the lock for the duration of the operation.
      */
+    //uri对应btree加写锁，加锁成功返回后，说明当前只有该session访问该btree
     WT_RET(__wt_session_get_dhandle(
       session, uri, checkpoint, NULL, WT_DHANDLE_EXCLUSIVE | WT_DHANDLE_LOCK_ONLY));
     if (WT_META_TRACKING(session))
@@ -824,6 +825,7 @@ __conn_dhandle_close_one(
 /*
  * __wt_conn_dhandle_close_all --
  *     Close all data handles with matching name (including all checkpoint handles).
+ 也就是等待访问该btree的所有cursor完成，并持久化表数据
  */
 int
 __wt_conn_dhandle_close_all(WT_SESSION_IMPL *session, const char *uri, bool removed, bool mark_dead)

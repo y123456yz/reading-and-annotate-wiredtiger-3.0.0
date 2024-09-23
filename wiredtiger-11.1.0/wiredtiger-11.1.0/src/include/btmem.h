@@ -65,9 +65,11 @@
 //WT_BLOCK_HEADER(__wt_block_header)赋值在写磁盘完成后，在__block_write_off赋值,对应内存偏移见WT_PAGE_HEADER_BYTE_SIZE
 //如果配置了压缩，则__wt_page_header记录的是压缩前的数据信息,__wt_block_header记录的是压缩后的数据信息
 
+//wt文件头部4K magic  checksum检查在__desc_read
+
  
-//一个page数据在磁盘中连续空间内容: __wt_page_header + WT_BLOCK_HEADER + WT_CELL
-//分片空间和赋值可以参考__wt_rec_cell_build_ovfl
+//一个page数据在磁盘中连续空间内容: WT_BLOCK_HEADER + __wt_page_header +  WT_CELL
+//分片空间和赋值可以参考__wt_rec_cell_build_ovfl  __rec_split_write_header
 //page->dsk为该类型
 struct __wt_page_header {
     /*
@@ -120,7 +122,8 @@ struct __wt_page_header {
 /*
  * WT_PAGE_HEADER_SIZE is the number of bytes we allocate for the structure: if the compiler inserts
  * padding it will break the world.
- */ //也就是上面的__wt_page_header头部结构长度
+ */ 
+//也就是上面的__wt_page_header头部结构长度  
 #define WT_PAGE_HEADER_SIZE 28
 
 /*
@@ -147,7 +150,7 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
 
 /*
  * The block-manager specific information immediately follows the WT_PAGE_HEADER structure.
- */
+ */ //也就是上面的__wt_page_header头部结构长度
 #define WT_BLOCK_HEADER_REF(dsk) ((void *)((uint8_t *)(dsk) + WT_PAGE_HEADER_SIZE))
 
 /*
@@ -155,13 +158,17 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
  * WT_PAGE_HEADER_BYTE_SIZE --
  *	The first usable data byte on the block (past the combined headers).
  */
+
+//wt文件头部4K magic  checksum检查在__desc_read
+
+ 
 //WT_PAGE_HEADER(__wt_page_header)在__rec_split_write_header中完成赋值，对应内存位置见WT_BLOCK_HEADER_REF
 //WT_BLOCK_HEADER(__wt_block_header)赋值在写磁盘完成后，在__block_write_off赋值,对应内存偏移见WT_PAGE_HEADER_BYTE_SIZE
 //如果配置了压缩，则__wt_page_header记录的是压缩前的数据信息,__wt_block_header记录的是压缩后的数据信息
 
-//page header(WT_PAGE_HEADER_SIZE) + block header(WT_BLOCK_HEADER_SIZE)
+//block header(WT_BLOCK_HEADER_SIZE) + page header(WT_PAGE_HEADER_SIZE) 
 #define WT_PAGE_HEADER_BYTE_SIZE(btree) ((u_int)(WT_PAGE_HEADER_SIZE + (btree)->block_header)) 
-//dsk开始跳过page header + block header,也就是这个page对应的实际数据起始地址
+//dsk开始跳过block header(WT_BLOCK_HEADER_SIZE) + page header(WT_PAGE_HEADER_SIZE) ,也就是这个page对应的实际数据起始地址
 #define WT_PAGE_HEADER_BYTE(btree, dsk) \
     ((void *)((uint8_t *)(dsk) + WT_PAGE_HEADER_BYTE_SIZE(btree)))
 

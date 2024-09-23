@@ -167,6 +167,7 @@ __wt_block_configure_first_fit(WT_BLOCK *block, bool on)
 /*
  * __wt_block_open --
  *     Open a block handle.
+ //这里面会__desc_read读取wt文件头的magic 和校验信息
  */
 int
 __wt_block_open(WT_SESSION_IMPL *session, const char *filename, uint32_t objectid,
@@ -304,6 +305,9 @@ A file is divided up into blocks. The first block in a file is special as it con
 The descriptor block serves as a safety check to ensure that the file being loaded into the block manager is actually a WiredTiger
   data file, that it belongs to a compatible version of WiredTiger and that the entire file has not been corrupted. WiredTiger also
   uses checksums to defend against file corruption which is described in the Checksum section.
+
+//__desc_read: wt文件头部填充
+//__wt_desc_write: wt文件头部读取检查
  */
 int
 __wt_desc_write(WT_SESSION_IMPL *session, WT_FH *fh, uint32_t allocsize)
@@ -345,6 +349,9 @@ __wt_desc_write(WT_SESSION_IMPL *session, WT_FH *fh, uint32_t allocsize)
 /*
  * __desc_read --
  *     Read and verify the file's metadata.
+//__desc_read: wt文件头部填充
+//__wt_desc_write: wt文件头部读取检查
+ .wt文件的头部magic读取，首先检查magic  checksum是否一致
  */
 static int
 __desc_read(WT_SESSION_IMPL *session, uint32_t allocsize, WT_BLOCK *block)
@@ -431,7 +438,7 @@ __desc_read(WT_SESSION_IMPL *session, uint32_t allocsize, WT_BLOCK *block)
         if (F_ISSET(session, WT_SESSION_ROLLBACK_TO_STABLE))
             ret = ENOENT;
         else
-            WT_ERR_MSG(
+            WT_ERR_MSG( //如果文件的4K header magic检查
               session, WT_ERROR, "%s does not appear to be a WiredTiger file", block->name);
     }
 

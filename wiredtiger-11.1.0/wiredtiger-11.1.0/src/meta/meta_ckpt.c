@@ -1238,7 +1238,7 @@ midnight2=(addr="xxxxx",order=2,time=1724235586,size=8192,newest_start_durable_t
 
 */
 
-//元数据内容写入buf中返回
+//checkpoint相关元数据内容写入buf中返回
 int
 __wt_meta_ckptlist_to_meta(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_ITEM *buf)
 {
@@ -1394,6 +1394,7 @@ err:
 /*
  * __wt_meta_ckptlist_set --
  *     Set a file's checkpoint value from the WT_CKPT list.
+ //checkpoint相关元数据内容写入wiredTiger.wt中
  */
 int
 __wt_meta_ckptlist_set(

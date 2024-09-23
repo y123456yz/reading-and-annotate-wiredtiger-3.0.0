@@ -324,7 +324,8 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
     /*
      * Clear the block header to ensure all of it is initialized, even the unused fields.
      */
-    // WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据 中的block header初始化清零
+    // WT_BLOCK_HEADER_SIZE + WT_PAGE_HEADER_SIZE + 实际数据 中的block header初始化清零
+    //__block_write_off对blk赋值也就是填充的
     blk = WT_BLOCK_HEADER_REF(buf->mem);
     memset(blk, 0, sizeof(*blk));
 
@@ -360,7 +361,7 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
 #endif
 
     /* Write the block. */
-    // WT_PAGE_HEADER_SIZE + WT_BLOCK_HEADER_SIZE + 实际数据，把这个page对应的数据写入磁盘
+    // WT_BLOCK_HEADER_SIZE + WT_PAGE_HEADER_SIZE + 实际数据，把这个page对应的数据写入磁盘
     if ((ret = __wt_write(session, fh, offset, align_size, buf->mem)) != 0) {
         if (!caller_locked)
             __wt_spin_lock(session, &block->live_lock);

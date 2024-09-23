@@ -34,7 +34,7 @@
 
 static const char *home;
 
-#define NUM_THREADS 3
+#define NUM_THREADS 2
 
 struct thread_conn {
     WT_CONNECTION *conn;
@@ -53,11 +53,13 @@ scan_thread(void *conn_arg)
     WT_CURSOR *cursor;
     WT_SESSION *session;
     int ret;
-    const char *key, *value;
+    //const char *key, *value;
     int i;
     char buf[1024];
     WT_RAND_STATE rnd;
-    
+    const char* filename;
+    char copy_buf[1024];
+    char checkpoint[1024];
     
     g_thread_num++;
     __wt_random_init_seed(NULL, &rnd);
@@ -65,45 +67,89 @@ scan_thread(void *conn_arg)
     t_conn = conn_arg;
     conn = t_conn->conn;
     error_check(conn->open_session(conn, NULL, NULL, &session));
-    error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
 
-    printf("yang test ..........s..........thread_num:%d\r\n", g_thread_num);
-    if (g_thread_num <= 3) {
-        //__wt_sleep(1, 0);
-        cursor->set_key(cursor, 1);
-        cursor->set_value(cursor, "aaaaaaaaaaaaaa");
-        error_check(cursor->insert(cursor));
-        printf("yang test ......s...checkpoint...........thread_num:%d\r\n", g_thread_num);
-        session->checkpoint(session, "force");
-        __wt_sleep(110, 0);
-    } else {
-        __wt_sleep(1, 0);
-        for (i=3529101;i > 0 ; i--) {
+    if (g_thread_num == 2) {
+        __wt_verbose((WT_SESSION_IMPL *)session, WT_VERB_VERSION, "yang test backup...befor...:%s", "");
+        error_check(session->open_cursor(session, "backup:", NULL, NULL, &cursor));
+       // __wt_sleep(1, 0); 
+        //__curbackup_next
+        while ((ret = cursor->next(cursor)) == 0) {
+            error_check(cursor->get_key(cursor, &filename));
+            __wt_sleep(1, 0); 
+            snprintf(copy_buf, 1024, "cp ./WT_HOME/%s ./wt_backup/WT_HOME/%s", filename, filename);
+            system(copy_buf);
+            __wt_verbose((WT_SESSION_IMPL *)session, WT_VERB_VERSION, "yang test backup......:%s", copy_buf);
+        }
+        __wt_verbose((WT_SESSION_IMPL *)session, WT_VERB_VERSION, "yang test backup...end...:%s", "");
+    } else if (g_thread_num == 1)  {
+
+        __wt_verbose((WT_SESSION_IMPL *)session, WT_VERB_VERSION, "yang test checkpoint befor.:%s", "");
+        for (i=1111;i > 0 ; i--) {
+            error_check(conn->open_session(conn, NULL, NULL, &session));
+            error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
             snprintf(buf, sizeof(buf), "value @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d", i);
-            cursor->set_key(cursor, i);//__wt_random(&rnd) % 352901); /* Insert a record. */
-            //cursor->set_key(cursor, __wt_random(&rnd) % 352901); /* Insert a record. */
+            cursor->set_key(cursor, i);
+            cursor->set_value(cursor, buf);
+            
+            error_check(cursor->insert(cursor));
+            if (i%300 == 0) {
+                snprintf(checkpoint, 1024, "name=midnight%d", i);
+                error_check(session->checkpoint(session, checkpoint)); 
+            }
+            error_check(cursor->close(cursor));
+            error_check(session->close(session, NULL));
+        }
+        __wt_sleep(21, 0);
+        exit(0);
+        
+        //__wt_sync_file������sleep
+        error_check(session->checkpoint(session, NULL));
+        __wt_verbose((WT_SESSION_IMPL *)session, WT_VERB_VERSION, "yang test checkpoint end.:%s", "");
+
+        for (i=2111;i > 1111 ; i--) {
+            snprintf(buf, sizeof(buf), "value @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d", i);
+            cursor->set_key(cursor, i);
             cursor->set_value(cursor, buf);
 
-            //printf("yang test insert ......... i:%d\r\n", i);
             error_check(cursor->insert(cursor));
-            //usleep(1000);
         }
+       // error_check(session->checkpoint(session, NULL));
+        printf("yang test 1111111111111111111111111111  checkpoint end insert\r\n");
     }
-
-    /* Show all records. */
-    while ((ret = cursor->next(cursor)) == 0) {
-        error_check(cursor->get_key(cursor, &key));
-        error_check(cursor->get_value(cursor, &value));
-
-        printf("Got record: %s : %s\n", key, value);
-    }
-    if (ret != WT_NOTFOUND)
-        fprintf(stderr, "WT_CURSOR.next: %s\n", session->strerror(session, ret));
 
     return (WT_THREAD_RET_VALUE);
 }
 
+static void
+access_example2(void)
+{
+    /*! [access example connection] */
+    WT_CONNECTION *conn;
+    WT_CURSOR *cursor;
+    WT_SESSION *session;
+    const char *value;
+    int ret;
+   // int64_t num;
+    int key;
 
+    /* Open a connection to the database, creating it if necessary. */
+    error_check(wiredtiger_open(home, NULL, "create,statistics=(all),log=(enabled:true,recover=on,remove=true),"
+    "verbose=[checkpoint_progress:5, metadata:5, checkpoint_cleanup:5, config_all_verbos:5,checkpoint:5,timestamp:5,version:5, metadata:0, recovery:5, recovery_progress:5, log:5]", &conn));
+
+    error_check(conn->open_session(conn, NULL, NULL, &session));
+    //error_check(session->create(session, "table:access", "memory_page_max=32K,key_format=q,value_format=S"));
+    error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
+
+    error_check(conn->open_session(conn, NULL, NULL, &session));
+    error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
+    while ((ret = cursor->next(cursor)) == 0) {
+        error_check(cursor->get_key(cursor, &key));
+        error_check(cursor->get_value(cursor, &value));
+
+        printf("recover, Got cursor record: %d : %s\n", key, value);
+    }
+    exit(0);
+}
 
 int
 main(int argc, char *argv[])
@@ -113,11 +159,16 @@ main(int argc, char *argv[])
     WT_CURSOR *cursor;
     wt_thread_t threads[NUM_THREADS];
     int i;
-
+    char buf[1024];
+    
+    //access_example2();
+    
+    
     home = example_setup(argc, argv);
 
-    error_check(wiredtiger_open(home, NULL, "create, cache_size:5G,checkpoint=[wait=60],verbose=[reconcile:2, checkpoint:2, split:2, evict:2, log:0,api:0,config_all_verbos:0,fileops:0], "
-        "log=(enabled,file_max=100K),checkpoint=(log_size=0,wait=100)", &g_thread_conn.conn));
+    error_check(wiredtiger_open(home, NULL, "create, cache_size:1M,checkpoint=[wait=60],"
+    "verbose=[reconcile:0,metadata:5, version:5, transaction:0, block:0, checkpoint:2, write:0,split:0, evict:0, log:0,api:0,config_all_verbos:0,fileops:0], "
+        "log=(enabled,file_max=10M),checkpoint=(log_size=0,wait=100)", &g_thread_conn.conn));
 
     error_check(g_thread_conn.conn->open_session(g_thread_conn.conn, NULL, NULL, &session));
     error_check(session->create(session, "table:access", "key_format=q,value_format=S"));
@@ -125,6 +176,29 @@ main(int argc, char *argv[])
     cursor->set_key(cursor, 11111);
     cursor->set_value(cursor, "value1");
     error_check(cursor->insert(cursor));
+   // error_check(session->close(session, NULL));
+
+
+    error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
+    printf("prepare data\r\n");
+    for (i=201100;i > 200000 ; i--) {
+        snprintf(buf, sizeof(buf), "value @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d", i);
+        cursor->set_key(cursor, i);
+        cursor->set_value(cursor, buf);
+    
+        error_check(cursor->insert(cursor));
+    }
+    error_check(session->checkpoint(session, "name=midnight")); 
+
+
+    for (i=201200;i > 201100 ; i--) {
+        snprintf(buf, sizeof(buf), "value @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d", i);
+        cursor->set_key(cursor, i);
+        cursor->set_value(cursor, buf);
+    
+        error_check(cursor->insert(cursor));
+    }
+    error_check(session->checkpoint(session, "name=midnight2")); 
     error_check(session->close(session, NULL));
 
     for (i = 0; i < NUM_THREADS; i++) {
@@ -137,6 +211,7 @@ main(int argc, char *argv[])
     error_check(g_thread_conn.conn->close(g_thread_conn.conn, NULL));
 
     return (EXIT_SUCCESS);
+    access_example2();
 }
 
 /*

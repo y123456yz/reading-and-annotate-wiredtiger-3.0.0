@@ -24,6 +24,7 @@ __wt_exclusive_handle_operation(WT_SESSION_IMPL *session, const char *uri,
      */
     if (FLD_ISSET(open_flags, WT_DHANDLE_EXCLUSIVE)) {
         WT_WITH_HANDLE_LIST_WRITE_LOCK(
+          // 也就是等待访问该btree的所有cursor完成，并持久化表数据
           session, ret = __wt_conn_dhandle_close_all(session, uri, false, false));
         WT_RET(ret);
     }

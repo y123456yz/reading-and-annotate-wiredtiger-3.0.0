@@ -199,8 +199,8 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
         //   进行reconclie处理，这时候如果写该page会有问题，因此__wt_reconcile与__wt_insert_serial需要互斥
         if (!exclusive) {
             //printf("yang test ...........__wt_insert_serial...........1..... \r\n");
-            printf("yang test .........__wt_insert_serial...........WT_PAGE_LOCK.....page:%p  %s, memory_footprint:%d\r\n", 
-                page, __wt_page_type_string(page->type), (int)page->memory_footprint);
+            //printf("yang test .........__wt_insert_serial...........WT_PAGE_LOCK.....page:%p  %s, memory_footprint:%d\r\n", 
+            //    page, __wt_page_type_string(page->type), (int)page->memory_footprint);
             WT_PAGE_LOCK(session, page);
             //printf("yang test ...........__wt_insert_serial...........2..... \r\n");
         }

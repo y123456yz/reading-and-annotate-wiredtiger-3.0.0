@@ -39,7 +39,19 @@ static const char *const incr_out = "./backup_incr";
 
 static const char *const uri = "table:logtest";
 
-#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,file_max=100K,remove=false)"
+//yang add todo xxxxxxxxxxxxxxxxxxxxx
+//db.adminCommand({setParameter:1, wiredTigerEngineRuntimeConfig:'log=(remove=false) '})支持可配置，默认remove为ture，我们支持可配置的话，就可以实现增量数据备份
+
+//#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,file_max=100K,remove=false)"  要支持增量备份，remove必须为false，否则报错incremental log file backup not possible when automatic log removal configured: Invalid argument
+#define CONN_CONFIG "verbose=[config_all_verbos:5, api:0, log:0], create,cache_size=100MB,log=(enabled=true,file_max=100K,remove=false)" //yang add change remove修改
+
+//WT_HOME_LOG_INCR.5存储的是第1轮的inc + 第2轮的inc + .... 第5轮的inc
+//WT_HOME_LOG_FULL.5也就是第4轮时候的full, 他的内容实际上 = 第1轮的inc + 第2轮的inc + .... 第5轮的inc
+
+//WT_HOME_LOG_INCR.4存储的是第1轮的inc + 第2轮的inc + .... 第4轮的inc
+//WT_HOME_LOG_FULL.4也就是第4轮时候的full, 他的内容实际上 = 第1轮的inc + 第2轮的inc + .... 第5轮的inc
+
+//拷贝几份
 #define MAX_ITERATIONS 5
 #define MAX_KEYS 10000
 
@@ -57,6 +69,7 @@ compare_backups(int i)
      * If i == 0, we're comparing against the main, original directory with the final incremental
      * directory.
      */
+    //把log表的数据dump出来存入backup_full.x中  ./../wt -R -h WT_HOME_LOG_FULL.1 dump logtest > ./backup_full.1
     if (i == 0)
         (void)snprintf(
           buf, sizeof(buf), "../../wt -R -h %s dump logtest > %s.%d", home, full_out, i);
@@ -64,26 +77,31 @@ compare_backups(int i)
         (void)snprintf(
           buf, sizeof(buf), "../../wt -R -h %s.%d dump logtest > %s.%d", home_full, i, full_out, i);
     error_check(system(buf));
+    printf("yang test compare_backups .......1..........%s\r\n", buf);
     /*
      * Now run dump on the incremental directory.
      */
+    //把log表的数据dump出来存入backup_incr.x中 ./../wt -R -h WT_HOME_LOG_INCR.1 dump logtest > ./backup_incr.1
     (void)snprintf(
       buf, sizeof(buf), "../../wt -R -h %s.%d dump logtest > %s.%d", home_incr, i, incr_out, i);
     error_check(system(buf));
+    printf("yang test compare_backups .......2..........%s\r\n", buf);
 
     /*
      * Compare the files.
      */
     (void)snprintf(buf, sizeof(buf), "cmp %s.%d %s.%d", full_out, i, incr_out, i);
     ret = system(buf);
+    //cmp ./backup_full.1 ./backup_incr.1
+    printf("yang test compare_backups .......1..........%s\r\n", buf);
     if (i == 0)
         (void)snprintf(msg, sizeof(msg), "%s", "MAIN");
     else
         (void)snprintf(msg, sizeof(msg), "%d", i);
     printf("Iteration %s: Tables %s.%d and %s.%d %s\n", msg, full_out, i, incr_out, i,
       ret == 0 ? "identical" : "differ");
-    if (ret != 0)
-        exit(1);
+    //if (ret != 0) //cmp比较内容不一致，则直接退出    yang add change xxxxx 屏蔽这个的目的是保证所有输出日志打印
+    //    exit(1);
 
     /*
      * If they compare successfully, clean up.
@@ -91,7 +109,8 @@ compare_backups(int i)
     if (i != 0) {
         (void)snprintf(buf, sizeof(buf), "rm -rf %s.%d %s.%d %s.%d %s.%d", home_full, i, home_incr,
           i, full_out, i, incr_out, i);
-        error_check(system(buf));
+        //error_check(system(buf));
+        printf("yang test compare_backups .......3..........%s\r\n", buf);
     }
     return (ret);
 }
@@ -114,6 +133,7 @@ setup_directories(void)
          */
         (void)snprintf(buf, sizeof(buf), "rm -rf %s.%d && mkdir %s.%d", home_incr, i, home_incr, i);
         error_check(system(buf));
+        printf("yang test setup_directories .......1..........%s\r\n", buf);
         if (i == 0)
             continue;
         /*
@@ -121,6 +141,7 @@ setup_directories(void)
          */
         (void)snprintf(buf, sizeof(buf), "rm -rf %s.%d && mkdir %s.%d", home_full, i, home_full, i);
         error_check(system(buf));
+        printf("yang test setup_directories .......2..........%s\r\n", buf);
     }
 }
 
@@ -164,22 +185,27 @@ take_full_backup(WT_SESSION *session, int i)
         hdir = home_incr;
     error_check(session->open_cursor(session, "backup:", NULL, NULL, &cursor));
 
+    //__curbackup_next
     while ((ret = cursor->next(cursor)) == 0) {
+        //__curbackup_next中会获取到key,这里通过__wt_cursor_get_key获取这个key，存入filename
         error_check(cursor->get_key(cursor, &filename));
-        if (i == 0)
+        if (i == 0) //为0的时候拷贝多份
             /*
              * Take a full backup into each incremental directory.
              */
             for (j = 0; j < MAX_ITERATIONS; j++) {
-                (void)snprintf(h, sizeof(h), "%s.%d", home_incr, j);
+                (void)snprintf(h, sizeof(h), "%s.%d", home_incr, j); //注意这里是home_incr 代表增量文件，因为0的时候没有做checkpoint
                 (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, filename, h, filename);
                 error_check(system(buf));
+                printf("yang test ex backup ....take_full_backup.............%s\r\n", buf);
             }
-        else {
-            (void)snprintf(h, sizeof(h), "%s.%d", home_full, i);
+        else {//不为0只拷贝一份
+            (void)snprintf(h, sizeof(h), "%s.%d", home_full, i); //注意这里不为0的时候为home_full，因为不为0的时候都会提前做checkpoint
             (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, filename, hdir, filename);
             error_check(system(buf));
+            printf("yang test ex backup ....take_full_backup.............%s\r\n", buf);
         }
+        
     }
     scan_end_check(ret == WT_NOTFOUND);
     error_check(cursor->close(cursor));
@@ -204,10 +230,12 @@ take_incr_backup(WT_SESSION *session, int i)
         (void)snprintf(h, sizeof(h), "%s.0", home_incr);
         (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, filename, h, filename);
         error_check(system(buf));
+        printf("yang test ex backup .....take_incr_backup...1.........%s\r\n", buf);
         for (j = i; j < MAX_ITERATIONS; j++) {
             (void)snprintf(h, sizeof(h), "%s.%d", home_incr, j);
             (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, filename, h, filename);
             error_check(system(buf));
+            printf("yang test ex backup .....take_incr_backup....2........%s\r\n", buf);
         }
     }
     scan_end_check(ret == WT_NOTFOUND);
@@ -241,17 +269,23 @@ main(int argc, char *argv[])
     error_check(wt_conn->open_session(wt_conn, NULL, NULL, &session));
     error_check(session->create(session, uri, "key_format=S,value_format=S"));
     printf("Adding initial data\n");
+    //准备MAX_KEYS条数据
     add_work(session, 0);
+    //__wt_sleep(10, 10000);
 
     printf("Taking initial backup\n");
-    take_full_backup(session, 0);
-
     error_check(session->checkpoint(session, NULL));
+    add_work(session, 1); //yang add change
+    printf("Taking begin backup\n");
+    take_full_backup(session, 1);
+    return (0); //yang add change
 
+    
     for (i = 1; i < MAX_ITERATIONS; i++) {
         printf("Iteration %d: adding data\n", i);
         add_work(session, i);
         error_check(session->checkpoint(session, NULL));
+        __wt_sleep(10, 10000);
         /*
          * The full backup here is only needed for testing and comparison purposes. A normal
          * incremental backup procedure would not include this.
@@ -266,7 +300,8 @@ main(int argc, char *argv[])
         take_incr_backup(session, i);
 
         printf("Iteration %d: dumping and comparing data\n", i);
-        error_check(compare_backups(i));
+        //error_check(compare_backups(i)); yang add change todo xxxxx 忽略错误，保证print正常输出
+        WT_IGNORE_RET(compare_backups(i));
     }
 
     /*
@@ -276,7 +311,8 @@ main(int argc, char *argv[])
     error_check(wt_conn->close(wt_conn, NULL));
 
     printf("Final comparison: dumping and comparing data\n");
-    error_check(compare_backups(0));
+    //error_check(compare_backups(0));
+    WT_IGNORE_RET(compare_backups(0));
 
     return (EXIT_SUCCESS);
 }

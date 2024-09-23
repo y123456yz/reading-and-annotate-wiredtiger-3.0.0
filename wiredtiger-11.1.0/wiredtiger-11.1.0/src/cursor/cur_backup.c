@@ -102,6 +102,7 @@ __wt_backup_file_remove(WT_SESSION_IMPL *session)
 {
     WT_DECL_RET;
 
+    return 0;//yang add change xxxxxxxxxxxxxx
     /*
      * Note that order matters for removing the incremental files. We must remove the backup file
      * before removing the source file so that we always know we were a source directory while
@@ -134,6 +135,7 @@ __curbackup_next(WT_CURSOR *cursor)
         WT_ERR(WT_NOTFOUND);
     }
 
+    //内容来源在__backup_list_append
     cb->iface.key.data = cb->list[cb->next];
     cb->iface.key.size = strlen(cb->list[cb->next]) + 1;
     ++cb->next;
@@ -279,6 +281,7 @@ __wt_curbackup_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *other,
     WT_CURSOR_BACKUP *cb, *othercb;
     WT_DECL_RET;
 
+    printf("yang test ............__wt_curbackup_open..............\r\n");
     WT_STATIC_ASSERT(offsetof(WT_CURSOR_BACKUP, iface) == 0);
 
     WT_RET(__wt_calloc_one(session, &cb));
@@ -294,6 +297,7 @@ __wt_curbackup_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *other,
         WT_CURSOR_BACKUP_CHECK_STOP(othercb);
 
     /* Special backup cursor to query incremental IDs. */
+    //增量backup相关
     if (WT_STRING_MATCH("backup:query_id", uri, strlen("backup:query_id"))) {
         /* Top level cursor code does not allow a URI and cursor. We don't need to check here. */
         WT_ASSERT(session, othercb == NULL);
@@ -308,10 +312,12 @@ __wt_curbackup_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *other,
      * Start the backup and fill in the cursor's list. Acquire the schema lock, we need a consistent
      * view when creating a copy.
      */
+    //这里除了schema锁，还会获取checkpoint锁
     WT_WITH_CHECKPOINT_LOCK(
       session, WT_WITH_SCHEMA_LOCK(session, ret = __backup_start(session, cb, othercb, cfg)));
     WT_ERR(ret);
     WT_ERR(cb->incr_file == NULL ?
+        //全量backupzou走这里
         __wt_cursor_init(cursor, uri, NULL, cfg, cursorp) :
         __wt_curbackup_open_incr(session, uri, other, cursor, cfg, cursorp));
 
@@ -425,6 +431,7 @@ __backup_find_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval, WT_BLKINCR **in
 /*
  * __backup_log_append --
  *     Append log files needed for backup.
+ // 获取当前的wiredtigerLog.xxx文件名存入cb->list[]
  */
 static int
 __backup_log_append(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, bool active)
@@ -440,6 +447,7 @@ __backup_log_append(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, bool active)
     ret = 0;
 
     if (conn->log) {
+        // 获取当前的wiredtigerLog.xxx文件名存入logfiles[]中
         WT_ERR(__wt_log_get_backup_files(session, &logfiles, &logcount, &cb->maxid, active));
         for (i = 0; i < logcount; i++)
             WT_ERR(__backup_list_append(session, cb, logfiles[i]));
@@ -577,6 +585,7 @@ __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[
          * Handle log targets. We do not need to go through the schema worker, just call the
          * function to append them. Set log_only only if it is our only URI target.
          */
+        //error_check(session->open_cursor(session, "backup:", NULL, "target=(\"log:\")", &cursor)); log方式备份增量数据
         if (WT_PREFIX_MATCH(uri, "log:")) {
             log_config = true;
             *log_only = !target_list;
@@ -685,12 +694,18 @@ __backup_start(
     cb->list = NULL;
     cb->list_next = 0;
 
+    //yang test .......__backup_start......cfg0:append=false,bulk=false,checkpoint=,checkpoint_use_history=true,checkpoint_wait=true,
+    //debug=(checkpoint_read_timestamp=,dump_version=false,release_evict=false),dump=,incremental=(consolidate=false,enabled=false,file=,
+    //force_stop=false,granularity=16MB,src_id=,this_id=),next_random=false,next_random_sample_size=0,overwrite=true,prefix_search=false,
+    //raw=false,read_once=false,readonly=false,skip_sort_check=false,statistics=,target=, cfg1:(null)
+    printf("yang test .......__backup_start......cfg0:%s, cfg1:%s\r\n", cfg[0], cfg[1]);
     WT_RET(__wt_inmem_unsupported_op(session, "backup cursor"));
 
     /*
      * Single thread hot backups: we're holding the schema lock, so we know we'll serialize with
      * other attempts to start a hot backup.
      */
+    //同一时刻只能有一个现成做backup
     if (conn->hot_backup_start != 0 && !is_dup)
         WT_RET_MSG(session, EINVAL, "there is already a backup cursor open");
 
@@ -715,7 +730,7 @@ __backup_start(
         return (0);
     }
 
-    if (!is_dup) {
+    if (!is_dup) {//一般走这里
         /*
          * The hot backup copy is done outside of WiredTiger, which means file blocks can't be freed
          * and re-allocated until the backup completes. The checkpoint code checks the backup flag,
@@ -738,6 +753,7 @@ __backup_start(
          * query creates a list to return but does not create the backup file. After appending the
          * list of IDs we are done.
          */
+        //增量相关
         if (F_ISSET(cb, WT_CURBACKUP_QUERYID)) {
             ret = __backup_query_setup(session, cb);
             goto query_done;
@@ -749,6 +765,7 @@ __backup_start(
          * or crash while filling it, the existence of a partial file doesn't confuse restarting in
          * the source database.
          */
+        //创建"WiredTiger.backup.tmp"文件
         WT_ERR(__wt_fopen(session, WT_BACKUP_TMP, WT_FS_OPEN_CREATE, WT_STREAM_WRITE, &cb->bfs));
     }
 
@@ -766,7 +783,10 @@ __backup_start(
         F_SET(session, WT_SESSION_BACKUP_DUP);
         goto done;
     }
-    if (!target_list) {
+
+    printf("yang test .......__backup_start................target_list:%d, log_only:%d\r\n",
+        target_list, log_only);
+    if (!target_list) {//全量备份，没指定targe配置，一般target_list=0，log_only=0
         /*
          * It's important to first gather the log files to be copied (which internally starts a new
          * log file), followed by choosing a checkpoint to reference in the WiredTiger.backup file.
@@ -778,12 +798,13 @@ __backup_start(
          * It is also possible, and considered legal, to choose the new checkpoint, but not include
          * the log file that contains the log entry for taking the new checkpoint.
          */
+        // 获取当前的wiredtigerLog.xxx文件名存入cb->list[]
         WT_ERR(__backup_log_append(session, cb, true));
         WT_ERR(__backup_all(session));
     }
 
     /* Add the hot backup and standard WiredTiger files to the list. */
-    if (log_only) {
+    if (log_only) {//是否log方式备份增量数据
         /*
          * If this is not a duplicate cursor, using the log target is an incremental backup. If this
          * is a duplicate cursor then using the log target on an existing backup cursor means this
@@ -796,15 +817,19 @@ __backup_start(
         dest = WT_LOGINCR_BACKUP;
         WT_ERR(__wt_fopen(session, WT_LOGINCR_SRC, WT_FS_OPEN_CREATE, WT_STREAM_WRITE, &srcfs));
         WT_ERR(__backup_list_append(session, cb, dest));
-    } else {
+    } else {//全量备份走这里
         dest = F_ISSET(cb, WT_CURBACKUP_EXPORT) ? WT_EXPORT_BACKUP : WT_METADATA_BACKUP;
+        //uri对应文件添加到cb->list[]
         WT_ERR(__backup_list_append(session, cb, dest));
+        //"WiredTiger.basecfg"添加到cb list
         WT_ERR(__wt_fs_exist(session, WT_BASECONFIG, &exist));
         if (exist)
             WT_ERR(__backup_list_append(session, cb, WT_BASECONFIG));
+        //"WiredTiger.config"添加到cb list
         WT_ERR(__wt_fs_exist(session, WT_USERCONFIG, &exist));
         if (exist)
             WT_ERR(__backup_list_append(session, cb, WT_USERCONFIG));
+        //"WiredTiger"添加到cb list
         WT_ERR(__backup_list_append(session, cb, WT_WIREDTIGER));
     }
 
@@ -818,6 +843,7 @@ err:
      */
     WT_TRET(__wt_fs_exist(session, WT_BACKUP_TMP, &exist));
     if (ret == 0 && exist)
+        //"WiredTiger.backup.tmp"存在则重新命名为"WiredTiger.backup"
         ret = __wt_sync_and_rename(session, &cb->bfs, WT_BACKUP_TMP, dest);
     if (ret == 0) {
         WT_WITH_HOTBACKUP_WRITE_LOCK(session, conn->hot_backup_list = cb->list);
@@ -870,6 +896,8 @@ __backup_stop(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb)
 /*
  * __backup_all --
  *     Backup all objects in the database.
+ __backup_log_append: 对应wiredtigerLog.xxxx文件
+ __backup_all: 对应实际数据文件，包括元数据文件和普通数据文件
  */
 static int
 __backup_all(WT_SESSION_IMPL *session)
@@ -908,6 +936,7 @@ __backup_list_uri_append(WT_SESSION_IMPL *session, const char *name, bool *skip)
 
     /* Add the metadata entry to the backup file. */
     WT_RET(__wt_metadata_search(session, name, &value));
+    //获取name表的元数据写入WT_BACKUP_TMP文件
     ret = __wt_fprintf(session, cb->bfs, "%s\n%s\n", name, value);
     __wt_free(session, value);
     WT_RET(ret);
@@ -929,6 +958,7 @@ __backup_list_uri_append(WT_SESSION_IMPL *session, const char *name, bool *skip)
 /*
  * __backup_list_append --
  *     Append a new file name to the list, allocate space as necessary.
+ //uri对应文件添加到cb->list[]
  */
 static int
 __backup_list_append(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *uri)

@@ -1959,7 +1959,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
      * return success immediately and skip more detailed eviction tests. We don't need further tests
      * since the page won't be written or discarded from the cache.
      */
-    printf("yang test ..........__wt_page_can_evict......1.....page:%p.....\r\n", page);
+    //printf("yang test ..........__wt_page_can_evict......1.....page:%p.....\r\n", page);
     if (__wt_leaf_page_can_split(session, page)) {
         if (inmem_splitp != NULL)
             *inmem_splitp = true;
@@ -1967,7 +1967,7 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
     }
 
     modified = __wt_page_is_modified(page);
-    printf("yang test ..........__wt_page_can_evict......2..modified:%d....page:%p....memory_footprint:%lu\r\n", modified, page, page->memory_footprint);
+    //printf("yang test ..........__wt_page_can_evict......2..modified:%d....page:%p....memory_footprint:%lu\r\n", modified, page, page->memory_footprint);
 
     /*
      * If the file is being checkpointed, other threads can't evict dirty pages: if a page is
@@ -1976,11 +1976,11 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
      */
     //因为其他线程做checkpoint，造成无法进行evict的page数量
     if (modified && __wt_btree_syncing_by_other_session(session)) {
-        printf("yang test ..........__wt_page_can_evict......3...page:%p.......\r\n", page);
+        //printf("yang test ..........__wt_page_can_evict......3...page:%p.......\r\n", page);
         WT_STAT_CONN_DATA_INCR(session, cache_eviction_checkpoint);
         return (false);
     }
-    printf("yang test ..........__wt_page_can_evict......4...page:%p.......\r\n", page);
+    //printf("yang test ..........__wt_page_can_evict......4...page:%p.......\r\n", page);
 
     /*
      * Check we are not evicting an accessible internal page with an active split generation.

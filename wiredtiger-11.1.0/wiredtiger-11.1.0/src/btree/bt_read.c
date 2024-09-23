@@ -99,7 +99,7 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
     /* Trigger eviction on the next page release. */
     __wt_page_evict_soon(session, ref);
 
-    printf("yang test ..........__evict_force_check................\r\n");
+  //  printf("yang test ..........__evict_force_check................\r\n");
     /* If eviction cannot succeed, don't try. */
     return (__wt_page_can_evict(session, ref, NULL));
 }

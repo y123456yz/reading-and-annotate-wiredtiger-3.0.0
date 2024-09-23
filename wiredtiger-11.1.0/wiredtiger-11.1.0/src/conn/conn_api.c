@@ -2185,7 +2185,7 @@ __wt_json_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
  *     Set verbose configuration.
 5代表WT_VERBOSE_DEBUG_5
 例如verbose=[api=5,block=5,checkpoint=5,checkpoint_progress=5,compact=5,evict=5,evict_stuck=5,evictserver=5,fileops=5,handleops=5,log=5,lsm=5,lsm_manager=5,metadata=5,mutex=5,overflow=5,read=5,reconcile=5,reconcile=5,recovery=5,recovery_progress=5,salvage=5,shared_cache=5,split=5,thread_group=5,split=5,thread_group=5,timestamp=5,transaction=5,verify=5,version=5,write=5]
- */ //verbos日志打印级别相关解析
+ */ //verbos日志打印级别相关解析  
 int
 __wt_verbose_config(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
 {

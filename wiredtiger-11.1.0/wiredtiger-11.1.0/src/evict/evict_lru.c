@@ -1955,7 +1955,7 @@ __evict_walk_tree(WT_SESSION_IMPL *session, WT_EVICT_QUEUE *queue, u_int max_ent
     if (btree->evict_walk_progress >= btree->evict_walk_target) {
          //计算需要进行evict入队的page数量
         btree->evict_walk_target = __evict_walk_target(session);
-        printf("yang test ....................... btree->evict_walk_target:%u\r\n", btree->evict_walk_target);
+        //printf("yang test ....................... btree->evict_walk_target:%u\r\n", btree->evict_walk_target);
         btree->evict_walk_progress = 0;
     }
 

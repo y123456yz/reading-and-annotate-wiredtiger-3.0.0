@@ -196,6 +196,7 @@ __metadata_entry_worker(WT_SESSION_IMPL *session, WT_ITEM *key, WT_ITEM *value, 
 /*
  * __metadata_load_hot_backup --
  *     Load the contents of any hot backup file.
+ //这里面会记录
  */
 static int
 __metadata_load_hot_backup(WT_SESSION_IMPL *session, WT_BACKUPHASH *backuphash)

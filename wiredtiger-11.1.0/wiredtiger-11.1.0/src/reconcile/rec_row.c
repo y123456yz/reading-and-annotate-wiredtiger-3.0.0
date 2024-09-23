@@ -369,9 +369,9 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     if(__wt_ref_is_root(ref))
         WT_RET(__wt_msg(session, "yang test ..............................page is root, page:%p, ref:%p, type:%s",
             page, ref, __wt_page_type_string(page->type)));
-    else
-        WT_RET(__wt_msg(session, "yang test ..............................page is not root, page:%p, ref:%p, type:%s",
-            page, ref, __wt_page_type_string(page->type)));
+   // else
+    //    WT_RET(__wt_msg(session, "yang test ..............................page is not root, page:%p, ref:%p, type:%s",
+   //         page, ref, __wt_page_type_string(page->type)));
     btree = S2BT(session);
     child = NULL;
     WT_TIME_AGGREGATE_INIT_MERGE(&ft_ta);

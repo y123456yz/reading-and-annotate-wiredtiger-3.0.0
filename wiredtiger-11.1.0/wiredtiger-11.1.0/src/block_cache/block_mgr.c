@@ -554,6 +554,8 @@ __bm_salvage_next_readonly(
 /*
  * __bm_salvage_next --
  *     Return the next block from the file.
+ //__slvg_read
+ 从block->slvg_off位置，不断连续读取4K大小数据以block为单位进行校验检查，如果校验检查不通过，则直接跳过该block
  */
 static int
 __bm_salvage_next(
@@ -565,6 +567,7 @@ __bm_salvage_next(
 /*
  * __bm_salvage_start --
  *     Start a block manager salvage.
+ //__wt_salvage->__wt_block_salvage_start
  */
 static int
 __bm_salvage_start(WT_BM *bm, WT_SESSION_IMPL *session)
@@ -585,6 +588,7 @@ __bm_salvage_start_readonly(WT_BM *bm, WT_SESSION_IMPL *session)
 /*
  * __bm_salvage_valid --
  *     Inform salvage a block is valid.
+ __slvg_read
  */
 static int
 __bm_salvage_valid(WT_BM *bm, WT_SESSION_IMPL *session, uint8_t *addr, size_t addr_size, bool valid)

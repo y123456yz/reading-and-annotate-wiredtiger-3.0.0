@@ -850,16 +850,16 @@ __wt_txn_visible(WT_SESSION_IMPL *session, uint64_t id, wt_timestamp_t timestamp
 {
     WT_TXN *txn;
     WT_TXN_SHARED *txn_shared;
-    char ts_string[WT_TS_INT_STRING_SIZE];
+   // char ts_string[WT_TS_INT_STRING_SIZE];
 
     txn = session->txn;
     txn_shared = WT_SESSION_TXN_SHARED(session);
 
-    printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu, timestamp:%s\r\n", 
-        session->id, session->txn->id, session->flags, id, __wt_timestamp_to_string(timestamp, ts_string));
+    //printf("yang test ...........__wt_txn_visible...session id:%u, session txn id:%lu, session flags:%u, visible txn id:%lu, timestamp:%s\r\n", 
+      //  session->id, session->txn->id, session->flags, id, __wt_timestamp_to_string(timestamp, ts_string));
     //当前session是否可以访问id对应事务
     if (!__txn_visible_id(session, id)) {
-        printf("yang test ...........__wt_txn_visible...false\r\n");
+        //printf("yang test ...........__wt_txn_visible...false\r\n");
         return (false);
     }
     /* Transactions read their writes, regardless of timestamps. */

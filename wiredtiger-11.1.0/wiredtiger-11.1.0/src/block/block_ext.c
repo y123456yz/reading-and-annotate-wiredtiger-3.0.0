@@ -1685,6 +1685,7 @@ __block_extlist_dump(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el, 
 {
     WT_DECL_ITEM(t1);
     WT_DECL_ITEM(t2);
+    WT_DECL_ITEM(t3);
     WT_DECL_RET;
     WT_EXT *ext;
     WT_VERBOSE_LEVEL level;

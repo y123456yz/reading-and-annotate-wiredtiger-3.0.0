@@ -11,6 +11,7 @@
 /*
  * __wt_block_salvage_start --
  *     Start a file salvage.
+ //__wt_salvage->__wt_block_salvage_start
  */
 int
 __wt_block_salvage_start(WT_SESSION_IMPL *session, WT_BLOCK *block)
@@ -21,6 +22,7 @@ __wt_block_salvage_start(WT_SESSION_IMPL *session, WT_BLOCK *block)
     allocsize = block->allocsize;
 
     /* Reset the description information in the first block. */
+    //重新生成wt头部magic信息等
     WT_RET(__wt_desc_write(session, block->fh, allocsize));
 
     /*
@@ -48,6 +50,7 @@ __wt_block_salvage_start(WT_SESSION_IMPL *session, WT_BLOCK *block)
      * The only checkpoint extent we care about is the allocation list. Start with the entire file
      * on the allocation list, we'll "free" any blocks we don't want as we process the file.
      */
+    //重新构建的alloc赋值构造
     WT_RET(__wt_block_insert_ext(session, block, &block->live.alloc, allocsize, len - allocsize));
 
     /* Salvage performs a checkpoint but doesn't start or resolve it. */
@@ -75,6 +78,7 @@ __wt_block_salvage_end(WT_SESSION_IMPL *session, WT_BLOCK *block)
 /*
  * __wt_block_offset_invalid --
  *     Return if the block offset is insane.
+ block头部做检查
  */
 bool
 __wt_block_offset_invalid(WT_BLOCK *block, wt_off_t offset, uint32_t size)
@@ -94,10 +98,14 @@ __wt_block_offset_invalid(WT_BLOCK *block, wt_off_t offset, uint32_t size)
 /*
  * __wt_block_salvage_next --
  *     Return the address for the next potential block from the file.
+  从block->slvg_off位置，不断连续读取4K大小数据以block为单位进行校验检查，如果校验检查不通过，则直接跳过该block
  */
 int
 __wt_block_salvage_next(
-  WT_SESSION_IMPL *session, WT_BLOCK *block, uint8_t *addr, size_t *addr_sizep, bool *eofp)
+  WT_SESSION_IMPL *session, WT_BLOCK *block, 
+  //把一个完整的block元数据(objectid offset size checksum)封装给addr[]数组, 通过获取addr[]数组即可获取到一个完整block的元数据
+  uint8_t *addr, 
+  size_t *addr_sizep, bool *eofp)
 {
     WT_BLOCK_HEADER *blk;
     WT_DECL_ITEM(tmp);
@@ -139,18 +147,23 @@ __wt_block_salvage_next(
          * checksum; if reading the block succeeds, return its address as a possible page,
          * otherwise, move past it.
          */
+        //如果block检查不通过，跳过该block，不用恢复这个block
+        //block头部检查
         if (!__wt_block_offset_invalid(block, offset, size) &&
+          //block checksum检查
           __wt_block_read_off(session, block, tmp, objectid, offset, size, checksum) == 0)
             break;
 
         /* Free the allocation-size block. */
         __wt_verbose(session, WT_VERB_SALVAGE, "skipping %" PRIu32 "B at file offset %" PRIuMAX,
           allocsize, (uintmax_t)offset);
+        //这些损坏的4k磁盘加入avail跳表
         WT_ERR(__wt_block_off_free(session, block, objectid, offset, (wt_off_t)allocsize));
         block->slvg_off += allocsize;
     }
 
     /* Re-create the address cookie that should reference this block. */
+    //把一个完整的block元数据(objectid offset size checksum)封装给addr[]数组, 通过获取addr[]数组即可获取到一个完整block的元数据
     endp = addr;
     WT_ERR(__wt_block_addr_pack(block, &endp, objectid, offset, size, checksum));
     *addr_sizep = WT_PTRDIFF(endp, addr);
@@ -164,6 +177,7 @@ err:
 /*
  * __wt_block_salvage_valid --
  *     Let salvage know if a block is valid.
+ //例如如果是数据层面解压失败，需要把这个block加到avail跳表中
  */
 int
 __wt_block_salvage_valid(

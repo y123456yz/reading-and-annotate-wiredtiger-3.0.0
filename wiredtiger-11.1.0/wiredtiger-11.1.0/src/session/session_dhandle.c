@@ -106,6 +106,7 @@ retry:
  *     should not fail because the sweep server happens to be in the process of closing that file.
  */
 //如果flag带有WT_DHANDLE_EXCLUSIVE标记则加写锁，其他大部分情况加读锁
+//如果flag指定WT_DHANDLE_EXCLUSIVE，则这里获取锁后，说明当前只有该session访问该btree
 int
 __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_deadp)
 {
@@ -192,7 +193,7 @@ __wt_session_lock_dhandle(WT_SESSION_IMPL *session, uint32_t flags, bool *is_dea
          * want to block waiting to get exclusive access.
          */
         WT_WITH_DHANDLE(session, dhandle, ret = __wt_session_dhandle_try_writelock(session));
-        if (ret == 0) {//加写锁成功
+        if (ret == 0) {//加写锁成功，获取到写锁，说明不会有其他cursor使用访问该btree, 例如如果有其他cursor访问该btree，会加读锁或者写锁，这时候这里加写锁会一致等待
             if (F_ISSET(dhandle, WT_DHANDLE_DEAD)) {
                 *is_deadp = true;
                 WT_WITH_DHANDLE(session, dhandle, __wt_session_dhandle_writeunlock(session));
@@ -856,7 +857,9 @@ __wt_session_dhandle_try_writelock(WT_SESSION_IMPL *session)
 //根据uri和checkpoint获取一个dhandle赋值给session->dhandle，一个dhandle对应一个表，这样session就和指定表关联上了
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint,
-  const char *cfg[], uint32_t flags)
+  const char *cfg[], 
+  //如果flag指定WT_DHANDLE_EXCLUSIVE，则这里获取锁后，说明当前只有该session访问该btree
+  uint32_t flags)
 {
     WT_DATA_HANDLE *dhandle;
     WT_DECL_RET;
@@ -874,6 +877,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *
 
         /* Try to lock the handle. */
         //如果flag带有WT_DHANDLE_EXCLUSIVE标记则加写锁，其他大部分情况加读锁
+        //如果flag指定WT_DHANDLE_EXCLUSIVE，则这里获取锁后，说明当前只有该session访问该btree
         WT_RET(__wt_session_lock_dhandle(session, flags, &is_dead));
         if (is_dead)
             continue;
@@ -892,7 +896,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *
          * Code needing exclusive access (such as drop or verify) assumes that it can close all open
          * handles, then open an exclusive handle on the active tree and no other threads can reopen
          * handles in the meantime. A combination of the schema and handle list locks are used to
-         * enforce this.
+         * enforce this. 
          */
         if (!FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_SCHEMA)) {
             dhandle->excl_session = NULL;
@@ -909,7 +913,7 @@ __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *
         /* Open the handle. */
         if ((ret = __wt_conn_dhandle_open(session, cfg, flags)) == 0 &&
           LF_ISSET(WT_DHANDLE_EXCLUSIVE))
-            break;
+            break;//注意这里返回后，没用释放写锁__wt_session_dhandle_writeunlock
 
         /*
          * If we got the handle exclusive to open it but only want ordinary access, drop our lock

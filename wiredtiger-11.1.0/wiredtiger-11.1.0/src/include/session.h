@@ -186,6 +186,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     uint32_t cursor_sweep_countdown; /* Countdown to cursor sweep */
     uint64_t last_cursor_sweep;      /* Last sweep for dead cursors */
 
+    //backup用这个cursor，赋值见__wt_curbackup_open
     WT_CURSOR_BACKUP *bkp_cursor; /* Hot backup cursor */
 
     WT_IMPORT_LIST *import_list; /* List of metadata entries to import from file. */
@@ -290,6 +291,7 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
     uint32_t lock_flags;
 
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//__backup_start置位
 #define WT_SESSION_BACKUP_CURSOR 0x00001u
 #define WT_SESSION_BACKUP_DUP 0x00002u
 //__session_reconfigure中置位  cache_cursors配置
