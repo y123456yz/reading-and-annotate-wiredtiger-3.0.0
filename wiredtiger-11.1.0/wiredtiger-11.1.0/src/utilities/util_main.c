@@ -79,6 +79,9 @@ usage(void)
  /data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -R -C "log=(enabled=true,path=journal,compressor=snappy)"  dump -j file:mycusttest/collection/0-5920062409383964761.wt 
  /data/mongodb-7.0/mongo-r7.0.6/build/install/bin/wt -R -C "log=(enabled=true,path=journal,compressor=snappy)"  dump -j file:mycusttest/index/1-9110921648507150440.wt 
 
+//mongodb中的二进制文件如何bson原样获取  yang add todo xxxxxxx   wt_to_mdb_bson中的例子./wt中的工具需要带上-x参数，否则该脚本运行不成功，这里可以提交一个PR  2. dump索引会报错，这个忽略，因为索引数据不是bson格式，是二进制的
+ ../wt  -R -C "log=(enabled=true,path=journal,compressor=snappy)" dump -x file:yyz/collection/17--5806437692883475685.wt  | ../wt_to_mdb_bson.py -m dump
+
 
  yang add todo xxxxxxxxxxxxxxxx
  2. wt printlog可能引起数据丢失
