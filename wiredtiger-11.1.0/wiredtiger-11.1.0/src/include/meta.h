@@ -109,6 +109,7 @@ MongoDB maintains the snapshot history in the WiredTigerHS.wt file, located in y
  * Block based incremental backup structure. These live in the connection.
  */
 #define WT_BLKINCR_MAX 2
+//conn->incr_backups[i]为该类型
 struct __wt_blkincr {
     const char *id_str;   /* User's name for this backup. */
     uint64_t granularity; /* Granularity of this backup. */

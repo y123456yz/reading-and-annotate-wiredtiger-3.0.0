@@ -45,11 +45,46 @@ static const char *const uri = "table:logtest";
 //#define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,file_max=100K,remove=false)"  要支持增量备份，remove必须为false，否则报错incremental log file backup not possible when automatic log removal configured: Invalid argument
 #define CONN_CONFIG "verbose=[config_all_verbos:5, api:0, log:0], create,cache_size=100MB,log=(enabled=true,file_max=100K,remove=false)" //yang add change remove修改
 
+/*
+对应日志:
+Adding initial data
+Taking initial backup
+Iteration 1: adding data
+Iteration 1: taking full backup
+Iteration 1: taking incremental backup
+Iteration 1: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_full.1 ./backup_incr.1
+Iteration 1: Tables ./backup_full.1 and ./backup_incr.1 identical
+Iteration 2: adding data
+Iteration 2: taking full backup
+Iteration 2: taking incremental backup
+Iteration 2: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_full.2 ./backup_incr.2
+Iteration 2: Tables ./backup_full.2 and ./backup_incr.2 identical
+Iteration 3: adding data
+Iteration 3: taking full backup
+Iteration 3: taking incremental backup
+Iteration 3: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_full.3 ./backup_incr.3
+Iteration 3: Tables ./backup_full.3 and ./backup_incr.3 identical
+Iteration 4: adding data
+Iteration 4: taking full backup
+Iteration 4: taking incremental backup
+Iteration 4: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_full.4 ./backup_incr.4
+Iteration 4: Tables ./backup_full.4 and ./backup_incr.4 identical
+Final comparison: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_full.0 ./backup_incr.0
+Iteration MAIN: Tables ./backup_full.0 and ./backup_incr.0 identical
+
+最终都是backup_full.i和backup_incr.i内容相比较
+*/
+
 //WT_HOME_LOG_INCR.5存储的是第1轮的inc + 第2轮的inc + .... 第5轮的inc
-//WT_HOME_LOG_FULL.5也就是第4轮时候的full, 他的内容实际上 = 第1轮的inc + 第2轮的inc + .... 第5轮的inc
+//WT_HOME_LOG_FULL.5也就是第5轮时候的full, 他的内容和WT_HOME_LOG_INCR.5中的内容最终相等
 
 //WT_HOME_LOG_INCR.4存储的是第1轮的inc + 第2轮的inc + .... 第4轮的inc
-//WT_HOME_LOG_FULL.4也就是第4轮时候的full, 他的内容实际上 = 第1轮的inc + 第2轮的inc + .... 第5轮的inc
+//WT_HOME_LOG_FULL.4也就是第4轮时候的full, 他的内容实际上和WT_HOME_LOG_INCR.4中的内容最终相等
 
 //拷贝几份
 #define MAX_ITERATIONS 5
@@ -166,6 +201,13 @@ add_work(WT_SESSION *session, int iter)
     error_check(cursor->close(cursor));
 }
 
+//假设一共需要MAX_ITERATIONS为5轮，则
+//take_full_backup: full backup也就是把某轮backup时候的全量文件拷贝到WT_BLOCK_LOG_FULL.i目录，最终
+//  WT_BLOCK_LOG_FULL.0目录数据代表第一轮的全量文件备份，WT_BLOCK_LOG_FULL.1目录数据代表第2轮的全量文件备份，以此类推
+
+//take_incr_backup: inc backup也就是把某轮获取到的wal文件拷贝到前面每轮对应目录，最终
+//  WT_HOME_LOG_INCR.0存储第一轮的WAL文件，WT_HOME_LOG_INCR.0存储第0轮和第1轮的WAL文件，WT_HOME_LOG_INCR.1存储第0轮、第1轮、第2轮的WAL文件，
+//  也就是WT_HOME_LOG_INCR.2中存储的文件包括前3个周期内拷贝的wal文件，WT_HOME_LOG_INCR.4中存储的文件包括前5个周期内拷贝的wal文件，
 static void
 take_full_backup(WT_SESSION *session, int i)
 {
@@ -183,6 +225,7 @@ take_full_backup(WT_SESSION *session, int i)
         hdir = h;
     } else
         hdir = home_incr;
+    //__wt_curbackup_open
     error_check(session->open_cursor(session, "backup:", NULL, NULL, &cursor));
 
     //__curbackup_next
@@ -211,6 +254,13 @@ take_full_backup(WT_SESSION *session, int i)
     error_check(cursor->close(cursor));
 }
 
+//假设一共需要MAX_ITERATIONS为5轮，则
+//take_full_backup: full backup也就是把某轮backup时候的全量文件拷贝到WT_BLOCK_LOG_FULL.i目录，最终
+//  WT_BLOCK_LOG_FULL.0目录数据代表第一轮的全量文件备份，WT_BLOCK_LOG_FULL.1目录数据代表第2轮的全量文件备份，以此类推
+
+//take_incr_backup: inc backup也就是把某轮获取到的wal文件拷贝到前面每轮对应目录，最终
+//  WT_HOME_LOG_INCR.0存储第一轮的WAL文件，WT_HOME_LOG_INCR.0存储第0轮和第1轮的WAL文件，WT_HOME_LOG_INCR.1存储第0轮、第1轮、第2轮的WAL文件，
+//  也就是WT_HOME_LOG_INCR.2中存储的文件包括前3个周期内拷贝的wal文件，WT_HOME_LOG_INCR.4中存储的文件包括前5个周期内拷贝的wal文件，
 static void
 take_incr_backup(WT_SESSION *session, int i)
 {

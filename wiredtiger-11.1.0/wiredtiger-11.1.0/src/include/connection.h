@@ -456,6 +456,8 @@ struct __wt_connection_impl {
     uint64_t ckpt_write_pages;
 
     /* Checkpoint and incremental backup data */
+    //增量备份的粒度，取值"min=4KB,max=2GB"
+    //"incremental.granularity"配置
     uint64_t incr_granularity;
     WT_BLKINCR incr_backups[WT_BLKINCR_MAX];
 
@@ -758,6 +760,7 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
 //Check to decide if the eviction thread should continue running.
 #define WT_CONN_EVICTION_RUN 0x0000400u
 #define WT_CONN_HS_OPEN 0x0000800u
+//"incremental.enabled"
 #define WT_CONN_INCR_BACKUP 0x0001000u
 #define WT_CONN_IN_MEMORY 0x0002000u
 //leak_memory配置

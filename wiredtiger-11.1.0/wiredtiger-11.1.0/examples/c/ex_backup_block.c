@@ -56,8 +56,57 @@ static size_t filelist_count = 0;
 
 #define CONN_CONFIG "create,cache_size=100MB,log=(enabled=true,path=logpath,file_max=100K)"
 #define MAX_ITERATIONS 5
-#define MAX_KEYS 10000
+#define MAX_KEYS 1000//10000
 
+/*
+Adding initial data
+Taking initial backup
+Iteration 1: adding data
+Iteration 1: taking full backup
+Iteration 1: taking incremental backup
+Existing incremental ID string: ID0
+Iteration 1: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_block_full.1 ./backup_block_incr.1
+Iteration 1: Tables ./backup_block_full.1 and ./backup_block_incr.1 identical
+Iteration 2: adding data
+Iteration 2: taking full backup
+Iteration 2: taking incremental backup
+Existing incremental ID string: ID0
+Existing incremental ID string: ID1
+Iteration 2: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_block_full.2 ./backup_block_incr.2
+Iteration 2: Tables ./backup_block_full.2 and ./backup_block_incr.2 identical
+Iteration 3: adding data
+Iteration 3: taking full backup
+Iteration 3: taking incremental backup
+Existing incremental ID string: ID2
+Existing incremental ID string: ID1
+Iteration 3: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_block_full.3 ./backup_block_incr.3
+Iteration 3: Tables ./backup_block_full.3 and ./backup_block_incr.3 identical
+Iteration 4: adding data
+Iteration 4: taking full backup
+Iteration 4: taking incremental backup
+Existing incremental ID string: ID2
+Existing incremental ID string: ID3
+Iteration 4: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_block_full.4 ./backup_block_incr.4
+Iteration 4: Tables ./backup_block_full.4 and ./backup_block_incr.4 identical
+Close and reopen the connection
+Verify query after reopen
+Existing incremental ID string: ID4
+Existing incremental ID string: ID3
+Final comparison: dumping and comparing data
+yang test ..compare_backups: cmp ./backup_block_full.0 ./backup_block_incr.0
+Iteration MAIN: Tables ./backup_block_full.0 and ./backup_block_incr.0 identical
+
+最终都是backup_block_full.i和backup_block_incr.i内容相比较
+
+*/
+
+//yang test ..compare_backups: ../../wt -R -h WT_BLOCK_LOG_FULL.1 dump main > ./backup_block_full.1
+//yang test ..compare_backups: ../../wt -R -h WT_BLOCK_LOG_INCR.1 dump main > ./backup_block_incr.1
+//yang test ..compare_backups: cmp ./backup_block_full.1 ./backup_block_incr.1
 static int
 compare_backups(int i)
 {
@@ -140,6 +189,7 @@ setup_directories(void)
     }
 }
 
+//像两个表中写入同样的数据
 static void
 add_work(WT_SESSION *session, int iter, int iterj)
 {
@@ -175,6 +225,7 @@ add_work(WT_SESSION *session, int iter, int iterj)
         error_check(cursor2->close(cursor2));
 }
 
+//需要把上一轮中备份的需要清理的文件删除掉，例如上一轮备份了xxx1.wt  WiredTigerLog.xx文件，但是这一轮没有这些文件，则需要删除这些文件
 static int
 finalize_files(FILELIST *flistp, size_t count)
 {
@@ -190,9 +241,15 @@ finalize_files(FILELIST *flistp, size_t count)
         if (last_flist[i].name == NULL)
             break;
         if (!last_flist[i].exist) {
-            (void)snprintf(buf, sizeof(buf), "rm WT_BLOCK_LOG_*/%s%s",
+            testutil_system("rm WT_BLOCK_LOG_*/%s%s",
               strncmp(last_flist[i].name, WTLOG, WTLOGLEN) == 0 ? "logpath/" : "",
               last_flist[i].name);
+            //打印后的内容为yang add test: rm WT_BLOCK_LOG_*/logpath/WiredTigerLog.0000000001  也就是清理WAL日志
+            printf("yang add test: rm WT_BLOCK_LOG_*/%s%s\r\n",
+              strncmp(last_flist[i].name, WTLOG, WTLOGLEN) == 0 ? "logpath/" : "",
+              last_flist[i].name);
+
+            
             error_check(system(buf));
         }
         free((void *)last_flist[i].name);
@@ -264,11 +321,14 @@ take_full_backup(WT_SESSION *session, int i)
     if (i != 0) {
         (void)snprintf(h, sizeof(h), "%s.%d", home_full, i);
         hdir = h;
-    } else
+    } else //第0次全量备份的时候因为还没有做checkpoint，因此实际上只需要备份checkpoint之前的wal
         hdir = home_incr;
+        
     if (i == 0) {
         (void)snprintf(
           buf, sizeof(buf), "incremental=(granularity=1M,enabled=true,this_id=\"ID%d\")", i);
+          
+        //__wt_curbackup_open
         error_check(session->open_cursor(session, "backup:", NULL, buf, &cursor));
     } else
         error_check(session->open_cursor(session, "backup:", NULL, NULL, &cursor));
@@ -297,7 +357,8 @@ take_full_backup(WT_SESSION *session, int i)
                 (void)snprintf(h, sizeof(h), "%s.%d", home_incr, j);
                 (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, f, h, f);
 #if 0
-                printf("FULL: Copy: %s\n", buf);
+                printf("FULL: Copy: %s\n", buf); //yang add todo xxxxxxxxxxx 日志完善
+                printf("FULL %d: cp %s/%s %s/%s\r\n", i, home, f, h, f);
 #endif
                 error_check(system(buf));
             }
@@ -307,12 +368,14 @@ take_full_backup(WT_SESSION *session, int i)
 #endif
             (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, f, hdir, f);
 #if 0
-            printf("FULL %d: Copy: %s\n", i, buf);
+            printf("FULL %d: Copy: %s\n", i, buf);//yang add todo xxxxxxx 日志完善
+            printf("FULL %d: cp %s/%s %s/%s\r\n", i, home, f, hdir, f);
 #endif
             error_check(system(buf));
         }
     }
     scan_end_check(ret == WT_NOTFOUND);
+    //__curbackup_close  backup close最终用这个接口
     error_check(cursor->close(cursor));
     error_check(finalize_files(flist, count));
 }
@@ -331,7 +394,7 @@ take_incr_backup(WT_SESSION *session, int i)
 
     tmp = NULL;
     tmp_sz = 0;
-    /*! [Query existing IDs] */
+    /*! [Query existing IDs] */  //__wt_curbackup_open
     error_check(session->open_cursor(session, "backup:query_id", NULL, NULL, &backup_cur));
     while ((ret = backup_cur->next(backup_cur)) == 0) {
         error_check(backup_cur->get_key(backup_cur, &idstr));
@@ -341,6 +404,7 @@ take_incr_backup(WT_SESSION *session, int i)
     /*! [Query existing IDs] */
 
     /* Open the backup data source for incremental backup. */
+    //__wt_curbackup_open
     (void)snprintf(buf, sizeof(buf), "incremental=(src_id=\"ID%d\",this_id=\"ID%d\"%s)", i - 1, i,
       i % 2 == 0 ? "" : ",consolidate=true");
     error_check(session->open_cursor(session, "backup:", NULL, buf, &backup_cur));
@@ -353,13 +417,14 @@ take_incr_backup(WT_SESSION *session, int i)
     while ((ret = backup_cur->next(backup_cur)) == 0) {
         error_check(backup_cur->get_key(backup_cur, &filename));
         error_check(process_file(&flist, &count, &alloc, filename));
+        //cp的目标目录WT_BLOCK_LOG_INCR.0 写死的
         (void)snprintf(h, sizeof(h), "%s.0", home_incr);
         if (strncmp(filename, WTLOG, WTLOGLEN) == 0)
             (void)snprintf(buf, sizeof(buf), "cp %s/%s/%s %s/%s/%s", home, logpath, filename, h,
               logpath, filename);
         else
             (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, filename, h, filename);
-#if 0
+#if 1
         printf("Copying backup: %s\n", buf);
 #endif
         error_check(system(buf));
@@ -367,13 +432,13 @@ take_incr_backup(WT_SESSION *session, int i)
 
         (void)snprintf(buf, sizeof(buf), "incremental=(file=%s)", filename);
         error_check(session->open_cursor(session, NULL, backup_cur, buf, &incr_cur));
-#if 0
+#if 1
         printf("Taking incremental %d: File %s\n", i, filename);
 #endif
         while ((ret = incr_cur->next(incr_cur)) == 0) {
             error_check(incr_cur->get_key(incr_cur, &offset, &size, &type));
             scan_end_check(type == WT_BACKUP_FILE || type == WT_BACKUP_RANGE);
-#if 0
+#if 1
             printf("Incremental %s: KEY: Off %" PRIu64 " Size: %" PRIu64 " %s\n", filename, offset,
               size, type == WT_BACKUP_FILE ? "WT_BACKUP_FILE" : "WT_BACKUP_RANGE");
 #endif
@@ -417,7 +482,7 @@ take_incr_backup(WT_SESSION *session, int i)
                       filename, h, logpath, filename);
                 else
                     (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, filename, h, filename);
-#if 0
+#if 1
                 printf("Incremental: Whole file copy: %s\n", buf);
 #endif
                 error_check(system(buf));
@@ -439,11 +504,15 @@ take_incr_backup(WT_SESSION *session, int i)
          */
         for (j = i; j < MAX_ITERATIONS; j++) {
             (void)snprintf(h, sizeof(h), "%s.%d", home_incr, j);
-            if (strncmp(filename, WTLOG, WTLOGLEN) == 0)
+            if (strncmp(filename, WTLOG, WTLOGLEN) == 0) {
                 (void)snprintf(buf, sizeof(buf), "cp %s/%s/%s %s/%s/%s", home, logpath, filename, h,
                   logpath, filename);
-            else
+                printf("yang test take_incr_backup: cp %s/%s/%s %s/%s/%s\r\n", home, logpath, filename, h,
+                  logpath, filename);
+            } else {
                 (void)snprintf(buf, sizeof(buf), "cp %s/%s %s/%s", home, filename, h, filename);
+                printf("yang test take_incr_backup: cp %s/%s %s/%s\r\n", home, filename, h, filename);
+            }
             error_check(system(buf));
         }
     }
@@ -574,3 +643,4 @@ main(int argc, char *argv[])
 
     return (EXIT_SUCCESS);
 }
+

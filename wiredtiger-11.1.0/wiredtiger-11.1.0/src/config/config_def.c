@@ -413,6 +413,7 @@ static const WT_CONFIG_CHECK confchk_WT_SESSION_open_cursor[] = {
     "choices=[\"all\",\"cache_walk\",\"fast\",\"clear\","
     "\"size\",\"tree_walk\"]",
     NULL, 0},
+  //ÀýÈçtarget=("file:test.wt")
   {"target", "list", NULL, NULL, NULL, 0}, {NULL, NULL, NULL, NULL, NULL, 0}};
 
 static const WT_CONFIG_CHECK confchk_WT_SESSION_prepare_transaction[] = {

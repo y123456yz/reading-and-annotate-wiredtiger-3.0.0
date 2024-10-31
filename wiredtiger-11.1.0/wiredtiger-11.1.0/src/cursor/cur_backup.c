@@ -118,6 +118,7 @@ __wt_backup_file_remove(WT_SESSION_IMPL *session)
 /*
  * __curbackup_next --
  *     WT_CURSOR->next method for the backup cursor type.
+ //遍历list[]中存储的需要备份的文件信息
  */
 static int
 __curbackup_next(WT_CURSOR *cursor)
@@ -316,9 +317,10 @@ __wt_curbackup_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *other,
     WT_WITH_CHECKPOINT_LOCK(
       session, WT_WITH_SCHEMA_LOCK(session, ret = __backup_start(session, cb, othercb, cfg)));
     WT_ERR(ret);
-    WT_ERR(cb->incr_file == NULL ?
-        //全量backupzou走这里
+    WT_ERR(cb->incr_file == NULL ? 
+        //open cursor session->open_cursor参数没有指定"incremental.file"配置
         __wt_cursor_init(cursor, uri, NULL, cfg, cursorp) :
+        //有指定"incremental.file"配置
         __wt_curbackup_open_incr(session, uri, other, cursor, cfg, cursorp));
 
     if (0) {
@@ -333,6 +335,7 @@ err:
 /*
  * __backup_add_id --
  *     Add the identifier for block based incremental backup.
+ //从conn->incr_backups[i]中找到一个可用的WT_BLKINCR slot
  */
 static int
 __backup_add_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval)
@@ -345,10 +348,12 @@ __backup_add_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval)
 
     conn = S2C(session);
     blk = NULL;
+    //从conn->incr_backups[i]中找到一个可用的WT_BLKINCR slot
     for (i = 0; i < WT_BLKINCR_MAX; ++i) {
         blk = &conn->incr_backups[i];
         /* If it isn't already in use, we can use it. */
         if (!F_ISSET(blk, WT_BLKINCR_INUSE)) {
+            //yang add todo xxxxxxxxxxxxxxxxxxx，这里最好用use blk[%u] entry
             __wt_verbose_debug2(session, WT_VERB_BACKUP, "Free blk[%u] entry", i);
             break;
         }
@@ -362,11 +367,13 @@ __backup_add_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval)
         WT_RET_PANIC(session, WT_NOTFOUND, "Could not find an incremental backup slot to use");
 
     /* Use the slot. */
+    //如果数组中原来的blk已经存在，提示这个打印
     if (blk->id_str != NULL)
         __wt_verbose_debug2(
           session, WT_VERB_BACKUP, "Freeing and reusing backup slot with old id %s", blk->id_str);
     /* Free anything that was there. */
     __wt_free(session, blk->id_str);
+    //id_str设置为新的cbal
     WT_ERR(__wt_strndup(session, cval->str, cval->len, &blk->id_str));
     /*
      * Get the most recent checkpoint name. For now just use the one that is part of the metadata.
@@ -382,11 +389,14 @@ __backup_add_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval)
         __wt_verbose(session, WT_VERB_BACKUP,
           "Backup id %s: Did not find any metadata checkpoint for %s.", blk->id_str,
           WT_METAFILE_URI);
+        //这里置为WT_BLKINCR_FULL原因是当前还没有checkpoint，只有wal文件，则需要拷贝所有wal文件
         F_SET(blk, WT_BLKINCR_FULL);
     } else {
         __wt_verbose(session, WT_VERB_BACKUP, "Backup id %s using backup slot %u", blk->id_str, i);
+        //已经有checkpoint信息，说明已经有全量了，因此需要清理FULL标识
         F_CLR(blk, WT_BLKINCR_FULL);
     }
+    //标识该blk可用
     F_SET(blk, WT_BLKINCR_VALID);
     return (0);
 
@@ -398,6 +408,7 @@ err:
 /*
  * __backup_find_id --
  *     Find the source identifier for block based incremental backup. Error if it is not a valid id.
+ 在conn->incr_backups[].id_str中匹配cval字符串，如果匹配到则返回找到的WT_BLKINCR
  */
 static int
 __backup_find_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval, WT_BLKINCR **incrp)
@@ -431,6 +442,9 @@ __backup_find_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval, WT_BLKINCR **in
 /*
  * __backup_log_append --
  *     Append log files needed for backup.
+  __backup_log_append: 对应wiredtigerLog.xxxx文件  获取当前的wiredtigerLog.xxx文件名及其元数据信息存入cb->list[]，WAL不写入WT_METADATA_BACKUP backup文件
+ __backup_all: 对应实际数据文件，包括元数据文件和普通数据文件名及其元数据信息存入WT_METADATA_BACKUP backup文件，同时添加一份到cb->list[]
+ 
  // 获取当前的wiredtigerLog.xxx文件名存入cb->list[]
  */
 static int
@@ -464,6 +478,8 @@ err:
  * NOTE: this function handles all of the backup configuration except for the incremental use of
  *     force_stop. That is handled at the beginning of __backup_start because we want to deal with
  *     that setting without any of the other cursor setup.
+ 官方配置说明参考
+ https://source.wiredtiger.com/11.2.0/struct_w_t___s_e_s_s_i_o_n.html#afb5b4a69c2c5cafe411b2b04fdc1c75d
  */
 static int
 __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[],
@@ -490,6 +506,7 @@ __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[
     WT_RET_NOTFOUND_OK(__wt_config_gets(session, cfg, "incremental.enabled", &cval));
     if (cval.val) {
         if (!F_ISSET(conn, WT_CONN_INCR_BACKUP)) {
+            //增量备份的粒度，取值"min=4KB,max=2GB"
             WT_RET(__wt_config_gets(session, cfg, "incremental.granularity", &cval));
             if (conn->incr_granularity != 0)
                 WT_RET_MSG(session, EINVAL, "Cannot change the incremental backup granularity");
@@ -538,7 +555,9 @@ __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[
         if (is_dup)
             WT_RET_MSG(session, EINVAL,
               "Incremental source identifier can only be specified on a primary backup cursor");
+        // 在conn->incr_backups[].id_str中匹配cval字符串，如果匹配到则返回找到的WT_BLKINCR
         WT_RET(__backup_find_id(session, &cval, &cb->incr_src));
+        //说明可以在conn->incr_backups[].id_str中找到本次指定的src_id配置
         F_SET(cb->incr_src, WT_BLKINCR_INUSE);
         incremental_config = true;
     }
@@ -554,10 +573,12 @@ __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[
         if (is_dup)
             WT_ERR_MSG(session, EINVAL,
               "Incremental identifier can only be specified on a primary backup cursor");
+        // 在conn->incr_backups[].id_str中匹配cval字符串，如果匹配到则返回找到的WT_BLKINCR
         WT_ERR_NOTFOUND_OK(__backup_find_id(session, &cval, NULL), true);
         if (ret == 0)
             WT_ERR_MSG(session, EINVAL, "Incremental identifier already exists");
 
+        //没找到则从conn->incr_backups[i]中找到一个可用的WT_BLKINCR slot
         WT_ERR(__backup_add_id(session, &cval));
         incremental_config = true;
     }
@@ -568,6 +589,7 @@ __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[
      */
     WT_ERR(__wt_config_gets(session, cfg, "target", &cval));
     __wt_config_subinit(session, &targetconf, &cval);
+    //带有target配置的情况，也就是备份指定的uri或者
     for (target_list = false; (ret = __wt_config_next(&targetconf, &k, &v)) == 0;
          target_list = true) {
         /* If it is our first time through, allocate. */
@@ -586,20 +608,21 @@ __backup_config(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb, const char *cfg[
          * function to append them. Set log_only only if it is our only URI target.
          */
         //error_check(session->open_cursor(session, "backup:", NULL, "target=(\"log:\")", &cursor)); log方式备份增量数据
-        if (WT_PREFIX_MATCH(uri, "log:")) {
+        if (WT_PREFIX_MATCH(uri, "log:")) {//如果target=(\"log:\")则直接把所有WAL文件添加到cb->list[]，这样__curbackup_next时候就可以获取到所有wal文件
             log_config = true;
             *log_only = !target_list;
             WT_ERR(__backup_log_append(session, session->bkp_cursor, false));
         } else if (is_dup)
             WT_ERR_MSG(
               session, EINVAL, "duplicate backup cursor cannot be used for non-log target");
-        else {
+        else {//例如配置target=("file:test.wt")
             *log_only = false;
 
             /*
-             * If backing up individual tables, we have to include indexes, which may involve
-             * opening those indexes. Acquire the table lock in write mode for that case.
-             */
+                 * If backing up individual tables, we have to include indexes, which may involve
+                 * opening those indexes. Acquire the table lock in write mode for that case.
+                 */
+            // 把uri文件写入文件WT_BACKUP_TMP，同时添加到cb->list[]数组
             WT_WITH_TABLE_WRITE_LOCK(session,
               ret = __wt_schema_worker(session, uri, NULL, __backup_list_uri_append, cfg, 0));
             WT_ERR(ret);
@@ -753,7 +776,8 @@ __backup_start(
          * query creates a list to return but does not create the backup file. After appending the
          * list of IDs we are done.
          */
-        //增量相关
+        //如果session->open_cursor(session, "backup:query_id", NULL, NULL, &backup_cur)); 
+        // 则incr_backups[]中存储的id_str添加到cb->list[]，这样backup_cur->next(backup_cur)遍历就可以获取到id_str
         if (F_ISSET(cb, WT_CURBACKUP_QUERYID)) {
             ret = __backup_query_setup(session, cb);
             goto query_done;
@@ -797,9 +821,12 @@ __backup_start(
          *
          * It is also possible, and considered legal, to choose the new checkpoint, but not include
          * the log file that contains the log entry for taking the new checkpoint.
+
+         注意，从这里可以看出，backup的顺序是先wal日志文件，然后才是wt数据文件，最后才是后面的一些"WiredTiger.basecfg" "WiredTiger"等配置文件
          */
-        // 获取当前的wiredtigerLog.xxx文件名存入cb->list[]
+        // 获取当前的wiredtigerLog.xxx文件名及其元数据信息存入cb->list[]
         WT_ERR(__backup_log_append(session, cb, true));
+        //对应实际数据文件，包括元数据文件和普通数据文件名及其元数据信息存入WT_METADATA_BACKUP backup文件
         WT_ERR(__backup_all(session));
     }
 
@@ -817,7 +844,7 @@ __backup_start(
         dest = WT_LOGINCR_BACKUP;
         WT_ERR(__wt_fopen(session, WT_LOGINCR_SRC, WT_FS_OPEN_CREATE, WT_STREAM_WRITE, &srcfs));
         WT_ERR(__backup_list_append(session, cb, dest));
-    } else {//全量备份走这里
+    } else {//全量备份 或者增量块备份，这里在把
         dest = F_ISSET(cb, WT_CURBACKUP_EXPORT) ? WT_EXPORT_BACKUP : WT_METADATA_BACKUP;
         //uri对应文件添加到cb->list[]
         WT_ERR(__backup_list_append(session, cb, dest));
@@ -896,8 +923,8 @@ __backup_stop(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb)
 /*
  * __backup_all --
  *     Backup all objects in the database.
- __backup_log_append: 对应wiredtigerLog.xxxx文件
- __backup_all: 对应实际数据文件，包括元数据文件和普通数据文件
+ __backup_log_append: 对应wiredtigerLog.xxxx文件  获取当前的wiredtigerLog.xxx文件名及其元数据信息存入cb->list[]，WAL不写入WT_METADATA_BACKUP backup文件
+ __backup_all: 对应实际数据文件，包括元数据文件和普通数据文件名及其元数据信息存入WT_METADATA_BACKUP backup文件，同时添加一份到cb->list[]
  */
 static int
 __backup_all(WT_SESSION_IMPL *session)
@@ -910,6 +937,7 @@ __backup_all(WT_SESSION_IMPL *session)
  * __backup_list_uri_append --
  *     Append a new file name to the list, allocate space as necessary. Called via the schema_worker
  *     function.
+ 把name文件写入文件WT_BACKUP_TMP，同时添加到cb->list[]数组
  */
 static int
 __backup_list_uri_append(WT_SESSION_IMPL *session, const char *name, bool *skip)
@@ -936,7 +964,7 @@ __backup_list_uri_append(WT_SESSION_IMPL *session, const char *name, bool *skip)
 
     /* Add the metadata entry to the backup file. */
     WT_RET(__wt_metadata_search(session, name, &value));
-    //获取name表的元数据写入WT_BACKUP_TMP文件
+    //获取name表的元数据写入WT_BACKUP_TMP文件，这里面记录的是wt文件及其元数据信息
     ret = __wt_fprintf(session, cb->bfs, "%s\n%s\n", name, value);
     __wt_free(session, value);
     WT_RET(ret);
@@ -949,6 +977,7 @@ __backup_list_uri_append(WT_SESSION_IMPL *session, const char *name, bool *skip)
         return (0);
 
     /* Add file type objects to the list of files to be copied. */
+    //普通wt数据文件除了前面记录到WT_BACKUP_TMP文件，还需要添加到cb->list[]
     if (WT_PREFIX_MATCH(name, "file:"))
         WT_RET(__backup_list_append(session, cb, name));
 

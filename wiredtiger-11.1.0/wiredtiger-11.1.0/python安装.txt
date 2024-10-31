@@ -1,3 +1,6 @@
+rocksdb理解好文章:  一文科普 RocksDB 工作原理  https://zhuanlan.zhihu.com/p/632841342
+polardb村算分离好文章: 从架构层面分析PolarDB技术要点 https://www.modb.pro/db/1711317557817974784
+
 /usr/bin/ld: /usr/local/lib64/libsnappy.a(snappy.cc.o): relocation R_X86_64_32 against `.rodata' can not be used when making a shared object; recompile with -fPIC
 /usr/bin/ld: /usr/local/lib64/libsnappy.a(snappy-sinksource.cc.o): relocation R_X86_64_32 against symbol `_ZTVN6snappy6SourceE' can not be used when making a shared object; recompile with -fPIC
 /usr/bin/ld: /usr/local/lib64/libsnappy.a(snappy-c.cc.o): relocation R_X86_64_PC32 against symbol `snappy_max_compressed_length' can not be used when making a shared object; recompile with -fPIC
