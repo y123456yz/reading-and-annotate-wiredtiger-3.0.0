@@ -412,6 +412,7 @@ __ckpt_last(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt)
  *     we return the most recent checkpoint (named or unnamed), since all callers need a checkpoint
  *     that matches the snapshot info they're using.
  */
+//解析config字符串中的checkpoint信息，获取checkpoint对应信息及order timep信息
 static int
 __ckpt_last_name(WT_SESSION_IMPL *session, const char *config, const char **namep, int64_t *orderp,
   uint64_t *timep)
@@ -440,6 +441,7 @@ __ckpt_last_name(WT_SESSION_IMPL *session, const char *config, const char **name
         WT_ERR(__ckpt_parse_time(session, &a, &time));
 
         __wt_free(session, *namep);
+        //namep实际上存储checkpoint="xxxx"中的内容
         WT_ERR(__wt_strndup(session, k.str, k.len, namep));
     }
     if (!found)

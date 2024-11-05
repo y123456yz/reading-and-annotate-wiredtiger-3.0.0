@@ -382,14 +382,15 @@ __backup_add_id(WT_SESSION_IMPL *session, WT_CONFIG_ITEM *cval)
     ret = __wt_meta_checkpoint_last_name(session, WT_METAFILE_URI, &ckpt, NULL, NULL);
     __wt_free(session, ckpt);
     WT_ERR_NOTFOUND_OK(ret, true);
-    if (ret == WT_NOTFOUND) {
+    if (ret == WT_NOTFOUND) {//说明wiredtiger.turtle中没有wiredtiger.wt这个K的checkpoint元数据或者没有wiredtiger.wt这个K信息
         /*
          * If we don't find any checkpoint, backup files need to be full copy.
          */
         __wt_verbose(session, WT_VERB_BACKUP,
           "Backup id %s: Did not find any metadata checkpoint for %s.", blk->id_str,
           WT_METAFILE_URI);
-        //这里置为WT_BLKINCR_FULL原因是当前还没有checkpoint，只有wal文件，则需要拷贝所有wal文件
+        //这里置为WT_BLKINCR_FULL原因是当前还没有checkpoint，则需要拷贝所有wal文件,包括数据.wt文件和wal日志文件，在不停写数据
+        // 的时候，内存page到达指定大小就会reconcile持久化，所以即使不做checkpoint也会有数据.wt文件
         F_SET(blk, WT_BLKINCR_FULL);
     } else {
         __wt_verbose(session, WT_VERB_BACKUP, "Backup id %s using backup slot %u", blk->id_str, i);

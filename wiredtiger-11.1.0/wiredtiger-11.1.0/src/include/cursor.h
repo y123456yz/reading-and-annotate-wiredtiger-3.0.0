@@ -98,10 +98,12 @@ struct __wt_cursor_backup {
     size_t list_next;
 
     /* File offset-based incremental backup. */
-    WT_BLKINCR *incr_src; /* Incremental backup source */
+    //赋值见__backup_config，也就是"incremental.src_id"配置中指定的backup增量备份基准源信息
+     WT_BLKINCR *incr_src; /* Incremental backup source */  //__wt_cursor_backup.incr_src
     //"incremental.file"配置，赋值见__backup_config,实际上来源可以参考ex backup block.c 
     char *incr_file;      /* File name */
 
+    //__wt_curbackup_open_incr中赋值
     WT_CURSOR *incr_cursor; /* File cursor */
 
     WT_ITEM bitstring;    /* List of modified blocks */

@@ -305,7 +305,7 @@ __wt_metadata_search(WT_SESSION_IMPL *session, const char *key, char **valuep)
       key, WT_META_TRACKING(session) ? "true" : "false", __metadata_turtle(key) ? "" : "not ");
 
     //key内容和WiredTiger.turtl内容来判断是否读取WiredTiger.turtl元数据，WiredTiger.turtl第一行内容为WT_METADATA_COMPAT  WT_METAFILE_URI等
-    if (__metadata_turtle(key)) {//读WiredTiger.turtl文件
+    if (__metadata_turtle(key)) {//如果key为wiredtiger.wt，则读WiredTiger.turtl文件
         /*
          * The returned value should only be set if ret is non-zero, but Coverity is convinced
          * otherwise. The code path is used enough that Coverity complains a lot, add an error check

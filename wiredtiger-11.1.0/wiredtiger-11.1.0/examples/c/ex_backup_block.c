@@ -404,9 +404,9 @@ take_incr_backup(WT_SESSION *session, int i)
     /*! [Query existing IDs] */
 
     /* Open the backup data source for incremental backup. */
-    //__wt_curbackup_open
     (void)snprintf(buf, sizeof(buf), "incremental=(src_id=\"ID%d\",this_id=\"ID%d\"%s)", i - 1, i,
       i % 2 == 0 ? "" : ",consolidate=true");
+    //__wt_curbackup_open 这里返回的backup_cur中可以通过next遍历获取到所有需要备份的文件名
     error_check(session->open_cursor(session, "backup:", NULL, buf, &backup_cur));
     rfd = wfd = -1;
     count = 0;
@@ -430,11 +430,16 @@ take_incr_backup(WT_SESSION *session, int i)
         error_check(system(buf));
         first = true;
 
+        //带有"incremental.file"配置，则这里open_cursor为__wt_curbackup_open_incr
         (void)snprintf(buf, sizeof(buf), "incremental=(file=%s)", filename);
+        //注意这里相比普通open_cursor多了一个backup_cur参数，同时会返回一个新的incr_cur
+        // backup_cur中关联的是备份文件名列表，incr_cur关联的是指定文件名的增量内容列表
+        //__wt_curbackup_open_incr
         error_check(session->open_cursor(session, NULL, backup_cur, buf, &incr_cur));
 #if 1
         printf("Taking incremental %d: File %s\n", i, filename);
 #endif
+        //__curbackup_incr_next
         while ((ret = incr_cur->next(incr_cur)) == 0) {
             error_check(incr_cur->get_key(incr_cur, &offset, &size, &type));
             scan_end_check(type == WT_BACKUP_FILE || type == WT_BACKUP_RANGE);
@@ -442,7 +447,8 @@ take_incr_backup(WT_SESSION *session, int i)
             printf("Incremental %s: KEY: Off %" PRIu64 " Size: %" PRIu64 " %s\n", filename, offset,
               size, type == WT_BACKUP_FILE ? "WT_BACKUP_FILE" : "WT_BACKUP_RANGE");
 #endif
-            if (type == WT_BACKUP_RANGE) {
+            if (type == WT_BACKUP_RANGE) {//说明需要备份文件的一部分内容
+            
                 /*
                  * We should never get a range key after a whole file so the read file descriptor
                  * should be valid. If the read descriptor is valid, so is the write one.
@@ -473,7 +479,7 @@ take_incr_backup(WT_SESSION *session, int i)
                     testutil_die(errno, "lseek: write");
                 /* Use the read size since we may have read less than the granularity. */
                 error_sys_check(write(wfd, tmp, rdsize));
-            } else {
+            } else {//整文件需要备份
                 /* Whole file, so close both files and just copy the whole thing. */
                 testutil_assert(first == true);
                 rfd = wfd = -1;
