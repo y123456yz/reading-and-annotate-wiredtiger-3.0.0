@@ -318,9 +318,9 @@ __wt_curbackup_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *other,
       session, WT_WITH_SCHEMA_LOCK(session, ret = __backup_start(session, cb, othercb, cfg)));
     WT_ERR(ret);
     WT_ERR(cb->incr_file == NULL ? 
-        //open cursor session->open_cursor参数没有指定"incremental.file"配置
+        //open cursor session->open_cursor参数没有指定"incremental=(file=xxxxx)"  "incremental.file"配置
         __wt_cursor_init(cursor, uri, NULL, cfg, cursorp) :
-        //有指定"incremental.file"配置
+        //有指定"incremental=(file=xxxxx)"  "incremental.file"配置
         __wt_curbackup_open_incr(session, uri, other, cursor, cfg, cursorp));
 
     if (0) {
@@ -845,7 +845,7 @@ __backup_start(
         dest = WT_LOGINCR_BACKUP;
         WT_ERR(__wt_fopen(session, WT_LOGINCR_SRC, WT_FS_OPEN_CREATE, WT_STREAM_WRITE, &srcfs));
         WT_ERR(__backup_list_append(session, cb, dest));
-    } else {//全量备份 或者增量块备份，这里在把
+    } else {//全量备份 或者增量块备份，这里在把普通配置元数据加上
         dest = F_ISSET(cb, WT_CURBACKUP_EXPORT) ? WT_EXPORT_BACKUP : WT_METADATA_BACKUP;
         //uri对应文件添加到cb->list[]
         WT_ERR(__backup_list_append(session, cb, dest));

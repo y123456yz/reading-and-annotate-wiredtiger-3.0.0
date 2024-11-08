@@ -27,6 +27,21 @@ __wt_backup_load_incr(
  * __curbackup_incr_blkmod --
  *     Get the block modifications for a tree from its metadata and fill in the backup cursor's
  *     information with it.
+
+ __curbackup_incr_blkmod: 
+    也就是从wiredtiger.wt中获取btree对应元数据中解析出checkpoint_backup_info中的特定内容值存入WT_CURSOR_BACKUP的granularity、nbits等变量中
+ __wt_ckpt_blkmod_to_meta:
+     根据ckpt->backup_blocks[0]生成checkpoint_backup_info=xxxx字符串信息存入buf中,最终在外层函数中写入wiredtiger.wt元数据文件
+
+    checkpoint_backup_info来源在ckpt->backup_blocks[]结构，真正来源于checkpoint操作__ckpt_update->(__ckpt_add_blk_mods_ext __ckpt_add_blk_mods_alloc)中赋值
+  
+
+
+ 也就是从wiredtiger.wt中获取btree对应元数据中的下面的字符串中获取相关信息存入
+ checkpoint_backup_info=("ID2"=(id=0,granularity=1048576,nbits=128,offset=0,rename=0,blocks=01000000000000000000000000000000),
+    "ID3"=(id=1,granularity=1048576,nbits=128,offset=0,rename=0,blocks=01000000000000000000000000000000))
+
+ //也就是从wiredtiger.wt中获取btree对应元数据中解析出checkpoint_backup_info中的特定内容值存入WT_CURSOR_BACKUP的granularity、nbits等变量中
  */
 static int
 __curbackup_incr_blkmod(WT_SESSION_IMPL *session, WT_BTREE *btree, WT_CURSOR_BACKUP *cb)
@@ -41,8 +56,11 @@ __curbackup_incr_blkmod(WT_SESSION_IMPL *session, WT_BTREE *btree, WT_CURSOR_BAC
     WT_ASSERT(session, btree->dhandle != NULL);
     WT_ASSERT(session, cb->incr_src != NULL);
 
+    //获取btree对应wt文件的元数据配置文件信息存入config
     WT_RET(__wt_metadata_search(session, btree->dhandle->name, &config));
     /* Check if this is a file with no checkpointed content. */
+    //yang add todo xxxxxxxxxxxxxxxxxx  这里0最好用NULL替换
+    //从wiredtiger.wt元数据中获取fname对应持久化的checkpoint信息存入ckpt
     ret = __wt_meta_checkpoint(session, btree->dhandle->name, 0, &ckpt);
     if (ret == 0 && ckpt.addr.size == 0)
         F_SET(cb, WT_CURBACKUP_CKPT_FAKE);
@@ -56,6 +74,7 @@ __curbackup_incr_blkmod(WT_SESSION_IMPL *session, WT_BTREE *btree, WT_CURSOR_BAC
         /*
          * First see if we have information for this source identifier.
          */
+        //获取与checkpoint_backup_info匹配的例如函数中举例的ID2或者ID3
         if (WT_STRING_MATCH(cb->incr_src->id_str, k.str, k.len) == 0)
             continue;
 
@@ -165,6 +184,7 @@ __curbackup_incr_next(WT_CURSOR *cursor)
              * the incremental identifier starting point. Walk the list looking for one with a
              * source of our id.
              */
+            //获取增量变化的信息
             WT_ERR(__curbackup_incr_blkmod(session, btree, cb));
             /*
              * There are several cases where we do not have block modification information for
@@ -280,7 +300,9 @@ __wt_curbackup_open_incr(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *o
     cb->incr_src = other_cb->incr_src;
 
     /* All WiredTiger owned files are full file copies. */
+    //说明依赖的上一个backup的wiredtiger.turtle中没有wiredtiger.wt这个K的checkpoint元数据或者没有wiredtiger.wt这个K信息
     if (F_ISSET(other_cb->incr_src, WT_BLKINCR_FULL) ||
+      //yang add todo xxxxxxxxxxxxxxx  WiredTigerHS.wt是不是应该走inc方式会更好，因为WiredTigerHS.wt可能会很大，例如minSnapshotHistoryWindowInSeconds设置很大的时候
       WT_PREFIX_MATCH(cb->incr_file, "WiredTiger")) {
         __wt_verbose(session, WT_VERB_BACKUP, "Forcing full file copies for %s for id %s",
           cb->incr_file, other_cb->incr_src->id_str);
@@ -295,7 +317,7 @@ __wt_curbackup_open_incr(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *o
      * Set up the incremental backup information, if we are not forcing a full file copy. We need an
      * open cursor on the file. Open the backup checkpoint, confirming it exists.
      */
-    if (!F_ISSET(cb, WT_CURBACKUP_FORCE_FULL)) {
+    if (!F_ISSET(cb, WT_CURBACKUP_FORCE_FULL)) {//不需要全量，则这里走增量方式
         WT_ERR(__wt_scr_alloc(session, 0, &open_uri));
         WT_ERR(__wt_buf_fmt(session, open_uri, "file:%s", cb->incr_file));
         /*

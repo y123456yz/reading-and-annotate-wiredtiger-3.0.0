@@ -109,7 +109,7 @@ __ckpt_load_blk_mods(WT_SESSION_IMPL *session, const char *config, WT_CKPT *ckpt
   //__btree_preload->__wt_blkcache_read循环进行真正的数据加载
 
  */
-//从wiredtiger.wt元数据中获取到了持久化的checkpoint信息
+//从wiredtiger.wt元数据中获取fname对应持久化的checkpoint信息
 int
 __wt_meta_checkpoint(
   WT_SESSION_IMPL *session, const char *fname, const char *checkpoint, WT_CKPT *ckpt)
@@ -1300,6 +1300,14 @@ __wt_meta_ckptlist_to_meta(WT_SESSION_IMPL *session, WT_CKPT *ckptbase, WT_ITEM 
 /*
  * __wt_ckpt_blkmod_to_meta --
  *     Add in any modification block string needed, including an empty one.
+ __curbackup_incr_blkmod: 
+    也就是从wiredtiger.wt中获取btree对应元数据中解析出checkpoint_backup_info中的特定内容值存入WT_CURSOR_BACKUP的granularity、nbits等变量中
+ __wt_ckpt_blkmod_to_meta:
+     根据ckpt->backup_blocks[0]生成checkpoint_backup_info=xxxx字符串信息存入buf中,最终在外层函数中写入wiredtiger.wt元数据文件
+
+    checkpoint_backup_info来源在ckpt->backup_blocks[]结构，真正来源于checkpoint操作__ckpt_update->(__ckpt_add_blk_mods_ext __ckpt_add_blk_mods_alloc)中赋值
+ 
+ 根据ckpt->backup_blocks[0]生成checkpoint_backup_info=xxxx字符串信息存入buf中
  */
 int
 __wt_ckpt_blkmod_to_meta(WT_SESSION_IMPL *session, WT_ITEM *buf, WT_CKPT *ckpt)
@@ -1319,12 +1327,16 @@ __wt_ckpt_blkmod_to_meta(WT_SESSION_IMPL *session, WT_ITEM *buf, WT_CKPT *ckpt)
      * If the existing block modifications are not valid, there is nothing to do.
      */
     if (!valid) {
+        //没有backup info 信息，=后面没有内容
         WT_RET(__wt_buf_catfmt(session, buf, ",checkpoint_backup_info="));
         return (0);
     }
 
     /*
      * We have at least one valid modified block list.
+     //例如信息
+   checkpoint_backup_info=("ID2"=(id=0,granularity=1048576,nbits=128,offset=0,rename=0,blocks=01000000000000000000000000000000),
+   "ID3"=(id=1,granularity=1048576,nbits=128,offset=0,rename=0,blocks=01000000000000000000000000000000))
      */
     WT_RET(__wt_buf_catfmt(session, buf, ",checkpoint_backup_info=("));
     for (i = 0, blk = &ckpt->backup_blocks[0]; i < WT_BLKINCR_MAX; ++i, ++blk) {

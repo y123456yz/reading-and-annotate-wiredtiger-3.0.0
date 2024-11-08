@@ -114,6 +114,7 @@ struct __wt_blkincr {
     const char *id_str;   /* User's name for this backup. */
     uint64_t granularity; /* Granularity of this backup. */
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
+//说明wiredtiger.turtle中没有wiredtiger.wt这个K的checkpoint元数据或者没有wiredtiger.wt这个K信息
 #define WT_BLKINCR_FULL 0x1u  /* There is no checkpoint, always do full file */
 //"incremental.src_id"配置后会置位
 #define WT_BLKINCR_INUSE 0x2u /* This entry is active */
@@ -129,14 +130,23 @@ struct __wt_blkincr {
  * At the default granularity, this is enough for blocks in a 2G file.
  */
 #define WT_BLOCK_MODS_LIST_MIN 128 /* Initial bits for bitmap. */
-//__ckpt_load_blk_mods中赋值使用
+
+//__wt_ckpt.backup_blocks成员为该类型
+
+//__ckpt_load_blk_mods中从元数据中解析checkpoint_backup_info赋值
+//__ckpt_update->(__ckpt_add_blk_mods_ext __ckpt_add_blk_mods_alloc)中赋值
 struct __wt_block_mods {
     const char *id_str;
 
+    //checkpoint_backup_info=("ID2"=(id=0,granularity=1048576,nbits=128,offset=0,rename=0,blocks=1f000000000000000000000000000000),
+    //    "ID3"=(id=1,granularity=1048576,nbits=128,offset=0,rename=0,blocks=1f000000000000000000000000000000))
+    //  这里的blocks就是以granularity为单位的位图，例如这里的blocks=1f000000000000000000000000000000，去掉0也就是1f，对应
+    //    位图为11111,也就是从offset=0开始的5个granularity大小为变化的增量数据块
     WT_ITEM bitstring;
     uint64_t nbits; /* Number of bits in bitstring */
 
     uint64_t offset; /* Zero bit offset for bitstring */
+    //incremental.granularity配置，默认16M
     uint64_t granularity;
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 #define WT_BLOCK_MODS_RENAME 0x1u /* Entry is from a rename */
@@ -197,6 +207,9 @@ struct __wt_ckpt {
     //转换后的字符串存储到block_checkpoint中，赋值参考__ckpt_update
     char *block_checkpoint; /* Block-stored checkpoint */ //也就是wiredtiger.wt文件中的checkpoint=(xxxxx)信息记录到这里
 
+    //__ckpt_load_blk_mods中从元数据中解析checkpoint_backup_info赋值
+    //__ckpt_update->(__ckpt_add_blk_mods_ext __ckpt_add_blk_mods_alloc)中赋值
+    //__wt_ckpt.backup_blocks
     WT_BLOCK_MODS backup_blocks[WT_BLKINCR_MAX];
 
     //__wt_checkpoint_tree_reconcile_update赋值

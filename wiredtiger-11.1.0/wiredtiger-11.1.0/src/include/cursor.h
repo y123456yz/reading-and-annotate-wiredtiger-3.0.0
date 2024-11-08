@@ -106,6 +106,7 @@ struct __wt_cursor_backup {
     //__wt_curbackup_open_incr中赋值
     WT_CURSOR *incr_cursor; /* File cursor */
 
+    //下面这几个变量表示从wiredtiger.wt中获取checkpoint_backup_info=xxxx字符串解析出相关变量值，参考__curbackup_incr_blkmod
     WT_ITEM bitstring;    /* List of modified blocks */
     uint64_t nbits;       /* Number of bits in bitstring */
     uint64_t offset;      /* Zero bit offset in bitstring */

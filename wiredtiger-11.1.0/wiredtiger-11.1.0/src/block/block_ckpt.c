@@ -426,6 +426,10 @@ __ckpt_verify(WT_SESSION_IMPL *session, WT_CKPT *ckptbase)
 /*
  * __ckpt_add_blkmod_entry --
  *     Add an offset/length entry to the bitstring based on granularity.
+//  checkpoint_backup_info=("ID0"=(id=0,granularity=4096,nbits=128,offset=0,rename=0,blocks=feffffffff0300000000000000000000),
+//   "ID1"=(id=1,granularity=4096,nbits=128,offset=0,rename=0,blocks=feffffffff0300000000000000000000))
+//   feffffffff0300000000000000000000为32字节，每字节代表4位，总计也就是nbits=128位
+//   上面的blocks就是对应的位图
  */
 static int
 __ckpt_add_blkmod_entry(
@@ -433,6 +437,11 @@ __ckpt_add_blkmod_entry(
 {
     uint64_t end_bit, start_bit;
     uint32_t end_buf_bytes, end_rdup_bits, end_rdup_bytes;
+    WT_DECL_ITEM(buf);
+    int ret;
+    WT_ITEM bitstring;
+    WT_CLEAR(bitstring);
+
 
     WT_ASSERT(session, blk_mod->granularity != 0);
     /*
