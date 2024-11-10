@@ -361,8 +361,11 @@ struct __wt_session_impl {//在__session_clear中把该结构内容全部清0
  https://blog.csdn.net/baijiwei/article/details/89705491
  */
 #define WT_SESSION_INITIAL_HAZARD_SLOTS 250
+    //hazard[]数组大小
     uint32_t hazard_size;  /* Hazard pointer array slots */
+    //__wt_hazard_set_func自增  __wt_hazard_clear置为0
     uint32_t hazard_inuse; /* Hazard pointer array slots in-use */
+    //__wt_hazard_set_func中自增  __wt_hazard_clear  __wt_hazard_close自减
     uint32_t nhazard;      /* Count of active hazard pointers */
     //风险指针(Hazard Pointers)——用于无锁对象的安全内存回收
     //https://www.cnblogs.com/cobbliu/articles/8370746.html

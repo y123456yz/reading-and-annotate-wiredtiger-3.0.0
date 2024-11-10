@@ -27,8 +27,10 @@ hazard_grow(WT_SESSION_IMPL *session)
     /*
      * Allocate a new, larger hazard pointer array and copy the contents of the original into place.
      */
+    //创建一个2倍的新hazard[]数组
     size = session->hazard_size;
     WT_RET(__wt_calloc_def(session, size * 2, &nhazard));
+    //老的hazard[]数组中的内容拷贝到新的nhazard
     memcpy(nhazard, session->hazard, size * sizeof(WT_HAZARD));
 
     /*
@@ -36,7 +38,10 @@ hazard_grow(WT_SESSION_IMPL *session)
      * must complete before eviction can see the new hazard pointer array), then schedule the
      * original to be freed.
      */
+    //ohazard记录老的harard[]数组
     ohazard = session->hazard;
+
+    //session->hazard重新指向新的hazard
     WT_PUBLISH(session->hazard, nhazard);
 
     /*
@@ -50,7 +55,10 @@ hazard_grow(WT_SESSION_IMPL *session)
      * pointer generation number, and schedule a future free of the old memory. Ignore any failure,
      * leak the memory.
      */
+    //记录hazard扩容的次数
     __wt_gen_next(session, WT_GEN_HAZARD, &hazard_gen);
+
+    //老的ohazard[]数组指针添加到stash队列等待释放
     WT_IGNORE_RET(__wt_stash_add(session, WT_GEN_HAZARD, hazard_gen, ohazard, 0));
 
     return (0);
@@ -59,6 +67,8 @@ hazard_grow(WT_SESSION_IMPL *session)
 /*
  * __wt_hazard_set_func --
  *     Set a hazard pointer.
+一个线程可以使用多个ref page原因是: 例如我访问某个page上的KV的时候，如果这时候cache到了用户线程evict阈值，这时候
+  就需要使用多个ref page, 因此就需要占用多个hazard指针
  */
 int
 __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
@@ -82,12 +92,13 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
      * re-check it after a barrier to make sure we have a valid reference.
      */
     current_state = ref->state;
-    if (current_state != WT_REF_MEM) {//说明page被lock住了
+    if (current_state != WT_REF_MEM) {//说明page被lock住了  或者在磁盘上  或者状态为delete
         *busyp = true;
         return (0);
     }
 
     /* If we have filled the current hazard pointer array, grow it. */
+    //hazard[]数组不够用了，hazard[]数组扩容一倍
     if (session->nhazard >= session->hazard_size) {
         WT_ASSERT(session,
           session->nhazard == session->hazard_size &&
@@ -98,12 +109,13 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
     /*
      * If there are no available hazard pointer slots, make another one visible.
      */
+    //一般情况下session->nhazard都会等于session->hazard_inuse，除非在下面二次检查stat的时候状态已经不是WT_REF_MEM才可能不相等
     if (session->nhazard >= session->hazard_inuse) {
         WT_ASSERT(session,
           session->nhazard == session->hazard_inuse &&
             session->hazard_inuse < session->hazard_size);
         hp = &session->hazard[session->hazard_inuse++];
-    } else {
+    } else {//只有在第一次进来的时候下面二次检查current_state不为WT_REF_MEM的时候才会进到这里
         WT_ASSERT(session,
           session->nhazard < session->hazard_inuse &&
             session->hazard_inuse <= session->hazard_size);
@@ -114,8 +126,12 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
          * is expensive. If we reach the end of the array, continue the search from the beginning of
          * the array.
          */
-        //找到可用的没被引用的hazard
+        //找到前面第一次进入该__wt_hazard_set_func函数时候(设置了hazard_inuse++，但是二次检查current_state不为WT_REF_MEM的
+        //  时候，进入第二步nhazard自增前提取返回了)
+
+        //找到上一次设置hazard_inuse自增时候的hazard
         for (hp = session->hazard + session->nhazard;; ++hp) {
+            //如果[hazard, hazard_inuse]都没找到，则继续从头开始找
             if (hp >= session->hazard + session->hazard_inuse)
                 hp = session->hazard;
             if (hp->ref == NULL)
@@ -149,6 +165,7 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
      */
     current_state = ref->state;
     if (current_state == WT_REF_MEM) {
+        //这样可以保证nhazard和hazard_inuse一直相等
         ++session->nhazard;
 
         /*
@@ -177,6 +194,8 @@ __wt_hazard_set_func(WT_SESSION_IMPL *session, WT_REF *ref, bool *busyp
 /*
  * __wt_hazard_clear --
  *     Clear a hazard pointer.
+ //__wt_page_release->__wt_hazard_clear: 清理hazard pointer，表示该session线程不在使用该ref page
+ //__wt_ref_out->__wt_hazard_check_assert->__wt_hazard_check: 检查所有conn->session[]，也就是检查所有线程，判断是否有线程在使用该page
  */
 int
 __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
@@ -191,6 +210,7 @@ __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
      * Clear the caller's hazard pointer. The common pattern is LIFO, so do a reverse search.
      */
     for (hp = session->hazard + session->hazard_inuse - 1; hp >= session->hazard; --hp)
+        //同一个session,也就是同一个线程是有可能对同一个page多次引用的，例如使用这个page，有需要淘汰这个page
         if (hp->ref == ref) {
             /*
              * We don't publish the hazard pointer clear in the general case. It's not required for
@@ -206,6 +226,7 @@ __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
              * A write-barrier() is necessary before the change to the in-use value, the number of
              * active references can never be less than the number of in-use slots.
              */
+            //标识该session在引用该hp->ref page,__wt_hazard_check中就可以检查通过
             if (--session->nhazard == 0)
                 WT_PUBLISH(session->hazard_inuse, 0);
             return (0);
@@ -221,7 +242,7 @@ __wt_hazard_clear(WT_SESSION_IMPL *session, WT_REF *ref)
 
 /*
  * __wt_hazard_close --
- *     Verify that no hazard pointers are set.
+ *     Verify that no hazard pointers are set. 
  */
 void
 __wt_hazard_close(WT_SESSION_IMPL *session)
@@ -291,6 +312,9 @@ hazard_get_reference(WT_SESSION_IMPL *session, WT_HAZARD **hazardp, uint32_t *ha
  * __wt_hazard_check --
  *     Return if there's a hazard pointer to the page in the system.
     Check for a hazard pointer indicating another thread is using the page, meaning the page cannot be evicted.
+ //__wt_ref_out->__wt_hazard_check_assert->__wt_hazard_check
+
+ //判断释放有其他线程正在使用这个ref page
  */
 WT_HAZARD *
 __wt_hazard_check(WT_SESSION_IMPL *session, WT_REF *ref, WT_SESSION_IMPL **sessionp)
@@ -321,6 +345,7 @@ __wt_hazard_check(WT_SESSION_IMPL *session, WT_REF *ref, WT_SESSION_IMPL **sessi
      * or go, we'll check the slots for all of the sessions that could have been active when we
      * started our check.
      */
+    //遍历所有session上面的hazard数组，确认释放有其他线程(session)使用这个ref page
     WT_ORDERED_READ(session_cnt, conn->session_cnt);
     for (s = conn->sessions, i = max = walk_cnt = 0; i < session_cnt; ++s, ++i) {
         if (!s->active)
@@ -328,11 +353,13 @@ __wt_hazard_check(WT_SESSION_IMPL *session, WT_REF *ref, WT_SESSION_IMPL **sessi
 
         hazard_get_reference(s, &hp, &hazard_inuse);
 
+        //所有session中占用hazard指针最大值
         if (hazard_inuse > max) {
             max = hazard_inuse;
             WT_STAT_CONN_SET(session, cache_hazard_max, max);
         }
 
+        //该session是否在引用这个ref page
         for (j = 0; j < hazard_inuse; ++hp, ++j) {
             ++walk_cnt;
             if (hp->ref == ref) {
@@ -357,6 +384,9 @@ done:
  * __wt_hazard_count --
  *     Count how many hazard pointers this session has on the given page.
  */ //判断ref被hazard引用的总数，只有为0才可以做evict
+
+//__wt_page_in_func->__evict_force_check: 用户线程在做evict前需要检查该线程对ref page的引用次数，如果超过1次则本次不进行evit操作, 因为
+//  说明第一次__wt_hazard_set_func的时候可能返回了busy，说明可能有其他线程对该page做了evict操作
 u_int
 __wt_hazard_count(WT_SESSION_IMPL *session, WT_REF *ref)
 {
@@ -377,6 +407,7 @@ __wt_hazard_count(WT_SESSION_IMPL *session, WT_REF *ref)
 /*
  * __wt_hazard_check_assert --
  *     Assert there's no hazard pointer to the page.
+ //__wt_ref_out->__wt_hazard_check_assert->__wt_hazard_check
  */
 bool
 __wt_hazard_check_assert(WT_SESSION_IMPL *session, void *ref, bool waitfor)

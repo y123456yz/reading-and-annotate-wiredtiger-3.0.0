@@ -36,6 +36,9 @@ __wt_ref_out(WT_SESSION_IMPL *session, WT_REF *ref)
      * complicated by the fact that readers publish their hazard pointer before re-checking the page
      * state, so our check can race with readers without indicating a real problem. If we find a
      * hazard pointer, wait for it to be cleared.
+     
+     //__wt_page_release->__wt_hazard_clear: 清理hazard pointer，表示该session线程不在使用该ref page
+     //__wt_ref_out->__wt_hazard_check_assert->__wt_hazard_check: 检查所有conn->session[]，也就是检查所有线程，判断是否有线程在使用该page
      */
     WT_ASSERT(session, __wt_hazard_check_assert(session, ref, true));
 

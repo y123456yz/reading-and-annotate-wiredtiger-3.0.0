@@ -56,6 +56,8 @@ __evict_force_check(WT_SESSION_IMPL *session, WT_REF *ref)
      * If this session has more than one hazard pointer, eviction will fail and there is no point
      * trying.
      */ //判断ref被hazard引用的总数，只有为0才可以做evict
+    //__wt_page_in_func->__evict_force_check: 用户线程在做evict前需要检查该线程对ref page的引用次数，如果超过1次则本次不进行evit操作, 因为
+    //  说明第一次__wt_hazard_set_func的时候可能返回了busy，说明可能有其他线程对该page做了evict操作
     if (__wt_hazard_count(session, ref) > 1)
         return (false);
 
@@ -403,7 +405,7 @@ read:       //第一次向tree中写入数据或者从磁盘读数据都会到这里来
 #else
             WT_RET(__wt_hazard_set_func(session, ref, &busy));
 #endif
-            if (busy) {
+            if (busy) {//说明当前ref stat处于其他状态，继续while进入其他状态处理
                 WT_STAT_CONN_INCR(session, page_busy_blocked);
                 break;
             }

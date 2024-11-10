@@ -376,6 +376,7 @@ __wt_session_gen_leave(WT_SESSION_IMPL *session, int which)
 /*
  * __stash_discard --
  *     Discard any memory from a session stash that we can.
+ //把当前所有正在使用的session以外的历史session需要释放的内存释放掉
  */
 static void
 __stash_discard(WT_SESSION_IMPL *session, int which)

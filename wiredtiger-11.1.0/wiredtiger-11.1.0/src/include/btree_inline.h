@@ -2009,6 +2009,10 @@ __wt_page_can_evict(WT_SESSION_IMPL *session, WT_REF *ref, bool *inmem_splitp)
 /*
  * __wt_page_release --
  *     Release a reference to a page.
+ //__wt_page_release->__wt_hazard_clear: 清理hazard pointer，表示该session线程不在使用该ref page
+ //__wt_ref_out->__wt_hazard_check_assert->__wt_hazard_check: 检查所有conn->session[]，也就是检查所有线程，判断是否有线程在使用该page
+
+ 真正触发释放在__wt_page_out
  */
 static inline int
 __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
