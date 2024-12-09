@@ -1,0 +1,2 @@
+1. 替换dist中的s_clang-format文件
+2. 在dist目录中增加clang-format二进制
