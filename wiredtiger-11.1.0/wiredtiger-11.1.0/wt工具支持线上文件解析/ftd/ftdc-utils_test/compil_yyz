@@ -1,0 +1,7 @@
+go mod init ftdc    生成go mod工程
+go mod tidy         下载相关依赖
+go build cmd/ftdc/main.go 编译
+
+main.go中的"github.com/10gen/ftdc-utils"替换为下面的，因为这个工程已经删掉了
+thub.com/vmenajr/ftdc-utils"
+
