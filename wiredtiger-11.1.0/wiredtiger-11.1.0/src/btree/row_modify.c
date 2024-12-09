@@ -504,3 +504,4 @@ __wt_update_obsolete_check(
 
     return (NULL);
 }
+

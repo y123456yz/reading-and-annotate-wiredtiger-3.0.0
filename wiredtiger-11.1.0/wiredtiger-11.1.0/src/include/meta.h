@@ -22,7 +22,7 @@
  */ //WT_BACKUP_TMP文件  __backup_start，最终在__backup_start结尾被更名为WT_METADATA_BACKUP，里面存储的是备份表的元数据信息
 #define WT_BACKUP_TMP "WiredTiger.backup.tmp"  /* Backup tmp file */ //__backup_start中创建该文件
 #define WT_EXPORT_BACKUP "WiredTiger.export"   /* Export backup file */
-//存在"WiredTiger.backup"文件说明是hotback文件，这里面会包括备份wt文件对应的checkpoint信息，这样就可以通过该文件实现热备数据的恢复
+//存在"WiredTiger.backup"文件说明是hotback文件，这里面的内容也就是，这样就可以通过该文件实现热备数据的恢复
 //恢复热备数据对应的元数据接口__metadata_load_hot_backup
 #define WT_METADATA_BACKUP "WiredTiger.backup" /* Hot backup file */
 #define WT_LOGINCR_BACKUP "WiredTiger.ibackup" /* Log incremental backup */

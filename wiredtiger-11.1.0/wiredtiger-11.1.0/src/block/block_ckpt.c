@@ -479,6 +479,18 @@ __ckpt_add_blkmod_entry(
     WT_ASSERT(session, end_bit < blk_mod->nbits);
     /* Set all the bits needed to record this offset/length pair. */
     __bit_nset(blk_mod->bitstring.mem, start_bit, end_bit);
+
+
+    WT_ERR(__wt_scr_alloc(session, 0, &buf));
+    WT_RET(__wt_raw_to_hex(session, blk_mod->bitstring.data, blk_mod->bitstring.size, &bitstring));
+    WT_RET(__wt_buf_catfmt(session, buf,
+      "blocks=%.*s)", (int)bitstring.size, (char *)bitstring.data));
+    printf("yang test .............offset:%u, len:%u,start_bit:%"PRIu64", end_bit:%"PRIu64", end_rdup_bits:%u, end_rdup_bytes:%u, "
+        "end_buf_bytes:%u, bit size:%d, bitstring:%s\r\n", (uint32_t)offset, (uint32_t)len, start_bit, end_bit, end_rdup_bits, 
+            end_rdup_bytes, end_buf_bytes,(int)blk_mod->bitstring.size, (char*)buf->data);
+
+err:
+    __wt_scr_free(session, &buf);
     return (0);
 }
 

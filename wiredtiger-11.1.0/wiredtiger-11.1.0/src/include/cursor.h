@@ -93,7 +93,7 @@ struct __wt_cursor_backup {
     // __backup_log_append: 对应wiredtigerLog.xxxx文件  获取当前的wiredtigerLog.xxx文件名及其元数据信息存入cb->list[]，WAL不写入WT_METADATA_BACKUP backup文件
     // __backup_all: 对应实际数据文件，包括元数据文件和普通数据文件名及其元数据信息存入WT_METADATA_BACKUP backup文件，同时添加一份到cb->list[]
     //赋值参考__backup_list_append，需要备份的文件添加到这里面，包括日志WAL文件和wt数据文件
-    char **list; /* List of files to be copied. */
+    char **list; /* List of files to be copied. */ //真正的写入WT_BACKUP_TMP文件中在__backup_list_uri_append实现
     size_t list_allocated;
     size_t list_next;
 

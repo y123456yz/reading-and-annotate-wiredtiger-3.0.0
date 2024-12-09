@@ -146,7 +146,7 @@ struct __wt_txn_shared {
      readConcern: {level: "snapshot",  atClusterTime: Timestamp(1679050275, 1)}这里的时间就是session设置的read_timestamp
 
      */
-    //__wt_txn_set_read_timestamp
+    //__wt_txn_set_read_timestamp  read_timestamp必须比oldest timestamp大，否则设置不成功
     //read_timestamp会影响__wt_txn_visible事务可见性，同时会影响txn_global->pinned_timestamp(__wt_txn_get_pinned_timestamp->__txn_get_read_timestamp)
     wt_timestamp_t read_timestamp;
 
@@ -183,7 +183,7 @@ struct __wt_txn_global {
 
 
 
-    //一般在事务提交的时候赋值，参考__wt_txn_commit，或者用户主动__wt_txn_global_set_timestamp设置  
+    //一般在事务提交的时候赋值，参考__wt_txn_commit(赋值为当前事务提交时候最大的commit_timestamp)，或者用户主动__wt_txn_global_set_timestamp设置  
     //回滚__rollback_to_stable赋值
     wt_timestamp_t durable_timestamp;
     //赋值参考__txn_checkpoint，也就是txn_global->checkpoint_timestamp，也就是上一次做checkpoint的时间
@@ -197,7 +197,6 @@ struct __wt_txn_global {
     //stable_timestamp  oldest_timestamp这几个全局timestamp通过__conn_set_timestamp接口设置，pinned_timestamp在__conn_set_timestamp中
     // 设置stable_timestamp  oldest_timestamp的时候，会自动得到pinned_timestamp
     
-    //durable_timestamp如果没有通过__conn_set_timestamp显示设置，则一般在事务提交的时候会自动赋值，也就是
     wt_timestamp_t oldest_timestamp;
     //__wt_txn_update_pinned_timestamp中赋值
     wt_timestamp_t pinned_timestamp;

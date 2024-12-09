@@ -3101,7 +3101,7 @@ Timestamp calculatedOldestTimestamp(stableTimestamp.getSecs() -
 
 
 
-    //如果没有现实设置durable_timestamp，每次事务提交的时候都会默认和commit_timestamp保持一致
+    //如果没有现实设置durable_timestamp，每次事务提交的时候都会默认和commit_timestamp保持一致，见__wt_txn_commit(赋值为当前事务提交时候最大的commit_timestamp)
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "durable timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->durable_timestamp, ts_string)));
     //mongodb会设置oldest_timestamp=stable_timestamp-minSnapshotHistoryWindowInSeconds, 真正生效实际上是在
@@ -3109,7 +3109,7 @@ Timestamp calculatedOldestTimestamp(stableTimestamp.getSecs() -
     //  ，进而影响历史版本数据从内存释放以及访问可见性
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "oldest timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->oldest_timestamp, ts_string)));
-    //pinned_timestamp是在__wt_txn_update_pinned_timestamp中根据oldest_timestamp、checkpoint_timestamp和所有事务的read_timestamp取最小值算出来的，(mongodb txnOpen.setReadSnapshot(_readAtTimestamp);)
+    //pinned_timestamp是在__wt_txn_update_pinned_timestamp中根据oldest_timestamp、checkpoint_timestamp和所有事务的read_timestamp取最小值算出来的(注意: __wt_txn_set_read_timestamp设置的时候， read_timestamp必须比oldest timestamp大，否则设置不成功)，(mongodb txnOpen.setReadSnapshot(_readAtTimestamp);)
     //实际上真实用处如下:
     //  1. 只会在__wt_update_obsolete_check中当一个K上面的历史版本超过20个的时候才会影响该update的检查
     //  2. __wt_txn_visible_all->__wt_txn_pinned_timestamp用pinned_timestamp来判断事务可见性，进而影响历史版本数据从内存释放以及访问可见性

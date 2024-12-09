@@ -101,7 +101,7 @@ print_cursor(WT_CURSOR *cursor)
     const char *key, *value;
 
     int ret = 0;
-    printf("yang befor ...print_cursor..............\r\n");
+    printf("yang befor ...print_cursor.....1.........\r\n");
     //while ((ret = cursor->next(cursor)) == 0) {
     while (1) {
         ret = (int)cursor->next(cursor);
@@ -284,7 +284,7 @@ access_txn23_test(void)
     int i;
     char *value;
     const int kv_num = 1;
-    ////只有设置了commit_timestamp并且没有启用WAL功能，timestamp功能才会有效, 所以该用力不能启用log enable功能，参考__wt_txn_op_set_timestamp
+    ////只有设置了commit_timestamp并且没有启用WAL功能，timestamp功能才会有效, 所以该用例不能启用log enable功能，参考__wt_txn_op_set_timestamp
     error_check(wiredtiger_open(home, NULL, "log=(prealloc:true,file_max=100KB), create, "
         "verbose=[config_all_verbos:5,transaction=5, timestamp=5, api:5]", &conn));
 

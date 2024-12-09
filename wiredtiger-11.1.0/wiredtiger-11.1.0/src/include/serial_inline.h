@@ -237,7 +237,7 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
 //   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作
 
  
- 新增一个update到page对应K的链表中，同时在__wt_update_obsolete_check中检查
+ 新增一个update到page对应K的链表中，同时在__wt_update_obsolete_check中检查判断是否需要释放掉内存中历史不用的V版本
  */
 static inline int
 __wt_update_serial(WT_SESSION_IMPL *session, WT_CURSOR_BTREE *cbt, WT_PAGE *page,

@@ -234,6 +234,7 @@ __wt_checkpoint_server_destroy(WT_SESSION_IMPL *session)
 /*
  * __wt_checkpoint_signal --
  *     Signal the checkpoint thread if sufficient log has been written.
+ //ckpt_logsize配置默认为0，因此不会发送信号让checkpoint线程做checkpoint操作
  */
 void
 __wt_checkpoint_signal(WT_SESSION_IMPL *session, wt_off_t logsize)

@@ -27,6 +27,11 @@ usage(void)
 /*
  * util_backup --
  *     The backup command.
+ yang add todo xxxxxxxxxx 以mongod的数据为例，例如test/collection/0-8295032676728905134目录的数据，需要我们手动创建test/collection数据目录，否则报错，这里是否可以自动创建好目录
+
+ //backup备份多个文件
+ ../wt  -R -C "log=(enabled=true,path=journal,compressor=snappy)" backup -t file:test/collection/0-8295032676728905134.wt -t file:test/collection/2-8295032676728905134.wt ./backup/
+
  */
 int
 util_backup(WT_SESSION *session, int argc, char *argv[])

@@ -338,7 +338,8 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
 //FLD_ISSET(conn->log_flags, WT_CONN_LOG_ENABLED)  F_ISSET(btree, WT_BTREE_LOGGED) 
 //WT_CONN_LOG_ENABLED代表全局log是否开启，WT_BTREE_LOGGED代表table表级是否开启日志功能
 //只有全局WT_CONN_LOG_ENABLED  log启用，并且表级log.enabled也为true的时候才会置位WT_BTREE_LOGGED，默认表级log.enabled为false，所以表级WT_BTREE_LOGGED不会置位，参考__btree_conf
-//mongodb 副本集普通数据表的log是关闭了的，oplog表的log功能是打开的
+//mongodb 副本集普通数据表的log(wal)是关闭了的，oplog表的log(wal)功能是打开的
+//db.oplog.rs.stats().wiredTiger  [,log=(enabled=true),lsm]    db.test.stats().wiredTiger [log=(enabled=false)]
 #define WT_BTREE_LOGGED 0x0020000u         /* Commit-level durability without timestamps */
 #define WT_BTREE_NO_CHECKPOINT 0x0040000u  /* Disable checkpoints */
 #define WT_BTREE_OBSOLETE_PAGES 0x0080000u /* Handle has obsolete pages */

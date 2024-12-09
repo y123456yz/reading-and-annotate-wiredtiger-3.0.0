@@ -395,8 +395,8 @@ __posix_file_lock(WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session, bool lock
 
 /*
  * __posix_file_read --
- *     POSIX pread.
- */
+ *     POSIX pread.   这里读出来的实际上是磁盘上的一个page
+ */ 
 static int
 __posix_file_read(
   WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session, wt_off_t offset, size_t len, void *buf)
@@ -589,7 +589,7 @@ __posix_file_truncate(WT_FILE_HANDLE *file_handle, WT_SESSION *wt_session, wt_of
 
 /*
  * __posix_file_write --
- *     POSIX pwrite.
+ *     POSIX pwrite.   这里写到磁盘的实际上是一个page
  */
 static int
 __posix_file_write(

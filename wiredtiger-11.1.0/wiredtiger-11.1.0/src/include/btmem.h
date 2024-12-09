@@ -69,7 +69,7 @@
 
  
 //一个page数据在磁盘中连续空间内容: WT_BLOCK_HEADER + __wt_page_header +  WT_CELL
-//分片空间和赋值可以参考__wt_rec_cell_build_ovfl  __rec_split_write_header
+//分配空间和赋值可以参考__wt_rec_cell_build_ovfl  __rec_split_write_header
 //page->dsk为该类型
 struct __wt_page_header {
     /*
@@ -1539,7 +1539,7 @@ struct __wt_update {
      * prevent unexpected repeated/reordered reads.
      */
 
-    //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置session对应事务idWT_SESSION_IMPL->txn->id为WT_TXN_NONE 
+    //事务提交的时候会在__wt_txn_commit->__wt_txn_release中置session对应事务id WT_SESSION_IMPL->txn->id为WT_TXN_NONE 
     //upd->txnid为修改该值对应的事务id(__wt_txn_modify)，该id值不会因为事务提交置为0
      
     //该upd对应的事务id，赋值见__wt_txn_modify,同一个事务中的写操作txnid一样

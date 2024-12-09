@@ -10,6 +10,13 @@ define_c_test(
 )
 
 define_c_test(
+    TARGET ex_insert_load
+    SOURCES ex_insert_load.c
+    DIR_NAME ex_insert_load
+    ARGUMENTS -h $<SHELL_PATH:$<TARGET_FILE_DIR:ex_insert_load>/WT_HOME>
+)
+
+define_c_test(
     TARGET ex_all
     SOURCES ex_all.c
     DIR_NAME ex_all

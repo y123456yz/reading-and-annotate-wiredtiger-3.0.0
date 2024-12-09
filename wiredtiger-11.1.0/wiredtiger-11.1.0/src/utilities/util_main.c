@@ -70,6 +70,7 @@ usage(void)
     util_usage(NULL, "commands:", commands);
 }
 
+
 /*
  * main --
  *     The wt utility.
@@ -83,7 +84,8 @@ usage(void)
  ../wt  -R -C "log=(enabled=true,path=journal,compressor=snappy)" dump -x file:yyz/collection/17--5806437692883475685.wt  | ../wt_to_mdb_bson.py -m dump
 
 
- yang add todo xxxxxxxxxxxxxxxx
+
+ yang add todo xxxxxxxxxxxxxxxx        wt存储引擎百万库表支持，参考innodb共享表innodb_file_per_table=0，关闭了独占表空间
  2. wt printlog可能引起数据丢失
  */
 int

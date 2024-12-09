@@ -324,6 +324,8 @@ __block_write_off(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_ITEM *buf, uint3
     /*
      * Clear the block header to ensure all of it is initialized, even the unused fields.
      */
+    //page header头部赋值在__rec_split_write_header
+    
     // WT_BLOCK_HEADER_SIZE + WT_PAGE_HEADER_SIZE + 实际数据 中的block header初始化清零
     //__block_write_off对blk赋值也就是填充的
     blk = WT_BLOCK_HEADER_REF(buf->mem);

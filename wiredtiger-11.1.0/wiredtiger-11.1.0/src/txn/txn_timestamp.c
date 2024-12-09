@@ -74,6 +74,7 @@ __wt_txn_parse_timestamp(
 static void
 __txn_get_read_timestamp(WT_TXN_SHARED *txn_shared, wt_timestamp_t *read_timestampp)
 {
+    //__wt_txn_set_read_timestamp read_timestamp必须比oldest timestamp大，否则设置不成功
     WT_ORDERED_READ(*read_timestampp, txn_shared->read_timestamp);
 }
 
@@ -801,6 +802,7 @@ __wt_txn_set_prepare_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t prepare_
 /*
  * __wt_txn_set_read_timestamp --
  *     Parse a request to set a transaction's read_timestamp.
+ read_timestamp必须比oldest timestamp大，否则设置不成功
  */
 int
 __wt_txn_set_read_timestamp(WT_SESSION_IMPL *session, wt_timestamp_t read_ts)

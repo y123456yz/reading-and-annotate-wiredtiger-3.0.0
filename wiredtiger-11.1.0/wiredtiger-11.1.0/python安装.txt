@@ -1,3 +1,7 @@
+mongodb 5.0.13 编译  /usr/bin/python3 buildscripts/scons.py compiledb --disable-warnings-as-errors install-mongod install-mongos -j 5 VERBOSE=on          python version:Python 3.7.4
+
+7.x版本编译 python3.9  buildscripts/scons.py  install-mongod -j 11 --linker=gold MONGO_VERSION=7.1.3 --disable-warnings-as-errors
+
 rocksdb理解好文章:  一文科普 RocksDB 工作原理  https://zhuanlan.zhihu.com/p/632841342
 polardb村算分离好文章: 从架构层面分析PolarDB技术要点 https://www.modb.pro/db/1711317557817974784
 

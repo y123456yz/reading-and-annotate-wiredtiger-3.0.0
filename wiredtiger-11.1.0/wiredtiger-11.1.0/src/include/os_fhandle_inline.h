@@ -110,9 +110,11 @@ __wt_read(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, void
       "%s: handle-read: %" WT_SIZET_FMT " at %" PRIuMAX, fh->handle->name, len, (uintmax_t)offset);
 
     WT_STAT_CONN_INCR_ATOMIC(session, thread_read_active);
+    //同write_io，这里的统计是一个page的，因此建议这里放到__posix_file_read中的循环中统计   yang add todo xxxxxxxxxxx
     WT_STAT_CONN_INCR(session, read_io);
     time_start = __wt_clock(session);
 
+    //__posix_file_read, 这里读取到buf中的实际上是一个page
     ret = fh->handle->fh_read(fh->handle, (WT_SESSION *)session, offset, len, buf);
 
     /* Flag any failed read: if we're in startup, it may be fatal. */
@@ -120,6 +122,7 @@ __wt_read(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, void
         F_SET(S2C(session), WT_CONN_DATA_CORRUPTION);
 
     time_stop = __wt_clock(session);
+    //yang add todo xxxxxxxxxxx  同上，建议这里放到__posix_file_read中的循环中统计
     __wt_stat_msecs_hist_incr_fsread(session, WT_CLOCKDIFF_MS(time_stop, time_start));
     WT_STAT_CONN_DECR_ATOMIC(session, thread_read_active);
     return (ret);
@@ -199,6 +202,7 @@ __wt_write(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, con
      */
     WT_RET(WT_SESSION_CHECK_PANIC(session));
 
+    //yang add todo xxxxxx  这里的统计应该放到__posix_file_write的pwrite循环中，每次pwrite加1  
     WT_STAT_CONN_INCR(session, write_io);
     WT_STAT_CONN_INCR_ATOMIC(session, thread_write_active);
     time_start = __wt_clock(session);
@@ -207,6 +211,7 @@ __wt_write(WT_SESSION_IMPL *session, WT_FH *fh, wt_off_t offset, size_t len, con
     ret = fh->handle->fh_write(fh->handle, (WT_SESSION *)session, offset, len, buf);
 
     time_stop = __wt_clock(session);
+    //__wt_stat_msecs_hist_incr_fswrite这个统计也应该放到__posix_file_write，原因如上      yang add todo xxxxxxxxxxx
     __wt_stat_msecs_hist_incr_fswrite(session, WT_CLOCKDIFF_MS(time_stop, time_start));
     (void)__wt_atomic_addv64(&fh->written, len);
     WT_STAT_CONN_DECR_ATOMIC(session, thread_write_active);
