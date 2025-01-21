@@ -1026,11 +1026,13 @@ __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], 
      */
     WT_ERR(__wt_config_gets_def(session, cfg, "next_random", 0, &cval));
     if (cval.val != 0) {
+        printf("yang test ...............next_random.............\r\n");
         if (WT_CURSOR_RECNO(cursor))
             WT_ERR_MSG(
               session, ENOTSUP, "next_random configuration not supported for column-store objects");
 
         __wt_cursor_set_notsup(cursor);
+        //使能next random，重新赋值next和reset接口替换默认接口
         cursor->next = __wt_curfile_next_random;
         cursor->reset = __curfile_reset;
 

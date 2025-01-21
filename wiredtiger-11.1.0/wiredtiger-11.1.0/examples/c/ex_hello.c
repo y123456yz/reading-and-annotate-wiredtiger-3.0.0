@@ -82,13 +82,15 @@ access_example(int argc, char *argv[])
     WT_CONNECTION *conn;
     WT_CURSOR *cursor;
     WT_SESSION *session;
-    const char  *value;
+    const char  *value, *key;
     int ch;
     bool insertConfig = false;
     bool loadDataConfig = false;
     char cmd_buf[512];
     char buf[512];
     int i;
+    WT_DECL_RET;
+    int count = 0;
 
     const char *cmdflags = "i:l:";
     /* Do a basic validation of options */
@@ -121,7 +123,7 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[api:0, config_all_verbos:5, metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[api:0, config_all_verbos:0, metadata:0, api:0]", &conn));
         //
        // error_check(wiredtiger_open(home, NULL, "create,statistics=(fast),statistics_log=(json,wait=1),in_memory=true", &conn));
                 
@@ -138,7 +140,7 @@ access_example(int argc, char *argv[])
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
 
-        #define MAX_TEST_KV_NUM 500
+        #define MAX_TEST_KV_NUM 10
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
             snprintf(buf, sizeof(buf), "key%d", i);
@@ -151,9 +153,9 @@ access_example(int argc, char *argv[])
             cursor->set_value(cursor, "old value  ###############################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################\0");
             error_check(cursor->insert(cursor));
             if (i % 100 == 0) {
-                printf("yang test xxxx.......sss..................11111.........................\r\n");
-                __wt_sleep(0, 50000);
-                printf("yang test xxxx.........................11111.........................\r\n");
+              //  printf("yang test xxxx.......sss..................11111.........................\r\n");
+             //   __wt_sleep(0, 50000);
+              //  printf("yang test xxxx.........................11111.........................\r\n");
             }
         }
         printf("yang test checkpoint.........................11111.........................\r\n");
@@ -173,8 +175,8 @@ access_example(int argc, char *argv[])
         testutil_check(session->checkpoint(session, NULL));
         //__wt_sleep(3, 0);
 
-        testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,"
-        "file_manager=(close_idle_time=10000), hash=(dhandle_buckets=1000), verbose=[config_all_verbos:5, metadata:0, api:0]"));
+      //  testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,"
+      //  "file_manager=(close_idle_time=10000), hash=(dhandle_buckets=1000), verbose=[config_all_verbos:5, metadata:0, api:0]"));
 
         // error_check(cursor->close(cursor));
 
@@ -200,29 +202,30 @@ access_example(int argc, char *argv[])
     /* load exist data, for example: when process restart, wo should warmup and load exist data*/
     if (loadDataConfig) {
         /* Open a connection to the database, creating it if necessary. block*/
-        error_check(wiredtiger_open(home, NULL, "statistics=(all),verbose=[config_all_verbos:5, block=0,metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "statistics=(all),verbose=[config_all_verbos:0, block=0,metadata:0, api:0]", &conn));
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));
         /*! [access example connection] */
 
         /*! [access example cursor open] */
-        error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
+        error_check(session->open_cursor(session, "table:access", NULL, "next_random=true", &cursor));
         /*! [access example cursor open] */
 
-        cursor->set_key(cursor, "key111");
-        error_check(cursor->search(cursor));
-        error_check(cursor->get_value(cursor, &value));
-        printf("Load search record: %s : %s\n", "key111", value);
+      //  cursor->set_key(cursor, "key1");
+      //  error_check(cursor->search(cursor));
+      //  error_check(cursor->get_value(cursor, &value));
+     //   printf("Load search record: %s : %s\n", "key5", value);
 
-        //error_check(cursor->reset(cursor)); /* Restart the scan. */
-        /*while ((ret = cursor->next(cursor)) == 0) {
+        error_check(cursor->reset(cursor)); /* Restart the scan. */
+        while ((ret = cursor->next(cursor)) == 0) {
             error_check(cursor->get_key(cursor, &key));
             error_check(cursor->get_value(cursor, &value));
+            count++;
 
-            printf("Load record: %s : %s\n", key, value);
+            printf("Load record: %s : %s, count:%d\n", key, value, count);
         }
-        scan_end_check(ret == WT_NOTFOUND); */
+        scan_end_check(ret == WT_NOTFOUND); 
         /*! [access example cursor list] */
 
         /*! [access example close] */
