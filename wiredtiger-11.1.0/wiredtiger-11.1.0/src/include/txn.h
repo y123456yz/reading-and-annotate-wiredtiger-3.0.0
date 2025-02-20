@@ -196,7 +196,6 @@ struct __wt_txn_global {
     //__recovery_set_oldest_timestamp  __conn_set_timestamp->__wt_txn_global_set_timestamp
     //stable_timestamp  oldest_timestamp这几个全局timestamp通过__conn_set_timestamp接口设置，pinned_timestamp在__conn_set_timestamp中
     // 设置stable_timestamp  oldest_timestamp的时候，会自动得到pinned_timestamp
-    
     wt_timestamp_t oldest_timestamp;
     //__wt_txn_update_pinned_timestamp中赋值
     wt_timestamp_t pinned_timestamp;

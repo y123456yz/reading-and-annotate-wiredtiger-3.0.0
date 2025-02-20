@@ -346,10 +346,15 @@ __bm_compact_end_readonly(WT_BM *bm, WT_SESSION_IMPL *session)
 /*
  * __bm_compact_page_rewrite --
  *     Rewrite a page for compaction.
+ 判断addr这个page是否处于文件的后半段，如果处于文件的后半段，则继续判断文件前半段是否有可用的avil ext空洞，如果有则把这个page迁移到前半段
  */
 static int
 __bm_compact_page_rewrite(
-  WT_BM *bm, WT_SESSION_IMPL *session, uint8_t *addr, size_t *addr_sizep, bool *writtenp)
+  WT_BM *bm, WT_SESSION_IMPL *session, 
+  //addr中存储的是一个page的磁盘元数据信息(objectid offset size  checksum)
+  uint8_t *addr, 
+  size_t *addr_sizep, 
+  bool *writtenp)
 {
     return (__wt_block_compact_page_rewrite(session, bm->block, addr, addr_sizep, writtenp));
 }
@@ -372,6 +377,7 @@ __bm_compact_page_rewrite_readonly(
 /*
  * __bm_compact_page_skip --
  *     Return if a page is useful for compaction.
+ __compact_page_inmem_check_addrs
  */
 static int
 __bm_compact_page_skip(
@@ -398,6 +404,7 @@ __bm_compact_page_skip_readonly(
 /*
  * __bm_compact_progress --
  *     Output compact progress message.
+ __wt_compact调用，打印compact进度
  */
 static void
 __bm_compact_progress(WT_BM *bm, WT_SESSION_IMPL *session, u_int *msg_countp)
@@ -408,6 +415,8 @@ __bm_compact_progress(WT_BM *bm, WT_SESSION_IMPL *session, u_int *msg_countp)
 /*
  * __bm_compact_skip --
  *     Return if a file can be compacted.
+ //确认当前表的空洞总量占比，如果小于1M则直接返回   __wt_compact调用
+ //磁盘碎片空间占比小于10%或者小于1M直接跳过
  */
 static int
 __bm_compact_skip(WT_BM *bm, WT_SESSION_IMPL *session, bool *skipp)
@@ -430,6 +439,7 @@ __bm_compact_skip_readonly(WT_BM *bm, WT_SESSION_IMPL *session, bool *skipp)
 /*
  * __bm_compact_start --
  *     Start a block manager compaction.
+  __wt_session_compact->__compact_handle_append->__compact_start->__bm_compact_start
  */
 static int
 __bm_compact_start(WT_BM *bm, WT_SESSION_IMPL *session)
@@ -844,6 +854,7 @@ __bm_method_set(WT_BM *bm, bool readonly)
     bm->salvage_start = __bm_salvage_start;
     bm->salvage_valid = __bm_salvage_valid;
     bm->size = __wt_block_manager_size;
+    bm->reuse_size = __wt_block_manager_reuse_size;
     bm->stat = __bm_stat;
     bm->switch_object = __bm_switch_object;
     bm->sync = __bm_sync;

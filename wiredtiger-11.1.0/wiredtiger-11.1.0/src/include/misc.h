@@ -313,6 +313,7 @@
     __wt_scr_alloc_func(session, size, scratchp, __PRETTY_FUNCTION__, __LINE__)
 #define __wt_page_in(session, ref, flags) \
     __wt_page_in_func(session, ref, flags, __PRETTY_FUNCTION__, __LINE__)
+//判断want这个ref page是否可以使用，例如ref状态为locked或者WT_REF_SPLIT则这里可能不可以使用，也就是外层遍历bree的时候，不可以遍历该page及其属于该层的下层的其他page
 #define __wt_page_swap(session, held, want, flags) \
     __wt_page_swap_func(session, held, want, flags, __PRETTY_FUNCTION__, __LINE__)
 #else

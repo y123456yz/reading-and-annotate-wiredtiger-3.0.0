@@ -82,7 +82,8 @@ access_example(int argc, char *argv[])
     WT_CONNECTION *conn;
     WT_CURSOR *cursor;
     WT_SESSION *session;
-    const char  *value, *key;
+    const char  *value;
+    int key;
     int ch;
     bool insertConfig = false;
     bool loadDataConfig = false;
@@ -91,8 +92,18 @@ access_example(int argc, char *argv[])
     int i;
     WT_DECL_RET;
     int count = 0;
-
     const char *cmdflags = "i:l:";
+
+/*    
+    WT_RAND_STATE rnd;
+    uint64_t rval;
+    __wt_random_init_seed(NULL, &rnd);
+    for (i = 0; i < 1000000; i++) {
+        rval = __wt_random(&rnd);
+        printf("yang test  random value:%lu\r\n", rval);
+    }
+*/
+    
     /* Do a basic validation of options */
     while ((ch = __wt_getopt("ex_access", argc, argv, cmdflags)) != EOF) {
         switch (ch) {
@@ -123,7 +134,7 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[api:0, config_all_verbos:0, metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[block:5,reconcile:5,compact=0, api:0, config_all_verbos:0, metadata:0, api:0, evict:0]", &conn));
         //
        // error_check(wiredtiger_open(home, NULL, "create,statistics=(fast),statistics_log=(json,wait=1),in_memory=true", &conn));
                 
@@ -133,18 +144,18 @@ access_example(int argc, char *argv[])
         /*! [access example connection] */
 
         /*! [access example table create] */
-        error_check(session->create(session, "table:access", "memory_page_max=32K,key_format=S,value_format=S"));
+        error_check(session->create(session, "table:access", "memory_page_max=32K,key_format=q,value_format=S"));
         /*! [access example table create] */
 
         /*! [access example cursor open] */
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
 
-        #define MAX_TEST_KV_NUM 10
+        #define MAX_TEST_KV_NUM 100//1000000
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
             snprintf(buf, sizeof(buf), "key%d", i);
-            cursor->set_key(cursor, buf);
+            cursor->set_key(cursor, i);
 
             //value_item.data = "old value  ###############################################################################################################################################################################################################\0";
             //value_item.size = strlen(value_item.data) + 1;
@@ -163,16 +174,17 @@ access_example(int argc, char *argv[])
         for (i = 5; i < MAX_TEST_KV_NUM; i++) {
            // continue;
             snprintf(buf, sizeof(buf), "key%d", i);
-            cursor->set_key(cursor, buf);
+            cursor->set_key(cursor, i);
 
             //value_item.data = "old value  ###############################################################################################################################################################################################################\0";
             //value_item.size = strlen(value_item.data) + 1;
 
             error_check(cursor->remove(cursor));
-            break;
+           // break;
         }
         printf("yang test checkpoint.........................222222.........................\r\n");
-        testutil_check(session->checkpoint(session, NULL));
+       // testutil_check(session->checkpoint(session, NULL));
+       //error_check(session->compact(session, "table:access", NULL));
         //__wt_sleep(3, 0);
 
       //  testutil_check(conn->reconfigure(conn, "eviction_target=11,eviction_trigger=22, cache_size=1G,"
@@ -202,14 +214,15 @@ access_example(int argc, char *argv[])
     /* load exist data, for example: when process restart, wo should warmup and load exist data*/
     if (loadDataConfig) {
         /* Open a connection to the database, creating it if necessary. block*/
-        error_check(wiredtiger_open(home, NULL, "statistics=(all),verbose=[config_all_verbos:0, block=0,metadata:0, api:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "statistics=(all),verbose=[compact=5,config_all_verbos:0, block=0,metadata:0, api:0]", &conn));
 
         /* Open a session handle for the database. */
         error_check(conn->open_session(conn, NULL, NULL, &session));
         /*! [access example connection] */
 
         /*! [access example cursor open] */
-        error_check(session->open_cursor(session, "table:access", NULL, "next_random=true", &cursor));
+        error_check(session->open_cursor(session, "table:access", NULL, "next_random=false", &cursor)); 
+        //error_check(session->open_cursor(session, "table:access", NULL, "next_random=true,next_random_sample_size=10", &cursor));
         /*! [access example cursor open] */
 
       //  cursor->set_key(cursor, "key1");
@@ -218,14 +231,18 @@ access_example(int argc, char *argv[])
      //   printf("Load search record: %s : %s\n", "key5", value);
 
         error_check(cursor->reset(cursor)); /* Restart the scan. */
+        //普通访问 __curfile_next__， 随机访问 __wt_curfile_next_random
         while ((ret = cursor->next(cursor)) == 0) {
             error_check(cursor->get_key(cursor, &key));
             error_check(cursor->get_value(cursor, &value));
             count++;
 
-            printf("Load record: %s : %s, count:%d\n", key, value, count);
+            printf("Load record 1: %d , count:%d\n", key, count);
+            if(count == 11)
+                break;
         }
-        scan_end_check(ret == WT_NOTFOUND); 
+        error_check(session->compact(session, "table:access", NULL));
+       // scan_end_check(ret == WT_NOTFOUND); 
         /*! [access example cursor list] */
 
         /*! [access example close] */

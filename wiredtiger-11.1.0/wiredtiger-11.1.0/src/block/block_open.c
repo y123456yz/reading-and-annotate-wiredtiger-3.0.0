@@ -490,6 +490,15 @@ __wt_block_manager_size(WT_BM *bm, WT_SESSION_IMPL *session, wt_off_t *sizep)
     return (0);
 }
 
+int
+__wt_block_manager_reuse_size(WT_BM *bm, WT_SESSION_IMPL *session, wt_off_t *sizep)
+{
+    WT_UNUSED(session);
+
+    *sizep = (wt_off_t)bm->block->live.avail.bytes;
+    return (0);
+}
+
 /*
  * __wt_block_manager_named_size --
  *     Return the size of a named file.

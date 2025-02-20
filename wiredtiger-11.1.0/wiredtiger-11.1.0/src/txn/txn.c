@@ -3085,9 +3085,12 @@ __wt_verbose_dump_txn(WT_SESSION_IMPL *session, const char *func_name)
 
 
 /*
-{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960240,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198679, 839): Updated global stable timestamp"}}}
-{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960278,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198379, 839): Updated global oldest timestamp"}}}
-{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960298,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,"msg":"Timestamp (1723198379, 839): Updated pinned timestamp"}}}
+{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960240,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,
+"msg":"Timestamp (1723198679, 839): Updated global stable timestamp"}}}
+{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960278,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,
+"msg":"Timestamp (1723198379, 839): Updated global oldest timestamp"}}}
+{"t":{"$date":"2024-08-09T18:17:59.960+08:00"},"s":"D1", "c":"WTTS",     "id":22430,   "ctx":"conn8342","msg":"WiredTiger message","attr":{"message":{"ts_sec":1723198679,"ts_usec":960298,"thread":"12597:0x7fc11a267700","session_name":"WT_CONNECTION.set_timestamp","category":"WT_VERB_TIMESTAMP","category_id":38,"verbose_level":"DEBUG_1","verbose_level_id":1,
+"msg":"Timestamp (1723198379, 839): Updated pinned timestamp"}}}
 
 mongo server
 Timestamp calculatedOldestTimestamp(stableTimestamp.getSecs() -
@@ -3101,7 +3104,7 @@ Timestamp calculatedOldestTimestamp(stableTimestamp.getSecs() -
 
 
 
-    //如果没有现实设置durable_timestamp，每次事务提交的时候都会默认和commit_timestamp保持一致，见__wt_txn_commit(赋值为当前事务提交时候最大的commit_timestamp)
+    //如果没有显示设置durable_timestamp，每次事务提交的时候都会默认和commit_timestamp保持一致，见__wt_txn_commit(赋值为当前事务提交时候最大的commit_timestamp)
     WT_ERR(__wt_buf_catfmt(session, snapshot_buf, "durable timestamp: %s\r\n",
       __wt_timestamp_to_string(txn_global->durable_timestamp, ts_string)));
     //mongodb会设置oldest_timestamp=stable_timestamp-minSnapshotHistoryWindowInSeconds, 真正生效实际上是在

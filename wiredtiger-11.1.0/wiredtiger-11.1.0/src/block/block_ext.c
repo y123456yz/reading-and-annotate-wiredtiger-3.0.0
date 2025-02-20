@@ -744,6 +744,7 @@ __wt_block_alloc(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t *offp, wt_o
     //也就是avail中可重复利用的空间不够，则在append中重新alloc新的ext来保存[off, size]
     if (block->live.avail.bytes < (uint64_t)size)
         goto append;
+        
     if (block->allocfirst > 0) {
         if (!__block_first_srch(block->live.avail.off, size, estack))
             goto append;

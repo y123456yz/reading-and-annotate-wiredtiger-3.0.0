@@ -347,6 +347,10 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化
 //  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据],
 */
 
+//注意__wt_rec_row_leaf和__wt_rec_row_int的差异，一个是持久化leaf page，一个是持久化internal page
+//  __wt_rec_row_int: 持久化internal page拥有的子ref page key及其所有子page持久化到磁盘的ext(objectid offset size  checksum)元数据信息, 
+//      当重启(__wt_btree_tree_open->__wt_page_inmem)或者读取interanal page数据(__page_read)的时候会把这些持久化的ref page key和所有持久化的page元数据加载到page->dsk中
+//  __wt_rec_row_leaf: 持久化leaf page数据到磁盘，同时把磁盘ext元数据(objectid offset size  checksum)信息添加到ref.addr
 int
 __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
 {
@@ -444,7 +448,8 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         addr = ref->addr;
         child = ref->page;
 
-        //printf("yang test ..................__wt_rec_row_int.................cms.state:%u\r\n", cms.state);
+        printf("yang test __wt_rec_row_int...ref page:%p....cms.state:%u, rec result:%d\r\n", 
+            child, cms.state, (child && child->modify) ? child->modify->rec_result : 11111);
         switch (cms.state) {
         case WT_CHILD_IGNORE:
             /*
@@ -474,6 +479,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
                 /*
                  * If the page is replaced, the page's modify structure has the page's address.
                  */
+                //addr中的addr成员记录的是page下面的这个child持久化到磁盘的ext元数据信息
                 addr = &child->modify->mod_replace;
                 break;
             default:
@@ -488,7 +494,8 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
             break;
         }
 
-        //printf("yang test .........__wt_rec_row_int.........................\r\n");
+       printf("yang test __wt_rec_row_int....page dsk:%p, addr:%p, type:%d\r\n", 
+        page->dsk, addr->addr, addr->type);
         /*
          * Build the value cell, the child page's address. Addr points to an on-page cell or an
          * off-page WT_ADDR structure.
@@ -496,7 +503,7 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         page_del = NULL;
         if (__wt_off_page(page, addr)) {
             page_del = cms.state == WT_CHILD_PROXY ? &cms.del : NULL;
-            //把该page对应持久化的磁盘addr WT_ADDR信息封包存储到r->v中
+            //addr信息,也就是持久化到磁盘的page元数据信息(objectid offset size  checksum)封包存储到r->v中
             __wt_rec_cell_build_addr(session, r, addr, NULL, WT_RECNO_OOB, page_del);
             source_ta = &addr->ta;
         } else if (cms.state == WT_CHILD_PROXY) {
@@ -551,7 +558,8 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         //例如root的ref key也是这个规则，参考__btree_tree_open_empty
         if (r->cell_zero)
             size = 1;
-        //把该page对应ref key封包到r->k中
+        //把该page对应ref key封包到r->k中，前面的__wt_rec_cell_build_addr会把该子ref page的磁盘元数据ext信息存入r->v中
+        //到这里r->k中存储的是ref key，r->v中存储的是该ref page的磁盘元数据ext信息
         WT_ERR(__rec_cell_build_int_key(session, r, p, size));
         r->cell_zero = false;
 
@@ -562,7 +570,8 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
             WT_ERR(__wt_rec_split_crossing_bnd(session, r, key->len + val->len));
 
         /* Copy the key and value onto the page. */
-        //拷贝r->k和r->v数据到r->first_free对应空间
+        //拷贝r->k和r->v数据到r->first_free对应空间，到这里就会把一个internal page拥有的子ref page key及其
+        // 子page持久化到磁盘的ext(objectid offset size  checksum)元数据信息
         __wt_rec_image_copy(session, r, key);
         __wt_rec_image_copy(session, r, val);
         if (page_del != NULL)
@@ -804,6 +813,10 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page    (leaf page ext持久化
 //  root记录internal1和internal2的元数据[ref key, leaf page ext addr元数据],
 */
 
+//注意__wt_rec_row_leaf和__wt_rec_row_int的差异，一个是持久化leaf page，一个是持久化internal page
+//  __wt_rec_row_int: 持久化internal page拥有的子ref page key及其所有子page持久化到磁盘的ext(objectid offset size  checksum)元数据信息, 
+//      当重启(__wt_btree_tree_open->__wt_page_inmem)或者读取interanal page数据(__page_read)的时候会把这些持久化的ref page key和所有持久化的page元数据加载到page->dsk中
+//  __wt_rec_row_leaf: 持久化leaf page数据到磁盘，同时把磁盘ext元数据(objectid offset size  checksum)信息添加到ref.addr
 int
 __wt_rec_row_leaf( 
   WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REF *pageref, WT_SALVAGE_COOKIE *salvage)

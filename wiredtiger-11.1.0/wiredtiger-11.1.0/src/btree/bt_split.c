@@ -1958,7 +1958,7 @@ __wt_multi_to_ref(WT_SESSION_IMPL *session, WT_PAGE *page, WT_MULTI *multi, WT_R
         WT_RET(__wt_calloc_one(session, &addr));
         ref->addr = addr;
         WT_TIME_AGGREGATE_COPY(&addr->ta, &multi->addr.ta);
-        //拷贝page对应的磁盘元数据信息
+        //拷贝page对应的磁盘元数据信息,multi->addr保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
         WT_RET(__wt_memdup(session, multi->addr.addr, multi->addr.size, &addr->addr));
         addr->size = multi->addr.size;
         addr->type = multi->addr.type;

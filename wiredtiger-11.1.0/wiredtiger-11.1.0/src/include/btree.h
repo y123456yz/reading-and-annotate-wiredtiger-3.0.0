@@ -51,6 +51,8 @@
  * they must fit onto the minimum size page because a reference to an overflow page is itself a
  * location.)
  */
+//(objectid offset size  checksum), __rec_split_write中赋值, __wt_multi.addr[]数组的长度也就是这个，最终数组中
+//  存的是page磁盘元数据信息(objectid offset size  checksum)
 #define WT_BTREE_MAX_ADDR_COOKIE 255 /* Maximum address cookie */
 
 /* Evict pages if we see this many consecutive deleted records. */

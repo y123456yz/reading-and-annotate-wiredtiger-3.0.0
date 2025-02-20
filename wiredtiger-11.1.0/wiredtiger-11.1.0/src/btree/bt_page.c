@@ -352,7 +352,7 @@ internal page:
  */ //__wt_multi_to_ref->__split_multi_inmem->__wt_page_inmem->__inmem_row_leaf
 int
 __wt_page_inmem(WT_SESSION_IMPL *session, WT_REF *ref, const void *image, uint32_t flags,
-  WT_PAGE **pagep, bool *preparedp)
+  WT_PAGE **pagep, bool *preparedp) 
 {
     WT_CELL_UNPACK_ADDR unpack_addr;
     WT_DECL_RET;

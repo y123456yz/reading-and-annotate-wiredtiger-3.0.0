@@ -209,6 +209,7 @@ __wt_curfile_next_random(WT_CURSOR *cursor)
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
 
+    
     cbt = (WT_CURSOR_BTREE *)cursor;
     CURSOR_API_CALL(cursor, session, __wt_curfile_next_random, CUR2BT(cbt));
     WT_ERR(__cursor_copy_release(cursor));
@@ -1036,6 +1037,9 @@ __curfile_create(WT_SESSION_IMPL *session, WT_CURSOR *owner, const char *cfg[], 
         cursor->next = __wt_curfile_next_random;
         cursor->reset = __curfile_reset;
 
+        //next_random_sample_size配置代表把一个wt表拆分为next_random_sample_size段，此后每次访问同一个cursor的时候
+        //就会每次跳过一段来获取下一段的数据，next_random_sample_size默认不配置的话，会在__wt_btcur_next_random初始化为100
+        //因此mongodb $sample随机采样的时候，采样数为100的倍数这里会更加精准
         WT_ERR(__wt_config_gets_def(session, cfg, "next_random_sample_size", 0, &cval));
         if (cval.val != 0)
             cbt->next_random_sample_size = (u_int)cval.val;

@@ -939,6 +939,7 @@ __session_create(WT_SESSION *wt_session, const char *uri, const char *config)
      * applications to attempt to layer LSM on top of their extended data-sources, and the fact we
      * allow LSM as a valid URI is an invitation to that mistake: nip it in the bud.
      */
+    //session->create()可以支持colgroup配置 参考https://source.wiredtiger.com/develop/struct_w_t___s_e_s_s_i_o_n.html#a358ca4141d59c345f401c58501276bbb
     if (!WT_PREFIX_MATCH(uri, "colgroup:") && !WT_PREFIX_MATCH(uri, "index:") &&
       !WT_PREFIX_MATCH(uri, "table:")) {
         /*

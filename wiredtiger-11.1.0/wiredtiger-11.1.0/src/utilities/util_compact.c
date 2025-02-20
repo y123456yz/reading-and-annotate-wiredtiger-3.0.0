@@ -22,7 +22,9 @@ usage(void)
 /*
  * util_compact --
  *     The compact command.
- */
+ /data/mongodb-5.0-danjiedian-data/wt -R  -C "log=(enabled=true,path=journal,compressor=snappy)" compact file:test/collection/28--3692507698239099283.wt
+ /data/mongodb-5.0-danjiedian-data/wt -R  -C "log=(enabled=true,path=journal,compressor=snappy)" compact table:test/collection/28--3692507698239099283
+*/
 int
 util_compact(WT_SESSION *session, int argc, char *argv[])
 {
@@ -45,7 +47,7 @@ util_compact(WT_SESSION *session, int argc, char *argv[])
         return (usage());
     if ((uri = util_uri(session, *argv, "table")) == NULL)
         return (1);
-
+    
     if ((ret = session->compact(session, uri, NULL)) != 0)
         (void)util_err(session, ret, "session.compact: %s", uri);
 

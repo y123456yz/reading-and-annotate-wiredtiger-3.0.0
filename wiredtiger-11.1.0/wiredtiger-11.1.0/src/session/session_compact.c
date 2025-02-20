@@ -102,6 +102,7 @@
 /*
  * __compact_start --
  *     Start object compaction.
+ __wt_session_compact->__compact_handle_append->__compact_start->__bm_compact_start
  */
 static int
 __compact_start(WT_SESSION_IMPL *session)
@@ -109,6 +110,7 @@ __compact_start(WT_SESSION_IMPL *session)
     WT_BM *bm;
 
     bm = S2BT(session)->bm;
+    //__bm_compact_start
     return (bm->compact_start(bm, session));
 }
 
@@ -151,6 +153,7 @@ __compact_uri_analyze(WT_SESSION_IMPL *session, const char *uri, bool *skipp)
 /*
  * __compact_handle_append --
  *     Gather a file handle to be compacted. Called via the schema_worker function.
+ __wt_session_compact
  */
 static int
 __compact_handle_append(WT_SESSION_IMPL *session, const char *cfg[])
@@ -213,6 +216,9 @@ __compact_checkpoint(WT_SESSION_IMPL *session)
     /*
      * Force compaction checkpoints: we don't want to skip it because the work we need to have done
      * is done in the underlying block manager.
+
+     https://source.wiredtiger.com/11.2.0/struct_w_t___s_e_s_s_i_o_n.html#a6550c9079198955c5071583941c85bbf
+     if false (the default), checkpoints may be skipped if the underlying object has not been modified. If true, this option forces the checkpoint.
      */
     const char *checkpoint_cfg[] = {
       WT_CONFIG_BASE(session, WT_SESSION_checkpoint), "force=1", NULL};

@@ -93,6 +93,7 @@ __wt_schema_worker(WT_SESSION_IMPL *session, const char *uri,
         WT_ERR(name_func(session, uri, &skip));
 
     /* If the callback said to skip this object, we're done. */
+    //通过name_func()接口确认是不是可以直接
     if (skip)
         return (0);
 
@@ -123,14 +124,20 @@ __wt_schema_worker(WT_SESSION_IMPL *session, const char *uri,
          * opened the table, we can take a short cut and skip straight to the sources. If we have a
          * name function, it needs to know about the intermediate URIs.
          */
+        //session->create("table:xxx", xxx)可以支持colgroup配置 参考https://source.wiredtiger.com/develop/struct_w_t___s_e_s_s_i_o_n.html#a358ca4141d59c345f401c58501276bbb
         for (i = 0; i < WT_COLGROUPS(table); i++) {
             colgroup = table->cgroups[i];
             skip = false;
             if (name_func != NULL)
+                //执行name_func，获取skip
                 WT_ERR(name_func(session, colgroup->name, &skip));
             if (!skip)
+                //跳到colgroup->source(file:xx)对应schema重新处理
                 WT_ERR(__wt_schema_worker(
                   session, colgroup->source, file_func, name_func, cfg, open_flags));
+            //yang test ...__wt_schema_worker....uri:table:access, colgroup:access, file:access.wt, app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source="file:access.wt",type=file,verbose=[],write_timestamp_usage=none
+            //printf("yang test ...__wt_schema_worker....uri:%s, %s, %s, %s\r\n", uri, colgroup->name,
+            //    colgroup->source, colgroup->config);
         }
 
         /*

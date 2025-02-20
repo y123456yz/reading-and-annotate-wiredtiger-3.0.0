@@ -226,6 +226,7 @@ __random_leaf_insert(WT_CURSOR_BTREE *cbt, bool *validp)
 /*
  * __random_leaf_disk --
  *     Return a random key/value from a page's on-disk entries.
+ 随机从磁盘的某个leaf page中随机获取一个KV
  */
 static int
 __random_leaf_disk(WT_CURSOR_BTREE *cbt, bool *validp)
@@ -244,6 +245,7 @@ __random_leaf_disk(WT_CURSOR_BTREE *cbt, bool *validp)
     /* This is a relatively cheap test, so try several times. */
     for (retry = 0; retry < WT_RANDOM_DISK_RETRY; ++retry) {
         slot = __wt_random(&session->rnd) % entries;
+        //选择在磁盘上的这个page的第slot个key,存入cbt->tmp中
         WT_RET(__wt_row_leaf_key(session, page, page->pg_row + slot, cbt->tmp, false));
         WT_RET(__random_slot_valid(cbt, slot, validp));
         if (*validp)
@@ -278,12 +280,14 @@ __random_leaf(WT_CURSOR_BTREE *cbt)
      * Ignoring large insert lists could skew the results, but enough disk-based entries should span
      * a reasonable chunk of the name space.
      */
+    //该page磁盘上数据比较多，则从磁盘获取
     if (cbt->ref->page->entries > WT_RANDOM_DISK_ENOUGH) {
         WT_RET(__random_leaf_disk(cbt, &valid));
         if (valid)
             return (__cursor_kv_return(cbt, cbt->upd_value));
     }
 
+    //磁盘数据少于WT_RANDOM_DISK_ENOUGH则从内存获取
     /* Look for any large insert list and select from it. */
     WT_RET(__random_leaf_insert(cbt, &valid));
     if (valid)
@@ -353,6 +357,7 @@ __random_leaf(WT_CURSOR_BTREE *cbt)
 /*
  * __wt_random_descent --
  *     Find a random page in a tree for either sampling or eviction.
+ //随机选择一个page
  */
 int
 __wt_random_descent(WT_SESSION_IMPL *session, WT_REF **refp, uint32_t flags)
@@ -364,6 +369,19 @@ __wt_random_descent(WT_SESSION_IMPL *session, WT_REF **refp, uint32_t flags)
     WT_REF *current, *descent;
     uint32_t i, entries, retry;
     bool eviction;
+    uint32_t entry_test;
+
+  /*  uint64_t rval;  ex hello有个很奇怪的问题，每次重启后这里的随机数打印都一样
+    for (i = 0; i < 10; i++) {
+        rval = __wt_random(&session->rnd);
+        printf("yang test ..........111111....... random value:%lu\r\n", rval);
+    }
+
+   // __wt_random_init_seed(NULL, &session->rnd);
+    for (i = 0; i < 10; i++) {
+        rval = __wt_random(&session->rnd);
+        printf("yang test .........2222........ random value:%lu\r\n", rval);
+    }*/
 
     *refp = NULL;
 
@@ -387,7 +405,9 @@ restart:
 
     /* Search the internal pages of the tree. */
     current = &btree->root;
+    //先internal page层每一层随机选一个，然后在leaf page随机选一个
     for (;;) {
+        //如果current已经是leaf page，则退出for循环
         if (F_ISSET(current, WT_REF_FLAG_LEAF))
             break;
 
@@ -411,17 +431,27 @@ restart:
          * any page that contains a valid key/value pair, so on-disk is fine, but deleted is not.
          */
         descent = NULL;
+        //随机获取current下面第一个处于状态disk或者mem中的page，注意不能选WT_REF_DELETED、WT_REF_SPLIT、LOCKED的page
         for (i = 0; i < entries; ++i) {
-            descent = pindex->index[__wt_random(&session->rnd) % entries];
+            entry_test = (uint32_t)__wt_random(&session->rnd) % entries;
+            descent = pindex->index[entry_test];
+            //descent = pindex->index[__wt_random(&session->rnd) % entries];
+            printf("yang test __wt_random_descent.......(uint32_t)__wt_random(&session->rnd):%u, "
+                "descent:%u, entries:%u, %d\r\n", 
+                (uint32_t)__wt_random(&session->rnd), entry_test, entries, descent->state);
             if (descent->state == WT_REF_DISK || descent->state == WT_REF_MEM)
                 break;
         }
+
+        //上面entries次随机获取都是空page，说明所有的index对应page都没有WT_REF_DISK或者WT_REF_MEM标识，也就是全是空page
+        //这里在准确扫描一次确认一下
         if (i == entries)
             for (i = 0; i < entries; ++i) {
                 descent = pindex->index[i];
                 if (descent->state == WT_REF_DISK || descent->state == WT_REF_MEM)
                     break;
             }
+        //二次确认全是空page，则重试
         if (i == entries || descent == NULL) {
             if (--retry > 0)
                 goto restart;
@@ -438,13 +468,16 @@ restart:
          */
 descend:
         if ((ret = __wt_page_swap(session, current, descent, flags)) == 0) {
+            //current指向下一层的随机page, 也就是descent
             current = descent;
             continue;
         }
+        
         if (eviction && (ret == WT_NOTFOUND || ret == WT_RESTART))
             break;
         if (ret == WT_RESTART)
             goto restart;
+            
         return (ret);
     }
 
@@ -471,13 +504,16 @@ __wt_btcur_next_random(WT_CURSOR_BTREE *cbt)
     WT_CURSOR *cursor;
     WT_DECL_RET;
     WT_SESSION_IMPL *session;
-    wt_off_t size;
+    wt_off_t size, reuse_size;
     uint64_t n, skip;
     uint32_t read_flags;
 
     btree = CUR2BT(cbt);
     cursor = &cbt->iface;
     session = CUR2S(cbt);
+    //random_debug.c例子中每次重启后这里的打印结果都一样，很奇怪，为什么呢?
+   // printf("yang test ..........111111....... random value:%u\r\n", 
+   //     (uint32_t)__wt_random(&session->rnd));
 
     read_flags = WT_READ_RESTART_OK;
     if (F_ISSET(cbt, WT_CBT_READ_ONCE))
@@ -505,7 +541,11 @@ __wt_btcur_next_random(WT_CURSOR_BTREE *cbt)
      * If we don't have a current position in the tree, or if retrieving random values without
      * sampling, pick a roughly random leaf page in the tree and return an entry from it.
      */
+
+    // cbt->ref = &btree->root;//yang add change
+    //如果不配置next_random_sample_size参数则会走到这里面来
     if (cbt->ref == NULL || cbt->next_random_sample_size == 0) {
+        //printf("yang test ....xxxx....__wt_random_descent.....next_random\r\n");
         WT_ERR(__wt_cursor_func_init(cbt, true));
         WT_WITH_PAGE_INDEX(session, ret = __wt_random_descent(session, &cbt->ref, read_flags));
         if (ret == 0) {
@@ -546,11 +586,28 @@ __wt_btcur_next_random(WT_CURSOR_BTREE *cbt)
      * !!!
      * Ideally, the number would be prime to avoid restart issues.
      */
+    
     if (cbt->next_random_leaf_skip == 0) {
         WT_ERR(btree->bm->size(btree->bm, session, &size));
+        WT_ERR(btree->bm->reuse_size(btree->bm, session, &reuse_size));
+        //yang add todo xxxxxxxxxxxxx
+        /* //这里用下面的算法会更加准确
+        cbt->next_random_leaf_skip =
+          (uint64_t)(((size - reuse_size) / btree->maxleafpage) / cbt->next_random_sample_size) + 1;
+
+          next_random_sample_size文档中心提示默认值为0，实际上这里默认值为100，dist/api_data.py中最好把默认值该为100，要不然文档中心不好理解
+
+            参考random_debug.c的例子，很明显优化后的数据更加随机  yang add todo xxxxx
+
+           这里有个疑问，random_debug.c例子为什么每次重启后获取的10个随机数都是一样的，通过分析发现每次这个函数前面入口的随机数获取打印值都一样 ?????????????
+          */
         cbt->next_random_leaf_skip =
           (uint64_t)((size / btree->allocsize) / cbt->next_random_sample_size) + 1;
+
+        cbt->next_random_leaf_skip =
+          (uint64_t)(((size - reuse_size) / btree->maxleafpage) / cbt->next_random_sample_size) + 1;
     }
+    printf("yang test .............next_random_leaf_skip:%"PRIu64"\r\n", cbt->next_random_leaf_skip);
 
     /*
      * Be paranoid about loop termination: first, if the last leaf page skipped was also the last

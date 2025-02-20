@@ -6,6 +6,40 @@
  * See the file LICENSE for redistribution information.
  */
 
+/*  session->compact() 日志如下:
+[1739870255:744240][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: ============ testing for compaction
+[1739870255:744258][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: file size 572MB (599867392) with 99% space available 572MB (599834624)
+[1739870255:760811][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]:  0%:           57MB, (free: 59962368B, 9%), (used: 0MB, 24371B, 74%)
+[1739870255:760827][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 10%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+[1739870255:760830][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 20%:           57MB, (free: 59986432B, 10%), (used: 0MB, 307B, 0%)
+[1739870255:760833][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 30%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+[1739870255:760836][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 40%:           57MB, (free: 59986432B, 10%), (used: 0MB, 307B, 0%)
+[1739870255:760839][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 50%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+[1739870255:760841][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 60%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+[1739870255:760844][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 70%:           57MB, (free: 59986432B, 10%), (used: 0MB, 307B, 0%)
+[1739870255:760847][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 80%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+[1739870255:760849][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 90%:           57MB, (free: 59978240B, 9%), (used: 0MB, 8499B, 25%)
+[1739870255:760852][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: access.wt: total reviewed 0 pages, total rewritten 0 pages
+[1739870255:760855][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: access.wt: 570MB (598634496) available space in the first 80% of the file
+[1739870255:760858][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: access.wt: 570MB (598634496) available space in the first 90% of the file
+[1739870255:760861][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: access.wt: require 10% or 57MB (59986739) in the first 90% of the file to perform compaction, compaction proceeding
+[1739870259:861695][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][INFO]: access.wt: skipping because the file size must be greater than 1MB: 794624B.
+[1739870259:861714][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: ============ ending compaction pass
+[1739870259:861717][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: pages reviewed: 3
+[1739870259:861720][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: pages skipped: 1
+[1739870259:861722][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: pages rewritten : 2
+[1739870259:861724][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_1]: file size 0MB (794624) with 95% space available 0MB (761856)
+[1739870259:861748][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]:  0%:            0MB, (free: 55296B, 7%), (used: 0MB, 24166B, 73%)
+[1739870259:861751][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 10%:            0MB, (free: 79360B, 10%), (used: 0MB, 102B, 0%)
+[1739870259:861754][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 20%:            0MB, (free: 79360B, 10%), (used: 0MB, 102B, 0%)
+[1739870259:861757][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 30%:            0MB, (free: 79360B, 10%), (used: 0MB, 102B, 0%)
+[1739870259:861759][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 40%:            0MB, (free: 79360B, 10%), (used: 0MB, 102B, 0%)
+[1739870259:861762][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 50%:            0MB, (free: 79872B, 10%), (used: 0MB, 0B, 0%)
+[1739870259:861765][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 60%:            0MB, (free: 79360B, 10%), (used: 0MB, 102B, 0%)
+[1739870259:861767][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 70%:            0MB, (free: 79360B, 10%), (used: 0MB, 102B, 0%)
+[1739870259:861770][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 80%:            0MB, (free: 79360B, 10%), (used: 0MB, 102B, 0%)
+[1739870259:861773][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 90%:            0MB, (free: 71168B, 9%), (used: 0MB, 8294B, 25%)
+*/
 #include "wt_internal.h"
 
 static void __block_dump_file_stat(WT_SESSION_IMPL *, WT_BLOCK *, bool);
@@ -13,6 +47,7 @@ static void __block_dump_file_stat(WT_SESSION_IMPL *, WT_BLOCK *, bool);
 /*
  * __wt_block_compact_start --
  *     Start compaction of a file.
+   __wt_session_compact->__compact_handle_append->__compact_start->__bm_compact_start
  */
 int
 __wt_block_compact_start(WT_SESSION_IMPL *session, WT_BLOCK *block)
@@ -70,6 +105,7 @@ __wt_block_compact_get_progress_stats(WT_SESSION_IMPL *session, WT_BM *bm,
 /*
  * __wt_block_compact_progress --
  *     Output compact progress message.
+ 20秒打印一次进度
  */
 void
 __wt_block_compact_progress(WT_SESSION_IMPL *session, WT_BLOCK *block, u_int *msg_countp)
@@ -95,6 +131,8 @@ __wt_block_compact_progress(WT_SESSION_IMPL *session, WT_BLOCK *block, u_int *ms
 /*
  * __wt_block_compact_skip --
  *     Return if compaction will shrink the file.
+ //确认当前表的空洞总量占比，如果小于1M则直接返回
+ //磁盘碎片空间占比小于10%或者小于1M直接跳过
  */
 int
 __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
@@ -103,6 +141,7 @@ __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
     WT_EXTLIST *el;
     wt_off_t avail_eighty, avail_ninety, eighty, ninety;
 
+    //磁盘碎片空间占比小于10%或者小于1M直接跳过
     *skipp = true; /* Return a default skip. */
 
     /*
@@ -125,15 +164,22 @@ __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
         __block_dump_file_stat(session, block, true);
 
     /* Sum the available bytes in the initial 80% and 90% of the file. */
+    //代表文件的前面80%或者90%长度内有多少碎片空间
     avail_eighty = avail_ninety = 0;
+    //90%文件大小
     ninety = block->size - block->size / 10;
+    //80%文件大小
     eighty = block->size - ((block->size / 10) * 2);
 
     el = &block->live.avail;
     WT_EXT_FOREACH (ext, el->off)
+        //也就是查找表文件的前面90%长度
         if (ext->off < ninety) {
+            //代表文件的前面90%长度内有多少碎片空间
             avail_ninety += ext->size;
+            //也就是查找表文件的前面80%长度
             if (ext->off < eighty)
+                //代表文件的前面80%长度内有多少碎片空间
                 avail_eighty += ext->size;
         }
 
@@ -148,9 +194,11 @@ __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
      * processed quickly, so more aggressive compaction is less useful.
      */
     if (avail_eighty > WT_MEGABYTE && avail_eighty >= ((block->size / 10) * 2)) {
+        // 文件前面80%长度内有大于20%的空洞
         *skipp = false;
         block->compact_pct_tenths = 2;
     } else if (avail_ninety > WT_MEGABYTE && avail_ninety >= block->size / 10) {
+        // 文件前面90%长度内有大于10%的空洞
         *skipp = false;
         block->compact_pct_tenths = 1;
     }
@@ -178,6 +226,7 @@ __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
 /*
  * __compact_page_skip --
  *     Return if writing a particular page will shrink the file.
+ 判断[offset, size]这个page是否处于分割点的后半段，并且前半段avil空洞ext是否可以容纳这个page
  */
 static void
 __compact_page_skip(
@@ -197,11 +246,14 @@ __compact_page_skip(
      */
     __wt_spin_lock(session, &block->live_lock);
     limit = block->size - ((block->size / 10) * block->compact_pct_tenths);
+    //说明这个page对应ext元数据指向的是磁盘除去前半部分compact_pct_tenths的后半段，也就是在compact_pct_tenths分割点的后部
     if (offset > limit) {
         el = &block->live.avail;
         WT_EXT_FOREACH (ext, el->off) {
+            //说明空洞在文件compact_pct_tenths分割的后半段中，则停止查找遍历，因为我们需要把后半段的page填充到前半段的空洞中
             if (ext->off >= limit)
                 break;
+            //说明前半段找到的空洞可以容纳这个page size数据
             if (ext->size >= size) {
                 *skipp = false;
                 break;
@@ -210,10 +262,13 @@ __compact_page_skip(
     }
     __wt_spin_unlock(session, &block->live_lock);
 
+    //page中可以填充文件前半段的空洞page总数
     ++block->compact_pages_reviewed;
     if (*skipp)
+        //page中不能填充文件前半段的空洞page总数
         ++block->compact_pages_skipped;
     else
+        //page中可以填充文件前半段的空洞page总数
         ++block->compact_pages_rewritten;
 }
 
@@ -244,10 +299,14 @@ __wt_block_compact_page_skip(
 /*
  * __wt_block_compact_page_rewrite --
  *     Rewrite a page if it will shrink the file.
+ 判断addr这个page是否处于文件的后半段，如果处于文件的后半段，则继续判断文件前半段是否有可用的avil ext空洞，如果有则把这个page迁移到前半段
  */
 int
 __wt_block_compact_page_rewrite(
-  WT_SESSION_IMPL *session, WT_BLOCK *block, uint8_t *addr, size_t *addr_sizep, bool *skipp)
+  WT_SESSION_IMPL *session, WT_BLOCK *block, 
+  //addr中存储的是一个page的磁盘元数据信息(objectid offset size  checksum)
+  uint8_t *addr, 
+  size_t *addr_sizep, bool *skipp)
 {
     WT_DECL_ITEM(tmp);
     WT_DECL_RET;
@@ -261,20 +320,25 @@ __wt_block_compact_page_rewrite(
 
     discard_block = false;
 
+    //根据addr磁盘元数据解析出对应的page地址 offset objectid等
     WT_ERR(__wt_block_addr_unpack(
       session, block, addr, *addr_sizep, &objectid, &offset, &size, &checksum));
 
     /* Check if the block is worth rewriting. */
+    //判断[offset, size]这个page是否处于分割点的后半段，并且前半段avil空洞ext是否可以容纳这个page
     __compact_page_skip(session, block, offset, size, skipp);
 
+    //说明这个page处于前半段，或者这个page处于后半段但是前半段没有可容纳它的空洞 
     if (*skipp)
         return (0);
 
     /* Read the block. */
+    //读出要搬迁的page的数据到tmp中
     WT_ERR(__wt_scr_alloc(session, size, &tmp));
     WT_ERR(__wt_read(session, block->fh, offset, size, tmp->mem));
 
     /* Allocate a replacement block. */
+    //__wt_block_alloc从avail空洞跳表中获取一个size长度的ext
     WT_ERR(__wt_block_ext_prealloc(session, 5));
     __wt_spin_lock(session, &block->live_lock);
     ret = __wt_block_alloc(session, block, &new_offset, (wt_off_t)size);
@@ -283,15 +347,18 @@ __wt_block_compact_page_rewrite(
     discard_block = true;
 
     /* Write the block. */
+    //把要迁移的page数据写如前半段的空洞ext
     WT_ERR(__wt_write(session, block->fh, new_offset, size, tmp->mem));
 
     /* Free the original block. */
     __wt_spin_lock(session, &block->live_lock);
+    //释放后半段搬迁完成的这个page对应的ext元数据
     ret = __wt_block_off_free(session, block, objectid, offset, (wt_off_t)size);
     __wt_spin_unlock(session, &block->live_lock);
     WT_ERR(ret);
 
     /* Build the returned address cookie. */
+    //后半段的page已经搬迁到了文件前半段，重新生成前半段新page的addr[WT_BTREE_MAX_ADDR_COOKIE]元数据
     endp = addr;
     WT_ERR(__wt_block_addr_pack(block, &endp, objectid, new_offset, size, checksum));
     *addr_sizep = WT_PTRDIFF(endp, addr);
@@ -375,6 +442,7 @@ __block_dump_file_stat(WT_SESSION_IMPL *session, WT_BLOCK *block, bool start)
       ((uintmax_t)el->bytes * 100) / (uintmax_t)size, (uintmax_t)el->bytes / WT_MEGABYTE,
       (uintmax_t)el->bytes);
 
+    //也就是空洞数没有了
     if (el->entries == 0)
         return;
 

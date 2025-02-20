@@ -2284,7 +2284,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
 
     /* Set the key. */
     if (btree->type == BTREE_ROW)
-        //分配WT_IKEY+真实key数据空间，并拷贝数据到对应空间
+        //分配WT_IKEY + 真实key数据空间，并拷贝数据到对应空间
         WT_RET(__wt_row_ikey_alloc(session, 0, chunk->key.data, chunk->key.size, &multi->key.ikey));
     else
         multi->key.recno = chunk->recno;
@@ -2294,7 +2294,7 @@ __rec_split_write(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_REC_CHUNK *chunk
         WT_RET(__rec_split_write_supd(session, r, chunk, multi, last_block));
 
     /* Initialize the page header(s). */
-    //page header(WT_PAGE_HEADER)初始化赋值
+    //page header(WT_PAGE_HEADER)初始化赋值, 这里的chunk->image.mem空间是在__rec_split_chunk_init中提前申请的
     __rec_split_write_header(session, r, chunk, multi, chunk->image.mem);
     if (r->page->type == WT_PAGE_COL_FIX)
         __wt_rec_col_fix_write_auxheader(session, chunk->entries, chunk->aux_start_offset,

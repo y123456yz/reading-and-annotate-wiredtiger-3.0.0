@@ -305,9 +305,13 @@ struct __wt_bm {
     int (*checkpoint_unload)(WT_BM *, WT_SESSION_IMPL *);
     int (*close)(WT_BM *, WT_SESSION_IMPL *);
     int (*compact_end)(WT_BM *, WT_SESSION_IMPL *);
+    //__bm_compact_page_rewrite
     int (*compact_page_rewrite)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t *, bool *);
+    //__bm_compact_page_skip
     int (*compact_page_skip)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t, bool *);
+    //__bm_compact_skip
     int (*compact_skip)(WT_BM *, WT_SESSION_IMPL *, bool *);
+    //__bm_compact_progress
     void (*compact_progress)(WT_BM *, WT_SESSION_IMPL *, u_int *);
     int (*compact_start)(WT_BM *, WT_SESSION_IMPL *);
     int (*corrupt)(WT_BM *, WT_SESSION_IMPL *, const uint8_t *, size_t);
@@ -324,7 +328,9 @@ struct __wt_bm {
     int (*salvage_start)(WT_BM *, WT_SESSION_IMPL *);
     //__bm_salvage_valid
     int (*salvage_valid)(WT_BM *, WT_SESSION_IMPL *, uint8_t *, size_t, bool);
+    //__wt_block_manager_size
     int (*size)(WT_BM *, WT_SESSION_IMPL *, wt_off_t *);
+    int (*reuse_size)(WT_BM *, WT_SESSION_IMPL *, wt_off_t *);
     //__bm_stat
     int (*stat)(WT_BM *, WT_SESSION_IMPL *, WT_DSRC_STATS *stats);
     int (*switch_object)(WT_BM *, WT_SESSION_IMPL *, uint32_t);
@@ -376,7 +382,7 @@ struct __wt_block {
     u_int related_next;       /* Next open slot */
 
     WT_FH *fh;            /* Backing file handle */
-    //代表当前已经写入到文件末尾位置，也就是文件大小, 没写入一块数据就自增，参考__block_extend
+    //代表当前已经写入到文件末尾位置，也就是文件大小, 每写入一块数据就自增，参考__block_extend
     wt_off_t size;        /* File size */
     //file_extend配置，默认为0，所以extend_size也就是是当前block size
     wt_off_t extend_size; /* File extended size */
@@ -422,9 +428,15 @@ struct __wt_block {
     WT_CKPT *final_ckpt; /* Final live checkpoint write */
 
     /* Compaction support */
+    // 空洞占总文件大小的占比，赋值见__wt_block_compact_skip
+    // 文件前面80%长度内有大于20%的空洞，compact_pct_tenths = 2
+    // 文件前面90%长度内有大于10%的空洞，compact_pct_tenths = 1
     int compact_pct_tenths;           /* Percent to compact */
+    //page中可以填充文件前半段的空洞page总数
     uint64_t compact_pages_rewritten; /* Pages rewritten */
+    //B+TREE中遍历的page总数
     uint64_t compact_pages_reviewed;  /* Pages reviewed */
+    //page中不能填充文件前半段的空洞page总数
     uint64_t compact_pages_skipped;   /* Pages skipped */
 
     /* Salvage support */

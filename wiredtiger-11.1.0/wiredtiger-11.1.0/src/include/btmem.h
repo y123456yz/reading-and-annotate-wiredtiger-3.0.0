@@ -177,14 +177,15 @@ __wt_page_header_byteswap(WT_PAGE_HEADER *dsk)
  *	An in-memory structure to hold a block's location.
  */
 //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
-//赋值见__rec_split_write
-//__wt_multi.addr为该类型
+//赋值见__rec_split_write  
+//参考__wt_multi_to_ref, 存的是该ref page写入磁盘的ext元数据信息(objectid offset size  checksum)
+//__wt_multi.addr, __wt_ref.addr为该类型，参考__wt_multi_to_ref
 struct __wt_addr {
     //赋值见__rec_split_write,真实来源实际上在__rec_row_leaf_insert  __wt_rec_row_leaf->WT_TIME_AGGREGATE_UPDATE中统计赋值
     //最终会赋值给父page的index[]数组下面ref->addr.ta，并通过internal page在__wt_rec_cell_build_addr函数中持久化到磁盘
     WT_TIME_AGGREGATE ta;
 
-    //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum)
+    //保存chunk->image写入磁盘时候的元数据信息(objectid offset size  checksum), __rec_split_write中赋值
     uint8_t *addr; /* Block-manager's cookie */
     //__wt_multi_to_ref
     uint8_t size;  /* Block-manager's cookie length */
@@ -896,8 +897,10 @@ struct __wt_page {
 
     //__wt_cache_bytes_image中记录总的image内存消耗，也就是写入ext时候在内存中实际上有同样一份的内存计算统计
 
-     //配合__wt_rec_cell_build_addr阅读，[page->dsk, page->dsk + page->dsk->mem_size]对应磁盘一个ext块
-    //这个ext中存储的是一个一个的WT_ADDR，一个WT_ADDR对应一个子page的磁盘元数据
+    //注意__wt_rec_row_leaf和__wt_rec_row_int的差异，一个是持久化leaf page，一个是持久化internal page
+    //  __wt_rec_row_int: 持久化internal page拥有的子ref page key及其所有子page持久化到磁盘的ext(objectid offset size  checksum)元数据信息, 
+    //      当重启(__wt_btree_tree_open->__wt_page_inmem)或者读取interanal page数据(__page_read)的时候会把这些持久化的ref page key和所有持久化的page元数据加载到page->dsk中
+    //  __wt_rec_row_leaf: 持久化leaf page数据到磁盘，同时把磁盘ext元数据(objectid offset size  checksum)信息添加到ref.addr
     const WT_PAGE_HEADER *dsk; //赋值见__wt_page_inmem，指向磁盘数据
 
     /* If/when the page is modified, we need lots more information. */
@@ -1178,7 +1181,7 @@ struct __wt_ref {
 //  __split_multi->__wt_multi_to_ref生成新的ref_new[]，原来的ref会通过__split_safe_free->__wt_stash_add加入等待释放队列并置为WT_REF_SPLIT
 //  下一轮while会判断WT_REF_SPLIT然后返回WT_REF_SPLIT，最终在外层__wt_txn_commit->__wt_txn_release->__wt_stash_discard真正释放
 #define WT_REF_SPLIT 4      /* Parent page split (WT_REF dead) */
-    //WT_REF_SET_STATE WT_REF_CAS_STATE赋值
+    //WT_REF_SET_STATE WT_REF_CAS_STATE        WT_REF_DISK WT_REF_MEM(磁盘还是内存)赋值
     volatile uint8_t state; /* Page state */
 
     /*
@@ -1207,7 +1210,12 @@ leaf-1 page    leaf-2 page    leaf3 page      leaf4 page
 //从上面的图可以看出，internal page(root+internal1+internal2)总共三次走到这里, internal1记录leaf1和leaf2的page addr元数据[ref key, leaf page ext元数据]
 //  internal2记录leaf3和leaf4的page addr元数据[ref key, leaf page ext元数据],
 //  root记录internal1和internal2的 addr元数据[ref key, leaf page ext元数据],
-    void *addr;//对应WT_ADDR，参考__wt_multi_to_ref
+
+    //注意__wt_rec_row_leaf和__wt_rec_row_int的差异，一个是持久化leaf page，一个是持久化internal page
+    //  __wt_rec_row_int: 持久化internal page拥有的子ref page key及其所有子page持久化到磁盘的ext(objectid offset size  checksum)元数据信息, 
+    //      当重启(__wt_btree_tree_open->__wt_page_inmem)或者读取interanal page数据(__page_read)的时候会把这些持久化的ref page key和所有持久化的page元数据加载到page->dsk中
+    //  __wt_rec_row_leaf: 持久化leaf page数据到磁盘，同时把磁盘ext元数据(objectid offset size  checksum)信息添加到ref.addr
+    void *addr;//对应WT_ADDR，参考__wt_multi_to_ref, 存的是该ref page写入磁盘的ext元数据信息(objectid offset size  checksum)
 
     /*
      * The child page's key.  Do NOT change this union without reviewing

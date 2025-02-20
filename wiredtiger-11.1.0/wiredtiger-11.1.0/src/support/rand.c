@@ -99,7 +99,7 @@ __wt_random_init_seed(WT_SESSION_IMPL *session, WT_RAND_STATE volatile *rnd_stat
  *     Return a 32-bit pseudo-random number.
  */
 uint32_t
-__wt_random(WT_RAND_STATE volatile *rnd_state) WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
+__wt_random(WT_RAND_STATE volatile *rnd_state)// WT_GCC_FUNC_ATTRIBUTE((visibility("default")))
 {
     WT_RAND_STATE rnd;
     uint32_t w, z;

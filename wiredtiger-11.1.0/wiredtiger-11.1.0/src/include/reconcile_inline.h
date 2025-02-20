@@ -341,7 +341,7 @@ __wt_rec_auximage_copy(WT_SESSION_IMPL *session, WT_RECONCILE *r, uint32_t count
  * __wt_rec_cell_build_addr --
  *     Process an address or unpack reference and return a cell structure to be stored on the page.
  */
-//addr信息封包存储到r->v中
+//addr信息,也就是持久化到磁盘的page元数据信息(objectid offset size  checksum)封包存储到r->v中
 static inline void
 __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *addr,
   WT_CELL_UNPACK_ADDR *vpack, uint64_t recno, WT_PAGE_DELETED *page_del)
@@ -403,7 +403,7 @@ __wt_rec_cell_build_addr(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_ADDR *add
      * data/length fields.
      */
     if (vpack == NULL) {
-        //获取addr对应WT_ADDR信息存入val(r->v)中
+        //获取addr对应WT_ADDR(持久化到磁盘的page元数据信息(objectid offset size  checksum))信息存入val(r->v)中， 
         WT_ASSERT(session, addr != NULL);
         val->buf.data = addr->addr;
         val->buf.size = addr->size;

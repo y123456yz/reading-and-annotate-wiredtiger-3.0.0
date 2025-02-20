@@ -14,8 +14,11 @@
 #define WT_PROJ_VALUE 'v' /* Go to the value in cursor <arg> */
 
 struct __wt_colgroup {
+    //colgroup:access
     const char *name;   /* Logical name */
+    //file:access.wt
     const char *source; /* Underlying data source */
+    //app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source="file:access.wt",type=file,verbose=[],write_timestamp_usage=none
     const char *config; /* Configuration string */
 
     WT_CONFIG_ITEM colconf; /* List of columns from config */
@@ -77,6 +80,7 @@ struct __wt_table {
     //Tables without explicit column groups have a single default column group containing all of the columns.
     ////和__wt_cursor_table.cg_cursors配合
     //WT_COLGROUPS
+    //session->create()可以支持colgroup配置 参考https://source.wiredtiger.com/develop/struct_w_t___s_e_s_s_i_o_n.html#a358ca4141d59c345f401c58501276bbb
     u_int ncolgroups,  //默认不会有colgroups配置，值为0,实际上在WT_COLGROUPS中会取1 #define WT_COLGROUPS(t) WT_MAX((t)->ncolgroups, 1)
     nindices, nkey_columns;
 };
@@ -123,7 +127,7 @@ struct __wt_import_list {
  * WT_WITH_LOCK_WAIT --
  *	Wait for a lock, perform an operation, drop the lock.  例如lock_metadata_wait_application等lock_xxxx_wait_application走这里
  如果一个线程进入else分支，则加锁后会置位lock_flags，其他线程进来后就不需要加锁而是直接执行op
- //注意这里的lock_flags是诊断本session的，也就是本线程内的循环op调度
+ //注意这里的lock_flags是针对本session的，也就是本线程内的循环op调度
  */
 #define WT_WITH_LOCK_WAIT(session, lock, flag, op)    \
     do {                                              \
@@ -234,6 +238,7 @@ struct __wt_import_list {
                 WT_SESSION_LOCKED_TABLE));                                                    \
         WT_WITH_LOCK_WAIT(session, &S2C(session)->schema_lock, WT_SESSION_LOCKED_SCHEMA, op); \
     } while (0)
+    
 #define WT_WITH_SCHEMA_LOCK_NOWAIT(session, ret, op)                               \
     do {                                                                           \
         WT_ASSERT(session,                                                         \

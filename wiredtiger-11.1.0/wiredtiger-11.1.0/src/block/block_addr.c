@@ -88,7 +88,7 @@ __block_addr_unpack(WT_SESSION_IMPL *session, WT_BLOCK *block, const uint8_t **p
  *     Pack components into an address cookie, UPDATING the caller's buffer reference.
   __wt_block_addr_pack和__block_addr_unpack对应
  */
-//对objectid offset size  checksum四个字段进行封包存入pp[]数组中, 通过获取pp[]数组即可获取到一个完整block的元数据
+//对objectid offset size  checksum四个字段进行封包存入pp[]数组中, 通过获取pp[]数组即可获取到一个完整block的元数据,addr[WT_BTREE_MAX_ADDR_COOKIE]
 int
 __wt_block_addr_pack(WT_BLOCK *block, uint8_t **pp, uint32_t objectid, wt_off_t offset,
   uint32_t size, uint32_t checksum)

@@ -262,7 +262,8 @@ static inline int
 __tree_walk_internal(WT_SESSION_IMPL *session, WT_REF **refp,
   //注意walkcntp是保留原值进行增加
   uint64_t *walkcntp,
-  int (*skip_func)(WT_SESSION_IMPL *, WT_REF *, void *, bool, bool *), void *func_cookie,
+  int (*skip_func)(WT_SESSION_IMPL *, WT_REF *, void *, bool, bool *), 
+  void *func_cookie,
   uint32_t flags)
 {
     WT_BTREE *btree;
@@ -594,7 +595,7 @@ __wt_tree_walk_custom_skip(WT_SESSION_IMPL *session, WT_REF **refp,
   int (*skip_func)(WT_SESSION_IMPL *, WT_REF *, void *, bool, bool *), void *func_cookie,
   uint32_t flags)
 {
-    //遍历refp下面所有的page，如果ref对应为NULL，则从root遍历如果skip_func不会NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
+    //遍历refp下面所有的page，如果ref对应为NULL，则从root遍历，如果skip_func不为NULL，执行skip_func(session, ref, func_cookie, LF_ISSET(WT_READ_VISIBLE_ALL), &skip)
     return (__tree_walk_internal(session, refp, NULL, skip_func, func_cookie, flags));
 }
 

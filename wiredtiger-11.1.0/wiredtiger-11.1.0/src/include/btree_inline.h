@@ -1525,6 +1525,7 @@ __wt_row_leaf_value_cell(
 struct __wt_addr_copy {
     uint8_t type;
 
+    //存的是一个page的磁盘元数据信息(objectid offset size  checksum)
     uint8_t addr[WT_BTREE_MAX_ADDR_COOKIE];
     uint8_t size;
 
@@ -1578,6 +1579,7 @@ __wt_ref_addr_copy(WT_SESSION_IMPL *session, WT_REF *ref, WT_ADDR_COPY *copy)
     }
 
     /* If on-page, the pointer references a cell. */
+    //解包addr这个地址对应的元数据信息解包后存入unpack中
     __wt_cell_unpack_addr(session, page->dsk, (WT_CELL *)addr, unpack);
     WT_TIME_AGGREGATE_COPY(&copy->ta, &unpack->ta);
 

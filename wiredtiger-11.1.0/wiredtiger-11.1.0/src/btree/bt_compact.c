@@ -28,6 +28,7 @@ __compact_page_inmem_check_addrs(WT_SESSION_IMPL *session, WT_REF *ref, bool *sk
     /* If the page is currently clean, test the original addresses. */
     if (__wt_page_evict_clean(ref->page))
         return (__wt_ref_addr_copy(session, ref, &addr) ?
+            //__bm_compact_page_skip
             bm->compact_page_skip(bm, session, addr.addr, addr.size, skipp) :
             0);
 
@@ -181,11 +182,15 @@ __compact_page(WT_SESSION_IMPL *session, WT_REF *ref, bool *skipp)
      * ideal, we could release the lock, but then we'd have to deal with the block having been read
      * into memory while we were moving it.
      */
+    //该ref page的磁盘元数据信息存入copy中
     if (previous_state == WT_REF_DISK && __wt_ref_addr_copy(session, ref, &copy)) {
         bm = S2BT(session)->bm;
         addr_size = copy.size;
+        //__bm_compact_page_rewrite
+        //判断addr这个page是否处于文件的后半段，如果处于文件的后半段，则继续判断文件前半段是否有可用的avil ext空洞，如果有则把这个page迁移到前半段
         WT_ERR(bm->compact_page_rewrite(bm, session, copy.addr, &addr_size, skipp));
         if (!*skipp) {
+            //修改这个ref对应的磁盘元数据信息
             copy.size = (uint8_t)addr_size;
             WT_ERR(__compact_page_replace_addr(session, ref, &copy));
         }
@@ -243,8 +248,10 @@ __compact_walk_internal(WT_SESSION_IMPL *session, WT_REF *parent)
      * visit them individually.
      */
     overall_progress = false;
+    //对parent这个internal page下面的所有leaf page执行__compact_page操作
     WT_INTL_FOREACH_BEGIN (session, parent->page, ref) {
         if (F_ISSET(ref, WT_REF_FLAG_LEAF)) {
+            //只对parent这个internal page下面的leaf page做compact操作
             WT_ERR(__compact_page(session, ref, &skipp));
             if (!skipp)
                 overall_progress = true;
@@ -319,8 +326,9 @@ __wt_compact(WT_SESSION_IMPL *session)
      * Check if compaction might be useful (the API layer will quit trying to compact the data
      * source if we make no progress).
      */
+    //__bm_compact_skip
     WT_RET(bm->compact_skip(bm, session, &skip));
-    if (skip) {
+    if (skip) {////磁盘碎片空间占比小于10%或者小于1M直接跳过
         WT_STAT_CONN_INCR(session, session_table_compact_skipped);
         WT_STAT_DATA_INCR(session, btree_compact_skipped);
         return (0);
@@ -341,6 +349,7 @@ __wt_compact(WT_SESSION_IMPL *session)
          * we're making the problem worse.
          */
         if (++i > 100) {
+            //__bm_compact_progress  打印compact进度
             bm->compact_progress(bm, session, &msg_count);
             WT_ERR(__wt_session_compact_check_timeout(session));
             if (session->event_handler->handle_general != NULL) {
@@ -351,6 +360,7 @@ __wt_compact(WT_SESSION_IMPL *session)
                     WT_ERR_MSG(session, WT_ERROR, "compact interrupted by application");
             }
 
+            //evict阻塞，则直接返回ebusy
             if (__wt_cache_stuck(session))
                 WT_ERR(EBUSY);
 
@@ -361,6 +371,7 @@ __wt_compact(WT_SESSION_IMPL *session)
          * Compact pulls pages into cache during the walk without checking whether the cache is
          * full. Check now to throttle compact to match eviction speed.
          */
+        //判断该现场是否需要做evict操作，如果dirty高该现场也会参与evict操作
         WT_ERR(__wt_cache_eviction_check(session, false, false, NULL));
 
         /*
@@ -368,6 +379,7 @@ __wt_compact(WT_SESSION_IMPL *session)
          * already in memory, and if a page is read, set its generation to a low value so it is
          * evicted quickly.
          */
+        //遍历B+ TREE, 跳过leaf page, 最终返回的ref是internal page
         WT_ERR(__wt_tree_walk_custom_skip(session, &ref, __compact_walk_page_skip, NULL,
           WT_READ_NO_GEN | WT_READ_VISIBLE_ALL | WT_READ_WONT_NEED));
         if (ref == NULL)
