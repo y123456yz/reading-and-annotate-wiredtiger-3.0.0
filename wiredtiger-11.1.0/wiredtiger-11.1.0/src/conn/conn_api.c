@@ -1771,15 +1771,15 @@ __conn_home(WT_SESSION_IMPL *session, const char *home, const char *cfg[])
  * __conn_single --
  *     Confirm that no other thread of control is using this database.
 
- [user_00@TENCENT64 /data1/xxx/211909456]$ cd db/
-[user_00@TENCENT64 /data1/xxx/211909456/db]$ ls
+ [user_00@xxx /data1/xxx/211909456]$ cd db/
+[user_00@xxx /data1/xxx/211909456/db]$ ls
 admin   db_recordtimeshift  journal  _mdb_catalog.wt  mongod.pid     storage.bson  WiredTigerHS.wt  WiredTiger.turtle
 config  diagnostic.data     local    mongod.lock      sizeStorer.wt  WiredTiger    WiredTiger.lock  WiredTiger.wt
-[user_00@TENCENT64 /data1/containers/211909456/db]$ ls db_recordtimeshift
+[user_00@xxx /data1/containers/211909456/db]$ ls db_recordtimeshift
 collection-127-5712598948713236855.wt  index-128-5712598948713236855.wt  index-131-5712598948713236855.wt  index-138-5712598948713236855.wt  index-145-5712598948713236855.wt
 collection-135-5712598948713236855.wt  index-129-5712598948713236855.wt  index-136-5712598948713236855.wt  index-139-5712598948713236855.wt  index-146-5712598948713236855.wt
 collection-143-5712598948713236855.wt  index-130-5712598948713236855.wt  index-137-5712598948713236855.wt  index-144-5712598948713236855.wt  index-147-5712598948713236855.wt
-[user_00@TENCENT64 /data1/xxx/211909456/db]$
+[user_00@xxx /data1/xxx/211909456/db]$
  */
 //wiredtiger_open调用，判断是否已经有其他线程在使用home对应目录下的DB，
 //例如MONGODB数据目录/data1/containers/211909456/db, 一个进程例如mongod，只能拥有一个唯一的db，db下面是具体的实例数据，包括元数据

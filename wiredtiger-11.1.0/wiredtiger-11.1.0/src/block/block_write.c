@@ -11,6 +11,8 @@
 /*
  * __wt_block_truncate --
  *     Truncate the file.
+ //__ckpt_process->__wt_block_extlist_truncate->__wt_block_truncate
+ //把文件后的无用空洞直接truncate去掉，这样可以减少wt文件大小
  */
 int
 __wt_block_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t len)
@@ -22,6 +24,7 @@ __wt_block_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, wt_off_t len)
 
     //yang add todo xxxxx 完善日志
     __wt_verbose(session, WT_VERB_BLOCK, "truncate file:%s to %" PRIuMAX, block->name, (uintmax_t)len);
+    printf("yang test ............ truncate file:%s to %lu\r\n", block->name, (uintmax_t)len);
 
     /*
      * Truncate requires serialization, we depend on our caller for that.

@@ -347,6 +347,8 @@ __bm_compact_end_readonly(WT_BM *bm, WT_SESSION_IMPL *session)
  * __bm_compact_page_rewrite --
  *     Rewrite a page for compaction.
  判断addr这个page是否处于文件的后半段，如果处于文件的后半段，则继续判断文件前半段是否有可用的avil ext空洞，如果有则把这个page迁移到前半段
+
+ __compact_page
  */
 static int
 __bm_compact_page_rewrite(
@@ -417,6 +419,8 @@ __bm_compact_progress(WT_BM *bm, WT_SESSION_IMPL *session, u_int *msg_countp)
  *     Return if a file can be compacted.
  //确认当前表的空洞总量占比，如果小于1M则直接返回   __wt_compact调用
  //磁盘碎片空间占比小于10%或者小于1M直接跳过
+
+ __wt_compact
  */
 static int
 __bm_compact_skip(WT_BM *bm, WT_SESSION_IMPL *session, bool *skipp)
@@ -842,6 +846,7 @@ __bm_method_set(WT_BM *bm, bool readonly)
     bm->compact_page_rewrite = __bm_compact_page_rewrite;
     bm->compact_page_skip = __bm_compact_page_skip;
     bm->compact_progress = __bm_compact_progress;
+    //__wt_compact
     bm->compact_skip = __bm_compact_skip;
     bm->compact_start = __bm_compact_start;
     bm->corrupt = __wt_bm_corrupt;

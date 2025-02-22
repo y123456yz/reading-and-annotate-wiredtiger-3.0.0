@@ -448,8 +448,8 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
         addr = ref->addr;
         child = ref->page;
 
-        printf("yang test __wt_rec_row_int...ref page:%p....cms.state:%u, rec result:%d\r\n", 
-            child, cms.state, (child && child->modify) ? child->modify->rec_result : 11111);
+       // printf("yang test __wt_rec_row_int...ref page:%p....cms.state:%u, rec result:%d\r\n", 
+       //     child, cms.state, (child && child->modify) ? child->modify->rec_result : 11111);
         switch (cms.state) {
         case WT_CHILD_IGNORE:
             /*
@@ -494,8 +494,8 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
             break;
         }
 
-       printf("yang test __wt_rec_row_int....page dsk:%p, addr:%p, type:%d\r\n", 
-        page->dsk, addr->addr, addr->type);
+      // printf("yang test __wt_rec_row_int....page dsk:%p, addr:%p, type:%d\r\n", 
+      //  page->dsk, addr->addr, addr->type);
         /*
          * Build the value cell, the child page's address. Addr points to an on-page cell or an
          * off-page WT_ADDR structure.

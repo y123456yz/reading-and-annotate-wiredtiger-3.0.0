@@ -1598,6 +1598,7 @@ err:
  */
 //也就是判断avail的最后一个ext不为NULL，并且最后一个ext就是文件的末尾，说明文件末尾的ext可以truncate
 //做checkpoint的时候会走这里判断是否需要truncate截断文件大小，一般大量删除数据的情况下会存在需要截断文件的这种情况
+//__ckpt_process->__wt_block_extlist_truncate
 int
 __wt_block_extlist_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIST *el)
 {
@@ -1625,6 +1626,7 @@ __wt_block_extlist_truncate(WT_SESSION_IMPL *session, WT_BLOCK *block, WT_EXTLIS
     WT_RET(__block_off_remove(session, block, el, size, NULL));
 
     /* Truncate the file. */
+    //把文件后的无用空洞直接truncate去掉，这样可以减少wt文件大小
     return (__wt_block_truncate(session, block, size));
 }
 

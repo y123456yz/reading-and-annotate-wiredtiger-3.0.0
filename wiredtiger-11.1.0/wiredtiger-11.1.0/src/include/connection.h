@@ -579,10 +579,10 @@ struct __wt_connection_impl {
     //"log.force_write_wait"配置，默认值为0
     uint32_t log_force_write_wait;         /* Log force write wait configuration */
 /*
-[user_00@TENCENT64 /data2/containers/175591266/db]$ cd journal/
-[user_00@TENCENT64 /data2/containers/175591266/db/journal]$ ls
+[user_00@xxx /data2/containers/175591266/db]$ cd journal/
+[user_00@xxx /data2/containers/175591266/db/journal]$ ls
 WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
-[user_00@TENCENT64 /data2/containers/175591266/db/journal]$
+[user_00@xxx /data2/containers/175591266/db/journal]$
 */ //journal日志目录
     const char *log_path;                  /* Logging path format */
     //"log.prealloc"配置，默认true，初始值1，见__wt_logmgr_config，

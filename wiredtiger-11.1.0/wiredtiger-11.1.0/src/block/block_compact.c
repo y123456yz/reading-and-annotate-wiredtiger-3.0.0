@@ -193,12 +193,14 @@ __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
      * We could push this further, but there's diminishing returns, a mostly empty file can be
      * processed quickly, so more aggressive compaction is less useful.
      */
+    //__wt_block_compact_skip这里限制了这里for遍历一轮所有internal page后最多只会搬迁处于wt文件尾部10%或者20%(compact_pct_tenths)的page，
+    // 配合__compact_page_skip阅读
     if (avail_eighty > WT_MEGABYTE && avail_eighty >= ((block->size / 10) * 2)) {
-        // 文件前面80%长度内有大于20%的空洞
+        // 文件前面80%长度内有大于20%的空洞,我们选择表文件最后的20%中的leaf page来做搬迁
         *skipp = false;
         block->compact_pct_tenths = 2;
     } else if (avail_ninety > WT_MEGABYTE && avail_ninety >= block->size / 10) {
-        // 文件前面90%长度内有大于10%的空洞
+        // 文件前面90%长度内有10%-20的空洞，我们选择表文件最后10%中的leaf page来做搬迁填充
         *skipp = false;
         block->compact_pct_tenths = 1;
     }
@@ -227,6 +229,9 @@ __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
  * __compact_page_skip --
  *     Return if writing a particular page will shrink the file.
  判断[offset, size]这个page是否处于分割点的后半段，并且前半段avil空洞ext是否可以容纳这个page
+ 确定该page是否可以搬到前半段的空洞碎片中，只会搬迁文件的后半段compact_pct_tenths(10%或者20%的page迁移到)
+
+ //__wt_block_compact_skip和__compact_page_skip限制了这里for遍历一轮所有internal page后最多只会搬迁处于wt文件尾部10%或者20%(compact_pct_tenths)的page，
  */
 static void
 __compact_page_skip(
@@ -245,15 +250,16 @@ __compact_page_skip(
      * an obvious race if the file is sufficiently busy.
      */
     __wt_spin_lock(session, &block->live_lock);
+    //也就是分割点，分割点前是需要填充的碎片空洞
     limit = block->size - ((block->size / 10) * block->compact_pct_tenths);
-    //说明这个page对应ext元数据指向的是磁盘除去前半部分compact_pct_tenths的后半段，也就是在compact_pct_tenths分割点的后部
+    //说明该page处于wt文件分割点后部，可以搬迁填充空洞
     if (offset > limit) {
         el = &block->live.avail;
         WT_EXT_FOREACH (ext, el->off) {
             //说明空洞在文件compact_pct_tenths分割的后半段中，则停止查找遍历，因为我们需要把后半段的page填充到前半段的空洞中
             if (ext->off >= limit)
                 break;
-            //说明前半段找到的空洞可以容纳这个page size数据
+            //说明这个空洞处于前半段，并且可以容纳后半段这个需要搬迁的长度为size的page
             if (ext->size >= size) {
                 *skipp = false;
                 break;
@@ -329,6 +335,9 @@ __wt_block_compact_page_rewrite(
     __compact_page_skip(session, block, offset, size, skipp);
 
     //说明这个page处于前半段，或者这个page处于后半段但是前半段没有可容纳它的空洞 
+    //确定该page是否可以从后半段搬迁到前半段的空洞中
+
+    //说明这个page不可以搬迁，直接返回
     if (*skipp)
         return (0);
 
@@ -347,7 +356,7 @@ __wt_block_compact_page_rewrite(
     discard_block = true;
 
     /* Write the block. */
-    //把要迁移的page数据写如前半段的空洞ext
+    //把要迁移的page数据写到前半段的空洞ext
     WT_ERR(__wt_write(session, block->fh, new_offset, size, tmp->mem));
 
     /* Free the original block. */
@@ -435,6 +444,7 @@ __block_dump_file_stat(WT_SESSION_IMPL *session, WT_BLOCK *block, bool start)
           session, WT_VERB_COMPACT, "pages rewritten : %" PRIu64, block->compact_pages_rewritten);
     }
 
+    //file size 87MB (91987968) with 99% space available 87MB (91516928)
     __wt_verbose_debug1(session, WT_VERB_COMPACT,
       "file size %" PRIuMAX "MB (%" PRIuMAX ") with %" PRIuMAX "%% space available %" PRIuMAX
       "MB (%" PRIuMAX ")",
@@ -453,6 +463,7 @@ __block_dump_file_stat(WT_SESSION_IMPL *session, WT_BLOCK *block, bool start)
     memset(decile, 0, sizeof(decile));
     memset(percentile, 0, sizeof(percentile));
     WT_EXT_FOREACH (ext, el->off)
+        //把这个ext大小，计算是512字节的多少倍
         for (i = 0; i < ext->size / 512; ++i) {
             ++decile[((ext->off + (wt_off_t)i * 512) * 10) / size];
             ++percentile[((ext->off + (wt_off_t)i * 512) * 100) / size];

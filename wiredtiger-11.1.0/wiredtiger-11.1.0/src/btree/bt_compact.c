@@ -150,6 +150,7 @@ err:
 /*
  * __compact_page --
  *     Compaction for a single page.
+ 一个compact周期执行流程: __compact_walk_internal->__compact_page
  */
 static int
 __compact_page(WT_SESSION_IMPL *session, WT_REF *ref, bool *skipp)
@@ -187,7 +188,7 @@ __compact_page(WT_SESSION_IMPL *session, WT_REF *ref, bool *skipp)
         bm = S2BT(session)->bm;
         addr_size = copy.size;
         //__bm_compact_page_rewrite
-        //判断addr这个page是否处于文件的后半段，如果处于文件的后半段，则继续判断文件前半段是否有可用的avil ext空洞，如果有则把这个page迁移到前半段
+        //判断这个page的ref addr, 确定这个子page是否处于文件的后半段，如果处于文件的后半段，则继续判断文件前半段是否有可用的avil ext空洞，如果有则把这个page迁移到前半段
         WT_ERR(bm->compact_page_rewrite(bm, session, copy.addr, &addr_size, skipp));
         if (!*skipp) {
             //修改这个ref对应的磁盘元数据信息
@@ -241,6 +242,7 @@ __compact_walk_internal(WT_SESSION_IMPL *session, WT_REF *parent)
      * working the file if checkpoint is holding the lock, checkpoint holds the lock for relatively
      * long periods.
      */
+    //comapact期间不允许进行checkpoint操作，因为会影响checkpoint一致性和完整性
     WT_RET(__wt_spin_trylock(session, &S2BT(session)->flush_lock));
 
     /*
@@ -253,7 +255,7 @@ __compact_walk_internal(WT_SESSION_IMPL *session, WT_REF *parent)
         if (F_ISSET(ref, WT_REF_FLAG_LEAF)) {
             //只对parent这个internal page下面的leaf page做compact操作
             WT_ERR(__compact_page(session, ref, &skipp));
-            if (!skipp)
+            if (!skipp) //说明这个page有做搬迁及空洞填充
                 overall_progress = true;
         }
     }
@@ -263,7 +265,13 @@ __compact_walk_internal(WT_SESSION_IMPL *session, WT_REF *parent)
      * If we moved a leaf page, we'll write the parent. If we didn't move a leaf page, check pages
      * other than the root to see if we want to move the internal page itself. (Skip the root as a
      * forced checkpoint will always rewrite it, and you can't just "move" a root page.)
+
+     如果我们对parent这个internal page的子leaf page做了搬迁，由于leaf page搬迁填空洞了，则对应的internal page所属的该page的ref addr会
+       发生变化，这样所有上层的internal page在checkpoint的时候会重新reconcile，这时候reconcile就回去填充空洞，因此如果有leaf page做了搬迁
+       填充空洞则上层的这个internal page都会在checkpoint的时候reconcile，因为这个internal page会因为下一层的leaf page对应的ext元数据发生变化
+       其所属的ref addr会变化，因此会变为一个脏page
      */
+    //overall_progress为true说明parent这个internal page下面存在填充空洞的子leaf page
     if (!overall_progress && !__wt_ref_is_root(parent)) {
         WT_ERR(__compact_page(session, parent, &skipp));
         if (!skipp)
@@ -303,6 +311,8 @@ __compact_walk_page_skip(
 /*
  * __wt_compact --
  *     Compact a file.
+循环遍历整棵树，把处于wt文件后半段10%(compact_pct_tenths)的page找出来，如果这个page可以在文件前半段找到可容纳它的空洞，
+则把这个page搬迁到前半段空洞位置
  */
 int
 __wt_compact(WT_SESSION_IMPL *session)
@@ -326,14 +336,20 @@ __wt_compact(WT_SESSION_IMPL *session)
      * Check if compaction might be useful (the API layer will quit trying to compact the data
      * source if we make no progress).
      */
+    printf("yang test .......__wt_compact.....1......\r\n");
     //__bm_compact_skip
     WT_RET(bm->compact_skip(bm, session, &skip));
-    if (skip) {////磁盘碎片空间占比小于10%或者小于1M直接跳过
+    printf("yang test .......__wt_compact.....2......\r\n");
+    if (skip) {////磁盘碎片空间占比小于10%或者小于1M直接跳过，碎片空间填充完毕后，从这里直接返回
+        printf("yang test .......__wt_compact.....4......\r\n");
         WT_STAT_CONN_INCR(session, session_table_compact_skipped);
         WT_STAT_DATA_INCR(session, btree_compact_skipped);
         return (0);
     }
 
+    //上面的__bm_compact_skip限制了这里for遍历一轮所有internal page后最多只会搬迁处于wt文件尾部10%或者20%(compact_pct_tenths)的page
+
+    //1. 循环遍历整棵树，把处于wt文件后半段10%(compact_pct_tenths)的page找出来，如果这个page可以在文件前半段找到可容纳它的空洞，则把这个page搬迁到前半段空洞位置
     /* Walk the tree reviewing pages to see if they should be re-written. */
     for (i = 0;;) {
 
@@ -348,6 +364,7 @@ __wt_compact(WT_SESSION_IMPL *session)
          * Periodically check if we've timed out or eviction is stuck. Quit if eviction is stuck,
          * we're making the problem worse.
          */
+        //每遍历100个internal page，就打印一次compact
         if (++i > 100) {
             //__bm_compact_progress  打印compact进度
             bm->compact_progress(bm, session, &msg_count);
@@ -382,9 +399,10 @@ __wt_compact(WT_SESSION_IMPL *session)
         //遍历B+ TREE, 跳过leaf page, 最终返回的ref是internal page
         WT_ERR(__wt_tree_walk_custom_skip(session, &ref, __compact_walk_page_skip, NULL,
           WT_READ_NO_GEN | WT_READ_VISIBLE_ALL | WT_READ_WONT_NEED));
-        if (ref == NULL)
+        if (ref == NULL) {//一般会从这里返回出去
+            printf("yang test .......__wt_compact.....ref null......\r\n");
             break;
-
+        }
         /*
          * The compact walk only flags internal pages for review, but there is a rare case where an
          * WT_REF in the WT_REF_DISK state pointing to an internal page, can transition to a leaf
@@ -399,6 +417,7 @@ __wt_compact(WT_SESSION_IMPL *session)
 
 err:
     WT_TRET(__wt_page_release(session, ref, 0));
+    printf("yang test .......__wt_compact.....3......ret:%d\r\n", ret);
 
     return (ret);
 }

@@ -134,7 +134,7 @@ access_example(int argc, char *argv[])
 
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
-        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[block:5,reconcile:5,compact=0, api:0, config_all_verbos:0, metadata:0, api:0, evict:0]", &conn));
+        error_check(wiredtiger_open(home, NULL, "checkpoint=[wait=60],eviction=(threads_min=1, threads_max=1),create, cache_size=1M, verbose=[block:0,reconcile:0,compact=0, api:0, config_all_verbos:0, metadata:0, api:0, evict:0]", &conn));
         //
        // error_check(wiredtiger_open(home, NULL, "create,statistics=(fast),statistics_log=(json,wait=1),in_memory=true", &conn));
                 
@@ -151,7 +151,7 @@ access_example(int argc, char *argv[])
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
 
-        #define MAX_TEST_KV_NUM 100//1000000
+        #define MAX_TEST_KV_NUM 800000//1000000
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
             snprintf(buf, sizeof(buf), "key%d", i);
@@ -171,7 +171,7 @@ access_example(int argc, char *argv[])
         }
         printf("yang test checkpoint.........................11111.........................\r\n");
         testutil_check(session->checkpoint(session, NULL));
-        for (i = 5; i < MAX_TEST_KV_NUM; i++) {
+        for (i = 150000; i < MAX_TEST_KV_NUM - 300000; i++) {
            // continue;
             snprintf(buf, sizeof(buf), "key%d", i);
             cursor->set_key(cursor, i);
@@ -237,9 +237,9 @@ access_example(int argc, char *argv[])
             error_check(cursor->get_value(cursor, &value));
             count++;
 
-            printf("Load record 1: %d , count:%d\n", key, count);
-            if(count == 11)
-                break;
+          //  printf("Load record : %d , count:%d\n", key, count);
+           // if(count == 11)
+            //    break;
         }
         error_check(session->compact(session, "table:access", NULL));
        // scan_end_check(ret == WT_NOTFOUND); 

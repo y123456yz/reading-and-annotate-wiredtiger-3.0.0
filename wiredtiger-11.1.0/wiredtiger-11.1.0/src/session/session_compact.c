@@ -243,12 +243,15 @@ __compact_worker(WT_SESSION_IMPL *session)
      * Reset the handles' compaction skip flag (we don't bother setting or resetting it when we
      * finish compaction, it's simpler to do it once, here).
      */
-    for (i = 0; i < session->op_handle_next; ++i)
+    for (i = 0; i < session->op_handle_next; ++i) {
+        printf("yang test ....__compact_worker.....op_handle_next:%u, %s\r\n", 
+            session->op_handle_next, session->op_handle[i]->name);
         session->op_handle[i]->compact_skip = false;
-
+    }
     /*
      * Perform an initial checkpoint (see this file's leading comment for details).
      */
+    //强制做一次checkpoint
     WT_ERR(__compact_checkpoint(session));
 
     /*
@@ -266,6 +269,8 @@ __compact_worker(WT_SESSION_IMPL *session)
             __wt_timing_stress(session, WT_TIMING_STRESS_COMPACT_SLOW, NULL);
 
             session->compact_state = WT_COMPACT_RUNNING;
+            //循环遍历整棵树，把处于wt文件后半段10%(compact_pct_tenths)的page找出来，如果这个page可以在文件前半段找到可容纳它的空洞，
+            //  则把这个page搬迁到前半段空洞位置
             WT_WITH_DHANDLE(session, session->op_handle[i], ret = __wt_compact(session));
             WT_ERR_ERROR_OK(ret, EBUSY, true);
             /*
@@ -306,6 +311,11 @@ __compact_worker(WT_SESSION_IMPL *session)
         /*
          * Perform two checkpoints (see this file's leading comment for details).
          */
+        //1. 参考文件头部的说明，这里可以保证一轮__wt_compact昨晚ext迁移填充空洞后,internal page可能没有迁移，可以通过checkpoint持久化脏internal page, checkpoint持久化的时候会去填充空洞
+        //2. 通过checkpoint可以把文件后迁移腾出的无用空洞truncat掉    //__ckpt_process->__wt_block_extlist_truncate->__wt_block_truncate
+
+        //__ckpt_process->__wt_block_extlist_truncate->__wt_block_truncate
+        //把文件后的无用空洞直接truncate去掉，这样可以减少wt文件大小
         WT_ERR(__compact_checkpoint(session));
         WT_ERR(__compact_checkpoint(session));
     }
