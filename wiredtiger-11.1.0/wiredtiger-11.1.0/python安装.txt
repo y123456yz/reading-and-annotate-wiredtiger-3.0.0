@@ -1,3 +1,9 @@
+
+python单元测试:
+nohup python ../test/suite/run.py -v 2 --parallel 4 > nohuplog   这是测试所有用例 
+
+
+
 我自己的vmware开发机启动环境变量： export LD_LIBRARY_PATH=/usr/local/python-3.7.14/lib/
 
 mongodb 5.0.13 编译  /usr/bin/python3 buildscripts/scons.py compiledb --disable-warnings-as-errors install-mongod install-mongos -j 5 VERBOSE=on          python version:Python 3.7.4

@@ -313,6 +313,8 @@ __compact_walk_page_skip(
  *     Compact a file.
 循环遍历整棵树，把处于wt文件后半段10%(compact_pct_tenths)的page找出来，如果这个page可以在文件前半段找到可容纳它的空洞，
 则把这个page搬迁到前半段空洞位置
+
+对S2BT(session)这个session对于的table进行compact操作
  */
 int
 __wt_compact(WT_SESSION_IMPL *session)

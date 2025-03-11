@@ -243,6 +243,52 @@ __wt_stats_clear(void *stats_arg, int slot)
             WT_STAT_SET(session, (session)->dhandle->stats, fld, value);          \
     } while (0)
 
+
+        /*
+         * Update data-source handle statistics if statistics gathering is enabled and the data-source
+         * handle is set.
+         *
+         * XXX We shouldn't have to check if the data-source handle is NULL, but it's necessary until
+         * everything is converted to using data-source handles.
+         */
+#define WT_STATP_DSRC_INCRV(session, stats, fld, value)                                \
+            do {                                                                               \
+                WT_STAT_INCRV_BASE(session, (stats)[(session)->stat_dsrc_bucket], fld, value); \
+            } while (0)
+#define WT_STATP_DSRC_INCR(session, stats, fld) WT_STATP_DSRC_INCRV(session, stats, fld, 1)
+#define WT_STAT_DSRC_INCRV(session, fld, value)                                   \
+            do {                                                                          \
+                if ((session)->dhandle != NULL && (session)->dhandle->stat_array != NULL) \
+                    WT_STATP_DSRC_INCRV(session, (session)->dhandle->stats, fld, value);  \
+            } while (0)
+#define WT_STAT_DSRC_INCR(session, fld) WT_STAT_DSRC_INCRV(session, fld, 1)
+        
+#define WT_STATP_DSRC_DECRV(session, stats, fld, value)                                \
+            do {                                                                               \
+                WT_STAT_DECRV_BASE(session, (stats)[(session)->stat_dsrc_bucket], fld, value); \
+            } while (0)
+#define WT_STATP_DSRC_DECR(session, stats, fld) WT_STATP_DSRC_DECRV(session, stats, fld, 1)
+#define WT_STAT_DSRC_DECRV(session, fld, value)                                   \
+            do {                                                                          \
+                if ((session)->dhandle != NULL && (session)->dhandle->stat_array != NULL) \
+                    WT_STATP_DSRC_DECRV(session, (session)->dhandle->stats, fld, value);  \
+            } while (0)
+#define WT_STAT_DSRC_DECR(session, fld) WT_STAT_DSRC_DECRV(session, fld, 1)
+        
+#define WT_STATP_DSRC_SET(session, stats, fld, value)                           \
+            do {                                                                        \
+                if (WT_STAT_ENABLED(session)) {                                         \
+                    __wt_stats_clear_dsrc(stats, WT_STATS_FIELD_TO_OFFSET(stats, fld)); \
+                    WT_STAT_SET_BASE(session, (stats)[0], fld, value);                  \
+                }                                                                       \
+            } while (0)
+#define WT_STAT_DSRC_SET(session, fld, value)                                     \
+            do {                                                                          \
+                if ((session)->dhandle != NULL && (session)->dhandle->stat_array != NULL) \
+                    WT_STATP_DSRC_SET(session, (session)->dhandle->stats, fld, value);    \
+            } while (0)
+
+
 /*
  * Update connection and data handle statistics if statistics gathering is enabled. Updates both
  * statistics concurrently and is useful to avoid the duplicated calls that happen in a lot of

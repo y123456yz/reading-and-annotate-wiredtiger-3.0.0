@@ -34,6 +34,8 @@
 //则调用__wt_config_collapse后的config_ret="access_pattern_hint=none,allocation_size=18KB,allocation_size=18KB,allocation_size=18KB,app_metadata=,checkpoint=(),checkpoint_backup_info=()"
 
 //参考__conn_dhandle_config_set
+
+//注意__wt_config_merge和__wt_config_collapse的区别，一个是做配置删除，一个做多个配置的合并
 int
 __wt_config_collapse(WT_SESSION_IMPL *session, const char **cfg, char **config_ret)
 {
@@ -338,6 +340,14 @@ __config_merge_cmp(const void *a, const void *b)
 //  cfg[0]="access_pattern_hint=none,allocation_size=18KB,allocation_size=18KB,allocation_size=18KB,app_metadata=,checkpoint=(),checkpoint_backup_info=(),checkpoint_lsn=,checksum=on,collator=,"
 //  cfg[1]="checkpoint=,checkpoint_backup_info=,checkpoint_lsn="
 // __wt_config_merge后的结果为:access_pattern_hint=none,allocation_size=18KB,app_metadata=,checksum=on,collator="
+
+//__wt_config_merge还有个功能就是修改cfg数组中的配置项，例如:
+//  cfg[0]:background=,dryrun=false,exclude=,free_space_target=20MB,run_once=false,timeout=1200, cfg[1]:background=true,timeout=0, cfg[2]:(null)
+//  cfg_strip="background=", 则新的config_ret会没有"background="
+
+
+//注意这里cfg[0]一般代表默认的某个配置信息，例如高版本的WT_CONFIG_BASE(session, WT_SESSION_compact)为cfg[0], cfg[1]为用户指定的配置
+//  这时候就可以通过__wt_config_merge合并cfg[0]和cfg[1]中的相同配置，可以参考高版本的__wt_background_compact_signal
 
 //可以参考__conn_dhandle_config_set
 int

@@ -144,6 +144,7 @@ access_example(int argc, char *argv[])
         /*! [access example connection] */
 
         /*! [access example table create] */
+        //Õë¶Ôserver²ãµÄÃüÁîÎª: db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, leaf_key_max=4K"}}})
         error_check(session->create(session, "table:access", "memory_page_max=32K,key_format=q,value_format=S"));
         /*! [access example table create] */
 
@@ -151,7 +152,7 @@ access_example(int argc, char *argv[])
         error_check(session->open_cursor(session, "table:access", NULL, NULL, &cursor));
         /*! [access example cursor open] */
 
-        #define MAX_TEST_KV_NUM 800000//1000000
+        #define MAX_TEST_KV_NUM 8000000//1000000
          //insert
         for (i = 0; i < MAX_TEST_KV_NUM; i++) {
             snprintf(buf, sizeof(buf), "key%d", i);
@@ -241,6 +242,8 @@ access_example(int argc, char *argv[])
            // if(count == 11)
             //    break;
         }
+
+        //__wt_session_compact
         error_check(session->compact(session, "table:access", NULL));
        // scan_end_check(ret == WT_NOTFOUND); 
         /*! [access example cursor list] */

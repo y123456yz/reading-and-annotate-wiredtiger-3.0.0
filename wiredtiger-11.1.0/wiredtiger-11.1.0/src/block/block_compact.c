@@ -203,7 +203,7 @@ __wt_block_compact_skip(WT_SESSION_IMPL *session, WT_BLOCK *block, bool *skipp)
         // 文件前面90%长度内有10%-20的空洞，我们选择表文件最后10%中的leaf page来做搬迁填充
         *skipp = false;
         block->compact_pct_tenths = 1;
-    }
+    } //yang add todo xxxxxxxxxxxxxxxx  这里最好compact_pct_tenths支持可配置，当前是默认空洞超过10%才回收，一些大表几T 10%空间也是挺大的
 
     __wt_verbose_debug1(session, WT_VERB_COMPACT,
       "%s: total reviewed %" PRIu64 " pages, total rewritten %" PRIu64 " pages", block->name,
@@ -393,22 +393,36 @@ err:
  *     file).
  */
 static void
-__block_dump_bucket_stat(WT_SESSION_IMPL *session, uintmax_t file_size, uintmax_t file_free,
-  uintmax_t bucket_size, uintmax_t bucket_free, u_int bucket_pct)
+__block_dump_bucket_stat(WT_SESSION_IMPL *session, 
+    //file_size: .wt文件总大小     //file_free: 空洞总字节数
+    uintmax_t file_size, uintmax_t file_free,
+    //整个wt文件分成10段，每一段的长度
+    uintmax_t bucket_size, 
+    //在i这个十分位范围内有多少字节碎片空间
+    uintmax_t bucket_free, 
+    //bucket_pct代表十分位段，i *10就代表是0   10  20  30 ..... 90
+    u_int bucket_pct)
 {
     uintmax_t bucket_used, free_pct, used_pct;
 
     free_pct = used_pct = 0;
 
     /* Handle rounding error in which case bucket used size can be negative. */
+    //表示该十分位段内非碎片空间大小
     bucket_used = (bucket_size > bucket_free) ? (bucket_size - bucket_free) : 0;
 
     if (file_free != 0)
+        //该十分位段内的碎片空间相对总的碎片空间的比例
         free_pct = (bucket_free * 100) / file_free;
 
     if (file_size > file_free)
         used_pct = (bucket_used * 100) / (file_size - file_free);
 
+//(free: 59986944B, 10%)表示该十分位段内碎片空间大小，以及该段内碎片空间相比总碎片空间的占比      
+//(used: 0MB, 0B, 0%)表示该十分位段内非碎片空间大小，以及该段内非碎片空间相比总非碎片空间的占比   
+
+//    [WT_VERB_COMPACT][DEBUG_2]: 80%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+//    [WT_VERB_COMPACT][DEBUG_2]: 90%:           57MB, (free: 59978240B, 9%), (used: 0MB, 8499B, 25%)
     __wt_verbose_debug2(session, WT_VERB_COMPACT,
       "%2u%%: %12" PRIuMAX "MB, (free: %" PRIuMAX "B, %" PRIuMAX "%%), (used: %" PRIuMAX
       "MB, %" PRIuMAX "B, %" PRIuMAX "%%)",
@@ -463,7 +477,12 @@ __block_dump_file_stat(WT_SESSION_IMPL *session, WT_BLOCK *block, bool start)
     memset(decile, 0, sizeof(decile));
     memset(percentile, 0, sizeof(percentile));
     WT_EXT_FOREACH (ext, el->off)
-        //把这个ext大小，计算是512字节的多少倍
+        //((ext->off + (wt_off_t)i * 512) * 10) / size = ((ext->off + (wt_off_t)i * 512) / size) * 10 
+        //例如也就是把1个文件size拆分为10段，ext->size按照512字节细分，计算这个ext以512字节为单位处于size中10段拆分的那一段
+        //  wt file size: 1-----------------------------12800-----------------------------25600-----------------------------------128000
+        //                     |     |      |     |
+        //ext(512-2046) :     512---1024---1536---2046  这个ext后decile[0]=4      
+        //
         for (i = 0; i < ext->size / 512; ++i) {
             ++decile[((ext->off + (wt_off_t)i * 512) * 10) / size];
             ++percentile[((ext->off + (wt_off_t)i * 512) * 100) / size];
@@ -484,9 +503,24 @@ __block_dump_file_stat(WT_SESSION_IMPL *session, WT_BLOCK *block, bool start)
     /*
      * There will be rounding error in the `used` stats because of the bucket size calculation.
      * Adding 5 to minimize the rounding error.
+     
+     Block_compact.c (src\block):[1739870255:760811][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]:  0%:           57MB, (free: 59962368B, 9%), (used: 0MB, 24371B, 74%)
+     Block_compact.c (src\block):[1739870255:760827][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 10%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+     Block_compact.c (src\block):[1739870255:760830][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 20%:           57MB, (free: 59986432B, 10%), (used: 0MB, 307B, 0%)
+     Block_compact.c (src\block):[1739870255:760833][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 30%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+     Block_compact.c (src\block):[1739870255:760836][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 40%:           57MB, (free: 59986432B, 10%), (used: 0MB, 307B, 0%)
+     Block_compact.c (src\block):[1739870255:760839][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 50%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+     Block_compact.c (src\block):[1739870255:760841][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 60%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+     Block_compact.c (src\block):[1739870255:760844][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 70%:           57MB, (free: 59986432B, 10%), (used: 0MB, 307B, 0%)
+     Block_compact.c (src\block):[1739870255:760847][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 80%:           57MB, (free: 59986944B, 10%), (used: 0MB, 0B, 0%)
+     Block_compact.c (src\block):[1739870255:760849][95569:0x7f1f7f0d1800], file:access.wt, WT_SESSION.__wt_session_compact: [WT_VERB_COMPACT][DEBUG_2]: 90%:           57MB, (free: 59978240B, 9%), (used: 0MB, 8499B, 25%)
      */
+    //wt文件file拆分为10段，每一段的大小
     bucket_size = (uintmax_t)((size + 5) / 10);
     for (i = 0; i < WT_ELEMENTS(decile); ++i)
         __block_dump_bucket_stat(session, (uintmax_t)size, (uintmax_t)el->bytes, bucket_size,
-          (uintmax_t)decile[i] * 512, i * 10);
+          //每个十分位段上面有多少个512字节, 乘以512也就是在i这个十分位范围内有多少字节碎片空间
+          (uintmax_t)decile[i] * 512, 
+          //i代表十分位段，i *10就代表是0   10  20  30 ..... 90
+          i * 10);
 }

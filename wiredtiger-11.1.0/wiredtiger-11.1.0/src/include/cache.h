@@ -177,7 +177,7 @@ struct __wt_cache {
     double eviction_target;          /* Percent to end eviction */
     //如果不配置，默认为cache->eviction_dirty_target / 2;
     double eviction_updates_target;  /* Percent to allow for updates */
-    //update trigger不能超过cache->eviction_trigger
+    //update trigger不能超过cache->eviction_trigger, 默认为cache->eviction_dirty_trigger / 2
     double eviction_updates_trigger; /* Percent of updates to trigger eviction */
 
     //默认值为1， eviction_checkpoint_target配置

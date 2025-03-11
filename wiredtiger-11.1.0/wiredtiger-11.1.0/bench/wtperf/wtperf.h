@@ -105,6 +105,8 @@ typedef struct {
 #define WORKER_READ 4       /* Read */
 #define WORKER_TRUNCATE 5   /* Truncate */
 #define WORKER_UPDATE 6     /* Update */
+    //workp就是对应threads=((count=10,inserts=5, updates:5),(count=10,updates=5, read=5))数组中的一个，例如(count=10,updates=5, read=5)这一个
+    // 这里就是确保一组中的例如(count=10,inserts=5, updates:5)，保证10个线程中50%的请求是inserts，50%的请求是updates
     uint8_t ops[100];       /* Operation schedule */
 } WORKLOAD;
 
@@ -241,14 +243,17 @@ struct __wtperf {         /* Per-database structure */
 #define sec_to_us(v) ((v)*MILLION)
 #define sec_to_ms(v) ((v)*THOUSAND)
 
+//每种请求相关的延迟、operation统计等
 typedef struct {
     /*
      * Threads maintain the total thread operation and total latency they've experienced; the
      * monitor thread periodically copies these values into the last_XXX fields.
      */
+    //请求统计，worker_thread中自增， sum_ops中获取该ops用来计算qps
     uint64_t ops;         /* Total operations */
-    //采样统计的ops及其时延总和， latency_ops/latency就是采样统计的平均时延
+    //采样统计的ops及其时延总和， latency_ops/latency就是采样统计的平均时延  track_operation
     uint64_t latency_ops; /* Total ops sampled for latency */
+    //延迟统计
     uint64_t latency;     /* Total latency */
     uint64_t total_min_latency;     /* Total min latency */
     uint64_t total_max_latency;     /* Total min latency */
@@ -302,6 +307,10 @@ struct __wtperf_thread {    /* Per-thread structure */
     TRACK truncate;       /* Truncate operations */
     TRACK truncate_sleep; /* Truncate sleep operations */
     TRACK update;         /* Update operations */
+
+#define MAX_WTPERF_THREAD_NAME_BUFSIZE (64)
+    char thread_name[MAX_WTPERF_THREAD_NAME_BUFSIZE];
+    int round_times;
 };
 
 void backup_read(WTPERF *, const char *);

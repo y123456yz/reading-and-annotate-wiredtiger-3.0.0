@@ -261,6 +261,7 @@ __compact_worker(WT_SESSION_IMPL *session)
      */
     for (loop = 0; loop < 100; ++loop) {
         /* Step through the list of files being compacted. */
+        //mongod用的一个table表，这里的op_handle_next为1
         for (another_pass = false, i = 0; i < session->op_handle_next; ++i) {
             /* Skip objects where there's no more work. */
             if (session->op_handle[i]->compact_skip)
@@ -399,12 +400,17 @@ __wt_session_compact(WT_SESSION *wt_session, const char *uri, const char *config
      * Find the types of data sources being compacted. This could involve opening indexes for a
      * table, so acquire the table lock in write mode.
      */
+    printf("yang test ......__wt_session_compact ...........uri:%s\r\n", uri);
     WT_WITH_SCHEMA_LOCK(session,
       WT_WITH_TABLE_WRITE_LOCK(session,
+        //获取该uri对应的Btree handles， 一般file:类型一个uri只会 
         ret = __wt_schema_worker(
           session, uri, __compact_handle_append, __compact_uri_analyze, cfg, 0)));
     WT_ERR(ret);
 
+    printf("yang test ......__wt_session_compact session->compact->file_count:%u, op_handle_next:%u\r\n", 
+            session->compact->file_count, session->op_handle_next);
+    //对于普通的table:，最终file_count和op_handle_next都为1
     if (session->compact->lsm_count != 0)
         WT_ERR(__wt_schema_worker(session, uri, NULL, __wt_lsm_compact, cfg, 0));
     if (session->compact->file_count != 0)

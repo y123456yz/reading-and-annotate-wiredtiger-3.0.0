@@ -1043,7 +1043,7 @@ err:
 
 mongodb创建cursor:
 内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，内部使用
-外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，外部WT_SESSION->open_cursor
+外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open->__wt_open_cursor(file:)创建，外部WT_SESSION->open_cursor
     ->__wt_schema_get_table_uri->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle(使用缓存的dhandle)
 */
 int

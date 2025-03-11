@@ -434,6 +434,17 @@ __wt_find_import_metadata(WT_SESSION_IMPL *session, const char *uri, const char 
  *     Create a column group.
  name类似 colgroup:test/collection/2--5164326421294708085
  */ //mongodb table对应__create_table调用
+/*
+//mongodb建table表:
+     __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup->__wt_schema_get_table
+     ->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle->__session_find_shared_dhandle
+     ->__wt_conn_dhandle_alloc(创建dhandle)
+
+mongodb创建cursor:
+内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，内部使用
+外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open->__wt_open_cursor(file:)创建，外部WT_SESSION->open_cursor
+    ->__wt_schema_get_table_uri->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle(使用缓存的dhandle)
+*/
 
 //mongodb建table表: __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup
 static int
@@ -832,7 +843,22 @@ err:
 /*
  * __create_table --
  *     Create a table.
- */ //mongodb建表走这里
+ */ 
+
+ /*
+ //mongodb建table表:
+      __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup->__wt_schema_get_table
+      ->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle->__session_find_shared_dhandle
+      ->__wt_conn_dhandle_alloc(创建dhandle)
+ 
+ mongodb创建cursor:
+ 内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，内部使用
+ 外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open->__wt_open_cursor(file:)创建，外部WT_SESSION->open_cursor
+     ->__wt_schema_get_table_uri->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle(使用缓存的dhandle)
+ */
+
+
+ //mongodb建表走这里
  //mongodb建table表: __session_create->__wt_schema_create->__schema_create->__create_table
 static int
 __create_table(WT_SESSION_IMPL *session, const char *uri, bool exclusive, const char *config)
@@ -1272,6 +1298,19 @@ __schema_create_config_check(
 //The create schema operation is responsible for creating the underlying data objects on the filesystem and then
 //creating required entries in the metadata.
 
+/*
+//mongodb建table表:
+     __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup->__wt_schema_get_table
+     ->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle->__session_find_shared_dhandle
+     ->__wt_conn_dhandle_alloc(创建dhandle)
+
+mongodb创建cursor:
+内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，内部使用
+外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open->__wt_open_cursor(file:)创建，外部WT_SESSION->open_cursor
+    ->__wt_schema_get_table_uri->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle(使用缓存的dhandle)
+*/
+
+
 //mongodb建table表: __session_create->__wt_schema_create->__schema_create
 static int
 __schema_create(WT_SESSION_IMPL *session, const char *uri, const char *config)
@@ -1374,6 +1413,19 @@ err:
  */
 //The create schema operation is responsible for creating the underlying data objects on the filesystem and then
 //creating required entries in the metadata.
+
+/*
+//mongodb建table表:
+     __session_create->__wt_schema_create->__schema_create->__create_table->__create_colgroup->__wt_schema_get_table
+     ->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle->__session_find_shared_dhandle
+     ->__wt_conn_dhandle_alloc(创建dhandle)
+
+mongodb创建cursor:
+内部open cursor: __wt_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open创建，内部使用
+外部open cursor:__session_open_cursor: 先从cache中获取，没有则通过__session_open_cursor_int->__wt_curtable_open->__wt_open_cursor(file:)创建，外部WT_SESSION->open_cursor
+    ->__wt_schema_get_table_uri->__wt_schema_get_table->__wt_session_get_dhandle->__session_get_dhandle(使用缓存的dhandle)
+*/
+
 
 //__session_create->__wt_schema_create(最开始的table，也就是对应table:表名)
 //mongodb建table表: __session_create->__wt_schema_create->__schema_create->__create_table

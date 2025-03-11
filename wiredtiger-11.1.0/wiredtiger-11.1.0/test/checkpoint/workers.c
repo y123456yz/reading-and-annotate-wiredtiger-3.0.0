@@ -273,6 +273,7 @@ worker_op(WT_CURSOR *cursor, table_type type, uint64_t keyno, u_int new_val)
                     }
             }
         }
+        
         if (g.sweep_stress)
             testutil_check(cursor->reset(cursor));
     } else if (new_val % 39 < 10) {

@@ -333,7 +333,8 @@ pre_load_data(WTPERF *wtperf)
     testutil_check(session->close(session, NULL));
 }
 
-//真正进行压测//threads=((count=20,reads=95,updates=5))在这里
+//真正进行压测//threads=((count=20,reads=95,updates=5))在这里   
+// run_mix_schedule配合worker_thread阅读，最终每个线程都会执行一定比例的读写操作
 static WT_THREAD_RET
 //worker(void *arg)
 worker_thread(void *arg)
@@ -737,9 +738,11 @@ op_err:
                 stop = __wt_clock(NULL);
                 ++trk->latency_ops;
                 usecs = WT_CLOCKDIFF_US(stop, start);
+                //延迟统计
                 track_operation(trk, usecs);
             }
             /* Increment operation count */
+            //请求统计
             ++trk->ops;
         }
 
@@ -827,6 +830,9 @@ run_mix_schedule_op(WORKLOAD *workp, int op, int64_t op_cnt)
 /*
  * run_mix_schedule --
  *     Schedule the mixed-run operations.
+//workp就是对应threads=((count=10,inserts=5, updates:5),(count=10,updates=5, read=5))数组中的一个，例如(count=10,updates=5, read=5)这一个
+// 这里就是确保一组中的例如(count=10,inserts=5, updates:5)，保证10个线程中50%的请求是inserts，50%的请求是updates
+run_mix_schedule配合worker_thread阅读, workp->ops[100]数组中写入op WORKER_READ等
  */
 static int
 run_mix_schedule(WTPERF *wtperf, WORKLOAD *workp)
@@ -955,6 +961,9 @@ populate_thread(void *arg)
             goto err;
         }
     }
+
+    //yang add change 需要增加一个backgroud compact参数  看是这里start_run，还是在execute_populate中增加compact()接口进行compact操作
+    error_check(session->compact(session, NULL, "background=true,free_space_target=100M,timeout=0"));
 
     /* Populate the databases. */
     for (intxn = 0, opcount = 0;;) {
@@ -1847,9 +1856,14 @@ execute_workload(WTPERF *wtperf)
                 goto err;
             }
     }
+
+    //例如这个配置: threads=((count=10,inserts=5, updates:5),(count=10,updates=5, read=5)), 对应两组，改for循环会执行2轮
     /* Start each workload. */
     for (threads = wtperf->workers, i = 0, workp = wtperf->workload; i < wtperf->workload_cnt;
          ++i, ++workp) {
+        //例如这个配置对应的打印: threads=((count=2,inserts=1, updates:1),(count=2,updates=1, read=1))
+        //Starting workload #1: 1 threads, inserts=1, modifies=0, reads=0, truncate=0, updates=1, throttle=0
+        //Starting workload #2: 1 threads, inserts=0, modifies=0, reads=1, truncate=0, updates=1, throttle=0
         lprintf(wtperf, 0, 1,
           "Starting workload #%u: %" PRId64 " threads, inserts=%" PRId64 ", modifies=%" PRId64
           ", reads=%" PRId64 ", truncate=%" PRId64 ", updates=%" PRId64 ", throttle=%" PRIu64,
@@ -1857,11 +1871,18 @@ execute_workload(WTPERF *wtperf)
           workp->update, workp->throttle);
 
         /* Figure out the workload's schedule. */
+        //workp就是对应threads=((count=10,inserts=5, updates:5),(count=10,updates=5, read=5))数组中的一个，例如(count=10,updates=5, read=5)这一个
+        // 这里就是确保一组中的例如(count=10,inserts=5, updates:5)，保证10个线程中50%的请求是inserts，50%的请求是updates
         if ((ret = run_mix_schedule(wtperf, workp)) != 0)
             goto err;
 
+        snprintf(threads->thread_name, MAX_WTPERF_THREAD_NAME_BUFSIZE, "%s", "work");
+       // threads->round_times = i;
+
         /* Start the workload's threads. */
-        //threads=((count=20,reads=95,updates=5))配置，真正写数据的线程
+        //例如这个配置: threads=((count=10,inserts=5, updates:5),(count=10,updates=5, read=5))
+        // 最终会在外层执行start_threads两次，第一次对应(count=10,inserts=5, updates:5)，会在下面的for循环中创建5个insert线程和5个update线程
+        //   第二次对应(count=10,updates=5, read=5)，会在下面的for循环中创建5个updates线程和5个read线程
         start_threads(wtperf, workp, threads, (u_int)workp->threads, worker_thread);
         threads += workp->threads;
     }
@@ -2309,6 +2330,7 @@ start_all_runs(WTPERF *wtperf)
     /* Allocate an array to hold our thread IDs. */
     threads = dcalloc(opts->database_count, sizeof(*threads));
 
+    //database_count默认值为1
     for (i = 0; i < opts->database_count; i++) {
         wtperf_copy(wtperf, &next_wtperf);
         wtperfs[i] = next_wtperf;
@@ -2360,6 +2382,36 @@ thread_run_wtperf(void *arg)
     return (WT_THREAD_RET_VALUE);
 }
 
+static int enable_backgroud_compact(WTPERF *wtperf)
+{
+    WT_CONNECTION *conn;
+    WT_SESSION *session;
+    int ret;
+
+    conn = wtperf->conn;
+    session = NULL;
+
+
+    if ((ret = conn->open_session(conn, NULL, NULL, &session)) != 0) {
+        lprintf(wtperf, ret, 0, "open_session failed in checkpoint thread.");
+        goto err;
+    }
+    ret = session->compact(session, NULL, "background=true,free_space_target=100M,timeout=0");
+    if (ret != 0) {
+        lprintf(wtperf, ret, 0, "compact failed.");
+    }
+
+    if (session != NULL && ((ret = session->close(session, NULL)) != 0)) {
+        lprintf(wtperf, ret, 0, "Error closing session in checkpoint worker.");
+        goto err;
+    }
+
+    return 0;
+err:
+    return -1;
+}
+
+
 static int
 start_run(WTPERF *wtperf)
 {
@@ -2401,6 +2453,13 @@ start_run(WTPERF *wtperf)
     //execute_populate函数启用多个populate线程持续性的写数据，icount数据写完后才会返回，对应的写入监控数据记录到monitor  monitor.json中
     if (opts->create != 0 && execute_populate(wtperf) != 0)
         goto err;
+
+    //yang add change  看是这里start_run，还是在execute_populate中增加compact()接口进行compact操作
+    //注意只能主线程启用backgroud，因为其他线程可能提前退出会引起compact线程为僵尸线程
+    //error_check(session->compact(session, NULL, "background=true,free_space_target=100M,timeout=0"));
+    if(enable_backgroud_compact(wtperf) != 0)
+        goto err;
+
     
     //只有上面的execute_populate中数据准备好后，才会走到这里来，对应的写入监控数据记录到monitor  monitor.json中
     /* Optional workload. */
@@ -2810,6 +2869,7 @@ main(int argc, char *argv[])
     if (opts->verbose > 1)
         config_opt_print(wtperf);
 
+    //start_all_runs进入正式的压测流程
     if ((ret = start_all_runs(wtperf)) != 0)
         goto err;
 
@@ -2831,6 +2891,10 @@ err:
     return (ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
+//例如这个配置: threads=((count=10,inserts=5, updates:5),(count=10,updates=5, read=5))
+// 最终会在外层执行start_threads两次，第一次对应(count=10,inserts=5, updates:5)，会在下面的for循环中创建5个insert线程和5个update线程
+//   第二次对应(count=10,updates=5, read=5)，会在下面的for循环中创建5个updates线程和5个read线程
+
 static void
 start_threads(WTPERF *wtperf, WORKLOAD *workp, WTPERF_THREAD *base, u_int num,
   WT_THREAD_CALLBACK (*func)(void *))
@@ -2838,9 +2902,11 @@ start_threads(WTPERF *wtperf, WORKLOAD *workp, WTPERF_THREAD *base, u_int num,
     CONFIG_OPTS *opts;
     WTPERF_THREAD *thread;
     u_int i;
+    char thread_name[512];
 
     opts = wtperf->opts;
 
+    
     /* Initialize the threads. */
     for (i = 0, thread = base; i < num; ++i, ++thread) {
         thread->wtperf = wtperf;
@@ -2878,9 +2944,18 @@ start_threads(WTPERF *wtperf, WORKLOAD *workp, WTPERF_THREAD *base, u_int num,
             thread->read.max_latency = thread->update.max_latency = 0;
     }
 
+    //workp->threads, workp->insert, workp->modify, workp->read, workp->truncate, workp->update, workp->throttle
     /* Start the threads. */
-    for (i = 0, thread = base; i < num; ++i, ++thread)
+    for (i = 0, thread = base; i < num; ++i, ++thread) {
         testutil_check(__wt_thread_create(NULL, &thread->handle, func, thread));
+        //snprintf(thread_name, MAX_WTPERF_THREAD_NAME_BUFSIZE, "%s-%d-%d", base->thread_name, (int)(base->round_times), (int)i);
+        snprintf(thread_name, MAX_WTPERF_THREAD_NAME_BUFSIZE, "%s", base->thread_name);
+        testutil_check(pthread_setname_np(thread->handle.id, thread_name));
+
+        //yang add todo xxxxxxxxxxxxx  wtperf的各种不同压测线程可以设置下线程名，这样方便排查问题，例如是那种线程消耗的cpu，如果
+        //  没有设置线程名，则所有压测线程名都是默认的wtperf
+        //testutil_check(pthread_setname_np(&thread->handle.id, "xxxxxxxxxxxx"));
+    }
 }
 
 static void

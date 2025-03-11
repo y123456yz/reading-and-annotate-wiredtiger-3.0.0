@@ -915,6 +915,7 @@ __wt_session_create(WT_SESSION_IMPL *session, const char *uri, const char *confi
 /*
  * __session_create --
  *     WT_SESSION->create method.
+ 对应mongo server层的命令为 db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, memory_page_image_max:320K"}}})
  */ //mongodb默认通过这里创建table:xxx，对应一个BTREE
 static int
 __session_create(WT_SESSION *wt_session, const char *uri, const char *config)

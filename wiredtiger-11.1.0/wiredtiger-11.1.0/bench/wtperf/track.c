@@ -124,6 +124,7 @@ sum_scan_ops(WTPERF *wtperf)
 
 /*
  * Return total operations count for the worker threads.
+ //获取对应请求类型read update insert等的ops统计，也就是TRACK.ops
  */
 static uint64_t
 sum_ops(WTPERF *wtperf, size_t field_offset)
@@ -170,6 +171,8 @@ sum_truncate_ops(WTPERF *wtperf)
 {
     return (sum_ops(wtperf, offsetof(WTPERF_THREAD, truncate)));
 }
+
+//yang add todo xxxxxxx 增加remove相关统计以及remove的压测支持
 uint64_t
 sum_update_ops(WTPERF *wtperf)
 {

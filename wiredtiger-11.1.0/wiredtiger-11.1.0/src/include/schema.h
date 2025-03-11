@@ -16,7 +16,7 @@
 struct __wt_colgroup {
     //colgroup:access
     const char *name;   /* Logical name */
-    //file:access.wt
+    //file:access.wt  赋值见__curtable_open_colgroups
     const char *source; /* Underlying data source */
     //app_metadata=,assert=(commit_timestamp=none,durable_timestamp=none,read_timestamp=none,write_timestamp=off),collator=,columns=,source="file:access.wt",type=file,verbose=[],write_timestamp_usage=none
     const char *config; /* Configuration string */
@@ -76,7 +76,7 @@ struct __wt_table {
     //__wt_curtable_open->__curtable_complete中会做检查   Return failure if the table is not yet fully created.
     bool cg_complete,
         idx_complete,
-        is_simple; //默认1
+        is_simple; //默认1  __schema_open_table
     //Tables without explicit column groups have a single default column group containing all of the columns.
     ////和__wt_cursor_table.cg_cursors配合
     //WT_COLGROUPS

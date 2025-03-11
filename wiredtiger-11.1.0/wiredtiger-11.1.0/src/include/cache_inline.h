@@ -262,6 +262,12 @@ __wt_session_can_wait(WT_SESSION_IMPL *session)
 /*
  * __wt_eviction_clean_needed --
  *     Return if an application thread should do eviction due to the total volume of data in cache.
+
+__wt_eviction_dirty_needed:  dirty是否超过eviction_dirty_trigger(默认20%)
+__wt_eviction_clean_needed:  总内存是否超过eviction_trigger(默认95%)
+__wt_eviction_updates_needed: update dirty是否超过eviction_updates_trigger(默认10%， 默认为cache->eviction_dirty_trigger / 2)
+
+ 
 //判断cache内存使用占比是否超过了总内存的eviction_trigger(默认95%)
 //pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
  */
@@ -304,8 +310,13 @@ __wt_eviction_dirty_target(WT_CACHE *cache)
  * __wt_eviction_dirty_needed --
  *     Return if an application thread should do eviction due to the total volume of dirty data in
  *     cache.
+
+ 
+ __wt_eviction_dirty_needed:  dirty是否超过eviction_dirty_trigger(默认20%)
+ __wt_eviction_clean_needed:  总内存是否超过eviction_trigger(默认95%)
+ __wt_eviction_updates_needed: update dirty是否超过eviction_updates_trigger(默认10%， 默认为cache->eviction_dirty_trigger / 2)
  */
-//判断cache dirty内存使用占比是否超过了总内存的eviction_trigger(默认95%)
+//判断cache dirty内存使用占比是否超过了eviction_dirty_trigger(默认20%)
 //pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
 static inline bool
 __wt_eviction_dirty_needed(WT_SESSION_IMPL *session, double *pct_fullp)
@@ -331,8 +342,12 @@ __wt_eviction_dirty_needed(WT_SESSION_IMPL *session, double *pct_fullp)
  * __wt_eviction_updates_needed --
  *     Return if an application thread should do eviction due to the total volume of updates in
  *     cache.
+
+ __wt_eviction_dirty_needed:  dirty是否超过eviction_dirty_trigger(默认20%)
+ __wt_eviction_clean_needed:  总内存是否超过eviction_trigger(默认95%)
+ __wt_eviction_updates_needed: update dirty是否超过eviction_updates_trigger(默认10%， 默认为cache->eviction_dirty_trigger / 2)
  */
-//判断cache update内存使用占比是否超过了总内存的eviction_updates_trigger(默认95%)
+//判断cache update内存使用占比是否超过了总内存的eviction_updates_trigger(默认10%， 默认为cache->eviction_dirty_trigger / 2)
 //pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
 static inline bool
 __wt_eviction_updates_needed(WT_SESSION_IMPL *session, double *pct_fullp)

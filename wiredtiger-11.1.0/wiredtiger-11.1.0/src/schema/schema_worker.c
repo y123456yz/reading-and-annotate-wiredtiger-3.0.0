@@ -111,7 +111,7 @@ __wt_schema_worker(WT_SESSION_IMPL *session, const char *uri,
         WT_ERR(__wt_schema_worker(session, idx->source, file_func, name_func, cfg, open_flags));
     } else if (WT_PREFIX_MATCH(uri, "lsm:")) {
         WT_ERR(__wt_lsm_tree_worker(session, uri, file_func, name_func, cfg, open_flags));
-    } else if (WT_PREFIX_MATCH(uri, "table:")) {
+    } else if (WT_PREFIX_MATCH(uri, "table:")) {//默认只会执行name_func
         /*
          * Note: we would like to use open_flags here (e.g., to lock the table exclusive during
          * schema-changing operations), but that is currently problematic because we get the table
@@ -148,6 +148,7 @@ __wt_schema_worker(WT_SESSION_IMPL *session, const char *uri,
         if (FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_TABLE_WRITE))
             WT_ERR(__wt_schema_open_indices(session, table));
 
+        //一般使用index schema才会大于0，所以先跳过，mongo默认不用
         for (i = 0; i < table->nindices; i++) {
             idx = table->indices[i];
             skip = false;

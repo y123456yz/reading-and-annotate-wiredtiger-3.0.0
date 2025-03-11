@@ -153,7 +153,7 @@ struct __wt_cursor_btree {
      * stack (the stack of skiplist entries leading to the insert point). The search functions also
      * return the relationship of the search key to the found key.
      */
-    //__wt_row_search中赋值
+    //__wt_row_search中赋值，记录上一次该cursor访问的ref page
     WT_REF *ref;   /* Current page */
     //也就是标识rip对应KV在page内存pg_row中的游标
 

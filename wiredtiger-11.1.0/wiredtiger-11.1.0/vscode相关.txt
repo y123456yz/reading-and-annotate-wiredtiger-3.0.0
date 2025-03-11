@@ -1,0 +1,8 @@
+屏蔽多行代码快捷键 ctrl + /    取消屏蔽ctrl+u
+
+vscode模糊匹配connect.*?worker, ".*?"匹配模糊部分
+
+1. ctrl + p搜索文件名
+2. ctrl + shift + o显示当前文件的所有函数名列表
+3. 解决vscode下C/C++indelisense插件函数跳转卡顿不流畅的问题  vscode不跳转或者跳转慢参考: https://blog.csdn.net/qq_39642740/article/details/139651743,  这里的settings在左下角图标点击，然后选择settings
+4. 取消上一次操作 或者 恢复下一个编辑  ctrl + z 和 ctrl + p
