@@ -180,7 +180,7 @@ struct __wt_name_flag {
 
 /*
  * Macros to ensure the dhandle is inserted or removed from both the main queue and the hashed
- * queue.
+ * queue. WT_CONN_DHANDLE_INSERT把表对应handle添加到队列， WT_CONN_DHANDLE_REMOVE把表对应handle从队列移除
  */
 #define WT_CONN_DHANDLE_INSERT(conn, dhandle, bucket)                                            \
     do {                                                                                         \
@@ -336,7 +336,8 @@ struct __wt_connection_impl {
     ////__session_get_dhandle->__session_find_shared_dhandle->__wt_conn_dhandle_alloc会同时添
     //加到__wt_connection_impl.dhhash+dhqh和//WT_SESSION_IMPL.dhandles+dhhash
 
-    //WT_CONN_DHANDLE_INSERT中可以看出，一个是主队列，一个是hash队列
+    //WT_CONN_DHANDLE_INSERT中可以看出，一个是主队列，一个是hash队列, dhqh用于遍历所有活跃表，dhhash用于快速查找指定表，所以这里设计了两个队列
+    //WT_CONN_DHANDLE_INSERT把表对应handle添加到队列， WT_CONN_DHANDLE_REMOVE把表对应handle从队列移除
     /* Locked: data handle hash array */
     TAILQ_HEAD(__wt_dhhash, __wt_data_handle) * dhhash;  //dhhash和dhqh的关系，可以参考__evict_walk_choose_dhandle
     /* Locked: data handle list */
@@ -363,7 +364,9 @@ struct __wt_connection_impl {
     /* Locked: handles in each bucket */
     //connectio相关统计信息 每个桶中的elem个数都记录到这个数组，数组大小dh_hash_size, 可以参考__evict_walk_choose_dhandle
     uint64_t *dh_bucket_count;
-    //表数量
+    //WT_CONN_DHANDLE_INSERT把表对应handle添加到队列， WT_CONN_DHANDLE_REMOVE把表对应handle从队列移除，实际上代表当前活跃的表
+    // 也就是下面这个统计: 
+    //    stat_data.py:    DhandleStat('dh_conn_handle_count', 'connection data handles currently active', 'no_clear,no_scale'),
     uint64_t dhandle_count;        /* Locked: handles in the queue */
     u_int open_btree_count;        /* Locked: open writable btree count */
     //下一个新建的.wt文件的文件号__recovery_file_scan
@@ -387,7 +390,7 @@ struct __wt_connection_impl {
     //__conn_session_size中初始化，从配置文件解析后赋值 __conn_session_size
     //节点最多用这么多session
     uint32_t session_size;     /* Session array size */
-    //__open_session赋值，代表实例中同时在使用的最大session数量
+    //__open_session赋值，包含WT_SESSION_INTERNAL和非WT_SESSION_INTERNAL所有的sessions总和
     uint32_t session_cnt;      /* Session count */
 
     size_t session_scratch_max; /* Max scratch memory per session */
@@ -606,8 +609,13 @@ WiredTigerLog.0000047087  WiredTigerPreplog.0000039400
     wt_thread_t sweep_tid;          /* Handle sweep thread */
     int sweep_tid_set;              /* Handle sweep thread set */
     WT_CONDVAR *sweep_cond;         /* Handle sweep wait mutex */
+    //mongod默认配置file_manager=(close_idle_time=600,close_scan_interval=10,close_handle_minimum=2000)
+    //db.adminCommand({setParameter:1, wiredTigerEngineRuntimeConfig:'file_manager=(close_handle_minimum=100)'})
+    //close_idle_time配置
     uint64_t sweep_idle_time;       /* Handle sweep idle time */
+    //close_scan_interval参数配置，代表sweep server线程清理不活跃表的周期
     uint64_t sweep_interval;        /* Handle sweep interval */
+    //close_handle_minimum参数配置
     uint64_t sweep_handles_min;     /* Handle sweep minimum open */
 
     /* Locked: collator list */

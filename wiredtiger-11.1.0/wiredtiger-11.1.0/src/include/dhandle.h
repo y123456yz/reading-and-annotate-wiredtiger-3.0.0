@@ -39,6 +39,7 @@
 #define WT_SESSION_META_DHANDLE(s) (((WT_CURSOR_BTREE *)((s)->meta_cursor))->dhandle)
 
 ////__wt_cursor_cache  __session_find_shared_dhandle调用
+//dhandle可以被一个session缓存起来，也可以被全局conn缓存起来
 #define WT_DHANDLE_ACQUIRE(dhandle) (void)__wt_atomic_add32(&(dhandle)->session_ref, 1)
 
 #define WT_DHANDLE_RELEASE(dhandle) (void)__wt_atomic_sub32(&(dhandle)->session_ref, 1)
@@ -99,7 +100,7 @@ struct __wt_data_handle {
      * using a connection's data handle will have a non-zero in-use count. Instances of cached
      * cursors referencing the data handle appear in session_cache_ref.
      */
-    //总的，包括历史的和inuse的
+    //如果一个cursor被close掉，__wt_cursor_cache中会把该cursor添加到cursor_cache[]中，同时会自增session_ref，也就是代表添加到cursor_cache中的cursor数
     //Both these counters are incremented by the session as the cursor is opened on this dhandle. session_inuse is decremented when the operation completes and the cursor is closed.
     uint32_t session_ref;          /* Sessions referencing this handle */
     //当前正在用的，cursor关闭后会自减
@@ -114,7 +115,7 @@ struct __wt_data_handle {
 
     WT_DATA_SOURCE *dsrc; /* Data source for this handle */
     //可以通过该handle找到数据源，例如BTREE btree = (WT_BTREE *)dhandle->handle;
-    //btree内存分配__wt_conn_dhandle_alloc
+    //btree内存分配__wt_conn_dhandle_alloc, btree的打开初始化在__wt_conn_dhandle_open->__wt_btree_open
     void *handle;         /* Generic handle */
 
     //参考__wt_conn_dhandle_alloc
@@ -148,10 +149,11 @@ struct __wt_data_handle {
 /* AUTOMATIC FLAG VALUE GENERATION START 0 */
 //__wt_conn_dhandle_close
 #define WT_DHANDLE_DEAD 0x001u         /* Dead, awaiting discard */
+//__wt_session_lock_checkpoint
 #define WT_DHANDLE_DISCARD 0x002u      /* Close on release */
 #define WT_DHANDLE_DISCARD_KILL 0x004u /* Mark dead on release */
 #define WT_DHANDLE_DROPPED 0x008u      /* Handle is dropped */
-//如果该表的page都已经evict完了，则标记该表已经evicet完成  __evict_walk_tree中赋值
+//如果该表的page都已经evict完了，则标记该表已经evicet完成  __evict_walk_tree中赋值  __session_dhandle_sweep中真正使用
 #define WT_DHANDLE_EVICTED 0x010u      /* Btree is evicted (advisory) */
 //独占访问 //__wt_curfile_open   __wt_session_lock_dhandle
 //代表是否独占dhandle,dhandle加写锁后就代表独占,也就是只有当前session一个cursor在访问这个btree

@@ -7,7 +7,7 @@
  */
 
 #include "wt_internal.h"
-
+//判断dhandle这个表是否可以从
 #define WT_DHANDLE_CAN_DISCARD(dhandle)                                                            \
     (!F_ISSET(dhandle, WT_DHANDLE_EXCLUSIVE | WT_DHANDLE_OPEN) && (dhandle)->session_inuse == 0 && \
       (dhandle)->session_ref == 0)
@@ -45,13 +45,14 @@ __sweep_mark(WT_SESSION_IMPL *session, uint64_t now)
             continue;
 
         dhandle->timeofdeath = now;
+        //"connection sweep time-of-death sets" 这里代表更新dhandle时间的次数，这并不代表这些更新了timeofdeath的dhanle就是dead的handle
         WT_STAT_CONN_INCR(session, dh_sweep_tod);
     }
 }
 
 /*
  * __sweep_close_dhandle_locked --
- *     Close write-locked dhandle.
+ *     Close write-locked dhandle.  
  */
 static int
 __sweep_close_dhandle_locked(WT_SESSION_IMPL *session)
@@ -66,15 +67,18 @@ __sweep_close_dhandle_locked(WT_SESSION_IMPL *session)
     WT_ASSERT(session, FLD_ISSET(dhandle->lock_flags, WT_DHANDLE_LOCK_WRITE));
 
     /* Only sweep clean trees. */
-    if (btree != NULL && btree->modified)
+    if (btree != NULL && btree->modified) {
+        printf("yang test .....1......__sweep_close_dhandle_locked......btree:%p.......\r\n", btree);
         return (0);
-
+    }
+    
     /*
      * Mark the handle dead and close the underlying handle.
      *
      * For btree handles, closing the handle decrements the open file count, meaning the close loop
      * won't overrun the configured minimum.
      */
+    printf("yang test ......2.....__sweep_close_dhandle_locked.............\r\n");
     return (__wt_conn_dhandle_close(session, false, true));
 }
 
@@ -108,6 +112,15 @@ __sweep_expire_one(WT_SESSION_IMPL *session)
  * __sweep_expire --
  *     Mark trees dead if they are clean and haven't been accessed recently, until we have reached
  *     the configured minimum number of handles.
+
+sweep线程:
+ __sweep_expire: 选择不被任何session引用并且该表不活跃的表，通过__sweep_expire->__sweep_expire_one->__sweep_close_dhandle_locked->__wt_conn_dhandle_close标记为dead
+ __sweep_discard_trees: close所有dead的表资源
+ __sweep_remove_handles: 从conn.dhqh和conn.dhhash中删除所有没有被任何session引用的表，也就是不活跃的表从conn.dhqh和dhhash中移除
+
+
+ 
+__sweep_expire: 选择不被任何session引用并且该表不活跃的表，通过__sweep_expire->__sweep_expire_one->__sweep_close_dhandle_locked->__wt_conn_dhandle_close标记为dead
  */
 static int
 __sweep_expire(WT_SESSION_IMPL *session, uint64_t now)
@@ -118,6 +131,9 @@ __sweep_expire(WT_SESSION_IMPL *session, uint64_t now)
 
     conn = S2C(session);
 
+    printf("__sweep_expire 11111111111111111111111 \n\n\n\n\n");
+    //__wt_verbose_dump_sessions  __wt_verbose_dump_handles
+   // (void)conn->iface.debug_info(&conn->iface, "cursors, handles");
     TAILQ_FOREACH (dhandle, &conn->dhqh, q) {
         /*
          * Ignore open files once the btree file count is below the minimum number of handles.
@@ -125,11 +141,16 @@ __sweep_expire(WT_SESSION_IMPL *session, uint64_t now)
         if (conn->open_btree_count < conn->sweep_handles_min)
             break;
 
+        //printf("yang test ....11111....__sweep_expire..........name:%s %p, Checkpoint: %s, session inuse:%d, ref session count:%u,    %d, %d, %d\r\n", 
+        //    dhandle->name, dhandle, dhandle->checkpoint, dhandle->session_inuse, dhandle->session_ref,
+        //    (int)(now - dhandle->timeofdeath), (int)conn->sweep_idle_time, F_ISSET(dhandle, WT_DHANDLE_OPEN));
+        
         if (WT_IS_METADATA(dhandle) || !F_ISSET(dhandle, WT_DHANDLE_OPEN) ||
           dhandle->session_inuse != 0 || dhandle->timeofdeath == 0 ||
           now - dhandle->timeofdeath <= conn->sweep_idle_time)
             continue;
 
+        //到这里说明该dhandle已经长时间不活跃了
         /*
          * For tables, we need to hold the table lock to avoid racing with cursor opens.
          */
@@ -139,14 +160,28 @@ __sweep_expire(WT_SESSION_IMPL *session, uint64_t now)
         else
             WT_WITH_DHANDLE(session, dhandle, ret = __sweep_expire_one(session));
         WT_RET_BUSY_OK(ret);
-    }
 
+        //printf("yang test ....22222....__sweep_expire..........name:%s %p, Checkpoint: %s, session inuse:%d, ref session count:%u,    %d, %d, %d\r\n", 
+        //    dhandle->name, dhandle, dhandle->checkpoint, dhandle->session_inuse, dhandle->session_ref,
+        //    (int)(now - dhandle->timeofdeath), (int)conn->sweep_idle_time, F_ISSET(dhandle, WT_DHANDLE_OPEN));
+    }
+   // (void)conn->iface.debug_info(&conn->iface, "cursors, handles");
+    //printf("__sweep_expire 222222222222222222222222222 \n\n\n\n\n");
+    
     return (0);
 }
 
 /*
  * __sweep_discard_trees --
  *     Discard pages from dead trees.
+
+ sweep线程:
+  __sweep_expire: 选择不被任何session引用并且该表不活跃的表，通过__sweep_expire->__sweep_expire_one->__sweep_close_dhandle_locked->__wt_conn_dhandle_close标记为dead
+  __sweep_discard_trees: close所有dead的表资源
+  __sweep_remove_handles: 从conn.dhqh和conn.dhhash中删除所有没有被任何session引用的表，也就是不活跃的表从conn.dhqh和dhhash中移除
+ 
+
+ 从内存中清除close dead的表，通过dead_handlesp返回close掉的表个数  
  */
 static int
 __sweep_discard_trees(WT_SESSION_IMPL *session, u_int *dead_handlesp)
@@ -160,9 +195,15 @@ __sweep_discard_trees(WT_SESSION_IMPL *session, u_int *dead_handlesp)
     conn = S2C(session);
 
     TAILQ_FOREACH (dhandle, &conn->dhqh, q) {
-        if (WT_DHANDLE_CAN_DISCARD(dhandle))
+        //yang add todo xxxxxxxxxxxxxxxx dead_handlesp应该算重了，这里去掉比较好
+        if (WT_DHANDLE_CAN_DISCARD(dhandle)) {
             ++*dead_handlesp;
-
+            //printf("yang test ..11111111....__sweep_discard_trees..... handle:%s\r\n", dhandle->name);
+        } else {
+            //printf("yang test ..22222222....__sweep_discard_trees..... handle:%s\r\n", dhandle->name);
+        }
+        //只close dead的表，dhandle如果是"table:"， 则不满足WT_DHANDLE_OPEN，所以下面的dh_sweep_close实际上只会统计file:的
+        // 这也是"dh_sweep_close和dh_sweep_remove统计中，百万库表的脚步看这里差了将近一倍"的原因
         if (!F_ISSET(dhandle, WT_DHANDLE_OPEN) || !F_ISSET(dhandle, WT_DHANDLE_DEAD))
             continue;
 
@@ -171,13 +212,19 @@ __sweep_discard_trees(WT_SESSION_IMPL *session, u_int *dead_handlesp)
 
         /* We closed the btree handle. */
         if (ret == 0) {
+            //connection sweep dhandles closed
             WT_STAT_CONN_INCR(session, dh_sweep_close);
             ++*dead_handlesp;
-        } else
+            //printf("yang test ..1....__sweep_discard_trees............dead handle:%u\r\n", *dead_handlesp);
+        } else {
+            //printf("yang test ..2....__sweep_discard_trees............dead handle:%u\r\n", *dead_handlesp);
             WT_STAT_CONN_INCR(session, dh_sweep_ref);
-
+        }
+        
         WT_RET_BUSY_OK(ret);
     }
+    printf("yang test ....__sweep_discard_trees............dead_handlesp:%u, conn->dhandle_count:%u\r\n", 
+        *dead_handlesp, conn->dhandle_count);
 
     return (0);
 }
@@ -185,6 +232,9 @@ __sweep_discard_trees(WT_SESSION_IMPL *session, u_int *dead_handlesp)
 /*
  * __sweep_remove_one --
  *     Remove a closed handle from the connection list.
+ __sweep_server->__sweep_remove_handles->__sweep_remove_one
+ 
+  从conn.dhqh和conn.dhhash中删除session对应的session->dhandle
  */
 static int
 __sweep_remove_one(WT_SESSION_IMPL *session)
@@ -217,7 +267,14 @@ err:
 /*
  * __sweep_remove_handles --
  *     Remove closed handles from the connection list.
- */
+sweep线程:
+ __sweep_expire: 选择不被任何session引用并且该表不活跃的表，通过__sweep_expire->__sweep_expire_one->__sweep_close_dhandle_locked->__wt_conn_dhandle_close标记为dead
+ __sweep_discard_trees: close所有dead的表资源
+ __sweep_remove_handles: 从conn.dhqh和conn.dhhash中删除所有没有被任何session引用的表，也就是不活跃的表从conn.dhqh和dhhash中移除
+
+
+__sweep_server->__sweep_remove_handles
+*/
 static int
 __sweep_remove_handles(WT_SESSION_IMPL *session)
 {
@@ -231,9 +288,14 @@ __sweep_remove_handles(WT_SESSION_IMPL *session)
     {
         if (WT_IS_METADATA(dhandle))
             continue;
+
+        //if (F_ISSET(dhandle, WT_DHANDLE_EXCLUSIVE | WT_DHANDLE_OPEN))
+        //    printf("yang test ...sssss.....__sweep_remove_handles.........name:%s, %p\r\n", dhandle->name, dhandle);
+
         if (!WT_DHANDLE_CAN_DISCARD(dhandle))
             continue;
 
+        //printf("yang test ........__sweep_remove_handles.....name:%s, %p\r\n", dhandle->name, dhandle);
         if (dhandle->type == WT_DHANDLE_TYPE_TABLE)
             WT_WITH_TABLE_WRITE_LOCK(session,
               WT_WITH_HANDLE_LIST_WRITE_LOCK(
@@ -242,12 +304,23 @@ __sweep_remove_handles(WT_SESSION_IMPL *session)
             WT_WITH_HANDLE_LIST_WRITE_LOCK(
               session, WT_WITH_DHANDLE(session, dhandle, ret = __sweep_remove_one(session)));
         if (ret == 0)
+            //'connection sweep dhandles removed from hash list')
+            //yang add todo xxxxxxxxxx   dh_sweep_close和dh_sweep_remove统计中，百万库表的脚步看这里差了将近一倍，但是从代码逻辑看应该相等才对
+            // 这是因为一个表一般包含"table:"和"file:"两个schema，close只会统计file:，所以只统计一次，但是remove这里会统计"table:"和"file:",所以是两次
+            /*
+                   dh_sweep_close     "connection sweep dhandles closed" : 185943,
+                   dh_sweep_remove     "connection sweep dhandles removed from hash list" : 372219,
+              */
             WT_STAT_CONN_INCR(session, dh_sweep_remove);
         else
             WT_STAT_CONN_INCR(session, dh_sweep_ref);
         WT_RET_BUSY_OK(ret);
     }
 
+    //printf("\r\n\r\n\r\n\r\n\r\n");
+    //TAILQ_FOREACH_SAFE(dhandle, &conn->dhqh, q, dhandle_tmp) {
+    //    printf("yang test ................all dhandle:%s\r\n", dhandle->name);
+    //}
     return (ret == EBUSY ? 0 : ret);
 }
 
@@ -327,10 +400,14 @@ __sweep_server(void *arg)
         /*
          * Close handles if we have reached the configured limit. If sweep_idle_time is 0, handles
          * never become idle.
+
+           __sweep_expire: 选择不被任何session引用并且该表不活跃的表，通过
+              __sweep_expire->__sweep_expire_one->__sweep_close_dhandle_locked->__wt_conn_dhandle_close标记为dead
          */
         if (conn->sweep_idle_time != 0 && conn->open_btree_count >= conn->sweep_handles_min)
             WT_ERR(__sweep_expire(session, now));
 
+        // 从内存中清除close dead的表，通过dead_handles返回close掉的表个数
         WT_ERR(__sweep_discard_trees(session, &dead_handles));
 
         if (dead_handles > 0)

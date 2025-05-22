@@ -2394,7 +2394,7 @@ __wt_verbose_dump_sessions(WT_SESSION_IMPL *session, bool show_cursors)
             }
         }
     }
-    if (!show_cursors)
+    //if (!show_cursors) //yang add change
         WT_ERR(__wt_msg(session, "Internal sessions: %" PRIu32, internal));
 err:
     __wt_scr_free(session, &buf);
@@ -3293,3 +3293,4 @@ err:
 
     return (ret);
 }
+

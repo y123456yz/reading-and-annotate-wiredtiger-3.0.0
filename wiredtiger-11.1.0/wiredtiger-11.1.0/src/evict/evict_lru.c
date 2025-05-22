@@ -908,6 +908,7 @@ __evict_clear_walk(WT_SESSION_IMPL *session)
      * Clear evict_ref before releasing it in case that forces eviction (we assert that we never try
      * to evict the current eviction walk point).
      */
+    //evict后台线程就找不到这个btree点位了
     btree->evict_ref = NULL;
 
     WT_WITH_DHANDLE(cache->walk_session, session->dhandle,
@@ -956,6 +957,7 @@ __wt_evict_file_exclusive_on(WT_SESSION_IMPL *session)
 
     /* Hold the walk lock to turn off eviction. */
     __wt_spin_lock(session, &cache->evict_walk_lock);
+    //说明已经有其他线程(例如checkpoint线程在__wt_session_lock_checkpoint中也会有这个操作)操作不让evict线程进行evict操作了，这时候就直接返回，
     if (++btree->evict_disabled > 1) {
         __wt_spin_unlock(session, &cache->evict_walk_lock);
         return (0);
@@ -976,9 +978,9 @@ __wt_evict_file_exclusive_on(WT_SESSION_IMPL *session)
      */
     __wt_spin_lock(session, &cache->evict_queue_lock);
 
+    //该表已经被选入到evict server紧急队列的page从队列中清理掉
     for (q = 0; q < WT_EVICT_QUEUE_MAX; q++) {
         __wt_spin_lock(session, &cache->evict_queues[q].evict_lock);
-        //yang add todo xxxxxxxxxxx ，是不是用evict_candidate会更好
         elem = cache->evict_queues[q].evict_max;
         for (i = 0, evict = cache->evict_queues[q].evict_queue; i < elem; i++, evict++)
             if (evict->btree == btree)
@@ -991,6 +993,7 @@ __wt_evict_file_exclusive_on(WT_SESSION_IMPL *session)
     /*
      * We have disabled further eviction: wait for concurrent LRU eviction activity to drain.
      */
+    //等待其他正在对该btree做evict操作的线程完成相关evict操作
     while (btree->evict_busy > 0)
         __wt_yield();
 

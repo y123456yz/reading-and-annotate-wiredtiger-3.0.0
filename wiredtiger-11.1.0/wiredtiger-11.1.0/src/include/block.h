@@ -357,6 +357,7 @@ struct __wt_bm {
     /*
      * There's only a single block manager handle that can be written, all others are checkpoints.
      */
+    //默认true，只有WT_BTREE_READONLY模式才会为false
     bool is_live; /* The live system */
 };
 

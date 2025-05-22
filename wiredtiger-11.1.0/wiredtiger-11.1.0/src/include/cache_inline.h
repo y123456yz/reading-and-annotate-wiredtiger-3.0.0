@@ -269,7 +269,7 @@ __wt_eviction_updates_needed: update dirty是否超过eviction_updates_trigger(默认1
 
  
 //判断cache内存使用占比是否超过了总内存的eviction_trigger(默认95%)
-//pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
+//pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存的99%，则pct_fullp为99
  */
 static inline bool
 __wt_eviction_clean_needed(WT_SESSION_IMPL *session, double *pct_fullp)
@@ -348,7 +348,7 @@ __wt_eviction_dirty_needed(WT_SESSION_IMPL *session, double *pct_fullp)
  __wt_eviction_updates_needed: update dirty是否超过eviction_updates_trigger(默认10%， 默认为cache->eviction_dirty_trigger / 2)
  */
 //判断cache update内存使用占比是否超过了总内存的eviction_updates_trigger(默认10%， 默认为cache->eviction_dirty_trigger / 2)
-//pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存暂避99%，则pct_fullp为99
+//pct_fullp返回以使用内存占用总内存的百分比的分子部分，例如假设已使用内存占用99%，则pct_fullp为99
 static inline bool
 __wt_eviction_updates_needed(WT_SESSION_IMPL *session, double *pct_fullp)
 {
@@ -459,6 +459,7 @@ __wt_eviction_needed(WT_SESSION_IMPL *session, bool busy, bool readonly, double 
 /*
  * __wt_cache_full --
  *     Return if the cache is at (or over) capacity.
+ 判断cacheSize已经用完
  */
 static inline bool
 __wt_cache_full(WT_SESSION_IMPL *session)

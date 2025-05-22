@@ -744,6 +744,16 @@ __wt_blkcache_setup(WT_SESSION_IMPL *session, const char *cfg[], bool reconfig)
         WT_RET(ret);
     }
 
+/* rocksdb block cache的作用
+引入block cache的原因：因为内核的page cache不可被定制。
+
+块缓存是 RocksDB 在内存中缓存数据以用于读取的地方。用户可以带上一个期望的空间大小，传一个 Cache 对象给 RocksDB实例。一个缓存对象可以在同一个进程的多个 RocksDB 实例之间共享，这允许用户控制总的缓存大小。块缓存存储未压缩过的块。用户也可以选择设置另一个块缓存，用来存储压缩后的块。
+
+读取的时候会先拉去未压缩的数据块的缓存，然后才拉取压缩数据块的缓存。在打开直接 IO 的时候压缩块缓存可以替代 OS 的页缓存。
+
+RocksDB 里面有两种实现方式，分别叫做 LRU Cache 和Clock Cache。两个类型的缓存都通过分片来减轻锁冲突。容量会被平均的分配到每个分片，分片之间不共享空间。默认情况下，每个缓存会被分片到 64 个分片，每个分片至少有 512 B 空间。
+
+*/
     //false默认值，block_cache.enabled使能true后后面的其他配置才有效
     WT_RET(__wt_config_gets(session, cfg, "block_cache.enabled", &cval));
     if (cval.val == 0)//默认false,直接返回

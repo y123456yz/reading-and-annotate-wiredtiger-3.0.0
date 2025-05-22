@@ -706,7 +706,8 @@ struct __wt_connection_stats {
     int64_t cursor_open_count;
 
     //"data-handle"
-    int64_t dh_conn_handle_size;
+    int64_t dh_conn_handle_size; //参考__wt_connection_open，实际上就是sizeof(WT_DATA_HANDLE)，也就是496字节
+    //DhandleStat('dh_conn_handle_count', 'connection data handles currently active', 'no_clear,no_scale'),
     int64_t dh_conn_handle_count;
     int64_t dh_sweep_ref;
     int64_t dh_sweep_close;

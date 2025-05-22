@@ -18,6 +18,9 @@
  //当一个page消耗内存较高，用户线程主动强制eviect:  __wt_page_in_func->__wt_page_release_evict->__wt_evict
  //当总内存或者脏数据或者update数据超过一定比例，用户线程或者后台线程的evict逻辑: __evict_page->__wt_evict
  //__wt_evict_file->__wt_evict : checkpoint逻辑
+
+
+ 遍历对应btree，释放btree上的所有ref page内存资源
  */
 int
 __wt_evict_file(WT_SESSION_IMPL *session, WT_CACHE_OP syncop)

@@ -658,6 +658,7 @@ err:
 /*
  * __wt_cursor_cache --
  *     Add this cursor to the cache.
+   __curfile_close->__wt_cursor_cache_release->__curfile_cache  close的cursor会加入到cache中
  */
 int
 __wt_cursor_cache(WT_CURSOR *cursor, WT_DATA_HANDLE *dhandle)
@@ -692,6 +693,7 @@ __wt_cursor_cache(WT_CURSOR *cursor, WT_DATA_HANDLE *dhandle)
     WT_DHANDLE_ACQUIRE(dhandle);
     __wt_cursor_dhandle_decr_use(session);
 
+    //如果该session对应cursor关闭了则从session的cursors链表中移除，然后添加到cursor_cache[] hash桶中
     /* Move the cursor from the open list to the caching hash table. */
     if (cursor->uri_hash == 0)
         cursor->uri_hash = __wt_hash_city64(cursor->uri, strlen(cursor->uri));
@@ -739,6 +741,7 @@ __wt_cursor_reopen(WT_CURSOR *cursor, WT_DATA_HANDLE *dhandle)
 /*
  * __wt_cursor_cache_release --
  *     Put the cursor into a cached state, called during cursor close operations.
+ __curfile_close->__wt_cursor_cache_release
  */
 int
 __wt_cursor_cache_release(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool *released)

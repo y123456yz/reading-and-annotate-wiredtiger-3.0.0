@@ -109,6 +109,7 @@ err:
 /*
  * __wt_block_close --
  *     Close a block handle.
+ //block manager资源释放并关闭file文件句柄
  */
 int
 __wt_block_close(WT_SESSION_IMPL *session, WT_BLOCK *block)

@@ -168,6 +168,7 @@ err:
 /*
  * __wt_block_checkpoint_unload --
  *     Unload a checkpoint.
+ 该表checkpoint相关的内存资源释放
  */
 int
 __wt_block_checkpoint_unload(WT_SESSION_IMPL *session, WT_BLOCK *block, bool checkpoint)

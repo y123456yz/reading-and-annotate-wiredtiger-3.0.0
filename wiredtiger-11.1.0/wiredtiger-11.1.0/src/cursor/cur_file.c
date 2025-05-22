@@ -678,6 +678,7 @@ done:
 /*
  * __curfile_cache --
  *     WT_CURSOR->cache method for the btree cursor type.
+  __curfile_close->__wt_cursor_cache_release->__curfile_cache  close的cursor会加入到cache中
  */
 static int
 __curfile_cache(WT_CURSOR *cursor)

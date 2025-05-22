@@ -55,7 +55,13 @@ __session_discard_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE_CACHE *dhandl
 /*
  * __session_find_dhandle --
  *     Search for a data handle in the session cache.
- */ //从session->dhhash[bucket]桶中查找uri相同，或者uri相同并且checkpoint相同的dhandle
+//注意__wt_conn_dhandle_find和__session_find_dhandle的区别
+//  __session_find_dhandle: 表示当前session缓存的dhandle
+// __wt_conn_dhandle_find: 记录的是内存中全局的dhandle，包括本session的，也包括其他session的
+
+ 
+ */ 
+//从session->dhhash[bucket]桶中查找uri相同，或者uri相同并且checkpoint相同的dhandle
 static void
 __session_find_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint,
   WT_DATA_HANDLE_CACHE **dhandle_cachep)
@@ -666,6 +672,9 @@ __wt_session_close_cache(WT_SESSION_IMPL *session)
 /*
  * __session_dhandle_sweep --
  *     Discard any session dhandles that are not open.
+
+清理本session缓存的dhandle, dhandle不仅会缓存在session中，也会缓存在全局conn handle中
+ 
 Sweep the handle list to remove any dead handles. */
 static void
 __session_dhandle_sweep(WT_SESSION_IMPL *session)
@@ -762,6 +771,8 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
 
     //先从session->dhhash中查找
     //从session->dhhash[bucket]桶中查找uri相同，或者uri相同并且checkpoint相同的dhandle
+
+    //先从本session缓存的dhandles中查找
     __session_find_dhandle(session, uri, checkpoint, &dhandle_cache);
     if (dhandle_cache != NULL) {
         session->dhandle = dhandle_cache->dhandle;
@@ -769,6 +780,7 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
     }
 
     /* Sweep the handle list to remove any dead handles. */
+    //清除本session缓存的已dead的dhandles
     __session_dhandle_sweep(session);
 
     /*
@@ -777,11 +789,9 @@ __session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *che
      */
     //先添加到__wt_connection_impl.dhhash+dhqh，然后添加到WT_SESSION_IMPL.dhandles+dhhash
 
-    //再从conn->dhhash中查找
     //先从conn->dhhash查找，找不到则alloc一个dhandle添加到__wt_connection_impl.dhhash+dhqh
 
-    //conn->dhhash[bucket]桶中是不同session的dhandle，实际上是所有session使用过的dhandle,
-    //conn->dhhash[bucket]桶中的可以不同session共享
+    //本session级缓存中没有找到，继续从全局conn.dhhash中查找，找不到则alloc一个新的handle
     WT_RET(__session_find_shared_dhandle(session, uri, checkpoint));
 
     /*
@@ -858,7 +868,7 @@ __wt_session_dhandle_try_writelock(WT_SESSION_IMPL *session)
 int
 __wt_session_get_dhandle(WT_SESSION_IMPL *session, const char *uri, const char *checkpoint,
   const char *cfg[], 
-  //如果flag指定WT_DHANDLE_EXCLUSIVE，则这里获取锁后，说明当前只有该session访问该btree
+  //如果flag指定WT_DHANDLE_EXCLUSIVE，则这里获取锁后，说明当前只允许该session访问该btree
   uint32_t flags)
 {
     WT_DATA_HANDLE *dhandle;
@@ -975,6 +985,7 @@ __wt_session_lock_checkpoint(WT_SESSION_IMPL *session, const char *checkpoint)
      * We lock checkpoint handles that we are overwriting, so the handle must be closed when we
      * release it.
      */
+    
     F_SET(session->dhandle, WT_DHANDLE_DISCARD);
 
 /* Restore the original data handle in the session. */

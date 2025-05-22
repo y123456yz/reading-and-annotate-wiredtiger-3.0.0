@@ -254,6 +254,203 @@ access_example(int argc, char *argv[])
     }
 }
 
+static void
+access_example2(int argc, char *argv[])
+{
+    /*! [access example connection] */
+    WT_CONNECTION *conn;
+    WT_CURSOR *cursor;
+    WT_SESSION *session;
+    const char  *value;
+    int key;
+    int ch;
+    bool insertConfig = false;
+    bool loadDataConfig = false;
+    char cmd_buf[512];
+    char buf[512];
+    int i;
+    WT_DECL_RET;
+    int count = 0;
+    const char *cmdflags = "i:l:";
+    int table_count;
+
+    
+    /* Do a basic validation of options */
+    while ((ch = __wt_getopt("ex_access", argc, argv, cmdflags)) != EOF) {
+        switch (ch) {
+        /* insert and scan data */
+        case 'i':
+            insertConfig = true;
+            break;
+        /* load and scan data */
+        case 'l':
+            loadDataConfig = true;
+            break;
+        case '?':
+        default:
+            usage();
+            return;
+        }
+    }
+
+    if (!insertConfig && !loadDataConfig) {
+        usage();
+        return;
+    }
+
+    /* prepare data */
+    if (insertConfig) {
+        (void)snprintf(cmd_buf, sizeof(cmd_buf), "rm -rf %s && mkdir -p %s/journal", home, home);
+        error_check(system(cmd_buf));
+        //file_manager=(close_handle_minimum=0,close_idle_time=3,close_scan_interval=1)
+
+        /* Open a connection to the database, creating it if necessary. */
+        //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
+        //error_check(wiredtiger_open(home, NULL, "prefetch=(available=true,default=false),create,cache_size=3G,session_max=33000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,remove=true,path=journal),builtin_extension_config=(zstd=(compression_level=6)),file_manager=(close_idle_time=5,close_scan_interval=5,close_handle_minimum=0),statistics_log=(wait=0),json_output=(error,message),verbose=[recovery_progress:1,checkpoint_progress:1,compact_progress:1,backup:0,checkpoint:0,compact:0,,history_store:0,recovery:0,rts:0,salvage:0,tiered:0,timestamp:0,transaction:0,verify:0,log:0],", &conn));
+        error_check(wiredtiger_open(home, NULL, ",checkpoint=(log_size=0,wait=10),create,cache_size=3G,session_max=33000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,remove=true,path=journal),builtin_extension_config=(zstd=(compression_level=6)),file_manager=(close_idle_time=60,close_scan_interval=5,close_handle_minimum=0),statistics_log=(wait=0),json_output=(error,message),", &conn));
+
+        //error_check(wiredtiger_open(home, NULL, "verbose=[fileops:5], create,file_manager=(close_handle_minimum=0,close_idle_time=6,close_scan_interval=5)", &conn));
+
+        //
+       // error_check(wiredtiger_open(home, NULL, "create,statistics=(fast),statistics_log=(json,wait=1),in_memory=true", &conn));
+                
+
+        /* Open a session handle for the database. */
+       // error_check(conn->open_session(conn, NULL, NULL, &session));
+        /*! [access example connection] */
+
+        for (table_count = 0; table_count < 10000; table_count++) {
+            error_check(conn->open_session(conn, NULL, NULL, &session));
+            (void)snprintf(cmd_buf, sizeof(cmd_buf), "table:ycsb_lynn_%d", table_count);
+            //针对server层的命令为: db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, leaf_key_max=4K"}}})
+            error_check(session->create(session, cmd_buf, "key_format=q,value_format=S"));
+
+            error_check(session->open_cursor(session, cmd_buf, NULL, NULL, &cursor));
+            /*! [access example cursor open] */
+
+            #define MAX_TEST_KV_NUM2 100//1000000
+             //insert
+            for (i = 0; i < MAX_TEST_KV_NUM2; i++) {
+                snprintf(buf, sizeof(buf), "keyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_%d", i);
+                cursor->set_key(cursor, i);
+                cursor->set_value(cursor, buf);
+                error_check(cursor->insert(cursor));
+            }
+            error_check(cursor->close(cursor));
+            error_check(session->close(session, NULL));
+        }
+        //error_check(session->checkpoint(session, NULL));
+      //  error_check(session->close(session, NULL));
+       // error_check(conn->close(conn, NULL)); 
+
+
+
+
+       
+       for (table_count = 10001; table_count < 13000; table_count++) {
+           error_check(conn->open_session(conn, NULL, NULL, &session));
+           (void)snprintf(cmd_buf, sizeof(cmd_buf), "table:ycsb_lynn_%d", table_count);
+           //针对server层的命令为: db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, leaf_key_max=4K"}}})
+           error_check(session->create(session, cmd_buf, "key_format=q,value_format=S"));
+       
+           error_check(session->open_cursor(session, cmd_buf, NULL, NULL, &cursor));
+           /*! [access example cursor open] */
+       
+    #define MAX_TEST_KV_NUM3 10//1000000
+            //insert
+           for (i = 0; i < MAX_TEST_KV_NUM3; i++) {
+               snprintf(buf, sizeof(buf), "keyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_%d", i);
+               cursor->set_key(cursor, i);
+               cursor->set_value(cursor, buf);
+               error_check(cursor->insert(cursor));
+           }
+           error_check(cursor->close(cursor));
+           error_check(session->close(session, NULL));
+           __wt_sleep(1,200);
+       }
+
+
+
+
+       
+        return;
+
+
+        //(void)conn->debug_info(conn, "cache");
+         error_check(conn->open_session(conn, NULL, NULL, &session));
+        //for (table_count = 0; table_count < 600; table_count++) {
+            
+            (void)snprintf(cmd_buf, sizeof(cmd_buf), "table:ycsb_lynn_%d", 9999999);
+            //针对server层的命令为: db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, leaf_key_max=4K"}}})
+            error_check(session->create(session, cmd_buf, "key_format=q,value_format=S"));
+
+            error_check(session->open_cursor(session, cmd_buf, NULL, NULL, &cursor));
+            /*! [access example cursor open] */
+
+    #define MAX_TEST_KV_NUMx 100000//1000000
+             //insert
+            for (i = 0; i < MAX_TEST_KV_NUMx; i++) {
+               // error_check(session->checkpoint(session, NULL));
+            
+                snprintf(buf, sizeof(buf), "keyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_%d", i);
+                cursor->set_key(cursor, i);
+                cursor->set_value(cursor, buf);
+                error_check(cursor->insert(cursor));
+
+                //(void)conn->debug_info(conn, "cache");
+                __wt_sleep(10,500);
+            }
+        //}
+
+        error_check(session->close(session, NULL));
+        __wt_sleep(1110011,11111111);
+        
+        error_check(conn->close(conn, NULL)); /* Close all handles. */
+                                      /*! [access example close] */
+    }
+
+    /* load exist data, for example: when process restart, wo should warmup and load exist data*/
+    if (loadDataConfig) {
+        /* Open a connection to the database, creating it if necessary. block*/
+        error_check(wiredtiger_open(home, NULL, "statistics=(all),verbose=[compact=5,config_all_verbos:0, block=0,metadata:0, api:0]", &conn));
+
+        /* Open a session handle for the database. */
+        error_check(conn->open_session(conn, NULL, NULL, &session));
+        /*! [access example connection] */
+
+        /*! [access example cursor open] */
+        error_check(session->open_cursor(session, "table:access", NULL, "next_random=false", &cursor)); 
+        //error_check(session->open_cursor(session, "table:access", NULL, "next_random=true,next_random_sample_size=10", &cursor));
+        /*! [access example cursor open] */
+
+      //  cursor->set_key(cursor, "key1");
+      //  error_check(cursor->search(cursor));
+      //  error_check(cursor->get_value(cursor, &value));
+     //   printf("Load search record: %s : %s\n", "key5", value);
+
+        error_check(cursor->reset(cursor)); /* Restart the scan. */
+        //普通访问 __curfile_next__， 随机访问 __wt_curfile_next_random
+        while ((ret = cursor->next(cursor)) == 0) {
+            error_check(cursor->get_key(cursor, &key));
+            error_check(cursor->get_value(cursor, &value));
+            count++;
+
+          //  printf("Load record : %d , count:%d\n", key, count);
+           // if(count == 11)
+            //    break;
+        }
+
+        //__wt_session_compact
+        error_check(session->compact(session, "table:access", NULL));
+       // scan_end_check(ret == WT_NOTFOUND); 
+        /*! [access example cursor list] */
+
+        /*! [access example close] */
+        error_check(conn->close(conn, NULL)); /* Close all handles. */
+                                              /*! [access example close] */
+    }
+}
+
 /*
 run step:
   step 1(prepare data):                ./ex_access -i 1
@@ -262,7 +459,9 @@ run step:
 int
 main(int argc, char *argv[])
 {
+    access_example2(argc, argv);
     access_example(argc, argv);
 
     return (EXIT_SUCCESS);
 }
+

@@ -199,6 +199,7 @@ err:
 /*
  * __wt_btree_close --
  *     Close a Btree.
+ checkpoint和block manager相关资源释放
  */
 int
 __wt_btree_close(WT_SESSION_IMPL *session)
@@ -247,9 +248,11 @@ __wt_btree_close(WT_SESSION_IMPL *session)
 
         /* Unload the checkpoint, unless it's a special command. */
         if (!F_ISSET(btree, WT_BTREE_SALVAGE | WT_BTREE_UPGRADE | WT_BTREE_VERIFY))
+            //__bm_checkpoint_unload   该表checkpoint相关的内存资源释放
             WT_TRET(bm->checkpoint_unload(bm, session));
 
         /* Close the underlying block manager reference. */
+        //__bm_close  block相关内存资源释放, 同时会关闭文件句柄
         WT_TRET(bm->close(bm, session));
     }
 

@@ -2056,9 +2056,11 @@ __wt_page_release(WT_SESSION_IMPL *session, WT_REF *ref, uint32_t flags)
          */
         if (LF_ISSET(WT_READ_NO_EVICT) ||
           (inmem_split ? LF_ISSET(WT_READ_NO_SPLIT) : F_ISSET(session, WT_SESSION_NO_RECONCILE)))
+            //添加到evict紧急队列中由evict后台线程完成真正的evict reconcile
             WT_IGNORE_RET_BOOL(__wt_page_evict_urgent(session, ref));
         else {
             //printf("yang test ............................__wt_page_release......\r\n");
+            //该线程自己做evict操作
             WT_RET_BUSY_OK(__wt_page_release_evict(session, ref, flags));
             return (0);
         }

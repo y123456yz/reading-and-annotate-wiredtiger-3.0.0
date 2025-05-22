@@ -110,6 +110,7 @@ struct __wt_btree {
     //ckpt数组分配的空间
     size_t ckpt_bytes_allocated; /* Checkpoint information array allocation size */
 
+    //__wt_btree_open->__btree_conf
     WT_BTREE_TYPE type; /* Type */
 
     const char *key_format;   /* Key format */
@@ -225,6 +226,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     bool lsm_primary; /* Handle is/was the LSM primary */
 
     //__wt_btree_open->__wt_blkcache_open
+    //bm包含接口详见: __bm_method_set
     WT_BM *bm;          /* Block manager reference */  //__wt_btree.bm
     //WT_BLOCK_HEADER_SIZE    参考__rec_split_write_header
     u_int block_header; /* WT_PAGE_HEADER_BYTE_SIZE */  //yang add todo xxxxx  备注长度错了，容易误解
@@ -318,6 +320,7 @@ split_pct - The percentage of the leaf_page_max we will fill on-disk pages up to
     u_int evict_walk_saved;       /* Saved walk skips for checkpoints */
     u_int evict_walk_skips;       /* Number of walks skipped */
     //__wt_evict_file_exclusive_on和__wt_evict_file_exclusive_off配对使用， 一个自增一个自减
+    //大于0则evict后台线程将不会对该btree做evict操作
     int32_t evict_disabled;       /* Eviction disabled count */
     bool evict_disabled_open;     /* Eviction disabled on open */
     //正在进行evict的线程数 __wt_page_release_evict

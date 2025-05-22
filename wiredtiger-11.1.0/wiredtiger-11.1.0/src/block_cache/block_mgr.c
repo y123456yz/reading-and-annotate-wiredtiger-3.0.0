@@ -26,12 +26,14 @@ __bm_close_block_remove(WT_SESSION_IMPL *session, WT_BLOCK *block)
     }
 
     /* Discard the block structure. */
+    //block manager资源释放并关闭file文件句柄
     return (__wt_block_close(session, block));
 }
 
 /*
  * __bm_close_block --
  *     Close a single block handle, removing the handle if it's no longer useful.
+ btree对应block manager内存资源释放
  */
 static int
 __bm_close_block(WT_SESSION_IMPL *session, WT_BLOCK *block)
@@ -289,6 +291,7 @@ __bm_checkpoint_start_readonly(WT_BM *bm, WT_SESSION_IMPL *session)
 /*
  * __bm_checkpoint_unload --
  *     Unload a checkpoint point.
+  该表checkpoint相关的内存资源释放
  */
 static int
 __bm_checkpoint_unload(WT_BM *bm, WT_SESSION_IMPL *session)
@@ -308,6 +311,7 @@ __bm_checkpoint_unload(WT_BM *bm, WT_SESSION_IMPL *session)
 /*
  * __bm_close --
  *     Close a file.
+ block相关内存资源释放, 同时会关闭文件句柄
  */
 static int
 __bm_close(WT_BM *bm, WT_SESSION_IMPL *session)
@@ -316,9 +320,8 @@ __bm_close(WT_BM *bm, WT_SESSION_IMPL *session)
 
     if (bm == NULL) /* Safety check */
         return (0);
-
+        
     ret = __bm_close_block(session, bm->block);
-
     __wt_overwrite_and_free(session, bm);
     return (ret);
 }

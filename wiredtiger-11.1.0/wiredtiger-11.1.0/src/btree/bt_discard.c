@@ -20,6 +20,7 @@ static void __free_update(WT_SESSION_IMPL *, WT_UPDATE **, uint32_t, bool);
 /*
  * __wt_ref_out --
  *     Discard an in-memory page, freeing all memory associated with it.
+ //ref对应内存资源释放
  */
 void
 __wt_ref_out(WT_SESSION_IMPL *session, WT_REF *ref)
@@ -55,7 +56,7 @@ __wt_ref_out(WT_SESSION_IMPL *session, WT_REF *ref)
  * __wt_page_out --
  *     Discard an in-memory page, freeing all memory associated with it.
  */
-//page空间释，包括WT_PAGE_MODIFY page->modify相关空间释放，包括mod_row_insert mod_row_update mod_multi等，以及page->dsk等
+//__wt_ref_out->__wt_page_out   page空间释，包括WT_PAGE_MODIFY page->modify相关空间释放，包括mod_row_insert mod_row_update mod_multi等，以及page->dsk等
 void
 __wt_page_out(WT_SESSION_IMPL *session, WT_PAGE **pagep)
 {

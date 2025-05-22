@@ -231,6 +231,7 @@ __wt_conn_dhandle_alloc(WT_SESSION_IMPL *session, const char *uri, const char *c
     /* Btree handles keep their data separate from the interface. */
     if (WT_DHANDLE_BTREE(dhandle)) {
         WT_ERR(__wt_calloc_one(session, &btree));
+        //在外层的 __wt_session_get_dhandle->__wt_conn_dhandle_open->__wt_btree_open真正打开btree
         dhandle->handle = btree;
         btree->dhandle = dhandle;
     }
@@ -273,6 +274,10 @@ err:
 /*
  * __wt_conn_dhandle_find --
  *     Find a previously opened data handle.
+
+//注意__wt_conn_dhandle_find和__session_find_dhandle的区别
+//  __session_find_dhandle: 表示当前session缓存的dhandle
+// __wt_conn_dhandle_find: 记录的是内存中全局的dhandle，包括本session的，也包括其他session的
  */
 //从dhhash桶中查找uri相同，或者uri和checkpoint都相同的dhandle赋值给session->dhandle
 int
@@ -314,6 +319,9 @@ __wt_conn_dhandle_find(WT_SESSION_IMPL *session, const char *uri, const char *ch
 /*
  * __wt_conn_dhandle_close --
  *     Sync and close the underlying btree handle.
+ sweep server线程的__sweep_expire   __sweep_discard_trees都会执行__wt_conn_dhandle_close，只是一个的mark_dead为true，一个为false
+
+ btree相关资源释放，并关闭文件句柄
  */
 int
 __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
@@ -325,6 +333,7 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
     WT_DECL_RET;
     bool discard, is_btree, is_mapped, marked_dead, no_schema_lock;
 
+    //printf("yang test ......11.....__wt_conn_dhandle_close..........\r\n");
     conn = S2C(session);
     dhandle = session->dhandle;
 
@@ -338,8 +347,10 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
     is_btree = WT_DHANDLE_BTREE(dhandle);
     btree = is_btree ? dhandle->handle : NULL;
 
+    //一个表对应两个schema，table: + file:，只有file:满足btree条件
     if (is_btree) {
         /* Turn off eviction. */
+        //通知evict server(通过识别evict_disabled)，禁止对该表做evict操作
         WT_RET(__wt_evict_file_exclusive_on(session));
 
         /* Reset the tree's eviction priority (if any). */
@@ -368,6 +379,8 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
     __wt_spin_lock(session, &dhandle->close_lock);
 
     discard = is_mapped = marked_dead = false;
+    printf("yang test ......ss.....__wt_conn_dhandle_close.....is_btree:%d\r\n", is_btree);
+        
     if (is_btree && !F_ISSET(btree, WT_BTREE_SALVAGE | WT_BTREE_UPGRADE | WT_BTREE_VERIFY)) {
         /*
          * If the handle is already marked dead, we're just here to discard it.
@@ -401,7 +414,9 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
             if (F_ISSET(conn, WT_CONN_IN_MEMORY) || F_ISSET(btree, WT_BTREE_NO_CHECKPOINT))
                 discard = true;
             else {
+                //printf("yang test ......22.....__wt_conn_dhandle_close..........\r\n");
                 WT_TRET(__wt_checkpoint_close(session, final));
+                //printf("yang test ......33.....__wt_conn_dhandle_close..........\r\n");
                 if (!final && ret == EBUSY)
                     WT_ERR(ret);
             }
@@ -414,12 +429,13 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
      * memory-mapped pages contain pointers into memory that becomes invalid if the mapping is
      * closed, so discard mapped files before closing, otherwise, close first.
      */
-    if (discard && is_mapped)
+    if (discard && is_mapped) //默认不启用map功能，因此不会进入这里
         WT_TRET(__wt_evict_file(session, WT_SYNC_DISCARD));
-
+    
     /* Close the underlying handle. */
     switch (dhandle->type) {
     case WT_DHANDLE_TYPE_BTREE:
+        // checkpoint和block manager相关资源释放
         WT_TRET(__wt_btree_close(session));
         F_CLR(btree, WT_BTREE_SPECIAL_FLAGS);
         break;
@@ -443,9 +459,10 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
      * Check discard too, code we call to clear the cache expects the data handle dead flag to be
      * set when discarding modified pages.
      */
-    if (marked_dead || discard)
+    if (marked_dead || discard) {
+        printf("yang test ...dead........__wt_conn_dhandle_close.............\r\n");
         F_SET(dhandle, WT_DHANDLE_DEAD);
-
+    }
     /*
      * Discard from cache any trees not marked dead in this call (that is, including trees
      * previously marked dead). Done after marking the data handle dead for a couple reasons: first,
@@ -453,12 +470,18 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
      * expects the data handle dead flag to be set when discarding modified pages.
      */
     if (discard && !is_mapped)
+        // 遍历对应btree，释放btree上的所有ref page内存资源
         WT_TRET(__wt_evict_file(session, WT_SYNC_DISCARD));
 
     /*
      * If we marked a handle dead it will be closed by sweep, via another call to this function.
      * Otherwise, we're done with this handle.
      */
+    printf("yang test ....__wt_conn_dhandle_close.......dhandle name:%s, marked_dead:%d, dhandle->checkpoint:%p, conn->open_btree_count:%u\r\n",
+        dhandle->name, marked_dead, dhandle->checkpoint, conn->open_btree_count);
+
+    //一个表对应两个schema，table: + file:，只有file:满足btree条件
+    //table: schema的时候会满足这里的if，这时候才会open_btree_count减一，也就是file:和table:都执行该函数一遍后，才会满足这里的if条件
     if (!marked_dead) {
         F_CLR(dhandle, WT_DHANDLE_OPEN);
         if (dhandle->checkpoint == NULL)
@@ -525,6 +548,7 @@ __conn_dhandle_config_parse_ts(WT_SESSION_IMPL *session)
 /*
  * __wt_conn_dhandle_open --
  *     Open the current data handle.
+ __wt_session_get_dhandle->__wt_conn_dhandle_open->__wt_btree_open
  */
 int
 __wt_conn_dhandle_open(WT_SESSION_IMPL *session, const char *cfg[], uint32_t flags)
@@ -876,6 +900,7 @@ __conn_dhandle_remove(WT_SESSION_IMPL *session, bool final)
     dhandle = session->dhandle;
     bucket = dhandle->name_hash & (conn->dh_hash_size - 1);
 
+    printf("yang test ......__conn_dhandle_remove......remove dhandle:%s\r\n", dhandle->name);
     WT_ASSERT(session, FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_HANDLE_LIST_WRITE));
     WT_ASSERT(session, dhandle != conn->cache->walk_tree);
 
@@ -890,6 +915,12 @@ __conn_dhandle_remove(WT_SESSION_IMPL *session, bool final)
 /*
  * __wt_conn_dhandle_discard_single --
  *     Close/discard a single data handle.
+
+//__wt_connection_close->__wt_conn_dhandle_discard
+// __sweep_server->__sweep_remove_handles->__sweep_remove_one
+
+ 
+ 从conn.dhqh和conn.dhhash中删除session对应的session->dhandle
  */
 int
 __wt_conn_dhandle_discard_single(WT_SESSION_IMPL *session, bool final, bool mark_dead)
@@ -939,6 +970,7 @@ __wt_conn_dhandle_discard_single(WT_SESSION_IMPL *session, bool final, bool mark
 /*
  * __wt_conn_dhandle_discard --
  *     Close/discard all data handles.
+ //__wt_connection_close->__wt_conn_dhandle_discard
  */
 int
 __wt_conn_dhandle_discard(WT_SESSION_IMPL *session)
@@ -1061,10 +1093,11 @@ __wt_verbose_dump_handles(WT_SESSION_IMPL *session)
     WT_RET(__wt_msg(session, "%s", WT_DIVIDER));
     WT_RET(__wt_msg(session, "Data handle dump:"));
     for (dhandle = NULL;;) {
+        //注意WT_DHANDLE_NEXT会调用WT_DHANDLE_ACQUIRE,会引起session_ref加1
         WT_WITH_HANDLE_LIST_READ_LOCK(session, WT_DHANDLE_NEXT(session, dhandle, &conn->dhqh, q));
         if (dhandle == NULL)
             break;
-        WT_RET(__wt_msg(session, "Name: %s", dhandle->name));
+        WT_RET(__wt_msg(session, "Name: %s %p", dhandle->name, dhandle));
         if (dhandle->checkpoint != NULL)
             WT_RET(__wt_msg(session, "Checkpoint: %s", dhandle->checkpoint));
         WT_RET(__wt_msg(session, "  Sessions referencing handle: %" PRIu32, dhandle->session_ref));

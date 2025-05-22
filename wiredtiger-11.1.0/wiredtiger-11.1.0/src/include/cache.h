@@ -72,6 +72,7 @@ typedef enum __wt_cache_op {
     //__checkpoint_tree
     WT_SYNC_CHECKPOINT,
     WT_SYNC_CLOSE,
+    //例如一个表不活跃时间过长，sweep server线程就需要对该表做回收处理，这时候就会在__wt_conn_dhandle_close中做sync discard操作
     WT_SYNC_DISCARD,
     //lsm才会有该逻辑，参考__wt_lsm_checkpoint_chunk
     WT_SYNC_WRITE_LEAVES
