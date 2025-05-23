@@ -31,7 +31,7 @@
 #include <test_util.h>
 
 static const char *home = "WT_TEST";
-
+//test vs code 中文测试，阿达萨法法师打发发的发啊范德萨短发啊范德萨发达地方
 /*
  * usage --
  *     wtperf usage print, no error.
