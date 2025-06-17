@@ -30,8 +30,28 @@
  */
 #include <test_util.h>
 
+
 static const char *home = "WT_TEST";
 //test vs code 中文测试，阿达萨法法师打发发的发啊范德萨短发啊范德萨发达地方
+/*
+利用vscode或者cursor通过ssh + clangd方式走读代码，如果函数无法跳转，则可以查看vscode或者cursor的日志，在
+
+
+
+-DCMAKE_EXPORT_COMPILE_COMMANDS=1 clangd需要代码编译加上这个参数
+
+terminal->output
+cursor对应开发机的clangd是否异常可以查看这个目录的clangd是否可以运行，例如下面这个以来的glibc版本太低，则存在下面的output打印
+/root/.cursor-server/data/User/globalStorage/llvm-vs-code-extensions.vscode-clangd/install/19.1.2/clangd_19.1.2/bin/clangd
+[Error - 4:26:22 PM] Clang Language Server client: couldn't create connection to server.
+  Message: Pending response rejected since connection got disposed
+  Code: -32097 
+/root/.cursor-server/data/User/globalStorage/llvm-vs-code-extensions.vscode-clangd/install/19.1.2/clangd_19.1.2/bin/clangd: /lib64/libc.so.6: version `GLIBC_2.18' not found (required by /root/.cursor-server/data/User/globalStorage/llvm-vs-code-extensions.vscode-clangd/install/19.1.2/clangd_19.1.2/bin/clangd)
+[Info  - 4:26:22 PM] Connection to server got closed. Server will restart.
+[Error - 4:26:22 PM] Server initialization failed.
+
+这时候可以自己通过llvm-project源码安装cland，然后拷贝替换上面的cland二进制
+*/
 /*
  * usage --
  *     wtperf usage print, no error.
@@ -254,6 +274,55 @@ access_example(int argc, char *argv[])
     }
 }
 
+#include <sys/resource.h>
+#include <stdio.h>
+
+static void print_memory_usage(void) {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@ Memory usage: %ld KB\n", usage.ru_maxrss);
+}
+
+/*! [statistics display function] */
+static void
+print_cursor(WT_CURSOR *cursor)
+{
+    const char *desc, *pvalue;
+    int64_t value;
+    int ret;
+
+    while ((ret = cursor->next(cursor)) == 0) {
+        error_check(cursor->get_value(cursor, &desc, &pvalue, &value));
+       // printf("%s=%s\n", desc, pvalue);
+        if (value != 0) {
+            if (strcmp(desc, "connection: memory allocations") == 0 ||
+                strcmp(desc, "connection: memory frees") == 0 ||
+                strcmp(desc, "connection: memory re-allocations") == 0 ||
+                strcmp(desc, "data-handle: connection data handles currently active") == 0 ||
+                strcmp(desc, "data-handle: connection sweep dhandles closed") == 0 ||
+                strcmp(desc, "data-handle: connection sweep dhandles removed from hash list") == 0 ||
+                strcmp(desc, "data-handle: connection sweeps") == 0)
+                
+            printf("%s=%s\n", desc, pvalue);
+        }
+    }
+}
+/*! [statistics display function] */
+
+static void
+print_database_stats(WT_SESSION *session)
+{
+    WT_CURSOR *cursor;
+
+    /*! [statistics database function] */
+    error_check(session->open_cursor(session, "statistics:", NULL, NULL, &cursor));
+
+    (void)print_cursor(cursor);
+    error_check(cursor->close(cursor));
+    /*! [statistics database function] */
+}
+
+
 static void
 access_example2(int argc, char *argv[])
 {
@@ -274,7 +343,6 @@ access_example2(int argc, char *argv[])
     const char *cmdflags = "i:l:";
     int table_count;
 
-    
     /* Do a basic validation of options */
     while ((ch = __wt_getopt("ex_access", argc, argv, cmdflags)) != EOF) {
         switch (ch) {
@@ -307,7 +375,8 @@ access_example2(int argc, char *argv[])
         /* Open a connection to the database, creating it if necessary. */
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
         //error_check(wiredtiger_open(home, NULL, "prefetch=(available=true,default=false),create,cache_size=3G,session_max=33000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,remove=true,path=journal),builtin_extension_config=(zstd=(compression_level=6)),file_manager=(close_idle_time=5,close_scan_interval=5,close_handle_minimum=0),statistics_log=(wait=0),json_output=(error,message),verbose=[recovery_progress:1,checkpoint_progress:1,compact_progress:1,backup:0,checkpoint:0,compact:0,,history_store:0,recovery:0,rts:0,salvage:0,tiered:0,timestamp:0,transaction:0,verify:0,log:0],", &conn));
-        error_check(wiredtiger_open(home, NULL, ",checkpoint=(log_size=0,wait=10),create,cache_size=3G,session_max=33000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,remove=true,path=journal),builtin_extension_config=(zstd=(compression_level=6)),file_manager=(close_idle_time=60,close_scan_interval=5,close_handle_minimum=0),statistics_log=(wait=0),json_output=(error,message),", &conn));
+        error_check(wiredtiger_open(home, NULL, ",checkpoint=(log_size=0,wait=300),create,cache_size=3G,session_max=33000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,remove=true,path=journal),builtin_extension_config=(zstd=(compression_level=6)),"
+        "file_manager=(close_idle_time=10,close_scan_interval=5,close_handle_minimum=1),statistics_log=(wait=0),json_output=(error,message),", &conn));
 
         //error_check(wiredtiger_open(home, NULL, "verbose=[fileops:5], create,file_manager=(close_handle_minimum=0,close_idle_time=6,close_scan_interval=5)", &conn));
 
@@ -319,7 +388,9 @@ access_example2(int argc, char *argv[])
        // error_check(conn->open_session(conn, NULL, NULL, &session));
         /*! [access example connection] */
 
-        for (table_count = 0; table_count < 10000; table_count++) {
+        print_memory_usage();
+        #define MAX_TABLE_COUNT 10
+        for (table_count = 0; table_count < MAX_TABLE_COUNT; table_count++) {
             error_check(conn->open_session(conn, NULL, NULL, &session));
             (void)snprintf(cmd_buf, sizeof(cmd_buf), "table:ycsb_lynn_%d", table_count);
             //针对server层的命令为: db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, leaf_key_max=4K"}}})
@@ -328,7 +399,7 @@ access_example2(int argc, char *argv[])
             error_check(session->open_cursor(session, cmd_buf, NULL, NULL, &cursor));
             /*! [access example cursor open] */
 
-            #define MAX_TEST_KV_NUM2 100//1000000
+            #define MAX_TEST_KV_NUM2 0//1000000
              //insert
             for (i = 0; i < MAX_TEST_KV_NUM2; i++) {
                 snprintf(buf, sizeof(buf), "keyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_%d", i);
@@ -336,25 +407,26 @@ access_example2(int argc, char *argv[])
                 cursor->set_value(cursor, buf);
                 error_check(cursor->insert(cursor));
             }
+
+            if (table_count == MAX_TABLE_COUNT - 1) {
+                error_check(session->checkpoint(session, NULL));
+                printf("yang test .................. create end\r\n\r\n\r\n ");
+            }
             error_check(cursor->close(cursor));
             error_check(session->close(session, NULL));
+            printf("yang test ...... table:%d,  ", table_count);
+            print_memory_usage();
         }
-        //error_check(session->checkpoint(session, NULL));
-      //  error_check(session->close(session, NULL));
-       // error_check(conn->close(conn, NULL)); 
-
-
-
-
        
+       
+       //__wt_sleep(1100,200);
+       error_check(conn->open_session(conn, NULL, NULL, &session));
        for (table_count = 10001; table_count < 13000; table_count++) {
-           error_check(conn->open_session(conn, NULL, NULL, &session));
-           (void)snprintf(cmd_buf, sizeof(cmd_buf), "table:ycsb_lynn_%d", table_count);
+           /*(void)snprintf(cmd_buf, sizeof(cmd_buf), "table:ycsb_lynn_%d", 88888);
            //针对server层的命令为: db.createCollection("sbtest4",{storageEngine: { wiredTiger: {configString: "leaf_page_max:4KB, leaf_key_max=4K"}}})
            error_check(session->create(session, cmd_buf, "key_format=q,value_format=S"));
        
            error_check(session->open_cursor(session, cmd_buf, NULL, NULL, &cursor));
-           /*! [access example cursor open] */
        
     #define MAX_TEST_KV_NUM3 10//1000000
             //insert
@@ -364,9 +436,11 @@ access_example2(int argc, char *argv[])
                cursor->set_value(cursor, buf);
                error_check(cursor->insert(cursor));
            }
-           error_check(cursor->close(cursor));
-           error_check(session->close(session, NULL));
-           __wt_sleep(1,200);
+           error_check(cursor->close(cursor));*/
+           print_database_stats(session);
+           //error_check(session->close(session, NULL));
+           
+           __wt_sleep(2,200);
        }
 
 

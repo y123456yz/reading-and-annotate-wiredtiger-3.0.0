@@ -2529,7 +2529,7 @@ __rec_split_discard(WT_SESSION_IMPL *session, WT_PAGE *page)
 
     btree = S2BT(session);
     mod = page->modify;
-    WT_RET(__wt_msg(session, "yang test .................__rec_split_discard.............................."));
+  //  WT_RET(__wt_msg(session, "yang test .................__rec_split_discard.............................."));
 
     /*
      * A page that split is being reconciled for the second, or subsequent time; discard underlying

@@ -233,7 +233,7 @@ __wt_insert_serial(WT_SESSION_IMPL *session, WT_PAGE *page, WT_INSERT_HEAD *ins_
  * __wt_update_serial --
  *     Update a row or column-store entry.
  
-// __wt_update_serial为什么不用加page锁，而__wt_insert_serial需要加page锁，因为更新只是对K的v的udp链表操作，一个链表插入一个节点可以通过原子
+// __wt_update_serial 为什么不用加page锁，而 __wt_insert_serial 需要加page锁，因为更新只是对K的v的udp链表操作，一个链表插入一个节点可以通过原子
 //   操作完成，而insert是跳表，有多层链表，因此无法一次对多个链表实现原子操作
 
  

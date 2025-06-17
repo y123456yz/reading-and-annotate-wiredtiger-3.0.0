@@ -658,7 +658,7 @@ err:
 /*
  * __wt_cursor_cache --
  *     Add this cursor to the cache.
-   __curfile_close->__wt_cursor_cache_release->__curfile_cache  close的cursor会加入到cache中
+   __curfile_close->__wt_cursor_cache_release->__curfile_cache->__wt_cursor_cache  close的cursor会加入到cache中
  */
 int
 __wt_cursor_cache(WT_CURSOR *cursor, WT_DATA_HANDLE *dhandle)
@@ -769,6 +769,7 @@ __wt_cursor_cache_release(WT_SESSION_IMPL *session, WT_CURSOR *cursor, bool *rel
      * data handle back).
      */
     WT_STAT_CONN_DATA_INCR(session, cursor_cache);
+    //__curfile_cache
     WT_ERR(cursor->cache(cursor));
     WT_ASSERT(session, F_ISSET(cursor, WT_CURSTD_CACHED));
     *released = true;

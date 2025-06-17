@@ -38,6 +38,7 @@ __session_add_dhandle(WT_SESSION_IMPL *session)
 /*
  * __session_discard_dhandle --
  *     Remove a data handle from the session cache.
+  __wt_session_close_internal->__wt_session_close_cache->__session_discard_dhandle
  */ //从session->dhhash中清除，但是conn->dhhash[bucket]桶中还在，conn->dhhash[bucket]桶中的可以不同session共享
 static void
 __session_discard_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE_CACHE *dhandle_cache)
@@ -48,7 +49,10 @@ __session_discard_dhandle(WT_SESSION_IMPL *session, WT_DATA_HANDLE_CACHE *dhandl
     TAILQ_REMOVE(&session->dhandles, dhandle_cache, q);
     TAILQ_REMOVE(&session->dhhash[bucket], dhandle_cache, hashq);
 
+    //减少该dhandle的ref计数
     WT_DHANDLE_RELEASE(dhandle_cache->dhandle);
+    printf("[DEBUG] __session_discard_dhandle: dhandle name=%s, addr:%p,session_ref=%d\n", dhandle_cache->dhandle->name, (void*)dhandle_cache->dhandle, (int)dhandle_cache->dhandle->session_ref);
+
     __wt_overwrite_and_free(session, dhandle_cache);
 }
 
@@ -656,6 +660,7 @@ __wt_session_get_btree_ckpt(WT_SESSION_IMPL *session, const char *uri, const cha
 /*
  * __wt_session_close_cache --
  *     Close any cached handles in a session.
+ __wt_session_close_internal->__wt_session_close_cache
  */
 void
 __wt_session_close_cache(WT_SESSION_IMPL *session)

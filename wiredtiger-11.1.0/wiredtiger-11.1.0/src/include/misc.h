@@ -339,6 +339,8 @@ union __wt_rand_state {
  * shutdown, when we're shutting down various lists. Unlike TAILQ_FOREACH_SAFE,
  * this macro works even when the next element gets removed along with the
  * current one.
+ 安全遍历+删除：允许你在遍历链表的同时，安全地删除当前节点。
+避免指针失效：宏内部会提前保存下一个节点指针，删除当前节点后继续遍历，不会丢失链表结构。
  */
 #define WT_TAILQ_SAFE_REMOVE_BEGIN(var, head, field, tvar)                     \
     for ((tvar) = NULL; ((var) = TAILQ_FIRST(head)) != NULL; (tvar) = (var)) { \

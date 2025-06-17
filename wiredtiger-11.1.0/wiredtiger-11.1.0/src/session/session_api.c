@@ -366,7 +366,6 @@ __wt_session_close_internal(WT_SESSION_IMPL *session)
     /* Discard cached handles. */
     __wt_session_close_cache(session);
 
-    /* Confirm we're not holding any hazard pointers. */
     __wt_hazard_close(session);
 
     /* Discard metadata tracking. */

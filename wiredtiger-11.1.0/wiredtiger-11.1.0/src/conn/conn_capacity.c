@@ -225,6 +225,7 @@ __wt_capacity_server_destroy(WT_SESSION_IMPL *session)
 /*
  * __capacity_signal --
  *     Signal the capacity thread if sufficient data has been written.
+ yang add todo xxxxxxx  这里最好加一个io_capacity.total的统计，因为多次修改后都不知道这个值是多少了
  */
 static void
 __capacity_signal(WT_SESSION_IMPL *session)
@@ -321,7 +322,9 @@ __wt_capacity_throttle(WT_SESSION_IMPL *session, uint64_t bytes, WT_THROTTLE_TYP
     /*
      * Right now no subsystem can be individually turned off, but it is certainly a possibility to
      * consider one subsystem may be turned off at some point in the future. If this subsystem is
-     * not throttled there's nothing to do.
+     * not throttled there's nothing to do
+     cap->total == 0最好放在前面去，因为reconfig可以通过io_capacity关闭io限速功能，这样可以避免无效的统计
+     
      */
     if (cap->total == 0 || capacity == 0 || F_ISSET(conn, WT_CONN_RECOVERING))
         return;

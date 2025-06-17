@@ -446,7 +446,7 @@ __txn_log_file_sync(WT_SESSION_IMPL *session, uint32_t flags, WT_LSN *lsnp)
       rectype, btree->id, start));
     logrec->size += (uint32_t)header_size;
 
-    printf("yang test .............................__txn_log_file_sync..........\r\n");
+   // printf("yang test .............................__txn_log_file_sync..........\r\n");
     WT_ERR(__wt_log_write(session, logrec, lsnp, need_sync ? WT_LOG_FSYNC : 0));
 err:
     __wt_logrec_free(session, &logrec);

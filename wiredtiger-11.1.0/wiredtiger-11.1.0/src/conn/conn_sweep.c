@@ -25,6 +25,7 @@ __sweep_mark(WT_SESSION_IMPL *session, uint64_t now)
     conn = S2C(session);
 
     TAILQ_FOREACH (dhandle, &conn->dhqh, q) {
+       // printf("[DEBUG] __sweep_mark: dhandle=%p, name:%s, session_ref=%d\n", (void*)dhandle, dhandle->name, (int)dhandle->session_ref);
         if (WT_IS_METADATA(dhandle))
             continue;
 
@@ -68,7 +69,7 @@ __sweep_close_dhandle_locked(WT_SESSION_IMPL *session)
 
     /* Only sweep clean trees. */
     if (btree != NULL && btree->modified) {
-        printf("yang test .....1......__sweep_close_dhandle_locked......btree:%p.......\r\n", btree);
+      //  printf("yang test .....1......__sweep_close_dhandle_locked......btree:%p.......\r\n", btree);
         return (0);
     }
     
@@ -78,7 +79,7 @@ __sweep_close_dhandle_locked(WT_SESSION_IMPL *session)
      * For btree handles, closing the handle decrements the open file count, meaning the close loop
      * won't overrun the configured minimum.
      */
-    printf("yang test ......2.....__sweep_close_dhandle_locked.............\r\n");
+   // printf("yang test ......2.....__sweep_close_dhandle_locked.............\r\n");
     return (__wt_conn_dhandle_close(session, false, true));
 }
 
@@ -131,10 +132,10 @@ __sweep_expire(WT_SESSION_IMPL *session, uint64_t now)
 
     conn = S2C(session);
 
-    printf("__sweep_expire 11111111111111111111111 \n\n\n\n\n");
     //__wt_verbose_dump_sessions  __wt_verbose_dump_handles
    // (void)conn->iface.debug_info(&conn->iface, "cursors, handles");
     TAILQ_FOREACH (dhandle, &conn->dhqh, q) {
+       // printf("[DEBUG] __sweep_expire: dhandle=%p, name:%s, session_ref=%d\n", (void*)dhandle, dhandle->name, (int)dhandle->session_ref);
         /*
          * Ignore open files once the btree file count is below the minimum number of handles.
          */
@@ -166,7 +167,7 @@ __sweep_expire(WT_SESSION_IMPL *session, uint64_t now)
         //    (int)(now - dhandle->timeofdeath), (int)conn->sweep_idle_time, F_ISSET(dhandle, WT_DHANDLE_OPEN));
     }
    // (void)conn->iface.debug_info(&conn->iface, "cursors, handles");
-    //printf("__sweep_expire 222222222222222222222222222 \n\n\n\n\n");
+    printf("__sweep_expire 222222222222222222222222222 \n\n\n\n\n");
     
     return (0);
 }
@@ -202,11 +203,16 @@ __sweep_discard_trees(WT_SESSION_IMPL *session, u_int *dead_handlesp)
         } else {
             //printf("yang test ..22222222....__sweep_discard_trees..... handle:%s\r\n", dhandle->name);
         }
+
+       // printf("[DEBUG] __sweep_discard_trees: 1111 dhandle=%p, name:%s, session_ref=%d\n", (void*)dhandle, dhandle->name, (int)dhandle->session_ref);
+        
         //只close dead的表，dhandle如果是"table:"， 则不满足WT_DHANDLE_OPEN，所以下面的dh_sweep_close实际上只会统计file:的
         // 这也是"dh_sweep_close和dh_sweep_remove统计中，百万库表的脚步看这里差了将近一倍"的原因
         if (!F_ISSET(dhandle, WT_DHANDLE_OPEN) || !F_ISSET(dhandle, WT_DHANDLE_DEAD))
             continue;
 
+        printf("[DEBUG] __sweep_discard_trees: 2222 dhandle=%p, name:%s, session_ref=%d\n", (void*)dhandle, dhandle->name, (int)dhandle->session_ref);
+        
         /* If the handle is marked dead, flush it from cache. */
         WT_WITH_DHANDLE(session, dhandle, ret = __wt_conn_dhandle_close(session, false, false));
 
@@ -223,8 +229,8 @@ __sweep_discard_trees(WT_SESSION_IMPL *session, u_int *dead_handlesp)
         
         WT_RET_BUSY_OK(ret);
     }
-    printf("yang test ....__sweep_discard_trees............dead_handlesp:%u, conn->dhandle_count:%u\r\n", 
-        *dead_handlesp, conn->dhandle_count);
+    //printf("yang test ....__sweep_discard_trees............dead_handlesp:%u, conn->dhandle_count:%d\r\n", 
+    //    *dead_handlesp, (int)conn->dhandle_count);
 
     return (0);
 }
@@ -283,19 +289,22 @@ __sweep_remove_handles(WT_SESSION_IMPL *session)
     WT_DECL_RET;
 
     conn = S2C(session);
-
+    //__wt_verbose_dump_sessions  __wt_verbose_dump_handles
+   // (void)conn->iface.debug_info(&conn->iface, "sessions, cursors, handles");
     TAILQ_FOREACH_SAFE(dhandle, &conn->dhqh, q, dhandle_tmp)
     {
+      //  printf("[DEBUG] __sweep_remove_handles: dhandle=%p, name:%s, session_ref=%d\n", (void*)dhandle, dhandle->name, (int)dhandle->session_ref);
         if (WT_IS_METADATA(dhandle))
             continue;
 
         //if (F_ISSET(dhandle, WT_DHANDLE_EXCLUSIVE | WT_DHANDLE_OPEN))
-        //    printf("yang test ...sssss.....__sweep_remove_handles.........name:%s, %p\r\n", dhandle->name, dhandle);
+        // printf("yang test ...1.....__sweep_remove_handles.........name:%s, %d, %d\r\n", dhandle->name, 
+        //    (int)dhandle->session_inuse, (int)dhandle->session_ref);
 
-        if (!WT_DHANDLE_CAN_DISCARD(dhandle))
+        if (!WT_DHANDLE_CAN_DISCARD(dhandle))   
             continue;
 
-        //printf("yang test ........__sweep_remove_handles.....name:%s, %p\r\n", dhandle->name, dhandle);
+        printf("yang test ......2..__sweep_remove_handles.....name:%s, %p\r\n", dhandle->name, dhandle);
         if (dhandle->type == WT_DHANDLE_TYPE_TABLE)
             WT_WITH_TABLE_WRITE_LOCK(session,
               WT_WITH_HANDLE_LIST_WRITE_LOCK(
@@ -332,6 +341,15 @@ static bool
 __sweep_server_run_chk(WT_SESSION_IMPL *session)
 {
     return (FLD_ISSET(S2C(session)->server_flags, WT_CONN_SERVER_SWEEP));
+}
+
+#include <sys/resource.h>
+#include <stdio.h>
+
+static void print_memory_usage(void) {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@ Memory usage: %ld KB\n", usage.ru_maxrss);
 }
 
 /*
@@ -389,6 +407,9 @@ __sweep_server(void *arg)
             WT_STAT_CONN_INCR(session, dh_sweep_skip_ckpt);
             continue;
         }
+
+        printf("\r\n\r\n\r\nyang test ...1... sweep_server,   ");
+        print_memory_usage();
         WT_STAT_CONN_INCR(session, dh_sweeps);
         /*
          * Mark handles with a time of death, and report whether any handles are marked dead. If
@@ -410,9 +431,14 @@ __sweep_server(void *arg)
         // 从内存中清除close dead的表，通过dead_handles返回close掉的表个数
         WT_ERR(__sweep_discard_trees(session, &dead_handles));
 
+        printf("yang test ...2... sweep_server,   ");
+        print_memory_usage();
+        
         if (dead_handles > 0)
             WT_ERR(__sweep_remove_handles(session));
-
+        
+        printf("yang test ...3... sweep_server,   ");
+        print_memory_usage();
         /* Remember the last sweep time. */
         last = now;
     }

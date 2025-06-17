@@ -1,0 +1,20 @@
+CompileFlags:
+  Add: [-Wall, -std=c11]
+  
+Index:
+  Background: Build
+  
+Diagnostics:
+  UnusedIncludes: Strict
+  
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+  
+Hover:
+  ShowAKA: Yes
+
+Trace:
+  File: /tmp/clangd.log
+  Verbosity: 2 

@@ -51,14 +51,14 @@ __conn_dhandle_config_set(WT_SESSION_IMPL *session)
     /*
      * Read the object's entry from the metadata file, we're done if we don't find one.
      */
-    printf("yang test ........__conn_dhandle_config_set........begin...............\r\n");
+    //printf("yang test ........__conn_dhandle_config_set........begin...............\r\n");
     if ((ret = __wt_metadata_search(session, dhandle->name, &metaconf)) != 0) {
         if (ret == WT_NOTFOUND)
             ret = __wt_set_return(session, ENOENT);
         WT_RET(ret);
     }
-    printf("yang test ........__conn_dhandle_config_set.........end......, name:%s, metaconf:%s\r\n",
-        dhandle->name, metaconf);
+    //printf("yang test ........__conn_dhandle_config_set.........end......, name:%s, metaconf:%s\r\n",
+    //    dhandle->name, metaconf);
 
     /*
      * The defaults are included because persistent configuration information is stored in the
@@ -157,7 +157,7 @@ static int
 __conn_dhandle_destroy(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle, bool final)
 {
     WT_DECL_RET;
-
+    
     switch (dhandle->type) {
     case WT_DHANDLE_TYPE_BTREE:
         WT_WITH_DHANDLE(session, dhandle, ret = __wt_btree_discard(session));
@@ -174,13 +174,17 @@ __conn_dhandle_destroy(WT_SESSION_IMPL *session, WT_DATA_HANDLE *dhandle, bool f
         break;
     }
 
-    __wt_rwlock_destroy(session, &dhandle->rwlock);
+
+
+    __wt_rwlock_destroy(session,&dhandle->rwlock);
     __wt_free(session, dhandle->name);
+    //__wt_free(session, dhandle->yangtest_mem);
     __wt_free(session, dhandle->checkpoint);
     __conn_dhandle_config_clear(session);
     __wt_spin_destroy(session, &dhandle->close_lock);
     __wt_stat_dsrc_discard(session, dhandle);
     __wt_overwrite_and_free(session, dhandle);
+    
     return (ret);
 }
 
@@ -213,6 +217,9 @@ __wt_conn_dhandle_alloc(WT_SESSION_IMPL *session, const char *uri, const char *c
     if (WT_PREFIX_MATCH(uri, "file:")) {
         WT_RET(__wt_calloc_one(session, &dhandle));
         dhandle->type = WT_DHANDLE_TYPE_BTREE;
+        //WT_ERR(__wt_calloc(session, 1, 1024*1024*300, &dhandle->yangtest_mem));
+        //memset(dhandle->yangtest_mem, 0, 1024*1024*300);
+        //printf("[DEBUG] yangtest_mem allocated: dhandle->yangtest_mem=%p, dhandle->name=%s\n", dhandle->yangtest_mem, dhandle->name);
     } else if (WT_PREFIX_MATCH(uri, "table:")) {
         WT_RET(__wt_calloc_one(session, &table));
         dhandle = (WT_DATA_HANDLE *)table;
@@ -264,6 +271,7 @@ __wt_conn_dhandle_alloc(WT_SESSION_IMPL *session, const char *uri, const char *c
     WT_CONN_DHANDLE_INSERT(S2C(session), dhandle, bucket);
 
     session->dhandle = dhandle;
+
     return (0);
 
 err:
@@ -333,7 +341,7 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
     WT_DECL_RET;
     bool discard, is_btree, is_mapped, marked_dead, no_schema_lock;
 
-    //printf("yang test ......11.....__wt_conn_dhandle_close..........\r\n");
+   // printf("yang test ......11.....__wt_conn_dhandle_close..........\r\n");
     conn = S2C(session);
     dhandle = session->dhandle;
 
@@ -379,7 +387,7 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
     __wt_spin_lock(session, &dhandle->close_lock);
 
     discard = is_mapped = marked_dead = false;
-    printf("yang test ......ss.....__wt_conn_dhandle_close.....is_btree:%d\r\n", is_btree);
+   // printf("yang test ......ss.....__wt_conn_dhandle_close.....is_btree:%d\r\n", is_btree);
         
     if (is_btree && !F_ISSET(btree, WT_BTREE_SALVAGE | WT_BTREE_UPGRADE | WT_BTREE_VERIFY)) {
         /*
@@ -460,7 +468,7 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
      * set when discarding modified pages.
      */
     if (marked_dead || discard) {
-        printf("yang test ...dead........__wt_conn_dhandle_close.............\r\n");
+      //  printf("yang test ...dead........__wt_conn_dhandle_close.............\r\n");
         F_SET(dhandle, WT_DHANDLE_DEAD);
     }
     /*
@@ -477,8 +485,8 @@ __wt_conn_dhandle_close(WT_SESSION_IMPL *session, bool final, bool mark_dead)
      * If we marked a handle dead it will be closed by sweep, via another call to this function.
      * Otherwise, we're done with this handle.
      */
-    printf("yang test ....__wt_conn_dhandle_close.......dhandle name:%s, marked_dead:%d, dhandle->checkpoint:%p, conn->open_btree_count:%u\r\n",
-        dhandle->name, marked_dead, dhandle->checkpoint, conn->open_btree_count);
+  // printf("yang test ....__wt_conn_dhandle_close.......dhandle name:%s, marked_dead:%d, dhandle->checkpoint:%p, conn->open_btree_count:%u\r\n",
+   //    dhandle->name, marked_dead, dhandle->checkpoint, conn->open_btree_count);
 
     //一个表对应两个schema，table: + file:，只有file:满足btree条件
     //table: schema的时候会满足这里的if，这时候才会open_btree_count减一，也就是file:和table:都执行该函数一遍后，才会满足这里的if条件

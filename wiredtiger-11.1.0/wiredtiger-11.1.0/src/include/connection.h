@@ -397,6 +397,7 @@ struct __wt_connection_impl {
     //__wt_cache_create
     WT_CACHE *cache;              /* Page cache */
     //__cache_config_loca中解析cacheSize配置
+    //yang add todo xxxxxx cache size越大，脏数据比例也会越高，checkpoint耗时也会越长，这期间例如reconfig调整配置也会等待checkpoint完成
     volatile uint64_t cache_size; /* Cache size (either statically
                                      configured or the current size
                                      within a cache pool). */

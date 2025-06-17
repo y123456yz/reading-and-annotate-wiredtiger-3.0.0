@@ -376,6 +376,11 @@ __wt_btree_bytes_updates(WT_SESSION_IMPL *session)
  * __wt_cache_page_inmem_incr --
  *     Increment a page's memory footprint in the cache.
  page数据在磁盘中，从这里可以看出即使page的数据在磁盘中，上面的__wt_cache_page_inmem_incr内存计数也会算上，参考__wt_page_inmem
+
+ 注意 __wt_cache_dirty_incr 与 __wt_cache_page_inmem_incr 的区别，前者是脏页的内存计数，后者是具体变化的增量内存数，举个例子:
+   假设一个page当前内存占用100K，其中update该page某个k的v，这时候update链表会多一个V, 假设多的这个V会多消耗1k；同时该page insert了一条
+   新数据，假设该条数据kv增加2k内存，则最终这个page占用的内存会增加到103k, dirty通过__wt_cache_dirty_incr最终为100+1+2k=103k, 但是update通
+   过__wt_cache_page_inmem_incr的统计为1+2k=3k
  */
 static inline void
 __wt_cache_page_inmem_incr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
@@ -413,6 +418,7 @@ __wt_cache_page_inmem_incr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
           F_ISSET(session->txn, WT_TXN_RUNNING | WT_TXN_HAS_ID) &&
           __wt_session_gen(session, WT_GEN_EVICT) == 0)
             WT_STAT_SESSION_INCRV(session, txn_bytes_dirty, size);
+            
         //leaf page相关内存消耗统计
         if (!WT_PAGE_IS_INTERNAL(page) && !btree->lsm_primary) {
             (void)__wt_atomic_add64(&cache->bytes_updates, size);
@@ -612,6 +618,10 @@ __wt_cache_page_inmem_decr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
 /*
  * __wt_cache_dirty_incr --
  *     Page switch from clean to dirty: increment the cache dirty page/byte counts.
+注意 __wt_cache_dirty_incr 与 __wt_cache_page_inmem_incr 的区别，前者是脏页的内存计数，后者是具体变化的增量内存数，举个例子:
+   假设一个page当前内存占用100K，其中update该page某个k的v，这时候update链表会多一个V, 假设多的这个V会多消耗1k；同时该page insert了一条
+   新数据，假设该条数据kv增加2k内存，则最终这个page占用的内存会增加到103k, dirty通过__wt_cache_dirty_incr最终为100+1+2k=103k, 但是update通
+   过__wt_cache_page_inmem_incr的统计为1+2k=3k
  */
 static inline void
 __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
@@ -644,6 +654,7 @@ __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)
         //脏页page数量统计
         (void)__wt_atomic_add64(&cache->pages_dirty_leaf, 1);
     }
+    //脏页字节数统计, 只增不减
     (void)__wt_atomic_add64(&cache->bytes_dirty_total, size);
     (void)__wt_atomic_add64(&btree->bytes_dirty_total, size);
     (void)__wt_atomic_addsize(&page->modify->bytes_dirty, size);

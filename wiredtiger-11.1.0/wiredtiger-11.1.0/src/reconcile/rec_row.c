@@ -370,9 +370,9 @@ __wt_rec_row_int(WT_SESSION_IMPL *session, WT_RECONCILE *r, WT_PAGE *page)
     const void *p;
 
     ref = page->pg_intl_parent_ref;
-    if(__wt_ref_is_root(ref))
-        WT_RET(__wt_msg(session, "yang test ..............................page is root, page:%p, ref:%p, type:%s",
-            page, ref, __wt_page_type_string(page->type)));
+   // if(__wt_ref_is_root(ref))
+    //    WT_RET(__wt_msg(session, "yang test ..............................page is root, page:%p, ref:%p, type:%s",
+    //        page, ref, __wt_page_type_string(page->type)));
    // else
     //    WT_RET(__wt_msg(session, "yang test ..............................page is not root, page:%p, ref:%p, type:%s",
    //         page, ref, __wt_page_type_string(page->type)));

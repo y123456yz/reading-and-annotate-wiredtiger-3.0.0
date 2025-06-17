@@ -39,11 +39,12 @@
 #define WT_SESSION_META_DHANDLE(s) (((WT_CURSOR_BTREE *)((s)->meta_cursor))->dhandle)
 
 ////__wt_cursor_cache  __session_find_shared_dhandle调用
-//dhandle可以被一个session缓存起来，也可以被全局conn缓存起来
+//dhandle可以被一个session缓存起来，也可以被全局conn缓存起来, 当session关闭时，会释放dhandle的ref计数
 #define WT_DHANDLE_ACQUIRE(dhandle) (void)__wt_atomic_add32(&(dhandle)->session_ref, 1)
-
+//  __wt_session_close_internal->__wt_session_close_cache->__session_discard_dhandle
 #define WT_DHANDLE_RELEASE(dhandle) (void)__wt_atomic_sub32(&(dhandle)->session_ref, 1)
 
+//如果dhandle为空，则取head的第一个元素，然后增加ref计数，否则取dhandle在列表中的下一个元素，然后释放dhandle的ref计数，然后自增下一个元素的session_ref
 #define WT_DHANDLE_NEXT(session, dhandle, head, field)                                     \
     do {                                                                                   \
         WT_ASSERT(session, FLD_ISSET(session->lock_flags, WT_SESSION_LOCKED_HANDLE_LIST)); \
@@ -82,6 +83,7 @@
 //__wt_table.iface接口为该类型，mongodb表table对应handle __wt_table
 struct __wt_data_handle {
     WT_RWLOCK rwlock; /* Lock for shared/exclusive ops */
+    char* yangtest_mem;
 
     //也就说uri  tabale:表名
     const char *name;         /* Object name as a URI */
