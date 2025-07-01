@@ -377,10 +377,7 @@ __wt_btree_bytes_updates(WT_SESSION_IMPL *session)
  *     Increment a page's memory footprint in the cache.
  page数据在磁盘中，从这里可以看出即使page的数据在磁盘中，上面的__wt_cache_page_inmem_incr内存计数也会算上，参考__wt_page_inmem
 
- 注意 __wt_cache_dirty_incr 与 __wt_cache_page_inmem_incr 的区别，前者是脏页的内存计数，后者是具体变化的增量内存数，举个例子:
-   假设一个page当前内存占用100K，其中update该page某个k的v，这时候update链表会多一个V, 假设多的这个V会多消耗1k；同时该page insert了一条
-   新数据，假设该条数据kv增加2k内存，则最终这个page占用的内存会增加到103k, dirty通过__wt_cache_dirty_incr最终为100+1+2k=103k, 但是update通
-   过__wt_cache_page_inmem_incr的统计为1+2k=3k
+ 注意__wt_cache_dirty_incr与__wt_cache_page_inmem_incr的区别，前者是脏页的内存计数，后者是具体变化
  */
 static inline void
 __wt_cache_page_inmem_incr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
@@ -618,10 +615,8 @@ __wt_cache_page_inmem_decr(WT_SESSION_IMPL *session, WT_PAGE *page, size_t size)
 /*
  * __wt_cache_dirty_incr --
  *     Page switch from clean to dirty: increment the cache dirty page/byte counts.
-注意 __wt_cache_dirty_incr 与 __wt_cache_page_inmem_incr 的区别，前者是脏页的内存计数，后者是具体变化的增量内存数，举个例子:
-   假设一个page当前内存占用100K，其中update该page某个k的v，这时候update链表会多一个V, 假设多的这个V会多消耗1k；同时该page insert了一条
-   新数据，假设该条数据kv增加2k内存，则最终这个page占用的内存会增加到103k, dirty通过__wt_cache_dirty_incr最终为100+1+2k=103k, 但是update通
-   过__wt_cache_page_inmem_incr的统计为1+2k=3k
+ __wt_cache_dirty_incr
+ __wt_cache_page_inmem_incr
  */
 static inline void
 __wt_cache_dirty_incr(WT_SESSION_IMPL *session, WT_PAGE *page)

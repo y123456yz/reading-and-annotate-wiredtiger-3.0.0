@@ -250,6 +250,7 @@ err:
 /*
  * __wt_curbackup_open --
  *     WT_SESSION->open_cursor method for the backup cursor type.
+  backup的核心思想实际上在该函数__wt_curbackup_open->__backup_start->__backup_all->__backup_list_uri_append中实现
  */
 int
 __wt_curbackup_open(WT_SESSION_IMPL *session, const char *uri, WT_CURSOR *other, const char *cfg[],
@@ -729,7 +730,7 @@ __backup_start(
      * Single thread hot backups: we're holding the schema lock, so we know we'll serialize with
      * other attempts to start a hot backup.
      */
-    //同一时刻只能有一个现成做backup
+    //同一时刻只能有一个线程做backup
     if (conn->hot_backup_start != 0 && !is_dup)
         WT_RET_MSG(session, EINVAL, "there is already a backup cursor open");
 
@@ -790,7 +791,7 @@ __backup_start(
          * or crash while filling it, the existence of a partial file doesn't confuse restarting in
          * the source database.
          */
-        //创建"WiredTiger.backup.tmp"文件
+        //创建"WiredTiger.backup.tmp"文件, 在该函数末尾重命名为WiredTiger.backup
         WT_ERR(__wt_fopen(session, WT_BACKUP_TMP, WT_FS_OPEN_CREATE, WT_STREAM_WRITE, &cb->bfs));
     }
 
@@ -926,6 +927,8 @@ __backup_stop(WT_SESSION_IMPL *session, WT_CURSOR_BACKUP *cb)
  *     Backup all objects in the database.
  __backup_log_append: 对应wiredtigerLog.xxxx文件  获取当前的wiredtigerLog.xxx文件名及其元数据信息存入cb->list[]，WAL不写入WT_METADATA_BACKUP backup文件
  __backup_all: 对应实际数据文件，包括元数据文件和普通数据文件名及其元数据信息存入WT_METADATA_BACKUP backup文件，同时添加一份到cb->list[]
+
+ backup的核心思想实际上在该函数__backup_start->__backup_all->__backup_list_uri_append中实现
  */
 static int
 __backup_all(WT_SESSION_IMPL *session)
@@ -939,6 +942,7 @@ __backup_all(WT_SESSION_IMPL *session)
  *     Append a new file name to the list, allocate space as necessary. Called via the schema_worker
  *     function.
  把name文件写入文件WT_BACKUP_TMP，同时添加到cb->list[]数组
+backup的核心思想实际上在该函数__backup_all->__backup_list_uri_append中实现
  */
 static int
 __backup_list_uri_append(WT_SESSION_IMPL *session, const char *name, bool *skip)

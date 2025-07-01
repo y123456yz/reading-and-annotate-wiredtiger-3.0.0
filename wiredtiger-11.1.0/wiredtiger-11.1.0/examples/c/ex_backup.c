@@ -178,7 +178,7 @@ take_full_backup(WT_SESSION *session, int i)
     } else
         hdir = home_incr;
    
-    //__wt_curbackup_open
+    //backup的核心思想实际上在该函数__wt_curbackup_open-> __wt_curbackup_open->__backup_start->__backup_all->__backup_list_uri_append中实现
     error_check(session->open_cursor(session, "backup:", NULL, "target=(\"table:logtest\")", &cursor));
 
     while ((ret = cursor->next(cursor)) == 0) {

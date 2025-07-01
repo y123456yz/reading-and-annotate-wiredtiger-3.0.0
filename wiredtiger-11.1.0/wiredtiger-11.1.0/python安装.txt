@@ -1,4 +1,8 @@
 
+7.0
+python3 buildscripts/scons.py compiledb install-mongod install-mongos --disable-warnings-as-errors -j 5 --modules="" -j5 install-mongod install-mongos LINKFLAGS="-static-libstdc++" MONGO_VERSION=7.0.11 --linker=gold
+
+
 python单元测试:
 nohup python ../test/suite/run.py -v 2 --parallel 4 > nohuplog   这是测试所有用例 
 Charybdefs ：故障注入文件系统    mongo可以参考内核代码watchdog中的charybdefs_setup.sh 

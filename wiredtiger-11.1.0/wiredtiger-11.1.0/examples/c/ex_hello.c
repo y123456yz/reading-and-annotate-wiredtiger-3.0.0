@@ -376,7 +376,7 @@ access_example2(int argc, char *argv[])
         //error_check(wiredtiger_open(home, NULL, "create,statistics=(all),verbose=[config_all_verbos:0, metadata:0, api:0]", &conn));
         //error_check(wiredtiger_open(home, NULL, "prefetch=(available=true,default=false),create,cache_size=3G,session_max=33000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,remove=true,path=journal),builtin_extension_config=(zstd=(compression_level=6)),file_manager=(close_idle_time=5,close_scan_interval=5,close_handle_minimum=0),statistics_log=(wait=0),json_output=(error,message),verbose=[recovery_progress:1,checkpoint_progress:1,compact_progress:1,backup:0,checkpoint:0,compact:0,,history_store:0,recovery:0,rts:0,salvage:0,tiered:0,timestamp:0,transaction:0,verify:0,log:0],", &conn));
         error_check(wiredtiger_open(home, NULL, ",checkpoint=(log_size=0,wait=300),create,cache_size=3G,session_max=33000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,remove=true,path=journal),builtin_extension_config=(zstd=(compression_level=6)),"
-        "file_manager=(close_idle_time=10,close_scan_interval=5,close_handle_minimum=1),statistics_log=(wait=0),json_output=(error,message),", &conn));
+        "file_manager=(close_idle_time=10,close_scan_interval=5,close_handle_minimum=1),statistics_log=(wait=0),json_output=(error,message),verbose=[checkpoint:3, block:3]", &conn));
 
         //error_check(wiredtiger_open(home, NULL, "verbose=[fileops:5], create,file_manager=(close_handle_minimum=0,close_idle_time=6,close_scan_interval=5)", &conn));
 
@@ -389,7 +389,7 @@ access_example2(int argc, char *argv[])
         /*! [access example connection] */
 
         print_memory_usage();
-        #define MAX_TABLE_COUNT 10
+        #define MAX_TABLE_COUNT 1
         for (table_count = 0; table_count < MAX_TABLE_COUNT; table_count++) {
             error_check(conn->open_session(conn, NULL, NULL, &session));
             (void)snprintf(cmd_buf, sizeof(cmd_buf), "table:ycsb_lynn_%d", table_count);
@@ -399,7 +399,7 @@ access_example2(int argc, char *argv[])
             error_check(session->open_cursor(session, cmd_buf, NULL, NULL, &cursor));
             /*! [access example cursor open] */
 
-            #define MAX_TEST_KV_NUM2 0//1000000
+            #define MAX_TEST_KV_NUM2 1//1000000
              //insert
             for (i = 0; i < MAX_TEST_KV_NUM2; i++) {
                 snprintf(buf, sizeof(buf), "keyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_%d", i);
